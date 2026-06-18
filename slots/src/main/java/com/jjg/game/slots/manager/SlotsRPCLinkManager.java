@@ -74,7 +74,7 @@ public class SlotsRPCLinkManager {
             try {
                 rpcContext.withReqParameterBuilder(RpcReqParameterBuilder.create().addClusterClient(client).setTryMillisPerClient(1000));
                 boolean finalChangeNode = changeNode;
-                rpcContext.asyncCall(() -> toSimBridge.onSlotsSpin(playerId, gameType, winTimes, finalChangeNode, statInfo))
+                rpcContext.asyncCall(() -> toSimBridge.onSlotsSpin(playerId, gameType, winTimes, finalChangeNode, null))
                         .whenComplete((result, throwable) -> {
                             if (throwable != null) {
                                 log.warn("sim道具掉落异步调用异常 playerId={},gameType={},winTimes={}", playerId, gameType, winTimes, throwable);

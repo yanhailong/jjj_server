@@ -3,7 +3,6 @@ package com.jjg.game.sim.service;
 import com.alibaba.fastjson.JSON;
 import com.jjg.game.alliance.service.AllianceHelpService;
 import com.jjg.game.common.pb.ItemInfo;
-import com.jjg.game.common.proto.Pair;
 import com.jjg.game.common.utils.TimeHelper;
 import com.jjg.game.core.constant.AddType;
 import com.jjg.game.core.constant.Code;
@@ -12,11 +11,7 @@ import com.jjg.game.sampledata.GameDataManager;
 import com.jjg.game.sampledata.bean.BuildingAreaTableCfg;
 import com.jjg.game.sampledata.bean.BuildingUpgradeTableCfg;
 import com.jjg.game.sampledata.bean.CasinoStatsSheetCfg;
-import com.jjg.game.sim.constant.BonusType;
-import com.jjg.game.sim.constant.BuildingOutputType;
-import com.jjg.game.sim.constant.BuildingType;
-import com.jjg.game.sim.constant.SimConstant;
-import com.jjg.game.sim.constant.SimStatKey;
+import com.jjg.game.sim.constant.*;
 import com.jjg.game.sim.data.BuildingData;
 import com.jjg.game.sim.data.SimCasinoData;
 import com.jjg.game.sim.data.SimOfflineReward;
@@ -30,11 +25,7 @@ import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 
-import java.util.ArrayList;
-import java.util.Collections;
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
+import java.util.*;
 
 /**
  * 建筑服务: 解锁、升级、CD 清除
@@ -408,12 +399,6 @@ public class SimBuildingService implements SimPlayerTickListener {
                 data.setCdEndTime(data.getCdEndTime() - reduceMs);
             }
 
-            //CD 已减满: 立即完成升级
-            if (data.getCdEndTime() <= now) {
-                data.setCdEndTime(now);
-                completeBuildingUpgrade(casino, data, now);
-            }
-
             res.buildingInfo = SimPbConverter.toBuildingInfo(data);
             log.info("清除建筑升级CD playerId={},buildingId={},watchAd={},costCount={},level={},cdEndTime={}", ctx.playerId(), buildingId, watchAd, costCount, data.getLevel(), data.getCdEndTime());
         } catch (Exception e) {
@@ -516,15 +501,15 @@ public class SimBuildingService implements SimPlayerTickListener {
         if (bonusType != null && !bonusType.isMin()) {
             return Collections.emptyMap();
         }
-        return applyBuildingBonus(ctx, base, bonusType, buildingType, bonusesMap);
+        return applyBuildingBonus(ctx, base, bonusType, areaCfg.getEmployeeProfile(), bonusesMap);
     }
 
     /**
      * 为单个建筑的基础产出叠加 (普通雇员 + 主管) 加成; 不做每分钟产出类型过滤。
      */
-    private Map<BuildingOutputType, Long> applyBuildingBonus(SimPlayerContext ctx, Map<BuildingOutputType, Long> base, BonusType bonusType, BuildingType buildingType, Map<BonusType, Integer> bonusesMap) {
+    private Map<BuildingOutputType, Long> applyBuildingBonus(SimPlayerContext ctx, Map<BuildingOutputType, Long> base, BonusType bonusType, int employeeProfile, Map<BonusType, Integer> bonusesMap) {
         //主管加成
-        Map<BonusType, Integer> manageBonusesMap = employeeService.manageEmployeeBonus(ctx, buildingType);
+        Map<BonusType, Integer> manageBonusesMap = employeeService.manageEmployeeBonus(ctx, employeeProfile);
         //合并
         Map<BonusType, Integer> tmpMap;
         if (manageBonusesMap != null && !manageBonusesMap.isEmpty()) {
@@ -571,7 +556,7 @@ public class SimBuildingService implements SimPlayerTickListener {
             if (base.isEmpty()) {
                 continue;
             }
-            Map<BuildingOutputType, Long> actual = applyBuildingBonus(ctx, base, BonusType.fromBuildingType(buildingType), buildingType, bonusesMap);
+            Map<BuildingOutputType, Long> actual = applyBuildingBonus(ctx, base, BonusType.fromBuildingType(buildingType), areaCfg.getEmployeeProfile(), bonusesMap);
             if (buildingType == BuildingType.REST) {
                 //能量房间: 休息区 POWER 产量
                 result.merge(SimStatKey.Operation.ENERGY_ROOM, actual.getOrDefault(BuildingOutputType.POWER, 0L), Long::sum);
@@ -673,15 +658,23 @@ public class SimBuildingService implements SimPlayerTickListener {
         if (base == null || base.isEmpty()) {
             return Collections.emptyList();
         }
-        Pair<BonusType, BuildingType> pair = resolveBonusType(buildingData.getId());
-        if (pair == null || pair.getFirst() == null) {
+        BuildingAreaTableCfg areaCfg = GameDataManager.getBuildingAreaTableCfg(buildingData.getId());
+        if (areaCfg == null) {
+            return Collections.emptyList();
+        }
+        BuildingType buildingType = BuildingType.fromCode(areaCfg.getType());
+        if (buildingType == null) {
+            return Collections.emptyList();
+        }
+        BonusType bonusType = BonusType.fromBuildingType(buildingType);
+        if (bonusType == null) {
             return Collections.emptyList();
         }
 
         //所有已解锁雇员的等级加成 (按类型汇总)
         Map<BonusType, Integer> bonusesMap = new HashMap<>();
         employeeService.computeTypeBonusFixed(ctx, bonusesMap);
-        int bonus = bonusesMap.getOrDefault(pair.getFirst(), 0);
+        int bonus = bonusesMap.getOrDefault(bonusType, 0);
         return buildBonusList(base, bonus);
     }
 
@@ -697,8 +690,16 @@ public class SimBuildingService implements SimPlayerTickListener {
         if (base == null || base.isEmpty()) {
             return Collections.emptyList();
         }
-        Pair<BonusType, BuildingType> pair = resolveBonusType(buildingData.getId());
-        if (pair == null || pair.getFirst() == null) {
+        BuildingAreaTableCfg areaCfg = GameDataManager.getBuildingAreaTableCfg(buildingData.getId());
+        if (areaCfg == null) {
+            return Collections.emptyList();
+        }
+        BuildingType buildingType = BuildingType.fromCode(areaCfg.getType());
+        if (buildingType == null) {
+            return Collections.emptyList();
+        }
+        BonusType bonusType = BonusType.fromBuildingType(buildingType);
+        if (bonusType == null) {
             return Collections.emptyList();
         }
 
@@ -706,29 +707,13 @@ public class SimBuildingService implements SimPlayerTickListener {
         Map<BonusType, Integer> bonusesMap = new HashMap<>();
         employeeService.computeTypeBonusFixed(ctx, bonusesMap);
         //主管加成
-        Map<BonusType, Integer> withSupervisor = employeeService.manageEmployeeBonus(ctx, pair.getSecond());
+        Map<BonusType, Integer> withSupervisor = employeeService.manageEmployeeBonus(ctx, areaCfg.getEmployeeProfile());
 
         //仅取主管额外贡献的部分 (总加成 - 普通雇员加成), 避免与普通雇员加成重复计算
-        int normalBonus = bonusesMap.getOrDefault(pair.getFirst(), 0);
-        int totalBonus = withSupervisor.getOrDefault(pair.getFirst(), 0);
+        int normalBonus = bonusesMap.getOrDefault(bonusType, 0);
+        int totalBonus = withSupervisor.getOrDefault(bonusType, 0);
         int managerBonus = totalBonus - normalBonus;
         return buildBonusList(base, managerBonus);
-    }
-
-    /**
-     * 根据建筑id解析对应的加成类型
-     */
-    private Pair<BonusType, BuildingType> resolveBonusType(int buildingId) {
-        BuildingAreaTableCfg areaCfg = GameDataManager.getBuildingAreaTableCfg(buildingId);
-        if (areaCfg == null) {
-            return null;
-        }
-        BuildingType buildingType = BuildingType.fromCode(areaCfg.getType());
-        if (buildingType == null) {
-            return null;
-        }
-        BonusType bonusType = BonusType.fromBuildingType(buildingType);
-        return new Pair<>(bonusType, buildingType);
     }
 
     /**

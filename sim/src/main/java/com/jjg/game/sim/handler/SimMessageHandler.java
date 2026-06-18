@@ -210,7 +210,7 @@ public class SimMessageHandler implements GmListener {
     @Command(SimConstant.MsgBean.REQ_ASSIGN_SUPERVISOR)
     public void reqAssignSupervisor(PlayerController playerController, ReqAssignSupervisor req) {
         execute(playerController, ctx -> {
-            employeeService.onAssignSupervisor(ctx, req.buildingId, req.employeeId);
+            employeeService.onAssignSupervisor(ctx, req.employeeId);
         });
     }
 
@@ -396,8 +396,7 @@ public class SimMessageHandler implements GmListener {
                 reqStarUpEmployee(playerController, req);
             } else if ("assignSupervisor".equalsIgnoreCase(gmOrders[0])) {
                 ReqAssignSupervisor req = new ReqAssignSupervisor();
-                req.buildingId = Integer.parseInt(gmOrders[1]);
-                req.employeeId = Integer.parseInt(gmOrders[2]);
+                req.employeeId = Integer.parseInt(gmOrders[1]);
                 reqAssignSupervisor(playerController, req);
             } else if ("recruitEmployee".equalsIgnoreCase(gmOrders[0])) {
                 ReqRecruitEmployee req = new ReqRecruitEmployee();

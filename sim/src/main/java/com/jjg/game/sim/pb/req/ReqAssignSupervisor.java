@@ -13,8 +13,6 @@ import com.jjg.game.sim.constant.SimConstant;
 @ProtobufMessage(messageType = MessageConst.MessageTypeDef.SIM_GAME, cmd = SimConstant.MsgBean.REQ_ASSIGN_SUPERVISOR)
 @ProtoDesc("任命/更换主管")
 public class ReqAssignSupervisor extends AbstractMessage {
-    @ProtoDesc("建筑id")
-    public int buildingId;
     @ProtoDesc("雇员id")
     public int employeeId;
 }

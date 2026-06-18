@@ -49,7 +49,7 @@ public class SimCasinoData extends AbstractData {
     private Map<Integer, GuestData> guestMap;
     //已生成待领奖的购买游客 (uid -> data, 落库用于断线重连)
     private Map<String, PurchasedGuestData> purchasedGuestMap;
-    //主管id
+    //主管id   employeeProfileConfig.ProfessionID -> employeeId
     private Map<Integer, Integer> managerEmployMap;
     //游客羁绊
     private Set<Integer> guestBondsSet;
@@ -302,18 +302,18 @@ public class SimCasinoData extends AbstractData {
         return this.recentGenerateTimes.size();
     }
 
-    public int manageEmploy(int buildingType) {
+    public int manageEmploy(int professionId) {
         if (this.managerEmployMap == null || this.managerEmployMap.isEmpty()) {
             return 0;
         }
-        return this.managerEmployMap.get(buildingType);
+        return this.managerEmployMap.get(professionId);
     }
 
-    public void addManagerEmploy(int buildingType, int employId) {
+    public void addManagerEmploy(int professionId, int employId) {
         if (this.managerEmployMap == null || this.managerEmployMap.isEmpty()) {
             this.managerEmployMap = new HashMap<>();
         }
-        this.managerEmployMap.put(buildingType, employId);
+        this.managerEmployMap.put(professionId, employId);
     }
 
     // ---------------------------------------------------------------------

@@ -9,10 +9,8 @@ import com.jjg.game.core.utils.ItemUtils;
 import com.jjg.game.sampledata.GameDataManager;
 import com.jjg.game.sampledata.bean.*;
 import com.jjg.game.sim.constant.BonusType;
-import com.jjg.game.sim.constant.BuildingType;
 import com.jjg.game.sim.constant.SimConstant;
 import com.jjg.game.sim.dao.SimEmployeeDao;
-import com.jjg.game.sim.data.BuildingData;
 import com.jjg.game.sim.data.SimEmployeeData;
 import com.jjg.game.sim.data.SimPlayerContext;
 import com.jjg.game.sim.pb.res.*;
@@ -258,15 +256,14 @@ public class SimEmployeeService {
     /**
      * 任命主管
      */
-    public void onAssignSupervisor(SimPlayerContext ctx, int buildingId, int employeeId) {
+    public void onAssignSupervisor(SimPlayerContext ctx, int employeeId) {
         ResAssignSupervisor res = new ResAssignSupervisor(Code.SUCCESS);
-        res.buildingType = buildingId;
         res.employeeId = employeeId;
         try {
-            //获取建筑配置
-            BuildingAreaTableCfg cfg = GameDataManager.getBuildingAreaTableCfg(buildingId);
+            //获取雇员配置
+            EmployeeProfileCfg cfg = GameDataManager.getEmployeeProfileCfg(employeeId);
             if (cfg == null) {
-                log.warn("任命主管失败, 未找到建筑配置信息 playerId={},buildingId={}", ctx.playerId(), buildingId);
+                log.warn("任命主管失败, 未找到雇员配置信息 playerId={},buildingId={}", ctx.playerId(), employeeId);
                 res.code = Code.NOT_FOUND;
                 ctx.send(res);
                 return;
@@ -278,24 +275,21 @@ public class SimEmployeeService {
                 ctx.send(res);
                 return;
             }
-            BuildingData buildingData = ctx.getCurrentCasino().getBuildingData().get(buildingId);
-            if (buildingData == null) {
-                log.warn("任命主管失败, 该建筑未解锁 playerId={},buildingId={}", ctx.playerId(), buildingId);
-                res.code = Code.NOT_FOUND;
-                ctx.send(res);
-                return;
+            ctx.getCurrentCasino().addManagerEmploy(cfg.getProfessionID(),employeeId);
+
+            //主管加成
+            Map<BonusType, Integer> bonusMap = manageEmployeeBonus(ctx, cfg.getProfessionID());
+            if (!bonusMap.isEmpty()) {
+                res.manageEmployeeBonus = new ArrayList<>(bonusMap.size());
+                for (Map.Entry<BonusType, Integer> en : bonusMap.entrySet()) {
+                    KVInfo kvInfo = new KVInfo();
+                    kvInfo.key = en.getKey().getCode();
+                    kvInfo.value = en.getValue();
+                    res.manageEmployeeBonus.add(kvInfo);
+                }
             }
 
-            int manaerId = ctx.getCurrentCasino().manageEmploy(cfg.getType());
-            if (manaerId > 0) {
-                log.warn("任命主管失败, 该类建筑已有主管 playerId={},buildingId={},type={}", ctx.playerId(), buildingId, cfg.getType());
-                res.code = Code.FORBID;
-                ctx.send(res);
-                return;
-            }
-
-            ctx.getCurrentCasino().addManagerEmploy(cfg.getType(), employeeId);
-            log.info("任命主管 playerId={},casinoId={},type={},employeeId={}", ctx.playerId(), ctx.getCurrentCasino().getCasinoId(), buildingId, employeeId);
+            log.info("任命主管 playerId={},casinoId={},professionId={},employeeId={}", ctx.playerId(), ctx.getCurrentCasino().getCasinoId(), cfg.getProfessionID(), employeeId);
         } catch (Exception e) {
             log.error("", e);
             res.code = Code.EXCEPTION;
@@ -365,15 +359,14 @@ public class SimEmployeeService {
      * 仅仅获取主管的加成
      *
      * @param ctx
-     * @param buildingType
      * @return
      */
-    public Map<BonusType, Integer> manageEmployeeBonus(SimPlayerContext ctx, BuildingType buildingType) {
-        if (buildingType == null) {
+    public Map<BonusType, Integer> manageEmployeeBonus(SimPlayerContext ctx, int employeeProfile) {
+        if (employeeProfile < 1) {
             return Collections.emptyMap();
         }
 
-        int managerId = ctx.getCurrentCasino().manageEmploy(buildingType.code());
+        int managerId = ctx.getCurrentCasino().manageEmploy(employeeProfile);
         if (managerId < 1) {
             return Collections.emptyMap();
         }
