@@ -120,6 +120,14 @@ public interface SimConstant {
         //获取已解锁羁绊
         int REQ_UNLOCK_BONDS = BASE_MSG_PREFIX | 0x36;
         int RES_UNLOCK_BONDS = BASE_MSG_PREFIX | 0x37;
+
+        //获取游客卡池
+        int REQ_GUEST_POOL = BASE_MSG_PREFIX | 0x38;
+        int RES_GUEST_POOL = BASE_MSG_PREFIX | 0x39;
+
+        //获取雇员卡池
+        int REQ_EMPLOYEE_POOL = BASE_MSG_PREFIX | 0x3A;
+        int RES_EMPLOYEE_POOL = BASE_MSG_PREFIX | 0x3B;
     }
 
     interface Common {

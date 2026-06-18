@@ -248,7 +248,7 @@ public class SimGuestService implements SimPlayerTickListener {
 
         Map<Integer, DestinationInfo> map = new HashMap<>();
         for (DestinationInfo info : destinations) {
-            map.put(info.id, info);
+            map.put(info.index, info);
         }
         data.setDestinations(map);
         casino.addPurchasedGuest(data);
@@ -552,7 +552,7 @@ public class SimGuestService implements SimPlayerTickListener {
                 DestinationInfo dest = pickBuildingDevice(buildingId, casino);
                 if (dest != null) {
                     rewardService.grantReward(guest, dest);
-                    dest.id = id;
+                    dest.index = id;
                     id++;
                     result.add(dest);
                 }
@@ -570,7 +570,7 @@ public class SimGuestService implements SimPlayerTickListener {
                 cursor++;
                 DestinationInfo dest = pickBuildingDevice(buildingId, casino);
                 if (dest != null) {
-                    dest.id = id;
+                    dest.index = id;
                     id++;
                     result.add(dest);
                     added++;
@@ -927,6 +927,65 @@ public class SimGuestService implements SimPlayerTickListener {
             } else {
                 log.warn("解锁羁绊添加道具失败 playerId={},addItems={},code={}", ctx.playerId(), addItems, addResult.code);
             }
+        }
+    }
+
+    /**
+     * 获取卡池
+     *
+     * @param ctx
+     */
+    public void onPool(SimPlayerContext ctx) {
+        ResGuestPool res = new ResGuestPool(Code.SUCCESS);
+        try {
+            long now = System.currentTimeMillis();
+            PoolListCfg tmpCfg = null;
+            for (PoolListCfg cfg : GameDataManager.getPoolListCfgList()) {
+                if (cfg.getType() != SimConstant.PoolList.TYPE_EMPLOYEE) {
+                    continue;
+                }
+
+                if (!cfg.getOpen()) {
+                    continue;
+                }
+
+                if (cfg.getTime_start() != null && !cfg.getTime_start().isEmpty() && cfg.getTime_end() != null && !cfg.getTime_end().isEmpty()) {
+                    long startTime = TimeHelper.getTimeMillisBy(cfg.getTime_start());
+                    long endTime = TimeHelper.getTimeMillisBy(cfg.getTime_end());
+                    if (startTime >= endTime) {
+                        continue;
+                    }
+                    if (now >= startTime && now <= endTime) {
+                        tmpCfg = cfg;
+                        break;
+                    }
+                } else {
+                    tmpCfg = cfg;
+                    break;
+                }
+            }
+
+            if (tmpCfg == null) {
+                log.warn("获取游客卡池失败1,playerId={}", ctx.playerId());
+                res.code = Code.PARAM_ERROR;
+                ctx.send(res);
+                return;
+            }
+
+            VisitorPoolCfg visitorPoolCfg = GameDataManager.getVisitorPoolCfg(tmpCfg.getDropItem());
+            if (visitorPoolCfg == null || visitorPoolCfg.getDetailedDropItem() == null) {
+                log.warn("获取游客卡池失败2,playerId={}", ctx.playerId());
+                res.code = Code.PARAM_ERROR;
+                ctx.send(res);
+                return;
+            }
+
+            res.guestIds = new ArrayList<>();
+            for (List<Integer> list : visitorPoolCfg.getDetailedDropItem()) {
+                res.guestIds.add(list.get(1));
+            }
+        } catch (Exception e) {
+            log.error("", e);
         }
     }
 }

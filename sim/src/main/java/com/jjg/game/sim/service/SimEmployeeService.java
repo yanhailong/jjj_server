@@ -7,11 +7,7 @@ import com.jjg.game.core.constant.Code;
 import com.jjg.game.core.pb.KVInfo;
 import com.jjg.game.core.utils.ItemUtils;
 import com.jjg.game.sampledata.GameDataManager;
-import com.jjg.game.sampledata.bean.BuildingAreaTableCfg;
-import com.jjg.game.sampledata.bean.EmployeeLevelCfg;
-import com.jjg.game.sampledata.bean.EmployeeProfileCfg;
-import com.jjg.game.sampledata.bean.EmployeeStarCfg;
-import com.jjg.game.sampledata.bean.PoolListCfg;
+import com.jjg.game.sampledata.bean.*;
 import com.jjg.game.sim.constant.BonusType;
 import com.jjg.game.sim.constant.BuildingType;
 import com.jjg.game.sim.constant.SimConstant;
@@ -19,11 +15,7 @@ import com.jjg.game.sim.dao.SimEmployeeDao;
 import com.jjg.game.sim.data.BuildingData;
 import com.jjg.game.sim.data.SimEmployeeData;
 import com.jjg.game.sim.data.SimPlayerContext;
-import com.jjg.game.sim.pb.res.ResAllEmployee;
-import com.jjg.game.sim.pb.res.ResAssignSupervisor;
-import com.jjg.game.sim.pb.res.ResRecruitEmployee;
-import com.jjg.game.sim.pb.res.ResStarUpEmployee;
-import com.jjg.game.sim.pb.res.ResUpgradeEmployee;
+import com.jjg.game.sim.pb.res.*;
 import com.jjg.game.sim.pb.struct.EmployDetailInfo;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -440,5 +432,64 @@ public class SimEmployeeService {
         }
         log.debug("[stub] 扣除雇员升级资源 playerId={},cost={}", ctx.playerId(), cost);
         return true;
+    }
+
+    /**
+     * 获取卡池
+     *
+     * @param ctx
+     */
+    public void onPool(SimPlayerContext ctx) {
+        ResEmployeePool res = new ResEmployeePool(Code.SUCCESS);
+        try {
+            long now = System.currentTimeMillis();
+            PoolListCfg tmpCfg = null;
+            for (PoolListCfg cfg : GameDataManager.getPoolListCfgList()) {
+                if (cfg.getType() != SimConstant.PoolList.TYPE_EMPLOYEE) {
+                    continue;
+                }
+
+                if (!cfg.getOpen()) {
+                    continue;
+                }
+
+                if (cfg.getTime_start() != null && !cfg.getTime_start().isEmpty() && cfg.getTime_end() != null && !cfg.getTime_end().isEmpty()) {
+                    long startTime = TimeHelper.getTimeMillisBy(cfg.getTime_start());
+                    long endTime = TimeHelper.getTimeMillisBy(cfg.getTime_end());
+                    if (startTime >= endTime) {
+                        continue;
+                    }
+                    if (now >= startTime && now <= endTime) {
+                        tmpCfg = cfg;
+                        break;
+                    }
+                } else {
+                    tmpCfg = cfg;
+                    break;
+                }
+            }
+
+            if (tmpCfg == null) {
+                log.warn("获取雇员卡池失败1,playerId={}", ctx.playerId());
+                res.code = Code.PARAM_ERROR;
+                ctx.send(res);
+                return;
+            }
+
+            EmployeePoolCfg employeePoolCfg = GameDataManager.getEmployeePoolCfg(tmpCfg.getDropItem());
+            if (employeePoolCfg == null || employeePoolCfg.getDetailedDropItem() == null) {
+                log.warn("获取雇员卡池失败2,playerId={}", ctx.playerId());
+                res.code = Code.PARAM_ERROR;
+                ctx.send(res);
+                return;
+            }
+
+            res.employeeIds = new ArrayList<>();
+            for (List<Integer> list : employeePoolCfg.getDetailedDropItem()) {
+                res.employeeIds.add(list.get(1));
+            }
+        } catch (Exception e) {
+            log.error("", e);
+        }
     }
 }

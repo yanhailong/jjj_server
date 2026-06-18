@@ -12,6 +12,7 @@ import com.jjg.game.sampledata.GameDataManager;
 import com.jjg.game.sampledata.bean.BuildingAreaTableCfg;
 import com.jjg.game.sampledata.bean.CasinoStatsSheetCfg;
 import com.jjg.game.sim.constant.SimConstant;
+import com.jjg.game.sim.dao.SimEmployeeDao;
 import com.jjg.game.sim.data.SimPlayerContext;
 import com.jjg.game.sim.manager.SimManager;
 import com.jjg.game.sim.pb.req.*;
@@ -50,6 +51,8 @@ public class SimMessageHandler implements GmListener {
     private SimStatsService statsService;
     @Autowired
     private SimConfigCacheService configCacheService;
+    @Autowired
+    private SimEmployeeDao simEmployeeDao;
 
 
     /**
@@ -225,6 +228,16 @@ public class SimMessageHandler implements GmListener {
         });
     }
 
+    /**
+     * 获取雇员卡池
+     */
+    @Command(SimConstant.MsgBean.REQ_EMPLOYEE_POOL)
+    public void reqEmployeePool(PlayerController playerController, ReqEmployeePool req) {
+        execute(playerController, ctx -> {
+            employeeService.onPool(ctx);
+        });
+    }
+
     //--------------------------雇员相关 end--------------------------
 
 
@@ -301,6 +314,16 @@ public class SimMessageHandler implements GmListener {
     public void reqUnlockBonds(PlayerController playerController, ReqGuestBonds req) {
         execute(playerController, ctx -> {
             guestService.onBonds(ctx);
+        });
+    }
+
+    /**
+     * 获取游客卡池
+     */
+    @Command(SimConstant.MsgBean.REQ_GUEST_POOL)
+    public void reqSimPool(PlayerController playerController, ReqGuestPool req) {
+        execute(playerController, ctx -> {
+            guestService.onPool(ctx);
         });
     }
 
