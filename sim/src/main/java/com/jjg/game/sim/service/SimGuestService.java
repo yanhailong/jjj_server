@@ -993,6 +993,8 @@ public class SimGuestService implements SimPlayerTickListener {
             }
         } catch (Exception e) {
             log.error("", e);
+            res.code = Code.EXCEPTION;
         }
+        ctx.send(res);
     }
 }
