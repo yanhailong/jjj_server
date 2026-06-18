@@ -14,7 +14,7 @@ import com.jjg.game.sim.constant.SimConstant;
 @ProtoDesc("请求领取购买游客奖励 (按目的地逐个领取)")
 public class ReqPurchasedGuestReward extends AbstractMessage {
     @ProtoDesc("购买游客唯一id")
-    public long uid;
+    public String uid;
     @ProtoDesc("目的地序号 (GuestInfo.destinations 下标)")
     public int index;
 }

@@ -17,5 +17,5 @@ public class GuestInfo {
     @ProtoDesc("剩余未完成的目的地序列")
     public List<DestinationInfo> destinations;
     @ProtoDesc("唯一id，如果需要同步位置，则传该uid")
-    public long uid;
+    public String uid;
 }

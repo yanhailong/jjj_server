@@ -17,7 +17,7 @@ import java.util.List;
 @ProtoDesc("领取购买游客奖励返回 (单个目的地, 奖励可能为空)")
 public class ResPurchasedGuestReward extends AbstractResponse {
     @ProtoDesc("购买游客唯一id")
-    public long uid;
+    public String uid;
     @ProtoDesc("目的地序号")
     public int index;
     @ProtoDesc("本目的地结算的奖励 (可能为空)")

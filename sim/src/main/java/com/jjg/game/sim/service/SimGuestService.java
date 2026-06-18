@@ -241,7 +241,7 @@ public class SimGuestService implements SimPlayerTickListener {
         }
 
         PurchasedGuestData data = new PurchasedGuestData();
-        data.setUid(UID_GENERATOR.nextId());
+        data.setUid(UID_GENERATOR.nextIdStr());
         data.setGuestId(guestId);
         data.setStar(guest.getStar());
         data.setLevel(guest.getLevel());
@@ -275,10 +275,17 @@ public class SimGuestService implements SimPlayerTickListener {
      * @param uid   购买游客唯一id
      * @param index 目的地序号 (destinations 下标)
      */
-    public void claimPurchasedGuestReward(SimPlayerContext ctx, long uid, int index) {
+    public void claimPurchasedGuestReward(SimPlayerContext ctx, String uid, int index) {
         ResPurchasedGuestReward res = new ResPurchasedGuestReward(Code.SUCCESS);
         res.uid = uid;
         res.index = index;
+
+        if (uid == null || uid.isEmpty()) {
+            log.warn("领取购买游客奖励失败，uid参数错误 playerId={},uid={}", ctx.playerId(), uid);
+            res.code = Code.NOT_FOUND;
+            ctx.send(res);
+            return;
+        }
 
         SimCasinoData casino = ctx.getCurrentCasino();
         if (casino == null) {

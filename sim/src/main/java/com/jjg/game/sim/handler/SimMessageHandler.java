@@ -12,7 +12,6 @@ import com.jjg.game.sampledata.GameDataManager;
 import com.jjg.game.sampledata.bean.BuildingAreaTableCfg;
 import com.jjg.game.sampledata.bean.CasinoStatsSheetCfg;
 import com.jjg.game.sim.constant.SimConstant;
-import com.jjg.game.sim.dao.SimEmployeeDao;
 import com.jjg.game.sim.data.SimPlayerContext;
 import com.jjg.game.sim.manager.SimManager;
 import com.jjg.game.sim.pb.req.*;
@@ -51,8 +50,6 @@ public class SimMessageHandler implements GmListener {
     private SimStatsService statsService;
     @Autowired
     private SimConfigCacheService configCacheService;
-    @Autowired
-    private SimEmployeeDao simEmployeeDao;
 
 
     /**
@@ -474,10 +471,9 @@ public class SimMessageHandler implements GmListener {
                     guestService.generatePurchasedGuest(ctx, guestId);
                 });
             } else if ("claimPurchasedGuest".equalsIgnoreCase(gmOrders[0])) {
-                long uid = Long.parseLong(gmOrders[1]);
                 int index = Integer.parseInt(gmOrders[2]);
                 execute(playerController, ctx -> {
-                    guestService.claimPurchasedGuestReward(ctx, uid, index);
+                    guestService.claimPurchasedGuestReward(ctx, gmOrders[1], index);
                 });
             } else if ("operationData".equalsIgnoreCase(gmOrders[0])) {
                 reqOperationData(playerController, null);

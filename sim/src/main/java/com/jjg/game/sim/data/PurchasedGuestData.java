@@ -16,7 +16,7 @@ import java.util.Map;
  */
 public class PurchasedGuestData {
     //唯一id (生成时分配)
-    private long uid;
+    private String uid;
     //游客 id (对应 VisitorQuestCfg.id)
     private int guestId;
     //生成时的星级快照 (用于领奖时结算奖励)
@@ -26,11 +26,11 @@ public class PurchasedGuestData {
     //预生成的目的地序列 (rewarded 标记有奖励交互点, 奖励延后领取时才结算)
     private Map<Integer,DestinationInfo> destinations;
 
-    public long getUid() {
+    public String getUid() {
         return uid;
     }
 
-    public void setUid(long uid) {
+    public void setUid(String uid) {
         this.uid = uid;
     }
 

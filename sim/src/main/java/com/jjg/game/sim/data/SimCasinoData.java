@@ -48,7 +48,7 @@ public class SimCasinoData extends AbstractData {
     //拥有的游客 VisitorQuest表
     private Map<Integer, GuestData> guestMap;
     //已生成待领奖的购买游客 (uid -> data, 落库用于断线重连)
-    private Map<Long, PurchasedGuestData> purchasedGuestMap;
+    private Map<String, PurchasedGuestData> purchasedGuestMap;
     //主管id
     private Map<Integer, Integer> managerEmployMap;
     //游客羁绊
@@ -223,11 +223,11 @@ public class SimCasinoData extends AbstractData {
         this.guestMap.put(guestData.getId(), guestData);
     }
 
-    public Map<Long, PurchasedGuestData> getPurchasedGuestMap() {
+    public Map<String, PurchasedGuestData> getPurchasedGuestMap() {
         return purchasedGuestMap;
     }
 
-    public void setPurchasedGuestMap(Map<Long, PurchasedGuestData> purchasedGuestMap) {
+    public void setPurchasedGuestMap(Map<String, PurchasedGuestData> purchasedGuestMap) {
         this.purchasedGuestMap = purchasedGuestMap;
     }
 
@@ -244,7 +244,7 @@ public class SimCasinoData extends AbstractData {
     /**
      * 按 uid 查询购买游客
      */
-    public PurchasedGuestData findPurchasedGuest(long uid) {
+    public PurchasedGuestData findPurchasedGuest(String uid) {
         if (this.purchasedGuestMap == null || this.purchasedGuestMap.isEmpty()) {
             return null;
         }
@@ -254,7 +254,7 @@ public class SimCasinoData extends AbstractData {
     /**
      * 领奖后移除购买游客
      */
-    public PurchasedGuestData removePurchasedGuest(long uid) {
+    public PurchasedGuestData removePurchasedGuest(String uid) {
         if (this.purchasedGuestMap == null || this.purchasedGuestMap.isEmpty()) {
             return null;
         }

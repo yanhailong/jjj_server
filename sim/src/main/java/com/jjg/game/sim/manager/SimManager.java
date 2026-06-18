@@ -150,7 +150,7 @@ public class SimManager {
             res.researchPoint = ctx.getSimBaseData().findResearchPoint(SimConstant.ResearchPoint.NORMAL_TPYE);
 
             //已生成待领奖的购买游客 (断线重连补发, 客户端凭 uid 领奖)
-            Map<Long, PurchasedGuestData> purchasedGuestMap = ctx.getCurrentCasino().getPurchasedGuestMap();
+            Map<String, PurchasedGuestData> purchasedGuestMap = ctx.getCurrentCasino().getPurchasedGuestMap();
             if (purchasedGuestMap != null && !purchasedGuestMap.isEmpty()) {
                 res.purchasedGuests = new ArrayList<>(purchasedGuestMap.size());
                 for (PurchasedGuestData data : purchasedGuestMap.values()) {
