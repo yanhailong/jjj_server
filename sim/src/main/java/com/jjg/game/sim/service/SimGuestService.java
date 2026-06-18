@@ -245,7 +245,12 @@ public class SimGuestService implements SimPlayerTickListener {
         data.setGuestId(guestId);
         data.setStar(guest.getStar());
         data.setLevel(guest.getLevel());
-        data.setDestinations(destinations);
+
+        Map<Integer, DestinationInfo> map = new HashMap<>();
+        for (DestinationInfo info : destinations) {
+            map.put(info.id, info);
+        }
+        data.setDestinations(map);
         casino.addPurchasedGuest(data);
 
         res.guest = SimPbConverter.toGuestInfo(data);
@@ -289,7 +294,7 @@ public class SimGuestService implements SimPlayerTickListener {
             ctx.send(res);
             return;
         }
-        List<DestinationInfo> destinations = data.getDestinations();
+        Map<Integer, DestinationInfo> destinations = data.getDestinations();
         if (destinations == null || index < 0 || index >= destinations.size()) {
             log.warn("领取购买游客奖励失败，目的地序号越界 playerId={},uid={},index={}", ctx.playerId(), uid, index);
             res.code = Code.NOT_FOUND;
@@ -318,24 +323,13 @@ public class SimGuestService implements SimPlayerTickListener {
         res.rewards = dest.rewards;
 
         //全部目的地领取完毕则移除
-        if (isAllClaimed(destinations)) {
+        boolean match = destinations.entrySet().stream().allMatch(en -> en.getValue().claimed);
+        if (match) {
             casino.removePurchasedGuest(uid);
         }
 
         log.info("领取购买游客奖励成功 playerId={},guestId={},uid={},index={}", ctx.playerId(), data.getGuestId(), uid, index);
         ctx.send(res);
-    }
-
-    /**
-     * 购买游客的所有目的地是否都已领取
-     */
-    private boolean isAllClaimed(List<DestinationInfo> destinations) {
-        for (DestinationInfo d : destinations) {
-            if (!d.claimed) {
-                return false;
-            }
-        }
-        return true;
     }
 
     /**
@@ -536,6 +530,7 @@ public class SimGuestService implements SimPlayerTickListener {
         }
         List<DestinationInfo> result = new ArrayList<>(allCount);
 
+        int id = 0;
         //有奖励: InteractionWeight (Map<buildingId, weight>)
         Map<Integer, Integer> interactionWeight = cfg.getInteractionWeight();
         if (rewardedCount > 0 && interactionWeight != null && !interactionWeight.isEmpty()) {
@@ -557,6 +552,8 @@ public class SimGuestService implements SimPlayerTickListener {
                 DestinationInfo dest = pickBuildingDevice(buildingId, casino);
                 if (dest != null) {
                     rewardService.grantReward(guest, dest);
+                    dest.id = id;
+                    id++;
                     result.add(dest);
                 }
             }
@@ -573,6 +570,8 @@ public class SimGuestService implements SimPlayerTickListener {
                 cursor++;
                 DestinationInfo dest = pickBuildingDevice(buildingId, casino);
                 if (dest != null) {
+                    dest.id = id;
+                    id++;
                     result.add(dest);
                     added++;
                 }

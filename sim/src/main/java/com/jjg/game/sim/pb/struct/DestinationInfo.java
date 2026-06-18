@@ -21,4 +21,6 @@ public class DestinationInfo {
     public List<ItemInfo> rewards;
     @ProtoDesc("购买游客该目的地奖励是否已领取 (重连时据此判断剩余可领)")
     public boolean claimed;
+    @ProtoDesc("序列id")
+    public int id;
 }

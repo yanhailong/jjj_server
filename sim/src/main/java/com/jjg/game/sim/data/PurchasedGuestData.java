@@ -2,7 +2,7 @@ package com.jjg.game.sim.data;
 
 import com.jjg.game.sim.pb.struct.DestinationInfo;
 
-import java.util.List;
+import java.util.Map;
 
 /**
  * 购买游客 (花钱购买的特殊游客):
@@ -24,7 +24,7 @@ public class PurchasedGuestData {
     //生成时的等级快照 (用于领奖时结算奖励)
     private int level;
     //预生成的目的地序列 (rewarded 标记有奖励交互点, 奖励延后领取时才结算)
-    private List<DestinationInfo> destinations;
+    private Map<Integer,DestinationInfo> destinations;
 
     public long getUid() {
         return uid;
@@ -58,11 +58,11 @@ public class PurchasedGuestData {
         this.level = level;
     }
 
-    public List<DestinationInfo> getDestinations() {
+    public Map<Integer, DestinationInfo> getDestinations() {
         return destinations;
     }
 
-    public void setDestinations(List<DestinationInfo> destinations) {
+    public void setDestinations(Map<Integer, DestinationInfo> destinations) {
         this.destinations = destinations;
     }
 }

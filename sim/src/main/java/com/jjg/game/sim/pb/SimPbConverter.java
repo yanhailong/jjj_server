@@ -36,7 +36,9 @@ public final class SimPbConverter {
         GuestInfo info = new GuestInfo();
         info.id = data.getGuestId();
         info.uid = data.getUid();
-        info.destinations = data.getDestinations();
+        if (data.getDestinations() != null && !data.getDestinations().isEmpty()) {
+            info.destinations = data.getDestinations().values().stream().toList();
+        }
         return info;
     }
 
@@ -50,7 +52,7 @@ public final class SimPbConverter {
         return info;
     }
 
-    public static EmployeeInfo toEmployeeInfo(SimEmployeeData data){
+    public static EmployeeInfo toEmployeeInfo(SimEmployeeData data) {
         EmployeeInfo info = new EmployeeInfo();
         info.id = data.getEmployeeId();
         info.level = data.getLevel();
@@ -58,7 +60,7 @@ public final class SimPbConverter {
         return info;
     }
 
-    public static KVInfo toManageEmpInfo(int buildingType,int id){
+    public static KVInfo toManageEmpInfo(int buildingType, int id) {
         KVInfo info = new KVInfo();
         info.key = buildingType;
         info.value = id;
