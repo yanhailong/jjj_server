@@ -314,12 +314,14 @@ public class SimBuildingService implements SimPlayerTickListener {
             if (casino == null) {
                 res.code = Code.NOT_FOUND;
                 ctx.send(res);
+                log.warn("完成建筑升级失败, 未找到SimCasinoData数据 playerId={},buildingId={}", ctx.playerId(), buildingId);
                 return;
             }
             BuildingData data = casino.findBuilding(buildingId);
             if (data == null) {
                 res.code = Code.PARAM_ERROR;
                 ctx.send(res);
+                log.warn("完成建筑升级失败, 未找到BuildingData数据 playerId={},buildingId={}", ctx.playerId(), buildingId);
                 return;
             }
 
@@ -388,10 +390,17 @@ public class SimBuildingService implements SimPlayerTickListener {
                 //经营信息: 观看广告数 +1
                 casino.incWatchAdCount();
             } else {
+                if (costCount < 1) {
+                    res.code = Code.NOT_ENOUGH;
+                    ctx.send(res);
+                    log.warn("道具清除建筑升级 CD失败，costCount不能小于1 playerId={},buildingId={},costCount={}", ctx.playerId(), buildingId, costCount);
+                    return;
+                }
                 boolean remove = simPackService.removeItem(ctx, SimConstant.Item.ID_CLEAR_CD, costCount, AddType.SIM_BUILDING_UPGRADE);
                 if (!remove) {
                     res.code = Code.NOT_ENOUGH;
                     ctx.send(res);
+                    log.warn("道具清除建筑升级 CD失败，道具不足 playerId={},buildingId={},costCount={}", ctx.playerId(), buildingId, costCount);
                     return;
                 }
                 //每消耗 1 个道具, CD 减少 1 分钟
@@ -513,9 +522,7 @@ public class SimBuildingService implements SimPlayerTickListener {
     /**
      * 为单个建筑的基础产出叠加 (普通雇员 + 主管) 加成; 不做每分钟产出类型过滤。
      */
-    private Map<BuildingOutputType, Long> applyBuildingBonus(SimPlayerContext ctx, Map<BuildingOutputType, Long> base,
-                                                             BonusType bonusType, BuildingType buildingType,
-                                                             Map<BonusType, Integer> bonusesMap) {
+    private Map<BuildingOutputType, Long> applyBuildingBonus(SimPlayerContext ctx, Map<BuildingOutputType, Long> base, BonusType bonusType, BuildingType buildingType, Map<BonusType, Integer> bonusesMap) {
         //主管加成
         Map<BonusType, Integer> manageBonusesMap = employeeService.manageEmployeeBonus(ctx, buildingType);
         //合并
@@ -919,8 +926,7 @@ public class SimBuildingService implements SimPlayerTickListener {
         long seconds = allianceHelpService.consumeSpeedupSeconds(playerId, data.getId());
         long reduced = data.applySpeedupSeconds(seconds, now);
         if (reduced > 0) {
-            log.info("apply alliance building speedup playerId={},buildingId={},seconds={},cdEndTime={}",
-                    playerId, data.getId(), reduced, data.getCdEndTime());
+            log.info("apply alliance building speedup playerId={},buildingId={},seconds={},cdEndTime={}", playerId, data.getId(), reduced, data.getCdEndTime());
         }
         return reduced;
     }

@@ -245,7 +245,7 @@ public class SimMessageHandler implements GmListener {
     //--------------------------游客相关 begin--------------------------
 
     /**
-     * 生成购买游客 (点击购买后立即生成, 只预生成目的地)
+     * 生成购买游客
      */
     @Command(SimConstant.MsgBean.REQ_GEN_PURCHASED_GUEST)
     public void reqGenPurchasedGuest(PlayerController playerController, ReqGenPurchasedGuest req) {

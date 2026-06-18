@@ -19,8 +19,6 @@ public class DestinationInfo {
     public int deviceId;
     @ProtoDesc("奖励")
     public List<ItemInfo> rewards;
-    @ProtoDesc("是否为有奖励交互点 (购买游客领奖时按此结算, false 则奖励为空)")
-    public boolean rewarded;
     @ProtoDesc("购买游客该目的地奖励是否已领取 (重连时据此判断剩余可领)")
     public boolean claimed;
 }

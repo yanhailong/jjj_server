@@ -30,7 +30,7 @@ public final class SimPbConverter {
     }
 
     /**
-     * PurchasedGuestData → GuestInfo (uid + 目的地; 用于生成下发 / 重连补发, 目的地此时奖励为空)
+     * PurchasedGuestData → GuestInfo (uid + 目的地; 用于生成下发 / 重连补发, 目的地已含预生成奖励)
      */
     public static GuestInfo toGuestInfo(PurchasedGuestData data) {
         GuestInfo info = new GuestInfo();

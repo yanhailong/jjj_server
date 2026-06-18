@@ -14,7 +14,7 @@ import com.jjg.game.sim.pb.struct.GuestInfo;
 @ProtobufMessage(messageType = MessageConst.MessageTypeDef.SIM_GAME, cmd = SimConstant.MsgBean.RES_GEN_PURCHASED_GUEST, resp = true)
 @ProtoDesc("生成购买游客返回")
 public class ResGenPurchasedGuest extends AbstractResponse {
-    @ProtoDesc("购买游客信息 (uid + 目的地, 奖励需另发领奖请求)")
+    @ProtoDesc("购买游客信息 (uid + 目的地及预生成奖励, 奖励需另发领奖请求才添加到玩家身上)")
     public GuestInfo guest;
 
     public ResGenPurchasedGuest(int code) {

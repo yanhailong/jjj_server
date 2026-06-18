@@ -68,13 +68,11 @@ public class SimGuestService implements SimPlayerTickListener {
         //当前场景
         SimCasinoData casino = ctx.getCurrentCasino();
         if (casino == null) {
-            log.warn("生成游客失败，当前场景数据不存在 playerId={},currentCasinoId={}", ctx.playerId(), ctx.getSimBaseData().getCurrentCasinoId());
             return;
         }
         //场景配置
         CasinoStatsSheetCfg casinoCfg = configCache.getCasinoStatsSheetCfg(casino.getCasinoId(), casino.getCasinoLevel());
         if (casinoCfg == null) {
-            log.warn("生成游客失败，获取 CasinoStatsSheetCfg 配置未找到 playerId={},casinoId={},level={}", ctx.playerId(), casino.getCasinoId(), casino.getCasinoLevel());
             return;
         }
         //计算实际生成间隔(ms)
@@ -178,12 +176,12 @@ public class SimGuestService implements SimPlayerTickListener {
     }
 
     // ---------------------------------------------------------------------
-    // 购买游客 (点击购买后立即生成, 不走定时逻辑; 只预生成目的地, 奖励延后领取)
+    // 购买游客 (点击购买后立即生成, 不走定时逻辑; 预生成目的地和奖励, 奖励延后领取时才添加)
     // ---------------------------------------------------------------------
 
     /**
-     * 生成购买游客 (客户端点击购买后触发):
-     * 只预生成目的地序列并分配唯一 uid, 不结算奖励
+     * 生成购买游客
+     * 预生成目的地序列和奖励并分配唯一 uid; 奖励不添加到玩家身上, 待客户端发起领奖请求时才添加
      *
      * @param ctx
      * @param guestId 购买的游客id
@@ -233,8 +231,8 @@ public class SimGuestService implements SimPlayerTickListener {
             return;
         }
 
-        //复用定时生成的目的地规划,不生成奖励
-        List<DestinationInfo> destinations = planDestinations(guest, visitorQuestCfg, casino, rewardedCount, unrewardedCount, false);
+        //预生成目的地序列和奖励 (奖励此时不添加到玩家身上, 待领奖请求时才添加)
+        List<DestinationInfo> destinations = planDestinations(guest, visitorQuestCfg, casino, rewardedCount, unrewardedCount);
         if (destinations.isEmpty()) {
             log.warn("生成购买游客失败，目的地序列为空 playerId={},guestId={}", ctx.playerId(), guestId);
             res.code = Code.FAIL;
@@ -265,7 +263,7 @@ public class SimGuestService implements SimPlayerTickListener {
 
     /**
      * 领取购买游客单个目的地的奖励 (客户端凭 uid + 目的地序号逐个发起):
-     * 该目的地此时才结算奖励 (无奖励交互点返回空); 同一目的地重复领取幂等;
+     * 奖励已在购买时预生成, 此时才添加到玩家身上 (无奖励交互点返回空); 同一目的地重复领取幂等;
      * 全部目的地领取完毕后移除该购买游客。
      *
      * @param ctx
@@ -300,26 +298,18 @@ public class SimGuestService implements SimPlayerTickListener {
         }
 
         DestinationInfo dest = destinations.get(index);
-        //首次领取才结算; 重复领取直接回已有奖励 (幂等)
+        //首次领取才添加道具; 重复领取直接回已有奖励 (幂等)
         if (!dest.claimed) {
-            if (dest.rewarded) {
-                //用生成时的星级/等级快照结算奖励
-                GuestData snapshot = new GuestData();
-                snapshot.setId(data.getGuestId());
-                snapshot.setStar(data.getStar());
-                snapshot.setLevel(data.getLevel());
-                rewardService.grantReward(snapshot, dest);
-
-                if (dest.rewards != null && !dest.rewards.isEmpty()) {
-                    Map<Integer, Long> rewardsMap = new HashMap<>();
-                    for (ItemInfo itemInfo : dest.rewards) {
-                        rewardsMap.merge(itemInfo.itemId, itemInfo.count, Long::sum);
-                    }
-                    //添加道具
-                    simPackService.addItems(ctx, rewardsMap, AddType.SIM_GUEST_REWARDS, null, false);
-                    //经营信息: 购买游客交互产出金币计入经营收益
-                    casino.addBusinessIncome(rewardsMap.getOrDefault(ItemUtils.getGoldItemId(), 0L));
+            //奖励已在购买时预生成, 此时才添加到玩家身上
+            if (dest.rewards != null && !dest.rewards.isEmpty()) {
+                Map<Integer, Long> rewardsMap = new HashMap<>();
+                for (ItemInfo itemInfo : dest.rewards) {
+                    rewardsMap.merge(itemInfo.itemId, itemInfo.count, Long::sum);
                 }
+                //添加道具
+                simPackService.addItems(ctx, rewardsMap, AddType.SIM_GUEST_REWARDS, null, false);
+                //经营信息: 购买游客交互产出金币计入经营收益
+                casino.addBusinessIncome(rewardsMap.getOrDefault(ItemUtils.getGoldItemId(), 0L));
             }
             dest.claimed = true;
             //经营信息: 接待游客人次 (购买游客每个目的地领取一次记一次交互)
@@ -416,8 +406,8 @@ public class SimGuestService implements SimPlayerTickListener {
             return null;
         }
 
-        //规划本次行程的目的地序列 (定时生成: 立即结算奖励)
-        List<DestinationInfo> destinations = planDestinations(guest, visitorQuestCfg, ctx.getCurrentCasino(), rewardedCount, unrewardedCount, true);
+        //规划本次行程的目的地序列 (生成奖励)
+        List<DestinationInfo> destinations = planDestinations(guest, visitorQuestCfg, ctx.getCurrentCasino(), rewardedCount, unrewardedCount);
         if (destinations.isEmpty()) {
             ctx.getCurrentCasino().setLastGenerateTime(now);
 //            log.warn("生成游客失败，目的地序列为空 playerId={},guestId={}", ctx.playerId(), visitorQuestCfg.getId());
@@ -537,10 +527,9 @@ public class SimGuestService implements SimPlayerTickListener {
      * - 无奖励交互: 按 TargetArea 顺序循环
      * - 两类穿插; 简单实现为先有奖励, 再无奖励
      * - 目标建筑未解锁/未配置则跳过该次交互
-     *
-     * @param rollReward true 立即结算奖励 (定时生成); false 只标记 rewarded 不结算 (购买游客延后领取)
+     * - 有奖励交互点结算奖励到 dest.rewards (是否添加到玩家身上由调用方决定)
      */
-    private List<DestinationInfo> planDestinations(GuestData guest, VisitorQuestCfg cfg, SimCasinoData casino, int rewardedCount, int unrewardedCount, boolean rollReward) {
+    private List<DestinationInfo> planDestinations(GuestData guest, VisitorQuestCfg cfg, SimCasinoData casino, int rewardedCount, int unrewardedCount) {
         int allCount = rewardedCount + unrewardedCount;
         if (allCount < 1) {
             return Collections.emptyList();
@@ -567,10 +556,7 @@ public class SimGuestService implements SimPlayerTickListener {
                 }
                 DestinationInfo dest = pickBuildingDevice(buildingId, casino);
                 if (dest != null) {
-                    dest.rewarded = true;
-                    if (rollReward) {
-                        rewardService.grantReward(guest, dest);
-                    }
+                    rewardService.grantReward(guest, dest);
                     result.add(dest);
                 }
             }
