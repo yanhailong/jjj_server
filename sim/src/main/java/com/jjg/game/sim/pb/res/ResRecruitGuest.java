@@ -21,6 +21,8 @@ public class ResRecruitGuest extends AbstractResponse {
     public List<KVInfo> guests;
     @ProtoDesc("获得的碎片")
     public List<ItemInfo> items;
+    @ProtoDesc("次数")
+    public int count;
 
     public ResRecruitGuest(int code) {
         super(code);

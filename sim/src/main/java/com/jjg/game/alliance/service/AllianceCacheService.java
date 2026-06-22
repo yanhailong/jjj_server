@@ -37,7 +37,7 @@ public class AllianceCacheService {
     private static final int ALLIANCE_CACHE_SECONDS = 30;
     private static final int ALLIANCE_CACHE_MAX = 2000;
     //玩家映射本地缓存 TTL(秒)
-    private static final int PLAYER_CACHE_SECONDS = 60;
+    private static final int PLAYER_CACHE_SECONDS = 3600;
     private static final int PLAYER_CACHE_MAX = 20000;
     //玩家映射 Redis TTL(秒): 不活跃玩家自然过期
     private static final long PLAYER_REDIS_TTL_SECONDS = TimeUnit.DAYS.toSeconds(1);

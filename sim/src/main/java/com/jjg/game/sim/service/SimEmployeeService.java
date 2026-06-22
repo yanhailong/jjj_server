@@ -103,7 +103,14 @@ public class SimEmployeeService {
             }
 
             if (tmpCfg.getDrawCost() != null && !tmpCfg.getDrawCost().isEmpty()) {
-                boolean remove = simPackService.removeItems(ctx, tmpCfg.getDrawCost(), AddType.SIM_EMPLOYEE_RECRUIT, null);
+                Map<Integer, Long> costMap = tmpCfg.getDrawCost();
+                if (count > 1) {
+                    costMap = new HashMap<>();
+                    for (Map.Entry<Integer, Long> en : tmpCfg.getDrawCost().entrySet()) {
+                        costMap.put(en.getKey(), en.getValue() * count);
+                    }
+                }
+                boolean remove = simPackService.removeItems(ctx, costMap, AddType.SIM_EMPLOYEE_RECRUIT, null);
                 if (!remove) {
                     log.warn("招募雇员失败,扣除道具失败 playerId={},count={},poolId={}", ctx.playerId(), count, tmpCfg.getId());
                     res.code = Code.PARAM_ERROR;
@@ -160,6 +167,7 @@ public class SimEmployeeService {
                     res.employees.add(kvInfo);
                 }
             }
+            res.count = count;
 
             log.info("招募雇员成功 playerId={},count={},newEmployee={},shard={}", ctx.playerId(), count, addEmployee, addItems);
         } catch (Exception e) {
@@ -263,7 +271,7 @@ public class SimEmployeeService {
             //获取雇员配置
             EmployeeProfileCfg cfg = GameDataManager.getEmployeeProfileCfg(employeeId);
             if (cfg == null) {
-                log.warn("任命主管失败, 未找到雇员配置信息 playerId={},buildingId={}", ctx.playerId(), employeeId);
+                log.warn("任命主管失败, 未找到雇员配置信息 playerId={},employeeId={}", ctx.playerId(), employeeId);
                 res.code = Code.NOT_FOUND;
                 ctx.send(res);
                 return;
@@ -275,7 +283,7 @@ public class SimEmployeeService {
                 ctx.send(res);
                 return;
             }
-            ctx.getCurrentCasino().addManagerEmploy(cfg.getProfessionID(),employeeId);
+            ctx.getCurrentCasino().addManagerEmploy(cfg.getProfessionID(), employeeId);
 
             //主管加成
             Map<BonusType, Integer> bonusMap = manageEmployeeBonus(ctx, cfg.getProfessionID());

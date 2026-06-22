@@ -510,12 +510,13 @@ public class SimBuildingService implements SimPlayerTickListener {
     private Map<BuildingOutputType, Long> applyBuildingBonus(SimPlayerContext ctx, Map<BuildingOutputType, Long> base, BonusType bonusType, int employeeProfile, Map<BonusType, Integer> bonusesMap) {
         //主管加成
         Map<BonusType, Integer> manageBonusesMap = employeeService.manageEmployeeBonus(ctx, employeeProfile);
-        //合并
+        //合并: 普通雇员 + 主管加成相加
         Map<BonusType, Integer> tmpMap;
         if (manageBonusesMap != null && !manageBonusesMap.isEmpty()) {
-            tmpMap = new HashMap<>();
-            tmpMap.putAll(bonusesMap);
-            tmpMap.putAll(manageBonusesMap);
+            tmpMap = new HashMap<>(bonusesMap);
+            for (Map.Entry<BonusType, Integer> en : manageBonusesMap.entrySet()) {
+                tmpMap.merge(en.getKey(), en.getValue(), Integer::sum);
+            }
         } else {
             tmpMap = bonusesMap;
         }
@@ -703,16 +704,10 @@ public class SimBuildingService implements SimPlayerTickListener {
             return Collections.emptyList();
         }
 
-        //普通雇员加成
-        Map<BonusType, Integer> bonusesMap = new HashMap<>();
-        employeeService.computeTypeBonusFixed(ctx, bonusesMap);
         //主管加成
         Map<BonusType, Integer> withSupervisor = employeeService.manageEmployeeBonus(ctx, areaCfg.getEmployeeProfile());
 
-        //仅取主管额外贡献的部分 (总加成 - 普通雇员加成), 避免与普通雇员加成重复计算
-        int normalBonus = bonusesMap.getOrDefault(bonusType, 0);
-        int totalBonus = withSupervisor.getOrDefault(bonusType, 0);
-        int managerBonus = totalBonus - normalBonus;
+        int managerBonus = withSupervisor.getOrDefault(bonusType, 0);
         return buildBonusList(base, managerBonus);
     }
 

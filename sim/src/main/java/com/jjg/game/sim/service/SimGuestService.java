@@ -718,7 +718,7 @@ public class SimGuestService implements SimPlayerTickListener {
             }
 
             VisitorQuestCfg visitorQuestCfg = GameDataManager.getVisitorQuestCfg(guestId);
-            if (visitorQuestCfg == null) {
+            if (visitorQuestCfg == null || cfg.getAscend() <= 0) {
                 log.warn("升星游客失败,获取游客配置失败 playerId={},guestId={}", ctx.playerId(), guestId);
                 res.code = Code.NOT_FOUND;
                 ctx.send(res);
@@ -732,6 +732,10 @@ public class SimGuestService implements SimPlayerTickListener {
                 ctx.send(res);
                 return;
             }
+
+            //升星
+            guestData.setStar(guestData.getStar() + 1);
+
             res.guestId = guestData.getId();
             res.star = guestData.getStar();
             log.info("升星游客成功 playerId={},guestId={},star={}", ctx.playerId(), guestId, guestData.getStar());
@@ -801,7 +805,14 @@ public class SimGuestService implements SimPlayerTickListener {
             }
 
             if (tmpCfg.getDrawCost() != null && !tmpCfg.getDrawCost().isEmpty()) {
-                boolean remove = simPackService.removeItems(ctx, tmpCfg.getDrawCost(), AddType.SIM_GUEST_RECRUIT, null);
+                Map<Integer, Long> costMap = tmpCfg.getDrawCost();
+                if (count > 1) {
+                    costMap = new HashMap<>();
+                    for (Map.Entry<Integer, Long> en : tmpCfg.getDrawCost().entrySet()) {
+                        costMap.put(en.getKey(), en.getValue() * count);
+                    }
+                }
+                boolean remove = simPackService.removeItems(ctx, costMap, AddType.SIM_GUEST_RECRUIT, null);
                 if (!remove) {
                     log.warn("招募游客失败,扣除道具失败 playerId={},count={},poolId={}", ctx.playerId(), count, tmpCfg.getId());
                     res.code = Code.PARAM_ERROR;
@@ -830,6 +841,7 @@ public class SimGuestService implements SimPlayerTickListener {
                     GuestData guestData = ctx.getCurrentCasino().findGuestData(visitorQuestCfg.getId());
                     if (guestData == null) {
                         guestData = new GuestData();
+                        guestData.setId(visitorQuestCfg.getId());
                         guestData.setStar(1);
                         guestData.setLevel(1);
                         ctx.getCurrentCasino().addGuest(guestData);
@@ -860,6 +872,7 @@ public class SimGuestService implements SimPlayerTickListener {
                 }
                 unlockBonds(ctx, guestIds);
             }
+            res.count = count;
             log.info("招募游客成功 playerId={},count={},newEmployee={},shard={}", ctx.playerId(), count, addGuest, addItems);
         } catch (Exception e) {
             log.error("", e);

@@ -21,6 +21,8 @@ public class ResRecruitEmployee extends AbstractResponse {
     public List<KVInfo> employees;
     @ProtoDesc("获得的碎片")
     public List<ItemInfo> items;
+    @ProtoDesc("次数")
+    public int count;
 
     public ResRecruitEmployee(int code) {
         super(code);

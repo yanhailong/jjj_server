@@ -306,7 +306,7 @@ public class SimCasinoData extends AbstractData {
         if (this.managerEmployMap == null || this.managerEmployMap.isEmpty()) {
             return 0;
         }
-        return this.managerEmployMap.get(professionId);
+        return this.managerEmployMap.getOrDefault(professionId, 0);
     }
 
     public void addManagerEmploy(int professionId, int employId) {
@@ -421,7 +421,7 @@ public class SimCasinoData extends AbstractData {
 
 
     public boolean employIsManager(int employeeId) {
-        if(this.managerEmployMap == null || this.managerEmployMap.isEmpty()) {
+        if (this.managerEmployMap == null || this.managerEmployMap.isEmpty()) {
             return false;
         }
         return this.managerEmployMap.entrySet().stream().anyMatch(e -> e.getValue() == employeeId);
