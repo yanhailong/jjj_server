@@ -4,6 +4,7 @@ import com.jjg.game.common.utils.TimeHelper;
 import com.jjg.game.common.utils.WeightRandom;
 import com.jjg.game.core.constant.AddType;
 import com.jjg.game.core.constant.Code;
+import com.jjg.game.core.data.CommonResult;
 import com.jjg.game.core.pb.KVInfo;
 import com.jjg.game.core.utils.ItemUtils;
 import com.jjg.game.sampledata.GameDataManager;
@@ -12,9 +13,11 @@ import com.jjg.game.sim.constant.BonusType;
 import com.jjg.game.sim.constant.SimConstant;
 import com.jjg.game.sim.dao.SimEmployeeDao;
 import com.jjg.game.sim.data.SimEmployeeData;
+import com.jjg.game.sim.data.SimItemOperationResult;
 import com.jjg.game.sim.data.SimPlayerContext;
 import com.jjg.game.sim.pb.res.*;
 import com.jjg.game.sim.pb.struct.EmployDetailInfo;
+import com.jjg.game.sim.pb.struct.RecruitShardInfo;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -119,7 +122,10 @@ public class SimEmployeeService {
                 }
             }
 
-            Map<Integer, Long> addItems = new HashMap<>();
+            Map<Integer, Long> addAllItems = new HashMap<>();
+            Map<Integer, Map<Integer, Long>> addSharedItems = new HashMap<>();
+            Map<Integer, Integer> shardDuplicateCount = new HashMap<>();
+
             Map<Integer, Integer> addEmployee = new HashMap<>();
             for (int i = 0; i < count; i++) {
                 List<Integer> next = poolRand.next();
@@ -147,15 +153,38 @@ public class SimEmployeeService {
 
                         addEmployee.merge(profileCfg.getId(), 1, Integer::sum);
                     } else { //已拥有,转化成碎片
-                        List<Integer> shard = profileCfg.getDuplicatetoShard();
-                        addItems.merge(shard.get(1), shard.get(2).longValue(), Long::sum);
+                        List<Integer> tmpList = profileCfg.getDuplicatetoShard();
+                        if (tmpList != null && !tmpList.isEmpty()) {
+                            int itemId = tmpList.get(1);
+                            long itemCount = tmpList.get(2).longValue();
+
+                            addAllItems.merge(itemId, itemCount, Long::sum);
+
+                            addSharedItems.computeIfAbsent(profileCfg.getId(), k -> new HashMap<>()).merge(itemId, itemCount, Long::sum);
+                            shardDuplicateCount.merge(profileCfg.getId(), 1, Integer::sum);
+                        }
                     }
                 }
             }
 
-            if (!addItems.isEmpty()) {
-                res.items = ItemUtils.buildItemInfo(addItems);
-                simPackService.addItems(ctx, addItems, AddType.SIM_EMPLOYEE_RECRUIT, count + "", false);
+            if (!addAllItems.isEmpty()) {
+                CommonResult<SimItemOperationResult> simItemOperationResultCommonResult = simPackService.addItems(ctx, addAllItems, AddType.SIM_GUEST_RECRUIT, count + "", false);
+                if (!simItemOperationResultCommonResult.success()) {
+                    log.warn("招募雇员后添加碎片道具失败 playerId={},count={},code={}", ctx.playerId(), count, simItemOperationResultCommonResult.code);
+                    res.code = simItemOperationResultCommonResult.code;
+                    ctx.send(res);
+                    return;
+                }
+
+                res.shardInfos = new ArrayList<>();
+
+                for (Map.Entry<Integer, Map<Integer, Long>> en1 : addSharedItems.entrySet()) {
+                    RecruitShardInfo re = new RecruitShardInfo();
+                    re.id = en1.getKey();
+                    re.count = shardDuplicateCount.getOrDefault(en1.getKey(), 0);
+                    re.items = ItemUtils.buildItemInfo(en1.getValue());
+                    res.shardInfos.add(re);
+                }
             }
 
             if (!addEmployee.isEmpty()) {
@@ -169,7 +198,7 @@ public class SimEmployeeService {
             }
             res.count = count;
 
-            log.info("招募雇员成功 playerId={},count={},newEmployee={},shard={}", ctx.playerId(), count, addEmployee, addItems);
+            log.info("招募雇员成功 playerId={},count={},newEmployee={},addAllItems={}", ctx.playerId(), count, addEmployee, addAllItems);
         } catch (Exception e) {
             log.error("", e);
             res.code = Code.EXCEPTION;

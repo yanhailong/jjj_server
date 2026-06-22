@@ -20,6 +20,7 @@ import com.jjg.game.sim.pb.res.*;
 import com.jjg.game.sim.pb.struct.DestinationInfo;
 import com.jjg.game.sim.pb.struct.GuestDetailInfo;
 import com.jjg.game.sim.pb.struct.GuestInfo;
+import com.jjg.game.sim.pb.struct.RecruitShardInfo;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -546,7 +547,7 @@ public class SimGuestService implements SimPlayerTickListener {
                 if (en.getValue() == null || en.getValue() <= 0) {
                     continue;
                 }
-                if (!isBuildingUnlocked(en.getKey(), casino)) {
+                if (casino.findBuilding(en.getKey()) == null) {
                     continue;
                 }
                 random.add(en.getKey(), en.getValue());
@@ -592,30 +593,20 @@ public class SimGuestService implements SimPlayerTickListener {
      * 在指定建筑随机挑一个交互设备 (建筑必须已解锁)
      */
     private DestinationInfo pickBuildingDevice(int buildingId, SimCasinoData casino) {
-        if (!isBuildingUnlocked(buildingId, casino)) {
+        BuildingData building = casino.findBuilding(buildingId);
+        if (building == null) {
             return null;
         }
-        List<Integer> devices = configCache.getBuildingDevices(buildingId);
-        if (devices == null || devices.isEmpty()) {
+        BuildingUpgradeTableCfg cfg = configCache.getBuildingUpgradeCfg(buildingId, building.getLevel());
+        if (cfg == null || cfg.getUnlockEquipment() == null || cfg.getUnlockEquipment().isEmpty()) {
             return null;
         }
-        int deviceId = devices.get(RandomUtils.randomInt(devices.size()));
+        int deviceId = cfg.getUnlockEquipment().get(RandomUtils.randomInt(cfg.getUnlockEquipment().size()));
 
         DestinationInfo destinationInfo = new DestinationInfo();
         destinationInfo.buildingId = buildingId;
         destinationInfo.deviceId = deviceId;
         return destinationInfo;
-    }
-
-    /**
-     * 建筑是否已解锁 (casino.buildingData 包含该 buildingId)
-     */
-    private boolean isBuildingUnlocked(int buildingId, SimCasinoData casino) {
-        Map<Integer, BuildingData> buildingData = casino.getBuildingData();
-        if (buildingData == null || buildingData.isEmpty()) {
-            return false;
-        }
-        return buildingData.containsKey(buildingId);
     }
 
     // ---------------------------------------------------------------------
@@ -821,8 +812,13 @@ public class SimGuestService implements SimPlayerTickListener {
                 }
             }
 
-            Map<Integer, Long> addItems = new HashMap<>();
+            Map<Integer, Long> addAllItems = new HashMap<>();
+            Map<Integer, Map<Integer, Long>> addSharedItems = new HashMap<>();
+            Map<Integer, Integer> shardDuplicateCount = new HashMap<>();
+
             Map<Integer, Integer> addGuest = new HashMap<>();
+
+
             for (int i = 0; i < count; i++) {
                 List<Integer> next = poolRand.next();
                 if (next == null || next.size() < 3) {
@@ -849,14 +845,37 @@ public class SimGuestService implements SimPlayerTickListener {
                         addGuest.merge(visitorQuestCfg.getId(), 1, Integer::sum);
                     } else { //分解成碎片
                         List<Integer> tmpList = visitorQuestCfg.getDuplicatetoShard();
-                        addItems.merge(tmpList.get(1), tmpList.get(2).longValue(), Long::sum);
+                        if (tmpList != null && !tmpList.isEmpty()) {
+                            int itemId = tmpList.get(1);
+                            long itemCount = tmpList.get(2).longValue();
+
+                            addAllItems.merge(itemId, itemCount, Long::sum);
+
+                            addSharedItems.computeIfAbsent(visitorQuestCfg.getId(), k -> new HashMap<>()).merge(itemId, itemCount, Long::sum);
+                            shardDuplicateCount.merge(visitorQuestCfg.getId(), 1, Integer::sum);
+                        }
                     }
                 }
             }
 
-            if (!addItems.isEmpty()) {
-                res.items = ItemUtils.buildItemInfo(addItems);
-                simPackService.addItems(ctx, addItems, AddType.SIM_GUEST_RECRUIT, count + "", false);
+            if (!addAllItems.isEmpty()) {
+                CommonResult<SimItemOperationResult> simItemOperationResultCommonResult = simPackService.addItems(ctx, addAllItems, AddType.SIM_GUEST_RECRUIT, count + "", false);
+                if (!simItemOperationResultCommonResult.success()) {
+                    log.warn("招募游客后添加碎片道具失败 playerId={},count={},code={}", ctx.playerId(), count, simItemOperationResultCommonResult.code);
+                    res.code = simItemOperationResultCommonResult.code;
+                    ctx.send(res);
+                    return;
+                }
+
+                res.shardInfos = new ArrayList<>();
+
+                for (Map.Entry<Integer, Map<Integer, Long>> en1 : addSharedItems.entrySet()) {
+                    RecruitShardInfo re = new RecruitShardInfo();
+                    re.id = en1.getKey();
+                    re.count = shardDuplicateCount.getOrDefault(en1.getKey(), 0);
+                    re.items = ItemUtils.buildItemInfo(en1.getValue());
+                    res.shardInfos.add(re);
+                }
             }
 
             if (!addGuest.isEmpty()) {
@@ -873,7 +892,7 @@ public class SimGuestService implements SimPlayerTickListener {
                 unlockBonds(ctx, guestIds);
             }
             res.count = count;
-            log.info("招募游客成功 playerId={},count={},newEmployee={},shard={}", ctx.playerId(), count, addGuest, addItems);
+            log.info("招募游客成功 playerId={},count={},newEmployee={},addAllItems={}", ctx.playerId(), count, addGuest, addAllItems);
         } catch (Exception e) {
             log.error("", e);
             res.code = Code.EXCEPTION;
