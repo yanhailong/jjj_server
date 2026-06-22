@@ -335,6 +335,7 @@ public class ShopService implements OrderGenerate {
                                     languageParamData.add(new LanguageParamData(0, NumberUtil.decimalFormat("#.##%", BigDecimal.valueOf(add).divide(GameConstant.TEN_THOUSAND_BD, 4, RoundingMode.DOWN))));
                                     languageParamData.add(new LanguageParamData(0, String.valueOf(NumberUtil.decimalFormat(",##0", addNum))));
                                     mailService.addCfgMail(player.getId(), mailId, List.of(new Item(currencyItemId, addNum.longValue())), languageParamData, addType);
+                                    coreLogger.sendVipLog(player, 7, Map.of(currencyItemId, addNum.longValue()), null, 0);
                                 }
                             }
                         }
