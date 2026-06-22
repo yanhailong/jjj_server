@@ -14,9 +14,9 @@ import com.jjg.game.common.proto.ProtobufMessage;
  */
 @ProtobufMessage(messageType = MessageConst.MessageTypeDef.ALLIANCE, cmd = AllianceConst.MsgBean.RES_BATTLE_SIGNUP, resp = true)
 @ProtoDesc("对决报名返回")
-public class ResBattleSignup extends AbstractResponse {
+public class ResAllianceBattleSignup extends AbstractResponse {
 
-    public ResBattleSignup(int code) {
+    public ResAllianceBattleSignup(int code) {
         super(code);
     }
 }

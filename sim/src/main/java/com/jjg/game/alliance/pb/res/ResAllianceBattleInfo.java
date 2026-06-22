@@ -18,7 +18,7 @@ import java.util.List;
  */
 @ProtobufMessage(messageType = MessageConst.MessageTypeDef.ALLIANCE, cmd = AllianceConst.MsgBean.RES_BATTLE_INFO, resp = true)
 @ProtoDesc("对决信息返回")
-public class ResBattleInfo extends AbstractResponse {
+public class ResAllianceBattleInfo extends AbstractResponse {
     @ProtoDesc("期号")
     public String period;
     @ProtoDesc("阶段(AllianceConst.BattleState)")
@@ -46,7 +46,7 @@ public class ResBattleInfo extends AbstractResponse {
     @ProtoDesc("已结算时: 是否获胜(平局按胜利)")
     public boolean win;
 
-    public ResBattleInfo(int code) {
+    public ResAllianceBattleInfo(int code) {
         super(code);
     }
 }

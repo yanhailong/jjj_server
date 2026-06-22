@@ -7,12 +7,12 @@ import com.jjg.game.common.proto.ProtoDesc;
 import com.jjg.game.common.proto.ProtobufMessage;
 
 /**
- * 联盟任务列表。
+ * 对决报名(盟主)。
  *
  * @author 11
  * @date 2026/6/11
  */
-@ProtobufMessage(messageType = MessageConst.MessageTypeDef.ALLIANCE, cmd = AllianceConst.MsgBean.REQ_TASK_LIST)
-@ProtoDesc("联盟任务列表")
-public class ReqTaskList extends AbstractMessage {
+@ProtobufMessage(messageType = MessageConst.MessageTypeDef.ALLIANCE, cmd = AllianceConst.MsgBean.REQ_BATTLE_SIGNUP)
+@ProtoDesc("对决报名(盟主)")
+public class ReqAllianceBattleSignup extends AbstractMessage {
 }

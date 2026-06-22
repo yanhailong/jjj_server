@@ -14,7 +14,7 @@ import com.jjg.game.common.proto.ProtobufMessage;
  */
 @ProtobufMessage(messageType = MessageConst.MessageTypeDef.ALLIANCE, cmd = AllianceConst.MsgBean.NOTIFY_TASK, resp = true)
 @ProtoDesc("任务完成/失败通知")
-public class NotifyTask extends AbstractResponse {
+public class NotifyAllianceTask extends AbstractResponse {
     @ProtoDesc("1完成 2超时失败")
     public int result;
     @ProtoDesc("任务实例uid")
@@ -26,7 +26,7 @@ public class NotifyTask extends AbstractResponse {
     @ProtoDesc("完成奖励声誉值")
     public long rewardReputation;
 
-    public NotifyTask(int code) {
+    public NotifyAllianceTask(int code) {
         super(code);
     }
 }

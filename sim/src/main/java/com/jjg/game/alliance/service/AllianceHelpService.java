@@ -8,11 +8,11 @@ import com.jjg.game.alliance.data.AllianceHelpOrder;
 import com.jjg.game.alliance.data.AlliancePlayerData;
 import com.jjg.game.alliance.data.PlayerTakenTask;
 import com.jjg.game.alliance.pb.AlliancePbConverter;
-import com.jjg.game.alliance.pb.res.NotifyHelped;
-import com.jjg.game.alliance.pb.res.ResHelp;
-import com.jjg.game.alliance.pb.res.ResHelpList;
+import com.jjg.game.alliance.pb.res.NotifyAllianceHelped;
+import com.jjg.game.alliance.pb.res.ResAllianceHelp;
+import com.jjg.game.alliance.pb.res.ResAllianceHelpList;
 import com.jjg.game.alliance.pb.res.ResOneKeyHelp;
-import com.jjg.game.alliance.pb.res.ResSeekHelp;
+import com.jjg.game.alliance.pb.res.ResAllianceSeekHelp;
 import com.jjg.game.common.utils.TimeHelper;
 import com.jjg.game.core.constant.Code;
 import com.jjg.game.core.data.Player;
@@ -79,8 +79,8 @@ public class AllianceHelpService {
      * 发起求助。任务求助要求目标是我当前接取的任务; 建筑加速目标为升级中的建筑
      * (建筑状态由消费端校验, 无效订单自然无效果)。
      */
-    public ResSeekHelp seekHelp(long playerId, int type, long targetId, String targetName) {
-        ResSeekHelp res = new ResSeekHelp(Code.SUCCESS);
+    public ResAllianceSeekHelp seekHelp(long playerId, int type, long targetId, String targetName) {
+        ResAllianceSeekHelp res = new ResAllianceSeekHelp(Code.SUCCESS);
         long allianceId = cacheService.getAllianceId(playerId);
         AllianceData alliance = cacheService.getAlliance(allianceId);
         if (alliance == null) {
@@ -159,8 +159,8 @@ public class AllianceHelpService {
     /**
      * 帮助单个订单 (点击助力)。
      */
-    public ResHelp help(long playerId, long orderId) {
-        ResHelp res = new ResHelp(Code.SUCCESS);
+    public ResAllianceHelp help(long playerId, long orderId) {
+        ResAllianceHelp res = new ResAllianceHelp(Code.SUCCESS);
         res.orderId = orderId;
         long allianceId = cacheService.getAllianceId(playerId);
         AllianceData alliance = cacheService.getAlliance(allianceId);
@@ -273,7 +273,7 @@ public class AllianceHelpService {
         assetService.grantContribution(playerId, AllianceConst.Cfg.HELP_REWARD_CONTRIBUTION, 0, allianceId);
 
         Player helper = corePlayerService.get(playerId);
-        NotifyHelped notify = new NotifyHelped(Code.SUCCESS);
+        NotifyAllianceHelped notify = new NotifyAllianceHelped(Code.SUCCESS);
         notify.orderId = order.getOrderId();
         notify.type = order.getType();
         notify.helperId = playerId;
@@ -327,7 +327,7 @@ public class AllianceHelpService {
 
         //通知求助者
         Player helper = corePlayerService.get(playerId);
-        NotifyHelped notify = new NotifyHelped(Code.SUCCESS);
+        NotifyAllianceHelped notify = new NotifyAllianceHelped(Code.SUCCESS);
         notify.orderId = order.getOrderId();
         notify.type = order.getType();
         notify.helperId = playerId;
@@ -352,8 +352,8 @@ public class AllianceHelpService {
     /**
      * 求助订单列表 (顺带惰性清理超时订单)。
      */
-    public ResHelpList helpList(long playerId) {
-        ResHelpList res = new ResHelpList(Code.SUCCESS);
+    public ResAllianceHelpList helpList(long playerId) {
+        ResAllianceHelpList res = new ResAllianceHelpList(Code.SUCCESS);
         res.orders = new ArrayList<>();
         long allianceId = cacheService.getAllianceId(playerId);
         AllianceData alliance = cacheService.getAlliance(allianceId);

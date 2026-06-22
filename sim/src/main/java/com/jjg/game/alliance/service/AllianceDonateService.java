@@ -5,8 +5,8 @@ import com.jjg.game.alliance.dao.AlliancePlayerDao;
 import com.jjg.game.alliance.data.AllianceData;
 import com.jjg.game.alliance.data.AlliancePlayerData;
 import com.jjg.game.alliance.pb.AlliancePbConverter;
-import com.jjg.game.alliance.pb.res.ResDonate;
-import com.jjg.game.alliance.pb.res.ResDonateInfo;
+import com.jjg.game.alliance.pb.res.ResAllianceDonate;
+import com.jjg.game.alliance.pb.res.ResAllianceDonateInfo;
 import com.jjg.game.alliance.pb.struct.AllianceDonateInfo;
 import com.jjg.game.common.utils.TimeHelper;
 import com.jjg.game.core.constant.AddType;
@@ -48,8 +48,8 @@ public class AllianceDonateService {
     /**
      * 捐献界面信息。
      */
-    public ResDonateInfo donateInfo(long playerId) {
-        ResDonateInfo res = new ResDonateInfo(Code.SUCCESS);
+    public ResAllianceDonateInfo donateInfo(long playerId) {
+        ResAllianceDonateInfo res = new ResAllianceDonateInfo(Code.SUCCESS);
         long allianceId = cacheService.getAllianceId(playerId);
         AllianceData alliance = cacheService.getAlliance(allianceId);
         if (alliance == null) {
@@ -81,8 +81,8 @@ public class AllianceDonateService {
     /**
      * 捐献。
      */
-    public ResDonate donate(PlayerController pc, int donateId) {
-        ResDonate res = new ResDonate(Code.SUCCESS);
+    public ResAllianceDonate donate(PlayerController pc, int donateId) {
+        ResAllianceDonate res = new ResAllianceDonate(Code.SUCCESS);
         long playerId = pc.playerId();
         long allianceId = cacheService.getAllianceId(playerId);
         AllianceData alliance = cacheService.getAlliance(allianceId);

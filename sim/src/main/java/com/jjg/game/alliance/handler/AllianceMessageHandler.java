@@ -196,7 +196,7 @@ public class AllianceMessageHandler implements GmListener {
      * 任务列表 (含惰性补齐, 有写可能, 留在 worker)
      */
     @Command(AllianceConst.MsgBean.REQ_TASK_LIST)
-    public void reqTaskList(PlayerController pc, ReqTaskList req) {
+    public void reqTaskList(PlayerController pc, ReqAllianceTaskList req) {
         pc.send(taskService.taskList(pc.playerId()));
     }
 
@@ -204,7 +204,7 @@ public class AllianceMessageHandler implements GmListener {
      * 接取任务
      */
     @Command(AllianceConst.MsgBean.REQ_ACCEPT_TASK)
-    public void reqAcceptTask(PlayerController pc, ReqAcceptTask req) {
+    public void reqAcceptTask(PlayerController pc, ReqAllianceAcceptTask req) {
         pc.send(taskService.acceptTask(pc.playerId(), req.taskUid));
     }
 
@@ -222,7 +222,7 @@ public class AllianceMessageHandler implements GmListener {
      * 发起求助
      */
     @Command(AllianceConst.MsgBean.REQ_SEEK_HELP)
-    public void reqSeekHelp(PlayerController pc, ReqSeekHelp req) {
+    public void reqSeekHelp(PlayerController pc, ReqAllianceSeekHelp req) {
         pc.send(helpService.seekHelp(pc.playerId(), req.type, req.targetId, req.targetName));
     }
 
@@ -230,7 +230,7 @@ public class AllianceMessageHandler implements GmListener {
      * 帮助单个订单 (点击助力)
      */
     @Command(AllianceConst.MsgBean.REQ_HELP)
-    public void reqHelp(PlayerController pc, ReqHelp req) {
+    public void reqHelp(PlayerController pc, ReqAllianceHelp req) {
         pc.send(helpService.help(pc.playerId(), req.orderId));
     }
 
@@ -246,7 +246,7 @@ public class AllianceMessageHandler implements GmListener {
      * 求助订单列表 (含惰性清理, 留在 worker)
      */
     @Command(AllianceConst.MsgBean.REQ_HELP_LIST)
-    public void reqHelpList(PlayerController pc, ReqHelpList req) {
+    public void reqHelpList(PlayerController pc, ReqAllianceHelpList req) {
         pc.send(helpService.helpList(pc.playerId()));
     }
 
@@ -256,7 +256,7 @@ public class AllianceMessageHandler implements GmListener {
      * 商店列表
      */
     @Command(AllianceConst.MsgBean.REQ_SHOP_LIST)
-    public void reqShopList(PlayerController pc, ReqShopList req) {
+    public void reqShopList(PlayerController pc, ReqAllianceShopList req) {
         sendAsync(pc, () -> shopService.shopList(pc.playerId()));
     }
 
@@ -264,7 +264,7 @@ public class AllianceMessageHandler implements GmListener {
      * 购买商品
      */
     @Command(AllianceConst.MsgBean.REQ_SHOP_BUY)
-    public void reqShopBuy(PlayerController pc, ReqShopBuy req) {
+    public void reqShopBuy(PlayerController pc, ReqAllianceShopBuy req) {
         pc.send(shopService.buy(pc.playerId(), req.goodsId));
     }
 
@@ -272,7 +272,7 @@ public class AllianceMessageHandler implements GmListener {
      * 捐献界面信息
      */
     @Command(AllianceConst.MsgBean.REQ_DONATE_INFO)
-    public void reqDonateInfo(PlayerController pc, ReqDonateInfo req) {
+    public void reqDonateInfo(PlayerController pc, ReqAllianceDonateInfo req) {
         sendAsync(pc, () -> donateService.donateInfo(pc.playerId()));
     }
 
@@ -280,7 +280,7 @@ public class AllianceMessageHandler implements GmListener {
      * 捐献
      */
     @Command(AllianceConst.MsgBean.REQ_DONATE)
-    public void reqDonate(PlayerController pc, ReqDonate req) {
+    public void reqDonate(PlayerController pc, ReqAllianceDonate req) {
         pc.send(donateService.donate(pc, req.donateId));
     }
 
@@ -308,7 +308,7 @@ public class AllianceMessageHandler implements GmListener {
      * 对决信息
      */
     @Command(AllianceConst.MsgBean.REQ_BATTLE_INFO)
-    public void reqBattleInfo(PlayerController pc, ReqBattleInfo req) {
+    public void reqBattleInfo(PlayerController pc, ReqAllianceBattleInfo req) {
         sendAsync(pc, () -> battleService.battleInfo(pc.playerId()));
     }
 
@@ -316,7 +316,7 @@ public class AllianceMessageHandler implements GmListener {
      * 对决报名 (盟主)
      */
     @Command(AllianceConst.MsgBean.REQ_BATTLE_SIGNUP)
-    public void reqBattleSignup(PlayerController pc, ReqBattleSignup req) {
+    public void reqBattleSignup(PlayerController pc, ReqAllianceBattleSignup req) {
         pc.send(battleService.signup(pc.playerId()));
     }
 
@@ -324,7 +324,7 @@ public class AllianceMessageHandler implements GmListener {
      * 对决贡献榜单
      */
     @Command(AllianceConst.MsgBean.REQ_BATTLE_RANK)
-    public void reqBattleRank(PlayerController pc, ReqBattleRank req) {
+    public void reqBattleRank(PlayerController pc, ReqAllianceBattleRank req) {
         sendAsync(pc, () -> battleService.battleRank(pc.playerId()));
     }
 
@@ -355,13 +355,13 @@ public class AllianceMessageHandler implements GmListener {
                 req.allianceId = gmOrders.length > 1 ? Long.parseLong(gmOrders[1]) : 0;
                 reqJoinAlliance(pc, req);
             } else if ("allianceDonate".equalsIgnoreCase(cmd)) {
-                ReqDonate req = new ReqDonate();
+                ReqAllianceDonate req = new ReqAllianceDonate();
                 req.donateId = 1;
                 reqDonate(pc, req);
             } else if ("allianceTasks".equalsIgnoreCase(cmd)) {
                 reqTaskList(pc, null);
             } else if ("allianceAccept".equalsIgnoreCase(cmd)) {
-                ReqAcceptTask req = new ReqAcceptTask();
+                ReqAllianceAcceptTask req = new ReqAllianceAcceptTask();
                 req.taskUid = Long.parseLong(gmOrders[1]);
                 reqAcceptTask(pc, req);
             } else if ("allianceEvent".equalsIgnoreCase(cmd)) {

@@ -14,7 +14,7 @@ import com.jjg.game.common.proto.ProtobufMessage;
  */
 @ProtobufMessage(messageType = MessageConst.MessageTypeDef.ALLIANCE, cmd = AllianceConst.MsgBean.RES_HELP, resp = true)
 @ProtoDesc("帮助返回")
-public class ResHelp extends AbstractResponse {
+public class ResAllianceHelp extends AbstractResponse {
     @ProtoDesc("订单id")
     public long orderId;
     @ProtoDesc("获得贡献值")
@@ -22,7 +22,7 @@ public class ResHelp extends AbstractResponse {
     @ProtoDesc("今日剩余帮助次数")
     public int remainHelp;
 
-    public ResHelp(int code) {
+    public ResAllianceHelp(int code) {
         super(code);
     }
 }

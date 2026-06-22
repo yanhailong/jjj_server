@@ -12,8 +12,9 @@ import com.jjg.game.alliance.data.AlliancePlayerData;
 import com.jjg.game.alliance.data.BattleResult;
 import com.jjg.game.alliance.data.BattleSignup;
 import com.jjg.game.alliance.pb.AlliancePbConverter;
-import com.jjg.game.alliance.pb.res.ResBattleInfo;
-import com.jjg.game.alliance.pb.res.ResBattleRank;
+import com.jjg.game.alliance.pb.res.ResAllianceBattleInfo;
+import com.jjg.game.alliance.pb.res.ResAllianceBattleRank;
+import com.jjg.game.alliance.pb.res.ResAllianceBattleSignup;
 import com.jjg.game.alliance.pb.res.ResBattleStageClaim;
 import com.jjg.game.alliance.pb.struct.BattleStageInfo;
 import com.jjg.game.alliance.pb.struct.ContribRankInfo;
@@ -201,8 +202,8 @@ public class AllianceBattleService {
     /**
      * 报名 (盟主)。条件: 报名窗口内 / 联盟等级 / 人数(或活跃人数)达标。
      */
-    public com.jjg.game.alliance.pb.res.ResBattleSignup signup(long playerId) {
-        var res = new com.jjg.game.alliance.pb.res.ResBattleSignup(Code.SUCCESS);
+    public ResAllianceBattleSignup signup(long playerId) {
+        var res = new ResAllianceBattleSignup(Code.SUCCESS);
         long allianceId = cacheService.getAllianceId(playerId);
         AllianceData alliance = cacheService.getAlliance(allianceId);
         if (alliance == null) {
@@ -282,8 +283,8 @@ public class AllianceBattleService {
     /**
      * 对决信息: 阶段/时间点/报名状态/对手/比分/个人分/阶段奖励。
      */
-    public ResBattleInfo battleInfo(long playerId) {
-        ResBattleInfo res = new ResBattleInfo(Code.SUCCESS);
+    public ResAllianceBattleInfo battleInfo(long playerId) {
+        ResAllianceBattleInfo res = new ResAllianceBattleInfo(Code.SUCCESS);
         long allianceId = cacheService.getAllianceId(playerId);
         AllianceBattleData battle = cachedBattle();
         if (battle == null) {
@@ -334,8 +335,8 @@ public class AllianceBattleService {
     /**
      * 对决贡献榜单 (盟内个人比赛值, 显示全部)。
      */
-    public ResBattleRank battleRank(long playerId) {
-        ResBattleRank res = new ResBattleRank(Code.SUCCESS);
+    public ResAllianceBattleRank battleRank(long playerId) {
+        ResAllianceBattleRank res = new ResAllianceBattleRank(Code.SUCCESS);
         res.list = new ArrayList<>();
         long allianceId = cacheService.getAllianceId(playerId);
         AllianceBattleData battle = cachedBattle();

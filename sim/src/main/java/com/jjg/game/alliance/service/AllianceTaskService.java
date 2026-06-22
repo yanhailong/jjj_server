@@ -10,10 +10,10 @@ import com.jjg.game.alliance.data.AlliancePlayerData;
 import com.jjg.game.alliance.data.AllianceTaskSlot;
 import com.jjg.game.alliance.data.PlayerTakenTask;
 import com.jjg.game.alliance.pb.AlliancePbConverter;
-import com.jjg.game.alliance.pb.res.NotifyTask;
+import com.jjg.game.alliance.pb.res.NotifyAllianceTask;
 import com.jjg.game.alliance.pb.res.ResAbandonTask;
-import com.jjg.game.alliance.pb.res.ResAcceptTask;
-import com.jjg.game.alliance.pb.res.ResTaskList;
+import com.jjg.game.alliance.pb.res.ResAllianceAcceptTask;
+import com.jjg.game.alliance.pb.res.ResAllianceTaskList;
 import com.jjg.game.common.utils.TimeHelper;
 import com.jjg.game.core.constant.Code;
 import com.jjg.game.core.manager.SnowflakeManager;
@@ -88,8 +88,8 @@ public class AllianceTaskService {
     /**
      * 任务列表: 先确保任务池已按当前整点补齐, 再返回池 + 我的任务。
      */
-    public ResTaskList taskList(long playerId) {
-        ResTaskList res = new ResTaskList(Code.SUCCESS);
+    public ResAllianceTaskList taskList(long playerId) {
+        ResAllianceTaskList res = new ResAllianceTaskList(Code.SUCCESS);
         long allianceId = cacheService.getAllianceId(playerId);
         AllianceData alliance = cacheService.getAlliance(allianceId);
         if (alliance == null) {
@@ -162,8 +162,8 @@ public class AllianceTaskService {
     /**
      * 接取任务: $pull 原子摘取, 摘到者独占。
      */
-    public ResAcceptTask acceptTask(long playerId, long taskUid) {
-        ResAcceptTask res = new ResAcceptTask(Code.SUCCESS);
+    public ResAllianceAcceptTask acceptTask(long playerId, long taskUid) {
+        ResAllianceAcceptTask res = new ResAllianceAcceptTask(Code.SUCCESS);
         long allianceId = cacheService.getAllianceId(playerId);
         AllianceData alliance = cacheService.getAlliance(allianceId);
         if (alliance == null) {
@@ -356,7 +356,7 @@ public class AllianceTaskService {
         assetService.grantContribution(playerId, cfg.rewardContribution(), cfg.rewardReputation(), taken.getAllianceId());
         assetService.grantReputation(taken.getAllianceId(), cfg.rewardReputation());
 
-        NotifyTask notify = new NotifyTask(Code.SUCCESS);
+        NotifyAllianceTask notify = new NotifyAllianceTask(Code.SUCCESS);
         notify.result = TASK_RESULT_FINISH;
         notify.taskUid = taken.getUid();
         notify.cfgId = taken.getCfgId();
@@ -375,7 +375,7 @@ public class AllianceTaskService {
         if (!clearTask(playerId, taken)) {
             return;
         }
-        NotifyTask notify = new NotifyTask(Code.SUCCESS);
+        NotifyAllianceTask notify = new NotifyAllianceTask(Code.SUCCESS);
         notify.result = TASK_RESULT_FAIL;
         notify.taskUid = taken.getUid();
         notify.cfgId = taken.getCfgId();

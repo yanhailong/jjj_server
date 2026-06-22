@@ -17,13 +17,13 @@ import java.util.List;
  */
 @ProtobufMessage(messageType = MessageConst.MessageTypeDef.ALLIANCE, cmd = AllianceConst.MsgBean.RES_BATTLE_RANK, resp = true)
 @ProtoDesc("对决贡献榜单返回")
-public class ResBattleRank extends AbstractResponse {
+public class ResAllianceBattleRank extends AbstractResponse {
     @ProtoDesc("盟内全部比赛值排名")
     public List<ContribRankInfo> list;
     @ProtoDesc("我的排名")
     public ContribRankInfo my;
 
-    public ResBattleRank(int code) {
+    public ResAllianceBattleRank(int code) {
         super(code);
     }
 }

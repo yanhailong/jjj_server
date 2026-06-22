@@ -14,7 +14,7 @@ import com.jjg.game.common.proto.ProtobufMessage;
  */
 @ProtobufMessage(messageType = MessageConst.MessageTypeDef.ALLIANCE, cmd = AllianceConst.MsgBean.RES_SHOP_BUY, resp = true)
 @ProtoDesc("购买商品返回")
-public class ResShopBuy extends AbstractResponse {
+public class ResAllianceShopBuy extends AbstractResponse {
     @ProtoDesc("商品id")
     public int goodsId;
     @ProtoDesc("道具id")
@@ -24,7 +24,7 @@ public class ResShopBuy extends AbstractResponse {
     @ProtoDesc("购买后的贡献值")
     public long myContribution;
 
-    public ResShopBuy(int code) {
+    public ResAllianceShopBuy(int code) {
         super(code);
     }
 }

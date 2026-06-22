@@ -244,7 +244,11 @@ public class AllianceService {
     // =====================================================================
 
     /**
-     * 创建联盟: 占位 -> 扣钻石 -> 建档, 任一步失败回滚之前的步骤。
+     * 创建联盟: 资格预检 -> 扣钻石 -> 占位玩家侧归属 -> 建档, 任一步失败回滚之前的步骤。
+     * <p>
+     * 扣钻石刻意放在占位之前: 钻石不足是常见失败, 此时尚未占位, 无副作用;
+     * 反之若先占位再扣钻, 回滚的 {@link AlliancePlayerDao#clearAlliance} 只清 allianceId 不清
+     * createdAllianceId, 会给"已创建过"留下脏标记 (联盟没建成却吃掉了创建资格)。
      */
     public ResCreateAlliance create(PlayerController pc, String name, int icon, String notice,
                                     int joinMinCasinoLevel, boolean joinNeedAudit) {
@@ -265,6 +269,19 @@ public class AllianceService {
             return res;
         }
 
+        //资格预检: 已在盟 / 已创建过 (需求: 每人最多加入1个、最多创建1个) —— 快速失败, 不取号不扣钻
+        AlliancePlayerData playerData = alliancePlayerDao.getOrEmpty(playerId);
+        if (playerData.inAlliance()) {
+            res.code = Code.ALLIANCE_ALREADY_IN;
+            log.warn("创建联盟失败,玩家已有所属联盟 playerId={},allianceId={}", playerId, playerData.getAllianceId());
+            return res;
+        }
+        if (playerData.getCreatedAllianceId() > 0) {
+            res.code = Code.ALLIANCE_CREATED_LIMIT;
+            log.warn("创建联盟失败,玩家已创建过联盟 playerId={},createdAllianceId={}", playerId, playerData.getCreatedAllianceId());
+            return res;
+        }
+
         //扣除资源
         Map<Integer, Long> cost = Map.of(ItemUtils.getDiamondItemId(), (long) AllianceConst.Cfg.CREATE_COST_DIAMOND);
         CommonResult<ItemOperationResult> deduct = playerPackService.removeItems(pc.getPlayer(), cost, AddType.ALLIANCE_CREATE, "");
@@ -277,6 +294,15 @@ public class AllianceService {
         //获取联盟id
         long allianceId = allianceIdDao.nextAllianceId();
         long now = System.currentTimeMillis();
+
+        //占位玩家侧归属: 原子写入"当前联盟 + 已创建联盟"(条件: 未在盟 且 未创建过), 兜底跨节点并发
+        if (!alliancePlayerDao.tryOccupyCreate(playerId, allianceId, now)) {
+            //同一玩家请求按 playerId 串行, 预检已过, 正常不触发; 极端并发下退还钻石
+            playerPackService.addItems(playerId, cost, AddType.ALLIANCE_CREATE, "创建联盟回滚", true);
+            res.code = Code.ALLIANCE_ALREADY_IN;
+            log.warn("创建联盟失败,占位失败已退钻石 playerId={},allianceId={}", playerId, allianceId);
+            return res;
+        }
 
         //建档
         AllianceData alliance = new AllianceData();

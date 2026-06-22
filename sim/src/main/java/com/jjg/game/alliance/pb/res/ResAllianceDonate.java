@@ -14,7 +14,7 @@ import com.jjg.game.common.proto.ProtobufMessage;
  */
 @ProtobufMessage(messageType = MessageConst.MessageTypeDef.ALLIANCE, cmd = AllianceConst.MsgBean.RES_DONATE, resp = true)
 @ProtoDesc("捐献返回")
-public class ResDonate extends AbstractResponse {
+public class ResAllianceDonate extends AbstractResponse {
     @ProtoDesc("获得贡献值")
     public long rewardContribution;
     @ProtoDesc("给联盟的声誉值")
@@ -26,7 +26,7 @@ public class ResDonate extends AbstractResponse {
     @ProtoDesc("今日剩余捐献次数")
     public int remainCount;
 
-    public ResDonate(int code) {
+    public ResAllianceDonate(int code) {
         super(code);
     }
 }

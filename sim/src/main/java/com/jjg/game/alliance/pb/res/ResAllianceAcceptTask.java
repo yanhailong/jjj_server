@@ -15,11 +15,11 @@ import com.jjg.game.alliance.pb.struct.AllianceTaskInfo;
  */
 @ProtobufMessage(messageType = MessageConst.MessageTypeDef.ALLIANCE, cmd = AllianceConst.MsgBean.RES_ACCEPT_TASK, resp = true)
 @ProtoDesc("接取任务返回")
-public class ResAcceptTask extends AbstractResponse {
+public class ResAllianceAcceptTask extends AbstractResponse {
     @ProtoDesc("已接取的任务")
     public AllianceTaskInfo task;
 
-    public ResAcceptTask(int code) {
+    public ResAllianceAcceptTask(int code) {
         super(code);
     }
 }

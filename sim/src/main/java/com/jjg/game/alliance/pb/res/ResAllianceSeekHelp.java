@@ -15,13 +15,13 @@ import com.jjg.game.alliance.pb.struct.AllianceHelpOrderInfo;
  */
 @ProtobufMessage(messageType = MessageConst.MessageTypeDef.ALLIANCE, cmd = AllianceConst.MsgBean.RES_SEEK_HELP, resp = true)
 @ProtoDesc("发起求助返回")
-public class ResSeekHelp extends AbstractResponse {
+public class ResAllianceSeekHelp extends AbstractResponse {
     @ProtoDesc("新建求助订单")
     public AllianceHelpOrderInfo order;
     @ProtoDesc("今日剩余求助次数")
     public int remainSeek;
 
-    public ResSeekHelp(int code) {
+    public ResAllianceSeekHelp(int code) {
         super(code);
     }
 }

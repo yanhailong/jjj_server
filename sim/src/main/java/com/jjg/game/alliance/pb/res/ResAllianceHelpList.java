@@ -17,7 +17,7 @@ import java.util.List;
  */
 @ProtobufMessage(messageType = MessageConst.MessageTypeDef.ALLIANCE, cmd = AllianceConst.MsgBean.RES_HELP_LIST, resp = true)
 @ProtoDesc("求助订单列表返回")
-public class ResHelpList extends AbstractResponse {
+public class ResAllianceHelpList extends AbstractResponse {
     @ProtoDesc("进行中的求助订单")
     public List<AllianceHelpOrderInfo> orders;
     @ProtoDesc("今日剩余求助次数")
@@ -29,7 +29,7 @@ public class ResHelpList extends AbstractResponse {
     @ProtoDesc("每日帮助上限")
     public int dailyHelpLimit;
 
-    public ResHelpList(int code) {
+    public ResAllianceHelpList(int code) {
         super(code);
     }
 }

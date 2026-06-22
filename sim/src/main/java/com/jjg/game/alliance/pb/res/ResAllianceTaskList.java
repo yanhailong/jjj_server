@@ -17,7 +17,7 @@ import java.util.List;
  */
 @ProtobufMessage(messageType = MessageConst.MessageTypeDef.ALLIANCE, cmd = AllianceConst.MsgBean.RES_TASK_LIST, resp = true)
 @ProtoDesc("联盟任务列表返回")
-public class ResTaskList extends AbstractResponse {
+public class ResAllianceTaskList extends AbstractResponse {
     @ProtoDesc("任务池(未被接取)")
     public List<AllianceTaskInfo> poolTasks;
     @ProtoDesc("我接取的任务(null=未接取)")
@@ -31,7 +31,7 @@ public class ResTaskList extends AbstractResponse {
     @ProtoDesc("放弃冷却截止(ms)")
     public long abandonCdUntil;
 
-    public ResTaskList(int code) {
+    public ResAllianceTaskList(int code) {
         super(code);
     }
 }

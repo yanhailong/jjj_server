@@ -17,7 +17,7 @@ import java.util.List;
  */
 @ProtobufMessage(messageType = MessageConst.MessageTypeDef.ALLIANCE, cmd = AllianceConst.MsgBean.RES_SHOP_LIST, resp = true)
 @ProtoDesc("联盟商店列表返回")
-public class ResShopList extends AbstractResponse {
+public class ResAllianceShopList extends AbstractResponse {
     @ProtoDesc("商品列表")
     public List<AllianceShopGoodsInfo> goods;
     @ProtoDesc("我的贡献值")
@@ -25,7 +25,7 @@ public class ResShopList extends AbstractResponse {
     @ProtoDesc("商店刷新时间(ms, 次日0点)")
     public long refreshTime;
 
-    public ResShopList(int code) {
+    public ResAllianceShopList(int code) {
         super(code);
     }
 }

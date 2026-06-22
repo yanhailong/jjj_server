@@ -7,12 +7,12 @@ import com.jjg.game.common.proto.ProtoDesc;
 import com.jjg.game.common.proto.ProtobufMessage;
 
 /**
- * 联盟商店列表。
+ * 对决信息。
  *
  * @author 11
  * @date 2026/6/11
  */
-@ProtobufMessage(messageType = MessageConst.MessageTypeDef.ALLIANCE, cmd = AllianceConst.MsgBean.REQ_SHOP_LIST)
-@ProtoDesc("联盟商店列表")
-public class ReqShopList extends AbstractMessage {
+@ProtobufMessage(messageType = MessageConst.MessageTypeDef.ALLIANCE, cmd = AllianceConst.MsgBean.REQ_BATTLE_INFO)
+@ProtoDesc("对决信息")
+public class ReqAllianceBattleInfo extends AbstractMessage {
 }

@@ -14,7 +14,7 @@ import com.jjg.game.common.proto.ProtobufMessage;
  */
 @ProtobufMessage(messageType = MessageConst.MessageTypeDef.ALLIANCE, cmd = AllianceConst.MsgBean.REQ_SEEK_HELP)
 @ProtoDesc("发起求助")
-public class ReqSeekHelp extends AbstractMessage {
+public class ReqAllianceSeekHelp extends AbstractMessage {
     @ProtoDesc("1任务求助 2建筑加速")
     public int type;
     @ProtoDesc("目标id(任务uid/建筑id)")

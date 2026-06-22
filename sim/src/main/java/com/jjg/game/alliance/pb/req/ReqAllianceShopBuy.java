@@ -7,12 +7,14 @@ import com.jjg.game.common.proto.ProtoDesc;
 import com.jjg.game.common.proto.ProtobufMessage;
 
 /**
- * 捐献界面信息。
+ * 购买商店商品。
  *
  * @author 11
  * @date 2026/6/11
  */
-@ProtobufMessage(messageType = MessageConst.MessageTypeDef.ALLIANCE, cmd = AllianceConst.MsgBean.REQ_DONATE_INFO)
-@ProtoDesc("捐献界面信息")
-public class ReqDonateInfo extends AbstractMessage {
+@ProtobufMessage(messageType = MessageConst.MessageTypeDef.ALLIANCE, cmd = AllianceConst.MsgBean.REQ_SHOP_BUY)
+@ProtoDesc("购买商店商品")
+public class ReqAllianceShopBuy extends AbstractMessage {
+    @ProtoDesc("商品id")
+    public int goodsId;
 }

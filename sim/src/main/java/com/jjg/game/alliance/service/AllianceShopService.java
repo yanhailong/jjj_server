@@ -3,8 +3,8 @@ package com.jjg.game.alliance.service;
 import com.jjg.game.alliance.dao.AlliancePlayerDao;
 import com.jjg.game.alliance.data.AllianceData;
 import com.jjg.game.alliance.data.AlliancePlayerData;
-import com.jjg.game.alliance.pb.res.ResShopBuy;
-import com.jjg.game.alliance.pb.res.ResShopList;
+import com.jjg.game.alliance.pb.res.ResAllianceShopBuy;
+import com.jjg.game.alliance.pb.res.ResAllianceShopList;
 import com.jjg.game.alliance.pb.struct.AllianceShopGoodsInfo;
 import com.jjg.game.common.utils.TimeHelper;
 import com.jjg.game.core.constant.AddType;
@@ -46,8 +46,8 @@ public class AllianceShopService {
     /**
      * 商店列表。
      */
-    public ResShopList shopList(long playerId) {
-        ResShopList res = new ResShopList(Code.SUCCESS);
+    public ResAllianceShopList shopList(long playerId) {
+        ResAllianceShopList res = new ResAllianceShopList(Code.SUCCESS);
         long allianceId = cacheService.getAllianceId(playerId);
         AllianceData alliance = cacheService.getAlliance(allianceId);
         if (alliance == null) {
@@ -79,8 +79,8 @@ public class AllianceShopService {
     /**
      * 购买: 等级解锁 -> 每日限购 -> 条件扣贡献值 -> 发货。
      */
-    public ResShopBuy buy(long playerId, int goodsId) {
-        ResShopBuy res = new ResShopBuy(Code.SUCCESS);
+    public ResAllianceShopBuy buy(long playerId, int goodsId) {
+        ResAllianceShopBuy res = new ResAllianceShopBuy(Code.SUCCESS);
         res.goodsId = goodsId;
         long allianceId = cacheService.getAllianceId(playerId);
         AllianceData alliance = cacheService.getAlliance(allianceId);

@@ -263,7 +263,7 @@ public class SimGuestService implements SimPlayerTickListener {
         notify.guests.add(res.guest);
         ctx.send(notify);
 
-        log.info("生成购买游客成功 playerId={},guestId={},uid={},destSize={}", ctx.playerId(), guestId, data.getUid(), destinations.size());
+//        log.info("生成购买游客成功 playerId={},guestId={},uid={},destSize={}", ctx.playerId(), guestId, data.getUid(), destinations.size());
     }
 
     /**

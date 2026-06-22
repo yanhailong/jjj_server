@@ -7,14 +7,14 @@ import com.jjg.game.common.proto.ProtoDesc;
 import com.jjg.game.common.proto.ProtobufMessage;
 
 /**
- * 购买商店商品。
+ * 帮助单个求助订单。
  *
  * @author 11
  * @date 2026/6/11
  */
-@ProtobufMessage(messageType = MessageConst.MessageTypeDef.ALLIANCE, cmd = AllianceConst.MsgBean.REQ_SHOP_BUY)
-@ProtoDesc("购买商店商品")
-public class ReqShopBuy extends AbstractMessage {
-    @ProtoDesc("商品id")
-    public int goodsId;
+@ProtobufMessage(messageType = MessageConst.MessageTypeDef.ALLIANCE, cmd = AllianceConst.MsgBean.REQ_HELP)
+@ProtoDesc("帮助单个求助订单")
+public class ReqAllianceHelp extends AbstractMessage {
+    @ProtoDesc("订单id")
+    public long orderId;
 }

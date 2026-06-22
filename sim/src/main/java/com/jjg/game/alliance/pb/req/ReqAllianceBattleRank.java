@@ -14,5 +14,5 @@ import com.jjg.game.common.proto.ProtobufMessage;
  */
 @ProtobufMessage(messageType = MessageConst.MessageTypeDef.ALLIANCE, cmd = AllianceConst.MsgBean.REQ_BATTLE_RANK)
 @ProtoDesc("对决贡献榜单(盟内)")
-public class ReqBattleRank extends AbstractMessage {
+public class ReqAllianceBattleRank extends AbstractMessage {
 }
