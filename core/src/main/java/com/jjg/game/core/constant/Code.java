@@ -196,6 +196,9 @@ public interface Code {
     //无空闲房间，换房失败
     int NO_VACANT_ROOM = 300400068;
 
+    //场景等级不足
+    int SIM_CASINO_LEVEL_LOW = 4010039;
+
     //----------------- 联盟 (号段 57xxx, 对应消息类型 0x57) -----------------
     //已在联盟中
     int ALLIANCE_ALREADY_IN = 57001;

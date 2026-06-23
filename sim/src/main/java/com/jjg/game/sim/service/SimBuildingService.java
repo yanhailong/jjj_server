@@ -271,7 +271,7 @@ public class SimBuildingService implements SimPlayerTickListener {
             CasinoStatsSheetCfg statsCfg = configCache.getCasinoStatsSheetCfg(casino.getCasinoId(), casino.getCasinoLevel());
             if (buildingNextLevel > statsCfg.getLevel()) {
                 log.warn("升级建筑失败, 经营等级不足 playerId={},buildingId={},buildingNextLevel={},casinoLevel={}", ctx.playerId(), buildingId, buildingNextLevel, statsCfg.getLevel());
-                res.code = Code.NOT_ENOUGH;
+                res.code = Code.SIM_CASINO_LEVEL_LOW;
                 ctx.send(res);
                 return;
             }

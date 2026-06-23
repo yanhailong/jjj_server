@@ -8,7 +8,6 @@ import com.jjg.game.common.utils.WeightRandom;
 import com.jjg.game.core.constant.AddType;
 import com.jjg.game.core.constant.Code;
 import com.jjg.game.core.data.CommonResult;
-import com.jjg.game.core.pb.KVInfo;
 import com.jjg.game.core.utils.ItemUtils;
 import com.jjg.game.sampledata.GameDataManager;
 import com.jjg.game.sampledata.bean.*;
@@ -20,7 +19,7 @@ import com.jjg.game.sim.pb.res.*;
 import com.jjg.game.sim.pb.struct.DestinationInfo;
 import com.jjg.game.sim.pb.struct.GuestDetailInfo;
 import com.jjg.game.sim.pb.struct.GuestInfo;
-import com.jjg.game.sim.pb.struct.RecruitShardInfo;
+import com.jjg.game.sim.pb.struct.RecruitItemInfo;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -235,7 +234,7 @@ public class SimGuestService implements SimPlayerTickListener {
         //预生成目的地序列和奖励 (奖励此时不添加到玩家身上, 待领奖请求时才添加)
         List<DestinationInfo> destinations = planDestinations(guest, visitorQuestCfg, casino, rewardedCount, unrewardedCount);
         if (destinations.isEmpty()) {
-            log.warn("生成购买游客失败，目的地序列为空 playerId={},guestId={}", ctx.playerId(), guestId);
+//            log.warn("生成购买游客失败，目的地序列为空 playerId={},guestId={}", ctx.playerId(), guestId);
             res.code = Code.FAIL;
             ctx.send(res);
             return;
@@ -813,8 +812,7 @@ public class SimGuestService implements SimPlayerTickListener {
             }
 
             Map<Integer, Long> addAllItems = new HashMap<>();
-            Map<Integer, Map<Integer, Long>> addSharedItems = new HashMap<>();
-            Map<Integer, Integer> shardDuplicateCount = new HashMap<>();
+            List<RecruitItemInfo> recruitItems = new ArrayList<>();
 
             Map<Integer, Integer> addGuest = new HashMap<>();
 
@@ -834,6 +832,10 @@ public class SimGuestService implements SimPlayerTickListener {
 
                 int rewardCount = next.get(2);
                 for (int j = 0; j < rewardCount; j++) {
+                    RecruitItemInfo re = new RecruitItemInfo();
+                    re.itemId = visitorQuestCfg.getDuplicatetoShard().get(0);
+                    re.count = visitorQuestCfg.getDuplicatetoShard().get(2);
+
                     GuestData guestData = ctx.getCurrentCasino().findGuestData(visitorQuestCfg.getId());
                     if (guestData == null) {
                         guestData = new GuestData();
@@ -850,11 +852,10 @@ public class SimGuestService implements SimPlayerTickListener {
                             long itemCount = tmpList.get(2).longValue();
 
                             addAllItems.merge(itemId, itemCount, Long::sum);
-
-                            addSharedItems.computeIfAbsent(visitorQuestCfg.getId(), k -> new HashMap<>()).merge(itemId, itemCount, Long::sum);
-                            shardDuplicateCount.merge(visitorQuestCfg.getId(), 1, Integer::sum);
+                            re.breakDown = true;
                         }
                     }
+                    recruitItems.add(re);
                 }
             }
 
@@ -866,32 +867,17 @@ public class SimGuestService implements SimPlayerTickListener {
                     ctx.send(res);
                     return;
                 }
-
-                res.shardInfos = new ArrayList<>();
-
-                for (Map.Entry<Integer, Map<Integer, Long>> en1 : addSharedItems.entrySet()) {
-                    RecruitShardInfo re = new RecruitShardInfo();
-                    re.id = en1.getKey();
-                    re.count = shardDuplicateCount.getOrDefault(en1.getKey(), 0);
-                    re.items = ItemUtils.buildItemInfo(en1.getValue());
-                    res.shardInfos.add(re);
-                }
             }
 
             if (!addGuest.isEmpty()) {
-                res.guests = new ArrayList<>();
                 List<Integer> guestIds = new ArrayList<>();
                 for (Map.Entry<Integer, Integer> en : addGuest.entrySet()) {
-                    KVInfo kvInfo = new KVInfo();
-                    kvInfo.key = en.getKey();
-                    kvInfo.value = en.getValue();
-                    res.guests.add(kvInfo);
-
-                    guestIds.add(kvInfo.key);
+                    guestIds.add(en.getKey());
                 }
                 unlockBonds(ctx, guestIds);
             }
-            res.count = count;
+
+            res.shardInfos = recruitItems;
             log.info("招募游客成功 playerId={},count={},newEmployee={},addAllItems={}", ctx.playerId(), count, addGuest, addAllItems);
         } catch (Exception e) {
             log.error("", e);

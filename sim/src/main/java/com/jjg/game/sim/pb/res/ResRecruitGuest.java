@@ -4,9 +4,8 @@ import com.jjg.game.common.constant.MessageConst;
 import com.jjg.game.common.pb.AbstractResponse;
 import com.jjg.game.common.proto.ProtoDesc;
 import com.jjg.game.common.proto.ProtobufMessage;
-import com.jjg.game.core.pb.KVInfo;
 import com.jjg.game.sim.constant.SimConstant;
-import com.jjg.game.sim.pb.struct.RecruitShardInfo;
+import com.jjg.game.sim.pb.struct.RecruitItemInfo;
 
 import java.util.List;
 
@@ -17,12 +16,8 @@ import java.util.List;
 @ProtobufMessage(messageType = MessageConst.MessageTypeDef.SIM_GAME, cmd = SimConstant.MsgBean.RES_RECRUIT_GUEST, resp = true)
 @ProtoDesc("招募游客返回")
 public class ResRecruitGuest extends AbstractResponse {
-    @ProtoDesc("获得的游客")
-    public List<KVInfo> guests;
-    @ProtoDesc("碎片信息")
-    public List<RecruitShardInfo> shardInfos;
-    @ProtoDesc("次数")
-    public int count;
+    @ProtoDesc("招募的道具信息")
+    public List<RecruitItemInfo> shardInfos;
 
     public ResRecruitGuest(int code) {
         super(code);

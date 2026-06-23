@@ -6,7 +6,6 @@ import com.jjg.game.core.constant.AddType;
 import com.jjg.game.core.constant.Code;
 import com.jjg.game.core.data.CommonResult;
 import com.jjg.game.core.pb.KVInfo;
-import com.jjg.game.core.utils.ItemUtils;
 import com.jjg.game.sampledata.GameDataManager;
 import com.jjg.game.sampledata.bean.*;
 import com.jjg.game.sim.constant.BonusType;
@@ -17,7 +16,7 @@ import com.jjg.game.sim.data.SimItemOperationResult;
 import com.jjg.game.sim.data.SimPlayerContext;
 import com.jjg.game.sim.pb.res.*;
 import com.jjg.game.sim.pb.struct.EmployDetailInfo;
-import com.jjg.game.sim.pb.struct.RecruitShardInfo;
+import com.jjg.game.sim.pb.struct.RecruitItemInfo;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -123,8 +122,7 @@ public class SimEmployeeService {
             }
 
             Map<Integer, Long> addAllItems = new HashMap<>();
-            Map<Integer, Map<Integer, Long>> addSharedItems = new HashMap<>();
-            Map<Integer, Integer> shardDuplicateCount = new HashMap<>();
+            List<RecruitItemInfo> recruitItems = new ArrayList<>();
 
             Map<Integer, Integer> addEmployee = new HashMap<>();
             for (int i = 0; i < count; i++) {
@@ -142,6 +140,10 @@ public class SimEmployeeService {
 
                 int rewardCount = next.get(2);
                 for (int j = 0; j < rewardCount; j++) {
+                    RecruitItemInfo re = new RecruitItemInfo();
+                    re.itemId = profileCfg.getDuplicatetoShard().get(0);
+                    re.count = profileCfg.getDuplicatetoShard().get(2);
+
                     SimEmployeeData data = ctx.getEmployee(profileCfg.getId());
                     if (data == null) {
                         data = new SimEmployeeData();
@@ -159,11 +161,10 @@ public class SimEmployeeService {
                             long itemCount = tmpList.get(2).longValue();
 
                             addAllItems.merge(itemId, itemCount, Long::sum);
-
-                            addSharedItems.computeIfAbsent(profileCfg.getId(), k -> new HashMap<>()).merge(itemId, itemCount, Long::sum);
-                            shardDuplicateCount.merge(profileCfg.getId(), 1, Integer::sum);
+                            re.breakDown = true;
                         }
                     }
+                    recruitItems.add(re);
                 }
             }
 
@@ -175,29 +176,9 @@ public class SimEmployeeService {
                     ctx.send(res);
                     return;
                 }
-
-                res.shardInfos = new ArrayList<>();
-
-                for (Map.Entry<Integer, Map<Integer, Long>> en1 : addSharedItems.entrySet()) {
-                    RecruitShardInfo re = new RecruitShardInfo();
-                    re.id = en1.getKey();
-                    re.count = shardDuplicateCount.getOrDefault(en1.getKey(), 0);
-                    re.items = ItemUtils.buildItemInfo(en1.getValue());
-                    res.shardInfos.add(re);
-                }
             }
 
-            if (!addEmployee.isEmpty()) {
-                res.employees = new ArrayList<>();
-                for (Map.Entry<Integer, Integer> en : addEmployee.entrySet()) {
-                    KVInfo kvInfo = new KVInfo();
-                    kvInfo.key = en.getKey();
-                    kvInfo.value = en.getValue();
-                    res.employees.add(kvInfo);
-                }
-            }
-            res.count = count;
-
+            res.shardInfos = recruitItems;
             log.info("招募雇员成功 playerId={},count={},newEmployee={},addAllItems={}", ctx.playerId(), count, addEmployee, addAllItems);
         } catch (Exception e) {
             log.error("", e);
@@ -273,13 +254,22 @@ public class SimEmployeeService {
                 ctx.send(res);
                 return;
             }
-//            if (data.getFragment() < curCfg.getStarUpCost()) {
-//                log.warn("升星雇员失败, 碎片不足 playerId={},employeeId={},need={},have={}", ctx.playerId(), employeeId, curCfg.getStarUpCost(), data.getFragment());
-//                res.code = Code.NOT_ENOUGH;
-//                ctx.send(res);
-//                return;
-//            }
-//            data.addFragment(-curCfg.getStarUpCost());
+
+            EmployeeProfileCfg employeeProfileCfg = GameDataManager.getEmployeeProfileCfg(employeeId);
+            if (employeeProfileCfg == null || employeeProfileCfg.getDuplicatetoShard() == null) {
+                log.warn("升星雇员失败, 获取雇员配置失败 playerId={},employeeId={}", ctx.playerId(), employeeId);
+                res.code = Code.PARAM_ERROR;
+                ctx.send(res);
+                return;
+            }
+
+            boolean remove = simPackService.removeItem(ctx, employeeProfileCfg.getDuplicatetoShard().get(1), curCfg.getStarUpCost(), AddType.SIM_EMPLOYEE_STAR_UP);
+            if (!remove) {
+                log.warn("升星雇员失败, 扣除碎片道具失败 playerId={},employeeId={},need={}", ctx.playerId(), employeeId, curCfg.getStarUpCost());
+                res.code = Code.NOT_ENOUGH;
+                ctx.send(res);
+                return;
+            }
             data.setStar(data.getStar() + 1);
             res.star = data.getStar();
             log.info("升星雇员成功 playerId={},employeeId={},newStar={}", ctx.playerId(), employeeId, data.getStar());
