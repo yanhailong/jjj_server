@@ -11,6 +11,10 @@ import com.jjg.game.alliance.constant.AllianceConst;
  * @date 2026/6/11
  */
 public class AllianceMember {
+    //玩家id
+    private long playerId;
+    //玩家用户名
+    private String playerName;
     //职位 (AllianceConst.Position)
     private int position = AllianceConst.Position.MEMBER;
     //入盟时间(ms)
@@ -21,10 +25,28 @@ public class AllianceMember {
     public AllianceMember() {
     }
 
-    public AllianceMember(int position, long joinTime) {
+    public AllianceMember(long playerId, String playerName, int position, long joinTime) {
+        this.playerId = playerId;
+        this.playerName = playerName;
         this.position = position;
         this.joinTime = joinTime;
         this.lastActiveTime = joinTime;
+    }
+
+    public long getPlayerId() {
+        return playerId;
+    }
+
+    public void setPlayerId(long playerId) {
+        this.playerId = playerId;
+    }
+
+    public String getPlayerName() {
+        return playerName;
+    }
+
+    public void setPlayerName(String playerName) {
+        this.playerName = playerName;
     }
 
     public int getPosition() {

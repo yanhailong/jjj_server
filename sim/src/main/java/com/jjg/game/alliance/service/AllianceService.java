@@ -106,14 +106,15 @@ public class AllianceService {
     /**
      * 按 ID 搜索联盟。
      */
-    public ResSearchAlliance search(long allianceId) {
+    public ResSearchAlliance search(long playerId, long allianceId) {
         ResSearchAlliance res = new ResSearchAlliance(Code.SUCCESS);
         AllianceData alliance = cacheService.getAlliance(allianceId);
         if (alliance == null) {
             res.code = Code.NOT_FOUND;
             return res;
         }
-        res.alliance = AlliancePbConverter.toBrief(alliance, configService);
+        res.alliance = AlliancePbConverter.toShowInfo(alliance, configService,
+                alliance.getApplications().containsKey(playerId));
         return res;
     }
 
@@ -124,14 +125,15 @@ public class AllianceService {
         ResAllianceList res = new ResAllianceList(Code.SUCCESS);
         res.list = new ArrayList<>();
         int myCasinoLevel = casinoLevelOf(playerId);
-        for (AllianceData data : allianceDao.listByReputation(ONE_KEY_SCAN_LIMIT)) {
+        for (AllianceData data : allianceDao.listByReputation(ONE_KEY_SCAN_LIMIT, playerId)) {
             if (data.getJoinMinCasinoLevel() > myCasinoLevel) {
                 continue;
             }
             if (data.getMemberCount() >= configService.memberCap(data.getLevel())) {
                 continue;
             }
-            res.list.add(AlliancePbConverter.toBrief(data, configService));
+            res.list.add(AlliancePbConverter.toShowInfo(data, configService,
+                    data.getApplications().containsKey(playerId)));
         }
         return res;
     }
@@ -316,7 +318,7 @@ public class AllianceService {
         alliance.setJoinMinCasinoLevel(joinMinCasinoLevel);
         alliance.setJoinNeedAudit(joinNeedAudit);
         alliance.setMemberCount(1);
-        alliance.getMembers().put(playerId, new AllianceMember(AllianceConst.Position.LEADER, now));
+        alliance.getMembers().put(playerId, new AllianceMember(pc.playerId(), pc.getPlayer().getNickName(), AllianceConst.Position.LEADER, now));
         allianceDao.save(alliance);
         cacheService.invalidatePlayer(playerId);
         res.alliance = AlliancePbConverter.toBrief(alliance, configService);
@@ -331,52 +333,51 @@ public class AllianceService {
     /**
      * 加入联盟。allianceId > 0 指定联盟; allianceId == 0 一键申请。
      */
-    public ResJoinAlliance join(long playerId, long allianceId) {
+    public ResJoinAlliance join(Player player, long allianceId) {
         ResJoinAlliance res = new ResJoinAlliance(Code.SUCCESS);
-        AlliancePlayerData playerData = alliancePlayerDao.getOrEmpty(playerId);
+        AlliancePlayerData playerData = alliancePlayerDao.getOrEmpty(player.getId());
         if (playerData.inAlliance()) {
             res.code = Code.ALLIANCE_ALREADY_IN;
-            log.warn("加入联盟失败,玩家已有所属联盟 playerId={},oldAllianceId={}", playerId, playerData.getAllianceId());
+            log.warn("加入联盟失败,玩家已有所属联盟 playerId={},oldAllianceId={}", player.getId(), playerData.getAllianceId());
             return res;
         }
-        int myCasinoLevel = casinoLevelOf(playerId);
+        int myCasinoLevel = casinoLevelOf(player.getId());
         if (myCasinoLevel < AllianceConst.Cfg.CREATE_MIN_CASINO_LEVEL) {
             res.code = Code.LEVEL_NOT_ENOUGH;
-            log.warn("加入联盟失败,玩家场景等级不足 playerId={},allLevel={}", playerId, myCasinoLevel);
+            log.warn("加入联盟失败,玩家场景等级不足 playerId={},allLevel={}", player.getId(), myCasinoLevel);
             return res;
         }
         if (allianceId > 0) {
-            return joinOne(res, playerId, allianceId, myCasinoLevel);
+            return joinOne(res, player, allianceId, myCasinoLevel);
         }
-        return oneKeyJoin(res, playerId, myCasinoLevel);
+        return oneKeyJoin(res, player, myCasinoLevel);
     }
 
     /**
      * 指定联盟: 免审核直接加入, 需审核提交申请。
      */
-    private ResJoinAlliance joinOne(ResJoinAlliance res, long playerId, long allianceId, int myCasinoLevel) {
+    private ResJoinAlliance joinOne(ResJoinAlliance res, Player player, long allianceId, int myCasinoLevel) {
         AllianceData alliance = cacheService.getAlliance(allianceId);
         if (alliance == null) {
             res.code = Code.NOT_FOUND;
-            log.warn("加入单个联盟失败,未找到该联盟数据 playerId={},allianceId={}", playerId, allianceId);
+            log.warn("加入单个联盟失败,未找到该联盟数据 playerId={},allianceId={}", player.getId(), allianceId);
             return res;
         }
         if (alliance.getJoinMinCasinoLevel() > myCasinoLevel) {
             res.code = Code.LEVEL_NOT_ENOUGH;
-            log.warn("加入单个联盟失败,不满足该联盟的入门等级要求 playerId={},myCasinoLevel={},joinMinLevel={}", playerId, myCasinoLevel, alliance.getJoinMinCasinoLevel());
+            log.warn("加入单个联盟失败,不满足该联盟的入门等级要求 playerId={},myCasinoLevel={},joinMinLevel={}", player.getId(), myCasinoLevel, alliance.getJoinMinCasinoLevel());
             return res;
         }
         if (alliance.getMemberCount() >= configService.memberCap(alliance.getLevel())) {
             res.code = Code.ALLIANCE_FULL;
-            log.warn("加入单个联盟失败,该联盟人数已满 playerId={},allianceId={}", playerId, allianceId);
+            log.warn("加入单个联盟失败,该联盟人数已满 playerId={},allianceId={}", player.getId(), allianceId);
             return res;
         }
         if (!alliance.isJoinNeedAudit()) {
-            int code = directJoin(playerId, alliance);
+            int code = directJoin(player, alliance);
             res.code = code;
             if (code == Code.SUCCESS) {
-                res.result = 1;
-                res.alliance = AlliancePbConverter.toBrief(cacheService.getAlliance(allianceId), configService);
+                res.joinAllianceId = allianceId;
             }
             return res;
         }
@@ -395,7 +396,7 @@ public class AllianceService {
                 allianceDao.removeApplications(allianceId, List.of(earliest));
             }
         }
-        if (!allianceDao.addApplication(allianceId, playerId,
+        if (!allianceDao.addApplication(allianceId, player.getId(),
                 new AllianceApplication(System.currentTimeMillis(), myCasinoLevel))) {
             res.code = Code.ALLIANCE_APPLY_EXIST;
             return res;
@@ -403,17 +404,17 @@ public class AllianceService {
         cacheService.publishInvalidate(allianceId);
         //通知盟主有新申请
         assetService.notifyPlayer(alliance.getLeaderId(), AllianceConst.NotifyType.NEW_APPLICATION,
-                allianceId, String.valueOf(playerId));
-        res.result = 2;
+                allianceId, String.valueOf(player.getId()));
+        res.applyIdList = List.of(allianceId);
         return res;
     }
 
     /**
      * 一键申请: 免审核的直接加入第一个成功的; 否则向全部满足条件的需审核联盟发申请。
      */
-    private ResJoinAlliance oneKeyJoin(ResJoinAlliance res, long playerId, int myCasinoLevel) {
+    private ResJoinAlliance oneKeyJoin(ResJoinAlliance res, Player player, int myCasinoLevel) {
         List<AllianceData> candidates = new ArrayList<>();
-        for (AllianceData data : allianceDao.listByReputation(ONE_KEY_SCAN_LIMIT)) {
+        for (AllianceData data : allianceDao.listByReputation(ONE_KEY_SCAN_LIMIT, player.getId())) {
             if (data.getJoinMinCasinoLevel() > myCasinoLevel) {
                 continue;
             }
@@ -431,78 +432,89 @@ public class AllianceService {
             if (data.isJoinNeedAudit()) {
                 continue;
             }
-            if (directJoin(playerId, data) == Code.SUCCESS) {
-                res.result = 1;
-                res.alliance = AlliancePbConverter.toBrief(cacheService.getAlliance(data.getAllianceId()), configService);
+            if (directJoin(player, data) == Code.SUCCESS) {
+                res.joinAllianceId = data.getAllianceId();
                 return res;
             }
         }
         //无可直接加入的: 向需审核的联盟批量发申请
         long now = System.currentTimeMillis();
-        int applied = 0;
+
+        List<Long> applyList = new ArrayList<>();
         for (AllianceData data : candidates) {
             if (!data.isJoinNeedAudit()) {
                 continue;
             }
-            if (allianceDao.addApplication(data.getAllianceId(), playerId, new AllianceApplication(now, myCasinoLevel))) {
+            if (allianceDao.addApplication(data.getAllianceId(), player.getId(), new AllianceApplication(now, myCasinoLevel))) {
                 cacheService.publishInvalidate(data.getAllianceId());
                 assetService.notifyPlayer(data.getLeaderId(), AllianceConst.NotifyType.NEW_APPLICATION,
-                        data.getAllianceId(), String.valueOf(playerId));
-                applied++;
+                        data.getAllianceId(), String.valueOf(player.getId()));
+                applyList.add(data.getAllianceId());
             }
         }
-        if (applied == 0) {
+        if (applyList.isEmpty()) {
             res.code = Code.NOT_FOUND;
             return res;
         }
-        res.result = 2;
+        res.applyIdList = applyList;
         return res;
     }
 
     /**
      * 直接加入: 玩家占位 -> 联盟条件写入 -> 失败回滚。
      */
-    private int directJoin(long playerId, AllianceData alliance) {
+    private int directJoin(Player player, AllianceData alliance) {
         long allianceId = alliance.getAllianceId();
         long now = System.currentTimeMillis();
-        if (!alliancePlayerDao.tryOccupy(playerId, allianceId, now)) {
+        if (!alliancePlayerDao.tryOccupy(player.getId(), allianceId, now)) {
             return Code.ALLIANCE_ALREADY_IN;
         }
         int cap = configService.memberCap(alliance.getLevel());
-        if (!allianceDao.tryAddMember(allianceId, playerId,
-                new AllianceMember(AllianceConst.Position.MEMBER, now), cap)) {
+        if (!allianceDao.tryAddMember(allianceId, player.getId(),
+                new AllianceMember(player.getId(), player.getNickName(), AllianceConst.Position.MEMBER, now), cap)) {
             //满员/已解散/已在盟中: 回滚占位
-            alliancePlayerDao.clearAlliance(playerId, allianceId);
-            cacheService.invalidatePlayer(playerId);
+            alliancePlayerDao.clearAlliance(player.getId(), allianceId);
+            cacheService.invalidatePlayer(player.getId());
             return Code.ALLIANCE_FULL;
         }
-        cacheService.invalidatePlayer(playerId);
+        cacheService.invalidatePlayer(player.getId());
         cacheService.publishInvalidate(allianceId);
-        log.info("加入联盟成功 playerId={},allianceId={}", playerId, allianceId);
+        log.info("加入联盟成功 playerId={},allianceId={}", player.getId(), allianceId);
         return Code.SUCCESS;
     }
 
     /**
      * 处理入盟申请 (盟主, 支持一键): 同意走 directJoin, 失败者(已入他盟/已满)只删申请。
      */
-    public ResHandleApplication handleApplications(long playerId, List<Long> applicantIds, boolean agree) {
+    public ResHandleApplication handleApplications(Player player, List<Long> applicantIds, boolean agree) {
         ResHandleApplication res = new ResHandleApplication(Code.SUCCESS);
-        res.agreedIds = new ArrayList<>();
-        res.failedIds = new ArrayList<>();
-        AllianceData alliance = allianceOf(playerId);
-        if (alliance == null) {
-            res.code = Code.ALLIANCE_NOT_MEMBER;
-            return res;
-        }
-        if (!alliance.isLeader(playerId)) {
-            res.code = Code.ALLIANCE_NOT_LEADER;
-            return res;
-        }
         if (applicantIds == null || applicantIds.isEmpty()) {
             res.code = Code.PARAM_ERROR;
+            log.warn("处理入盟申请失败,列表为空 playerId={}", player.getId());
+            return res;
+        }
+        res.agreedIds = new ArrayList<>();
+        res.failedIds = new ArrayList<>();
+        AllianceData alliance = allianceOf(player.getId());
+        if (alliance == null) {
+            res.code = Code.ALLIANCE_NOT_MEMBER;
+            log.warn("处理入盟申请失败,未找到该联盟信息 playerId={}", player.getId());
+            return res;
+        }
+        if (!alliance.isLeader(player.getId())) {
+            res.code = Code.ALLIANCE_NOT_LEADER;
+            log.warn("处理入盟申请失败,该玩家不是盟主 playerId={},allianceId={}", player.getId(), alliance.getAllianceId());
             return res;
         }
         long allianceId = alliance.getAllianceId();
+
+        Map<Long, Player> playerMap = corePlayerService.multiGetPlayerMap(applicantIds);
+        if (playerMap == null || playerMap.isEmpty()) {
+            res.code = Code.PARAM_ERROR;
+            log.warn("处理入盟申请失败,获取玩家数据为空 playerId={}", player.getId());
+            return res;
+        }
+
         List<Long> toRemove = new ArrayList<>();
         for (Long pid : applicantIds) {
             if (pid == null || !alliance.getApplications().containsKey(pid)) {
@@ -513,8 +525,15 @@ public class AllianceService {
                 assetService.notifyPlayer(pid, AllianceConst.NotifyType.APPLY_REJECTED, allianceId, "");
                 continue;
             }
+
+            Player memberPlayer = playerMap.get(pid);
+            if (memberPlayer == null) {
+                log.warn("处理入盟申请时，未找到该玩家数据 playerId={},allianceId={},memberPlayerId={}", player.getId(), allianceId, pid);
+                continue;
+            }
+
             //同意: directJoin 内部的 tryAddMember 会顺带 unset 申请
-            int code = directJoin(pid, alliance);
+            int code = directJoin(memberPlayer, alliance);
             if (code == Code.SUCCESS) {
                 res.agreedIds.add(pid);
                 assetService.notifyPlayer(pid, AllianceConst.NotifyType.APPLY_AGREED, allianceId, "");

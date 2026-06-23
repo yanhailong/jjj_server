@@ -1,12 +1,10 @@
 package com.jjg.game.alliance.pb;
 
-import com.jjg.game.alliance.data.AllianceData;
-import com.jjg.game.alliance.data.AllianceHelpOrder;
-import com.jjg.game.alliance.data.AllianceTaskSlot;
-import com.jjg.game.alliance.data.PlayerTakenTask;
+import com.jjg.game.alliance.data.*;
 import com.jjg.game.alliance.pb.struct.AllianceBrief;
 import com.jjg.game.alliance.pb.struct.AllianceHelpOrderInfo;
 import com.jjg.game.alliance.pb.struct.AllianceTaskInfo;
+import com.jjg.game.alliance.pb.struct.ShowAllianceInfo;
 import com.jjg.game.alliance.service.AllianceConfigService;
 import com.jjg.game.common.pb.ItemInfo;
 
@@ -33,6 +31,24 @@ public class AlliancePbConverter {
             return null;
         }
         AllianceBrief brief = new AllianceBrief();
+        fillBrief(brief, data, config);
+        return brief;
+    }
+
+    /**
+     * 可加入联盟信息 (概要 + 当前玩家是否已申请过)
+     */
+    public static ShowAllianceInfo toShowInfo(AllianceData data, AllianceConfigService config, boolean applied) {
+        if (data == null) {
+            return null;
+        }
+        ShowAllianceInfo info = new ShowAllianceInfo();
+        fillBrief(info, data, config);
+        info.apply = applied;
+        return info;
+    }
+
+    private static void fillBrief(AllianceBrief brief, AllianceData data, AllianceConfigService config) {
         brief.allianceId = data.getAllianceId();
         brief.name = data.getName();
         brief.icon = data.getIcon();
@@ -45,7 +61,11 @@ public class AlliancePbConverter {
         brief.joinMinCasinoLevel = data.getJoinMinCasinoLevel();
         brief.joinNeedAudit = data.isJoinNeedAudit();
         brief.leaderId = data.getLeaderId();
-        return brief;
+
+        AllianceMember member = data.findMember(brief.leaderId);
+        if (member != null) {
+            brief.leaderPlayerName = member.getPlayerName();
+        }
     }
 
     /**

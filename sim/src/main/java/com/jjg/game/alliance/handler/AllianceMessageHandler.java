@@ -104,7 +104,7 @@ public class AllianceMessageHandler implements GmListener {
      */
     @Command(AllianceConst.MsgBean.REQ_SEARCH_ALLIANCE)
     public void reqSearchAlliance(PlayerController pc, ReqSearchAlliance req) {
-        sendAsync(pc, () -> allianceService.search(req.allianceId));
+        sendAsync(pc, () -> allianceService.search(pc.playerId(),req.allianceId));
     }
 
     /**
@@ -138,7 +138,7 @@ public class AllianceMessageHandler implements GmListener {
      */
     @Command(AllianceConst.MsgBean.REQ_JOIN_ALLIANCE)
     public void reqJoinAlliance(PlayerController pc, ReqJoinAlliance req) {
-        pc.send(allianceService.join(pc.playerId(), req.allianceId));
+        pc.send(allianceService.join(pc.getPlayer(), req.allianceId));
     }
 
     /**
@@ -187,7 +187,7 @@ public class AllianceMessageHandler implements GmListener {
      */
     @Command(AllianceConst.MsgBean.REQ_HANDLE_APPLICATION)
     public void reqHandleApplication(PlayerController pc, ReqHandleApplication req) {
-        pc.send(allianceService.handleApplications(pc.playerId(), req.playerIds, req.agree));
+        pc.send(allianceService.handleApplications(pc.getPlayer(), req.playerIds, req.agree));
     }
 
     // --------------------------- 联盟任务 ---------------------------

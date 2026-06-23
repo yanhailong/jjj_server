@@ -81,6 +81,7 @@ public class GuestData {
                 return;
             }
             this.level += 1;
+            this.exp -= nextCfg.getLevelUpExp();
         }
     }
 }

@@ -153,14 +153,6 @@ public class AllianceData {
         this.joinNeedAudit = joinNeedAudit;
     }
 
-    public int getMemberCount() {
-        return memberCount;
-    }
-
-    public void setMemberCount(int memberCount) {
-        this.memberCount = memberCount;
-    }
-
     public Map<Long, AllianceMember> getMembers() {
         return members;
     }
@@ -243,5 +235,20 @@ public class AllianceData {
             }
         }
         return null;
+    }
+
+    public int getMemberCount() {
+        return memberCount;
+    }
+
+    public void setMemberCount(int memberCount) {
+        this.memberCount = memberCount;
+    }
+
+    public AllianceMember findMember(long playerId) {
+        if (members == null || members.isEmpty()) {
+            return null;
+        }
+        return members.get(playerId);
     }
 }

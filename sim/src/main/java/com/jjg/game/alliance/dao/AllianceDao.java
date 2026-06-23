@@ -279,12 +279,17 @@ public class AllianceDao extends MongoBaseDao<AllianceData, Long> {
         mongoTemplate.updateFirst(query, new Update().unset(path), AllianceData.class);
     }
 
-    public List<AllianceData> listByReputation(int limit) {
+    /**
+     * 按声誉降序取联盟概要 (可加入列表/一键加入扫描用)。
+     * 额外投影当前玩家自己的申请条目, 供列表展示"是否已申请过"。
+     */
+    public List<AllianceData> listByReputation(int limit, long playerId) {
         Query query = new Query();
         query.with(Sort.by(Sort.Direction.DESC, "reputation"));
         query.limit(limit);
         query.fields().include("name", "icon", "level", "reputation",
-                "memberCount", "joinMinCasinoLevel", "joinNeedAudit");
+                "memberCount", "members", "joinMinCasinoLevel", "joinNeedAudit", "leaderId");
+        query.fields().include("applications." + playerId);
         return mongoTemplate.find(query, AllianceData.class);
     }
 
@@ -296,7 +301,7 @@ public class AllianceDao extends MongoBaseDao<AllianceData, Long> {
             return List.of();
         }
         Query query = new Query(Criteria.where("_id").in(allianceIds));
-        query.fields().include("name", "icon", "level", "reputation", "memberCount", "leaderId");
+        query.fields().include("name", "icon", "level", "reputation", "memberCount", "members", "leaderId");
         return mongoTemplate.find(query, AllianceData.class);
     }
 

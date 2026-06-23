@@ -16,4 +16,6 @@ public class GuestDetailInfo {
     public int level;
     @ProtoDesc("星级")
     public int star;
+    @ProtoDesc("经验")
+    public int exp;
 }

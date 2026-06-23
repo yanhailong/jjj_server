@@ -36,4 +36,6 @@ public class AllianceBrief {
     public boolean joinNeedAudit;
     @ProtoDesc("盟主id")
     public long leaderId;
+    @ProtoDesc("盟主昵称")
+    public String leaderPlayerName;
 }

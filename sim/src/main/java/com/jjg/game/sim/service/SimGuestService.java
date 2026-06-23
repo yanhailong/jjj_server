@@ -664,6 +664,7 @@ public class SimGuestService implements SimPlayerTickListener {
                     guestDetailInfo.id = guestData.getId();
                     guestDetailInfo.level = guestData.getLevel();
                     guestDetailInfo.star = guestData.getStar();
+                    guestDetailInfo.exp = guestData.getExp();
                     res.guests.add(guestDetailInfo);
                 }
             }

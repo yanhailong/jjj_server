@@ -93,7 +93,7 @@ public class SuperStarMessageHandler {
     @Command(SuperStarConstant.MsgBean.REQ_POOL_VALUE)
     public void reqPoolValue(PlayerController playerController, ReqSuperStarPoolValue req) {
         try {
-            log.info("收到获取奖池 playerId={},req={}", playerController.playerId(), JSONObject.toJSONString(req));
+//            log.info("收到获取奖池 playerId={},req={}", playerController.playerId(), JSONObject.toJSONString(req));
             SuperStarGameRunInfo gameRunInfo;
             if (playerController.getScene() == null) {
                 gameRunInfo = gameManager.getPoolValue(playerController, req.stakeValue);
