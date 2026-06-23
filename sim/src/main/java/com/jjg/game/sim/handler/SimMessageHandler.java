@@ -9,7 +9,6 @@ import com.jjg.game.core.data.CommonResult;
 import com.jjg.game.core.data.PlayerController;
 import com.jjg.game.core.listener.GmListener;
 import com.jjg.game.sampledata.GameDataManager;
-import com.jjg.game.sampledata.bean.BuildingAreaTableCfg;
 import com.jjg.game.sampledata.bean.CasinoStatsSheetCfg;
 import com.jjg.game.sim.constant.SimConstant;
 import com.jjg.game.sim.data.SimPlayerContext;
@@ -372,16 +371,6 @@ public class SimMessageHandler implements GmListener {
                 ReqUnlockBuilding req = new ReqUnlockBuilding();
                 req.id = Integer.parseInt(gmOrders[1]);
                 reqUnlockBuilding(playerController, req);
-            } else if ("unlockAllBuilding".equalsIgnoreCase(gmOrders[0])) {
-                SimPlayerContext ctx = simManager.getContext(playerController.playerId());
-                for (BuildingAreaTableCfg cfg : GameDataManager.getBuildingAreaTableCfgList()) {
-                    if (cfg.getRegionID() != ctx.getCurrentCasino().getCasinoId()) {
-                        continue;
-                    }
-                    ReqUnlockBuilding req = new ReqUnlockBuilding();
-                    req.id = cfg.getId();
-                    reqUnlockBuilding(playerController, req);
-                }
             } else if ("buildingInfo".equalsIgnoreCase(gmOrders[0])) {
                 ReqBuildingInfo req = new ReqBuildingInfo();
                 req.id = Integer.parseInt(gmOrders[1]);

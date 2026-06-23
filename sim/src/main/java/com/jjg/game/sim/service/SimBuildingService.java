@@ -164,13 +164,24 @@ public class SimBuildingService implements SimPlayerTickListener {
                 ctx.send(res);
                 return;
             }
-            //todo 前置建筑必须已解锁
-//            if (cfg.getUnlockMethod() > 0 && casino.findBuilding(cfg.getUnlockMethod()) == null) {
-//                log.warn("解锁建筑失败, 前置建筑未解锁 playerId={},buildingId={},prereq={}", ctx.playerId(), buildingId, cfg.getUnlockMethod());
-//                res.code = Code.PARAM_ERROR;
-//                ctx.send(res);
-//                return;
-//            }
+            if (cfg.getUnlockMethod() != null) {
+                for (Map.Entry<Integer, Integer> en : cfg.getUnlockMethod().entrySet()) {
+                    BuildingData building = casino.findBuilding(en.getKey());
+                    if (building == null) {
+                        log.warn("解锁建筑失败, 解锁方式未通过 playerId={},buildingId={},unLockBuildingId={}", ctx.playerId(), building, en.getKey());
+                        res.code = Code.PARAM_ERROR;
+                        ctx.send(res);
+                        return;
+                    }
+
+                    if (building.getLevel() < en.getValue()) {
+                        log.warn("解锁建筑失败, 解锁方式未通过 playerId={},buildingId={},level={},unLockBuildingId={},cfgLevel={}", ctx.playerId(), building, building.getLevel(), en.getKey(), en.getValue());
+                        res.code = Code.PARAM_ERROR;
+                        ctx.send(res);
+                        return;
+                    }
+                }
+            }
             //资源足够?
             boolean remove = simPackService.removeItems(ctx, cfg.getUnlockCost(), AddType.SIM_BUILDING_UPGRADE, null);
             if (!remove) {
