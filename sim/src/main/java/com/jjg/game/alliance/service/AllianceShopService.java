@@ -51,7 +51,7 @@ public class AllianceShopService {
         long allianceId = cacheService.getAllianceId(playerId);
         AllianceData alliance = cacheService.getAlliance(allianceId);
         if (alliance == null) {
-            res.code = Code.ALLIANCE_NOT_MEMBER;
+            res.code = Code.NOT_FOUND;
             return res;
         }
         AlliancePlayerData playerData = alliancePlayerDao.getOrEmpty(playerId);
@@ -85,7 +85,7 @@ public class AllianceShopService {
         long allianceId = cacheService.getAllianceId(playerId);
         AllianceData alliance = cacheService.getAlliance(allianceId);
         if (alliance == null) {
-            res.code = Code.ALLIANCE_NOT_MEMBER;
+            res.code = Code.NOT_FOUND;
             log.warn("联盟商店兑换失败,玩家不在联盟 playerId={},goodsId={}", playerId, goodsId);
             return res;
         }
@@ -104,7 +104,7 @@ public class AllianceShopService {
         int today = TimeHelper.getDayNumerical();
         int bought = playerData.shopPurchasedOf(today, goodsId);
         if (bought >= cfg.dailyLimit()) {
-            res.code = Code.ALLIANCE_SHOP_SOLD_OUT;
+            res.code = Code.FORBID;
             log.warn("联盟商店兑换失败,今日限购已达上限 playerId={},goodsId={},bought={},limit={}", playerId, goodsId, bought, cfg.dailyLimit());
             return res;
         }
@@ -112,11 +112,11 @@ public class AllianceShopService {
         if (!alliancePlayerDao.tryPurchase(playerId, today, goodsId, cfg.dailyLimit(), cfg.price())) {
             AlliancePlayerData latest = alliancePlayerDao.getOrEmpty(playerId);
             if (latest.shopPurchasedOf(today, goodsId) >= cfg.dailyLimit()) {
-                res.code = Code.ALLIANCE_SHOP_SOLD_OUT;
+                res.code = Code.FORBID;
                 log.warn("联盟商店兑换失败,今日限购已达上限(并发) playerId={},goodsId={},limit={}", playerId, goodsId, cfg.dailyLimit());
                 return res;
             }
-            res.code = Code.ALLIANCE_CONTRIBUTION_NOT_ENOUGH;
+            res.code = Code.NOT_ENOUGH;
             log.warn("联盟商店兑换失败,贡献值不足 playerId={},goodsId={},price={},myContribution={}", playerId, goodsId, cfg.price(), latest.getContribution());
             return res;
         }

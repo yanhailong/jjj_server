@@ -174,6 +174,16 @@ public class AlliancePlayerDao extends MongoBaseDao<AlliancePlayerData, Long> {
         bulk.execute();
     }
 
+    /**
+     * 释放创建资格 (解散联盟): 清掉创建者的"已创建过"标记, 让其解散后可再次创建。
+     * 带 createdAllianceId 条件防误清新盟; 即便创建者已转让盟主并退盟也能命中。
+     */
+    public boolean clearCreatedFlag(long creatorId, long allianceId) {
+        Query query = new Query(Criteria.where("_id").is(creatorId).and("createdAllianceId").is(allianceId));
+        return mongoTemplate.updateFirst(query,
+                new Update().set("createdAllianceId", 0L), AlliancePlayerData.class).getModifiedCount() > 0;
+    }
+
     // ----------------------- 贡献值 -----------------------
 
     /**

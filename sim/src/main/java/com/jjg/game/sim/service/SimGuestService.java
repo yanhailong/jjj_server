@@ -708,8 +708,17 @@ public class SimGuestService implements SimPlayerTickListener {
                 return;
             }
 
+            int nextStar = guestData.getStar() + 1;
+            VisitorStarCfg nextStarCfg = configCache.getVisitorStarCfgByGuest(guestId, nextStar);
+            if (nextStarCfg == null) {
+                log.warn("升星游客失败,星级已满 playerId={},guestId={},star={},nextStar={}", ctx.playerId(), guestId, guestData.getStar(),nextStar);
+                res.code = Code.PARAM_ERROR;
+                ctx.send(res);
+                return;
+            }
+
             VisitorQuestCfg visitorQuestCfg = GameDataManager.getVisitorQuestCfg(guestId);
-            if (visitorQuestCfg == null || cfg.getAscend() <= 0) {
+            if (visitorQuestCfg == null) {
                 log.warn("升星游客失败,获取游客配置失败 playerId={},guestId={}", ctx.playerId(), guestId);
                 res.code = Code.NOT_FOUND;
                 ctx.send(res);
@@ -725,7 +734,7 @@ public class SimGuestService implements SimPlayerTickListener {
             }
 
             //升星
-            guestData.setStar(guestData.getStar() + 1);
+            guestData.setStar(nextStar);
 
             res.guestId = guestData.getId();
             res.star = guestData.getStar();
@@ -897,6 +906,18 @@ public class SimGuestService implements SimPlayerTickListener {
         try {
             if (ctx.getCurrentCasino().getGuestBondsSet() != null && !ctx.getCurrentCasino().getGuestBondsSet().isEmpty()) {
                 res.bonds = new ArrayList<>(ctx.getCurrentCasino().getGuestBondsSet());
+
+                Map<Integer, Long> map = new HashMap<>();
+                for (int id : ctx.getCurrentCasino().getGuestBondsSet()) {
+                    VisitorBondsCfg cfg = GameDataManager.getVisitorBondsCfg(id);
+                    if (cfg == null || cfg.getReward() == null || cfg.getReward().isEmpty()) {
+                        continue;
+                    }
+                    for (Map.Entry<Integer, Long> en : cfg.getReward().entrySet()) {
+                        map.merge(en.getKey(), en.getValue(), Long::sum);
+                    }
+                }
+                res.rewards = ItemUtils.buildItemInfo(map);
             }
         } catch (Exception e) {
             log.error("", e);
@@ -948,8 +969,8 @@ public class SimGuestService implements SimPlayerTickListener {
                 ctx.getCurrentCasino().addGuestBonds(visitorBondsCfg.getId());
 
                 if (visitorBondsCfg.getReward() != null && !visitorBondsCfg.getReward().isEmpty()) {
-                    for (Map.Entry<Integer, Integer> en : visitorBondsCfg.getReward().entrySet()) {
-                        addItems.merge(en.getKey(), en.getValue().longValue(), Long::sum);
+                    for (Map.Entry<Integer, Long> en : visitorBondsCfg.getReward().entrySet()) {
+                        addItems.merge(en.getKey(), en.getValue(), Long::sum);
                     }
                 }
                 log.info("成功解锁羁绊 playerId={},bondsId={}", ctx.playerId(), visitorBondsCfg.getId());

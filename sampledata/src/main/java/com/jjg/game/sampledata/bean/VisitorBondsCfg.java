@@ -24,7 +24,7 @@ public class VisitorBondsCfg extends BaseCfgBean {
   /** 多语言 */
   protected int NameId;
   /** 羁绊奖励 */
-  protected Map<Integer,Integer> Reward;
+  protected Map<Integer,Long> Reward;
 
   /** 返回成员组成 */
   public List<Integer> getMembers() {
@@ -37,7 +37,7 @@ public class VisitorBondsCfg extends BaseCfgBean {
   }
 
   /** 返回羁绊奖励 */
-  public Map<Integer,Integer> getReward() {
+  public Map<Integer,Long> getReward() {
     return Reward;
   }
 

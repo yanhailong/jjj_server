@@ -15,7 +15,7 @@ import com.jjg.game.common.proto.ProtobufMessage;
 @ProtobufMessage(messageType = MessageConst.MessageTypeDef.ALLIANCE, cmd = AllianceConst.MsgBean.NOTIFY_ALLIANCE, resp = true)
 @ProtoDesc("联盟通用变更通知")
 public class NotifyAlliance extends AbstractResponse {
-    @ProtoDesc("类型(AllianceConst.NotifyType)")
+    @ProtoDesc("类型 1.踢出联盟  2.解散联盟  3.入盟申请被同意  4.入盟申请被拒绝  5.联盟升级  6.成为盟主 (被转让)  7.收到新的入盟申请 (推送给盟主)")
     public int type;
     @ProtoDesc("联盟id")
     public long allianceId;

@@ -207,12 +207,12 @@ public class AllianceBattleService {
         long allianceId = cacheService.getAllianceId(playerId);
         AllianceData alliance = cacheService.getAlliance(allianceId);
         if (alliance == null) {
-            res.code = Code.ALLIANCE_NOT_MEMBER;
+            res.code = Code.NOT_FOUND;
             log.warn("联盟对决报名失败,玩家不在联盟 playerId={}", playerId);
             return res;
         }
         if (!alliance.isLeader(playerId)) {
-            res.code = Code.ALLIANCE_NOT_LEADER;
+            res.code = Code.FORBID;
             log.warn("联盟对决报名失败,非盟主 playerId={},allianceId={},leaderId={}", playerId, allianceId, alliance.getLeaderId());
             return res;
         }
@@ -234,7 +234,7 @@ public class AllianceBattleService {
         String period = configService.battlePeriod(now);
         AllianceBattleData battle = battleDao.findById(period).orElse(null);
         if (battle == null || battle.getState() != AllianceConst.BattleState.SIGNUP) {
-            res.code = Code.ALLIANCE_BATTLE_STATE;
+            res.code = Code.FORBID;
             log.warn("联盟对决报名失败,非报名阶段 allianceId={},period={},state={}", allianceId, period, battle == null ? -1 : battle.getState());
             return res;
         }
@@ -341,7 +341,7 @@ public class AllianceBattleService {
         long allianceId = cacheService.getAllianceId(playerId);
         AllianceBattleData battle = cachedBattle();
         if (allianceId <= 0 || battle == null) {
-            res.code = Code.ALLIANCE_NOT_MEMBER;
+            res.code = Code.NOT_FOUND;
             return res;
         }
         String key = personalKey(battle.getPeriod(), allianceId);
@@ -370,7 +370,7 @@ public class AllianceBattleService {
         long allianceId = cacheService.getAllianceId(playerId);
         AllianceBattleData battle = cachedBattle();
         if (allianceId <= 0 || battle == null) {
-            res.code = Code.ALLIANCE_NOT_MEMBER;
+            res.code = Code.NOT_FOUND;
             log.warn("领取对决阶段奖励失败,玩家不在联盟或无进行中对决 playerId={},allianceId={},stage={}", playerId, allianceId, stage);
             return res;
         }

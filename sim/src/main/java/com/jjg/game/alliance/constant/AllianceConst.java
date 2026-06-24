@@ -381,4 +381,11 @@ public interface AllianceConst {
         //周榜/赛季榜结算分布式锁
         String RANK_SETTLE_LOCK = "alliance:rank:settle:lock";
     }
+
+    interface ApplyFailReason{
+        //已在联盟中
+        int ALREADY_IN = 1;
+        //人数已满
+        int FULL = 2;
+    }
 }

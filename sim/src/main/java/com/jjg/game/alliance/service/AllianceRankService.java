@@ -81,7 +81,7 @@ public class AllianceRankService {
         res.list = new ArrayList<>();
         long allianceId = cacheService.getAllianceId(playerId);
         if (allianceId <= 0) {
-            res.code = Code.ALLIANCE_NOT_MEMBER;
+            res.code = Code.NOT_FOUND;
             return res;
         }
         String key = assetService.contribRankKey(allianceId);

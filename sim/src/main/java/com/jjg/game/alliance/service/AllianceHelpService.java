@@ -84,7 +84,7 @@ public class AllianceHelpService {
         long allianceId = cacheService.getAllianceId(playerId);
         AllianceData alliance = cacheService.getAlliance(allianceId);
         if (alliance == null) {
-            res.code = Code.ALLIANCE_NOT_MEMBER;
+            res.code = Code.NOT_FOUND;
             log.warn("发起联盟求助失败,玩家不在联盟 playerId={},type={},targetId={}", playerId, type, targetId);
             return res;
         }
@@ -97,7 +97,7 @@ public class AllianceHelpService {
         int today = TimeHelper.getDayNumerical();
         int seeked = playerData.seekHelpCountOf(today);
         if (seeked >= AllianceConst.Cfg.DAILY_SEEK_HELP_LIMIT) {
-            res.code = Code.ALLIANCE_SEEK_LIMIT;
+            res.code = Code.FORBID;
             log.warn("发起联盟求助失败,今日求助次数已达上限 playerId={},seeked={},limit={}", playerId, seeked, AllianceConst.Cfg.DAILY_SEEK_HELP_LIMIT);
             return res;
         }
@@ -134,7 +134,7 @@ public class AllianceHelpService {
         order.setMaxHelp(maxHelp);
         order.setHelpCount(0);
         if (!alliancePlayerDao.tryConsumeSeekHelp(playerId, today, AllianceConst.Cfg.DAILY_SEEK_HELP_LIMIT)) {
-            res.code = Code.ALLIANCE_SEEK_LIMIT;
+            res.code = Code.FORBID;
             log.warn("发起联盟求助失败,扣减求助次数失败(并发达上限) playerId={},type={},targetId={}", playerId, type, targetId);
             return res;
         }
@@ -165,7 +165,7 @@ public class AllianceHelpService {
         long allianceId = cacheService.getAllianceId(playerId);
         AllianceData alliance = cacheService.getAlliance(allianceId);
         if (alliance == null) {
-            res.code = Code.ALLIANCE_NOT_MEMBER;
+            res.code = Code.NOT_FOUND;
             log.warn("联盟帮助失败,玩家不在联盟 playerId={},orderId={}", playerId, orderId);
             return res;
         }
@@ -192,7 +192,7 @@ public class AllianceHelpService {
         long allianceId = cacheService.getAllianceId(playerId);
         AllianceData alliance = cacheService.getAlliance(allianceId);
         if (alliance == null) {
-            res.code = Code.ALLIANCE_NOT_MEMBER;
+            res.code = Code.NOT_FOUND;
             log.warn("联盟一键帮助失败,玩家不在联盟 playerId={}", playerId);
             return res;
         }
@@ -201,7 +201,7 @@ public class AllianceHelpService {
         int helped = playerData.helpCountOf(today);
         int remain = AllianceConst.Cfg.DAILY_HELP_LIMIT - helped;
         if (remain <= 0) {
-            res.code = Code.ALLIANCE_HELP_LIMIT;
+            res.code = Code.FORBID;
             log.warn("联盟一键帮助失败,今日帮助次数已达上限 playerId={},helped={},limit={}", playerId, helped, AllianceConst.Cfg.DAILY_HELP_LIMIT);
             return res;
         }
@@ -226,7 +226,7 @@ public class AllianceHelpService {
                 remain--;
             } else {
                 res.skippedCount++;
-                if (code == Code.ALLIANCE_HELP_LIMIT) {
+                if (code == Code.FORBID) {
                     break;
                 }
             }
@@ -251,7 +251,7 @@ public class AllianceHelpService {
             return Code.REPEAT_OP;
         }
         if (!alliancePlayerDao.tryConsumeHelp(playerId, today, AllianceConst.Cfg.DAILY_HELP_LIMIT)) {
-            return Code.ALLIANCE_HELP_LIMIT;
+            return Code.FORBID;
         }
         if (!allianceDao.tryHelp(allianceId, order.getOrderId(), playerId, now, order.getMaxHelp())) {
             alliancePlayerDao.rollbackHelp(playerId, today);
@@ -358,7 +358,7 @@ public class AllianceHelpService {
         long allianceId = cacheService.getAllianceId(playerId);
         AllianceData alliance = cacheService.getAlliance(allianceId);
         if (alliance == null) {
-            res.code = Code.ALLIANCE_NOT_MEMBER;
+            res.code = Code.NOT_FOUND;
             return res;
         }
         long now = System.currentTimeMillis();

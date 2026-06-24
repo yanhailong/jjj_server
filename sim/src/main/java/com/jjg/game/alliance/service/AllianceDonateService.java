@@ -53,7 +53,7 @@ public class AllianceDonateService {
         long allianceId = cacheService.getAllianceId(playerId);
         AllianceData alliance = cacheService.getAlliance(allianceId);
         if (alliance == null) {
-            res.code = Code.ALLIANCE_NOT_MEMBER;
+            res.code = Code.NOT_FOUND;
             return res;
         }
         AlliancePlayerData playerData = alliancePlayerDao.getOrEmpty(playerId);
@@ -87,7 +87,7 @@ public class AllianceDonateService {
         long allianceId = cacheService.getAllianceId(playerId);
         AllianceData alliance = cacheService.getAlliance(allianceId);
         if (alliance == null) {
-            res.code = Code.ALLIANCE_NOT_MEMBER;
+            res.code = Code.NOT_FOUND;
             log.warn("联盟捐献失败,玩家不在联盟 playerId={},donateId={}", playerId, donateId);
             return res;
         }
@@ -101,7 +101,7 @@ public class AllianceDonateService {
         int today = TimeHelper.getDayNumerical();
         int donated = playerData.donateCountOf(today);
         if (donated >= AllianceConst.Cfg.DAILY_DONATE_LIMIT) {
-            res.code = Code.ALLIANCE_DONATE_LIMIT;
+            res.code = Code.FORBID;
             log.warn("联盟捐献失败,今日捐献次数已达上限 playerId={},donated={},limit={}", playerId, donated, AllianceConst.Cfg.DAILY_DONATE_LIMIT);
             return res;
         }
@@ -109,7 +109,7 @@ public class AllianceDonateService {
         //扣消耗 (当日首捐可免费)
         int newDonateCount = alliancePlayerDao.reserveDonate(playerId, today, AllianceConst.Cfg.DAILY_DONATE_LIMIT);
         if (newDonateCount <= 0) {
-            res.code = Code.ALLIANCE_DONATE_LIMIT;
+            res.code = Code.FORBID;
             log.warn("联盟捐献失败,占用捐献次数失败(并发达上限) playerId={},donateId={},limit={}", playerId, donateId, AllianceConst.Cfg.DAILY_DONATE_LIMIT);
             return res;
         }

@@ -17,6 +17,8 @@ import com.jjg.game.common.proto.ProtobufMessage;
 public class ResTransferLeader extends AbstractResponse {
     @ProtoDesc("新盟主id")
     public long newLeaderId;
+    @ProtoDesc("新盟主昵称")
+    public String newLeaderName;
 
     public ResTransferLeader(int code) {
         super(code);

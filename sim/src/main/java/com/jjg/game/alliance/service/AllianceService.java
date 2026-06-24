@@ -12,6 +12,7 @@ import com.jjg.game.alliance.pb.AlliancePbConverter;
 import com.jjg.game.alliance.pb.res.*;
 import com.jjg.game.alliance.pb.struct.AllianceApplicationInfo;
 import com.jjg.game.alliance.pb.struct.AllianceBrief;
+import com.jjg.game.alliance.pb.struct.AllianceFailApply;
 import com.jjg.game.alliance.pb.struct.AllianceMemberInfo;
 import com.jjg.game.core.constant.AddType;
 import com.jjg.game.core.constant.Code;
@@ -145,7 +146,7 @@ public class AllianceService {
         ResMemberList res = new ResMemberList(Code.SUCCESS);
         AllianceData alliance = allianceOf(playerId);
         if (alliance == null) {
-            res.code = Code.ALLIANCE_NOT_MEMBER;
+            res.code = Code.NOT_FOUND;
             return res;
         }
         res.memberCap = configService.memberCap(alliance.getLevel());
@@ -195,11 +196,11 @@ public class AllianceService {
         ResApplicationList res = new ResApplicationList(Code.SUCCESS);
         AllianceData alliance = allianceOf(playerId);
         if (alliance == null) {
-            res.code = Code.ALLIANCE_NOT_MEMBER;
+            res.code = Code.NOT_FOUND;
             return res;
         }
         if (!alliance.isLeader(playerId)) {
-            res.code = Code.ALLIANCE_NOT_LEADER;
+            res.code = Code.FORBID;
             return res;
         }
         res.list = new ArrayList<>();
@@ -274,12 +275,12 @@ public class AllianceService {
         //资格预检: 已在盟 / 已创建过 (需求: 每人最多加入1个、最多创建1个) —— 快速失败, 不取号不扣钻
         AlliancePlayerData playerData = alliancePlayerDao.getOrEmpty(playerId);
         if (playerData.inAlliance()) {
-            res.code = Code.ALLIANCE_ALREADY_IN;
+            res.code = Code.FORBID;
             log.warn("创建联盟失败,玩家已有所属联盟 playerId={},allianceId={}", playerId, playerData.getAllianceId());
             return res;
         }
         if (playerData.getCreatedAllianceId() > 0) {
-            res.code = Code.ALLIANCE_CREATED_LIMIT;
+            res.code = Code.FORBID;
             log.warn("创建联盟失败,玩家已创建过联盟 playerId={},createdAllianceId={}", playerId, playerData.getCreatedAllianceId());
             return res;
         }
@@ -301,7 +302,7 @@ public class AllianceService {
         if (!alliancePlayerDao.tryOccupyCreate(playerId, allianceId, now)) {
             //同一玩家请求按 playerId 串行, 预检已过, 正常不触发; 极端并发下退还钻石
             playerPackService.addItems(playerId, cost, AddType.ALLIANCE_CREATE, "创建联盟回滚", true);
-            res.code = Code.ALLIANCE_ALREADY_IN;
+            res.code = Code.FORBID;
             log.warn("创建联盟失败,占位失败已退钻石 playerId={},allianceId={}", playerId, allianceId);
             return res;
         }
@@ -337,7 +338,7 @@ public class AllianceService {
         ResJoinAlliance res = new ResJoinAlliance(Code.SUCCESS);
         AlliancePlayerData playerData = alliancePlayerDao.getOrEmpty(player.getId());
         if (playerData.inAlliance()) {
-            res.code = Code.ALLIANCE_ALREADY_IN;
+            res.code = Code.FORBID;
             log.warn("加入联盟失败,玩家已有所属联盟 playerId={},oldAllianceId={}", player.getId(), playerData.getAllianceId());
             return res;
         }
@@ -369,7 +370,7 @@ public class AllianceService {
             return res;
         }
         if (alliance.getMemberCount() >= configService.memberCap(alliance.getLevel())) {
-            res.code = Code.ALLIANCE_FULL;
+            res.code = Code.FORBID;
             log.warn("加入单个联盟失败,该联盟人数已满 playerId={},allianceId={}", player.getId(), allianceId);
             return res;
         }
@@ -398,7 +399,7 @@ public class AllianceService {
         }
         if (!allianceDao.addApplication(allianceId, player.getId(),
                 new AllianceApplication(System.currentTimeMillis(), myCasinoLevel))) {
-            res.code = Code.ALLIANCE_APPLY_EXIST;
+            res.code = Code.REPEAT_OP;
             return res;
         }
         cacheService.publishInvalidate(allianceId);
@@ -467,7 +468,7 @@ public class AllianceService {
         long allianceId = alliance.getAllianceId();
         long now = System.currentTimeMillis();
         if (!alliancePlayerDao.tryOccupy(player.getId(), allianceId, now)) {
-            return Code.ALLIANCE_ALREADY_IN;
+            return AllianceConst.ApplyFailReason.ALREADY_IN;
         }
         int cap = configService.memberCap(alliance.getLevel());
         if (!allianceDao.tryAddMember(allianceId, player.getId(),
@@ -475,7 +476,7 @@ public class AllianceService {
             //满员/已解散/已在盟中: 回滚占位
             alliancePlayerDao.clearAlliance(player.getId(), allianceId);
             cacheService.invalidatePlayer(player.getId());
-            return Code.ALLIANCE_FULL;
+            return AllianceConst.ApplyFailReason.FULL;
         }
         cacheService.invalidatePlayer(player.getId());
         cacheService.publishInvalidate(allianceId);
@@ -494,15 +495,15 @@ public class AllianceService {
             return res;
         }
         res.agreedIds = new ArrayList<>();
-        res.failedIds = new ArrayList<>();
+        res.failApplyList = new ArrayList<>();
         AllianceData alliance = allianceOf(player.getId());
         if (alliance == null) {
-            res.code = Code.ALLIANCE_NOT_MEMBER;
+            res.code = Code.NOT_FOUND;
             log.warn("处理入盟申请失败,未找到该联盟信息 playerId={}", player.getId());
             return res;
         }
         if (!alliance.isLeader(player.getId())) {
-            res.code = Code.ALLIANCE_NOT_LEADER;
+            res.code = Code.FORBID;
             log.warn("处理入盟申请失败,该玩家不是盟主 playerId={},allianceId={}", player.getId(), alliance.getAllianceId());
             return res;
         }
@@ -543,7 +544,11 @@ public class AllianceService {
                     alliance = fresh;
                 }
             } else {
-                res.failedIds.add(pid);
+                AllianceFailApply allianceFailApply = new AllianceFailApply();
+                allianceFailApply.playerId = pid;
+                allianceFailApply.playerName = memberPlayer.getNickName();
+                allianceFailApply.reason = code;
+                res.failApplyList.add(allianceFailApply);
                 toRemove.add(pid);
             }
         }
@@ -565,11 +570,11 @@ public class AllianceService {
         ResQuitAlliance res = new ResQuitAlliance(Code.SUCCESS);
         AllianceData alliance = allianceOf(playerId);
         if (alliance == null) {
-            res.code = Code.ALLIANCE_NOT_MEMBER;
+            res.code = Code.NOT_FOUND;
             return res;
         }
         if (alliance.isLeader(playerId)) {
-            res.code = Code.ALLIANCE_LEADER_CANT_QUIT;
+            res.code = Code.FORBID;
             return res;
         }
         leaveInternal(playerId, alliance.getAllianceId());
@@ -585,11 +590,11 @@ public class AllianceService {
         res.playerId = targetId;
         AllianceData alliance = allianceOf(playerId);
         if (alliance == null) {
-            res.code = Code.ALLIANCE_NOT_MEMBER;
+            res.code = Code.NOT_FOUND;
             return res;
         }
         if (!alliance.isLeader(playerId)) {
-            res.code = Code.ALLIANCE_NOT_LEADER;
+            res.code = Code.FORBID;
             return res;
         }
         if (targetId == playerId || !alliance.isMember(targetId)) {
@@ -621,15 +626,18 @@ public class AllianceService {
         res.newLeaderId = targetId;
         AllianceData alliance = allianceOf(playerId);
         if (alliance == null) {
-            res.code = Code.ALLIANCE_NOT_MEMBER;
+            res.code = Code.NOT_FOUND;
+            log.warn("转让盟主失败,未找到联盟数据 playerId={},targetId={}", playerId, targetId);
             return res;
         }
         if (!alliance.isLeader(playerId)) {
-            res.code = Code.ALLIANCE_NOT_LEADER;
+            res.code = Code.FORBID;
+            log.warn("转让盟主失败,玩家不是盟主 playerId={},targetId={}", playerId, targetId);
             return res;
         }
         if (targetId == playerId || !alliance.isMember(targetId)) {
             res.code = Code.PARAM_ERROR;
+            log.warn("转让盟主失败,不能转让给自己或者对方玩家不在联盟中 playerId={},targetId={}", playerId, targetId);
             return res;
         }
         if (!allianceDao.transferLeader(alliance.getAllianceId(), playerId, targetId)) {
@@ -652,7 +660,7 @@ public class AllianceService {
         AlliancePlayerData playerData = alliancePlayerDao.getOrEmpty(playerId);
         long allianceId = playerData.getAllianceId();
         if (allianceId <= 0) {
-            res.code = Code.ALLIANCE_NOT_MEMBER;
+            res.code = Code.NOT_FOUND;
             return res;
         }
         AllianceData alliance = allianceDao.findById(allianceId).orElse(null);
@@ -661,7 +669,7 @@ public class AllianceService {
             return res;
         }
         if (!alliance.isLeader(playerId)) {
-            res.code = Code.ALLIANCE_NOT_LEADER;
+            res.code = Code.FORBID;
             return res;
         }
         //先广播再删 (删后拿不到成员清单)
@@ -672,6 +680,8 @@ public class AllianceService {
         }
         List<Long> memberIds = new ArrayList<>(alliance.getMembers().keySet());
         alliancePlayerDao.clearAllianceBulk(memberIds, allianceId);
+        //释放创建者的"已创建过"资格, 解散后可再次创建 (按 createdAllianceId 命中, 不受转让/退盟影响)
+        alliancePlayerDao.clearCreatedFlag(alliance.getCreatorId(), allianceId);
         cacheService.invalidatePlayers(memberIds);
         cacheService.publishInvalidate(allianceId);
         //榜单清理 (声誉总榜/赛季榜移除, 周榜删 key); 对决积分按需求冻结不动, 结算时联盟已不存在则不发奖
@@ -690,11 +700,11 @@ public class AllianceService {
         ResEditAlliance res = new ResEditAlliance(Code.SUCCESS);
         AllianceData alliance = allianceOf(playerId);
         if (alliance == null) {
-            res.code = Code.ALLIANCE_NOT_MEMBER;
+            res.code = Code.NOT_FOUND;
             return res;
         }
         if (!alliance.isLeader(playerId)) {
-            res.code = Code.ALLIANCE_NOT_LEADER;
+            res.code = Code.FORBID;
             return res;
         }
         int code = validateSettings(name, notice, joinMinCasinoLevel);
