@@ -218,11 +218,18 @@ public class SimEmployeeService {
                 ctx.send(res);
                 return;
             }
-            if (!checkAndConsumeUpgradeCost(ctx, nextCfg.getUpgradeCost())) {
-                res.code = Code.NOT_ENOUGH;
-                ctx.send(res);
-                return;
+
+            if (nextCfg.getUpgradeCost() != null && !nextCfg.getUpgradeCost().isEmpty()) {
+                boolean removeItems = simPackService.removeItems(ctx, nextCfg.getUpgradeCost(), AddType.SIM_EMPLOYEE_LEVEL_UP, null);
+                if (!removeItems) {
+                    log.warn("升级雇员失败, 扣除道具失败 playerId={},employeeId={},level={},cost={}", ctx.playerId(), employeeId, data.getLevel(), nextCfg.getUpgradeCost());
+                    res.code = Code.PARAM_ERROR;
+                    ctx.send(res);
+                    return;
+                }
             }
+
+
             data.setLevel(data.getLevel() + 1);
             res.level = data.getLevel();
             log.info("升级雇员成功 playerId={},employeeId={},newLevel={}", ctx.playerId(), employeeId, data.getLevel());
@@ -451,17 +458,6 @@ public class SimEmployeeService {
         }
         Map<Integer, EmployeeStarCfg> m = starMap.get(employeeId);
         return m == null ? null : m.get(star);
-    }
-
-    /**
-     * 雇员升级资源检查 & 扣除 (占位)
-     */
-    private boolean checkAndConsumeUpgradeCost(SimPlayerContext ctx, Map<Integer, Integer> cost) {
-        if (cost == null || cost.isEmpty()) {
-            return true;
-        }
-        log.debug("[stub] 扣除雇员升级资源 playerId={},cost={}", ctx.playerId(), cost);
-        return true;
     }
 
     /**

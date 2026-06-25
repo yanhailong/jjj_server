@@ -289,6 +289,8 @@ public enum AddType {
     SIM_UNLOCK_BONDS(1809),
     //sim雇员升星
     SIM_EMPLOYEE_STAR_UP(1810),
+    //sim雇员升级
+    SIM_EMPLOYEE_LEVEL_UP(1811),
 
     //创建联盟
     ALLIANCE_CREATE(2001),

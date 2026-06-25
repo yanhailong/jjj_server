@@ -26,7 +26,7 @@ public class EmployeeLevelCfg extends BaseCfgBean {
   /** 等级 */
   protected int Level;
   /** 升级消耗 */
-  protected Map<Integer,Integer> UpgradeCost;
+  protected Map<Integer,Long> UpgradeCost;
 
   /** 返回属性值 */
   public Map<Integer,Integer> getAttributeValue() {
@@ -44,7 +44,7 @@ public class EmployeeLevelCfg extends BaseCfgBean {
   }
 
   /** 返回升级消耗 */
-  public Map<Integer,Integer> getUpgradeCost() {
+  public Map<Integer,Long> getUpgradeCost() {
     return UpgradeCost;
   }
 
