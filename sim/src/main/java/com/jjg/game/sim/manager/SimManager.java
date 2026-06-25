@@ -1,6 +1,8 @@
 package com.jjg.game.sim.manager;
 
 import com.alibaba.fastjson.JSONObject;
+import com.jjg.game.alliance.data.AllianceData;
+import com.jjg.game.alliance.service.AllianceCacheService;
 import com.jjg.game.alliance.service.AllianceEventService;
 import com.jjg.game.common.cluster.ClusterSystem;
 import com.jjg.game.common.concurrent.BaseHandler;
@@ -9,7 +11,9 @@ import com.jjg.game.common.utils.WheelTimerUtil;
 import com.jjg.game.core.constant.Code;
 import com.jjg.game.core.data.CommonResult;
 import com.jjg.game.core.data.ExitType;
+import com.jjg.game.core.data.Player;
 import com.jjg.game.core.data.PlayerController;
+import com.jjg.game.core.service.CorePlayerService;
 import com.jjg.game.sim.constant.SimConstant;
 import com.jjg.game.sim.dao.SimCasinoDao;
 import com.jjg.game.sim.dao.SimEmployeeDao;
@@ -19,6 +23,7 @@ import com.jjg.game.sim.data.*;
 import com.jjg.game.sim.listener.SimPlayerTickListener;
 import com.jjg.game.sim.pb.SimPbConverter;
 import com.jjg.game.sim.pb.res.ResSimEnterGame;
+import com.jjg.game.sim.pb.res.ResSimPlayerInfo;
 import com.jjg.game.sim.service.*;
 import io.netty.util.Timeout;
 import org.slf4j.Logger;
@@ -82,6 +87,12 @@ public class SimManager {
     private ClusterSystem clusterSystem;
     @Autowired
     private AllianceEventService allianceEventService;
+    //联盟读缓存: 全系统读联盟数据的统一入口 (直接注入 AllianceCacheService 而非 AllianceService,
+    //因为 AllianceService 反向依赖 SimManager, 直注会形成循环引用)
+    @Autowired
+    private AllianceCacheService allianceCacheService;
+    @Autowired
+    private CorePlayerService corePlayerService;
 
 
     /**
@@ -163,6 +174,61 @@ public class SimManager {
             log.info("玩家进入游戏 playerId={},res={}", playerController.playerId(), JSONObject.toJSONString(res));
             playerController.send(res);
             return;
+        } catch (Exception e) {
+            log.error("", e);
+            res.code = Code.EXCEPTION;
+        }
+        playerController.send(res);
+    }
+
+    /**
+     * 获取玩家信息
+     *
+     * @param playerController
+     * @param targetPlayerId
+     */
+    public void simPlayerInfo(PlayerController playerController, long targetPlayerId) {
+        ResSimPlayerInfo res = new ResSimPlayerInfo(Code.SUCCESS);
+        try {
+            if (targetPlayerId < 1) {
+                res.code = Code.PARAM_ERROR;
+                playerController.send(res);
+                log.warn("获取玩家信息失败,参数错误 playerId={},targetPlayerId={}", playerController.playerId(), targetPlayerId);
+                return;
+            }
+
+            Player targetPlayer;
+            if (targetPlayerId == playerController.playerId()) {
+                targetPlayer = playerController.getPlayer();
+            } else {
+                targetPlayer = corePlayerService.get(targetPlayerId);
+            }
+
+            if (targetPlayer == null) {
+                res.code = Code.NOT_FOUND;
+                playerController.send(res);
+                log.warn("获取玩家信息失败,未找到该玩家信息 playerId={},targetPlayerId={}", playerController.playerId(), targetPlayerId);
+                return;
+            }
+
+            res.playerId = targetPlayer.getId();
+            res.playerName = targetPlayer.getNickName();
+            res.headImgId = targetPlayer.getHeadImgId();
+            res.headFrameId = targetPlayer.getHeadFrameId();
+            res.nationalId = targetPlayer.getNationalId();
+
+            //联盟名称: 经读缓存统一入口取, 避开 SimManager <-> AllianceService 循环引用
+            long allianceId = allianceCacheService.getAllianceId(targetPlayerId);
+            AllianceData allianceData = allianceCacheService.getAlliance(allianceId);
+            if (allianceData != null) {
+                res.allianceName = allianceData.getName();
+            }
+
+            //已解锁场景id
+            SimCasinoUnlock casinoUnlock = simCasinoService.getCasinoUnlock(targetPlayerId);
+            if (casinoUnlock != null && casinoUnlock.getResearchLevelMap() != null && !casinoUnlock.getResearchLevelMap().isEmpty()) {
+                res.unlockCasinoIds = casinoUnlock.getResearchLevelMap().keySet().stream().toList();
+            }
         } catch (Exception e) {
             log.error("", e);
             res.code = Code.EXCEPTION;

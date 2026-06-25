@@ -496,7 +496,10 @@ public class AllianceService {
         }
         res.agreedIds = new ArrayList<>();
         res.failApplyList = new ArrayList<>();
-        AllianceData alliance = allianceOf(player.getId());
+        //处理申请是写操作: 直读 DB 权威数据(而非读缓存), 避免缓存滞后导致"申请已在库里却判定不在名单",
+        //进而 containsKey 判 false 跳过 removeApplications -> 拒绝后客户端重拉仍可见(漏删)
+        long myAllianceId = cacheService.getAllianceId(player.getId());
+        AllianceData alliance = myAllianceId > 0 ? allianceDao.findById(myAllianceId).orElse(null) : null;
         if (alliance == null) {
             res.code = Code.NOT_FOUND;
             log.warn("处理入盟申请失败,未找到该联盟信息 playerId={}", player.getId());

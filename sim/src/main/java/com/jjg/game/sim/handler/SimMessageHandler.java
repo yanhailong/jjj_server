@@ -349,6 +349,14 @@ public class SimMessageHandler implements GmListener {
 
     //--------------------------经营信息 end--------------------------
 
+    /**
+     * 获取玩家信息
+     */
+    @Command(SimConstant.MsgBean.REQ_SIM_PLAYER_INFO)
+    public void reqSimPlayerInfo(PlayerController playerController, ReqSimPlayerInfo req) {
+        simManager.simPlayerInfo(playerController, req.playerId);
+    }
+
 
     @Override
     public CommonResult<String> gm(PlayerController playerController, String[] gmOrders) {

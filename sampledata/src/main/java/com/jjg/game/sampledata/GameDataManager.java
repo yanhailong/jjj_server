@@ -123,6 +123,9 @@ public class GameDataManager {
     containerMap.put(ActivityConfigCfg.class, new ActivityConfigCfgContainer());
     containerMap.put(AirstrikeRobotCfg.class, new AirstrikeRobotCfgContainer());
     containerMap.put(AlbumCfg.class, new AlbumCfgContainer());
+    containerMap.put(AllianceLevelCfg.class, new AllianceLevelCfgContainer());
+    containerMap.put(AllianceShopCfg.class, new AllianceShopCfgContainer());
+    containerMap.put(AllianceTaskCfg.class, new AllianceTaskCfgContainer());
     containerMap.put(AuxiliaryAwardCfg.class, new AuxiliaryAwardCfgContainer());
     containerMap.put(AvatarCfg.class, new AvatarCfgContainer());
     containerMap.put(BaseElementCfg.class, new BaseElementCfgContainer());
@@ -687,6 +690,42 @@ public class GameDataManager {
 
   public static List<AlbumCfg> getAlbumCfgList() {
     return getInstance().getCfgContainer(AlbumCfg.class).getCfgBeanList();
+  }
+
+  public static AllianceLevelCfg getAllianceLevelCfg(int key) {
+    return getInstance().getCfgContainer(AllianceLevelCfg.class).getCfgBeanMap().get(key);
+  }
+
+  public static Map<Integer, AllianceLevelCfg> getAllianceLevelCfgMap() {
+    return getInstance().getCfgContainer(AllianceLevelCfg.class).getCfgBeanMap();
+  }
+
+  public static List<AllianceLevelCfg> getAllianceLevelCfgList() {
+    return getInstance().getCfgContainer(AllianceLevelCfg.class).getCfgBeanList();
+  }
+
+  public static AllianceShopCfg getAllianceShopCfg(int key) {
+    return getInstance().getCfgContainer(AllianceShopCfg.class).getCfgBeanMap().get(key);
+  }
+
+  public static Map<Integer, AllianceShopCfg> getAllianceShopCfgMap() {
+    return getInstance().getCfgContainer(AllianceShopCfg.class).getCfgBeanMap();
+  }
+
+  public static List<AllianceShopCfg> getAllianceShopCfgList() {
+    return getInstance().getCfgContainer(AllianceShopCfg.class).getCfgBeanList();
+  }
+
+  public static AllianceTaskCfg getAllianceTaskCfg(int key) {
+    return getInstance().getCfgContainer(AllianceTaskCfg.class).getCfgBeanMap().get(key);
+  }
+
+  public static Map<Integer, AllianceTaskCfg> getAllianceTaskCfgMap() {
+    return getInstance().getCfgContainer(AllianceTaskCfg.class).getCfgBeanMap();
+  }
+
+  public static List<AllianceTaskCfg> getAllianceTaskCfgList() {
+    return getInstance().getCfgContainer(AllianceTaskCfg.class).getCfgBeanList();
   }
 
   public static AuxiliaryAwardCfg getAuxiliaryAwardCfg(int key) {

@@ -128,6 +128,10 @@ public interface SimConstant {
         //获取雇员卡池
         int REQ_EMPLOYEE_POOL = BASE_MSG_PREFIX | 0x3A;
         int RES_EMPLOYEE_POOL = BASE_MSG_PREFIX | 0x3B;
+
+        //获取玩家信息
+        int REQ_SIM_PLAYER_INFO = BASE_MSG_PREFIX | 0x3C;
+        int RES_SIM_PLAYER_INFO = BASE_MSG_PREFIX | 0x3D;
     }
 
     interface Common {
