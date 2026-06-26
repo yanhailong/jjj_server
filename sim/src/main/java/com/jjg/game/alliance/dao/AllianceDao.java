@@ -17,6 +17,7 @@ import org.springframework.stereotype.Repository;
 
 import java.util.Collection;
 import java.util.List;
+import java.util.Map;
 
 /**
  * 联盟数据 DAO。
@@ -187,27 +188,30 @@ public class AllianceDao extends MongoBaseDao<AllianceData, Long> {
 
     /**
      * 任务池整点补齐: 条件匹配旧的 taskRefreshHour, 多节点并发只有一个成功。
+     * 池按 cfgId 索引 (内嵌对象, key=cfgId), 与字段类型 {@code Map<Integer,AllianceTaskSlot>} 一致。
      *
      * @param oldHour 读到的旧补齐整点
      * @param newHour 当前整点 (yyyyMMddHH)
-     * @param tasks   补齐后的完整任务池
+     * @param tasks   补齐后的完整任务池 (cfgId -> slot)
      * @return true 本次调用完成了补齐
      */
-    public boolean refreshTasks(long allianceId, long oldHour, long newHour, List<AllianceTaskSlot> tasks) {
+    public boolean refreshTasks(long allianceId, long oldHour, long newHour, Map<Integer, AllianceTaskSlot> tasks) {
         Query query = new Query(Criteria.where("_id").is(allianceId).and("taskRefreshHour").is(oldHour));
         Update update = new Update().set("taskRefreshHour", newHour).set("tasks", tasks);
         return mongoTemplate.updateFirst(query, update, AllianceData.class).getModifiedCount() > 0;
     }
 
     /**
-     * 原子摘取任务 ($pull 命中即独占): 接取成功的节点获得任务, 其余并发者命中数为 0。
+     * 原子摘取任务: 仅当 tasks.{cfgId} 存在时移除该条目, 接取成功者独占。
+     * 并发接取同一 cfgId 时, 只有第一个匹配 exists 条件并 $unset 成功, 其余命中数为 0。
      *
      * @return true 摘取成功
      */
     public boolean pullTask(long allianceId, int taskCfgId) {
-        Update update = new Update();
-        update.pull("tasks", new org.bson.Document("cfgId", taskCfgId));
-        return mongoTemplate.updateFirst(byId(allianceId), update, AllianceData.class).getModifiedCount() > 0;
+        Query query = new Query(Criteria.where("_id").is(allianceId)
+                .and("tasks." + taskCfgId).exists(true));
+        Update update = new Update().unset("tasks." + taskCfgId);
+        return mongoTemplate.updateFirst(query, update, AllianceData.class).getModifiedCount() > 0;
     }
 
     // ----------------------- 互助 -----------------------

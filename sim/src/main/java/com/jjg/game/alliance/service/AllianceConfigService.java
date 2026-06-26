@@ -1,7 +1,6 @@
 package com.jjg.game.alliance.service;
 
 import com.jjg.game.alliance.constant.AllianceConst;
-import com.jjg.game.common.utils.RandomUtils;
 import com.jjg.game.core.constant.TaskConstant;
 import com.jjg.game.core.listener.ConfigExcelChangeListener;
 import com.jjg.game.sampledata.GameDataManager;
@@ -18,6 +17,7 @@ import java.util.Collections;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 
 /**
  * 联盟结构化配置中心。
@@ -97,19 +97,22 @@ public class AllianceConfigService implements ConfigExcelChangeListener {
     }
 
     /**
-     * 等概率随机抽 n 条联盟任务配置。任务可重复出现。
+     * 随机抽至多 n 条<b>不重复</b>的联盟任务配置, 跳过 {@code exclude} 中已在池里的 cfgId。
+     * 池按 cfgId 索引(每种任务最多一条), 故同一 cfgId 不能重复入池; 可选数量不足时返回少于 n 条。
      */
-    public List<TaskCfg> randomTasks(int n) {
+    public List<TaskCfg> randomTasks(int n, Set<Integer> exclude) {
         ensureAllianceTasksLoaded();
-        List<TaskCfg> tasks = allianceTasks;
-        if (n <= 0 || tasks.isEmpty()) {
+        if (n <= 0 || allianceTasks.isEmpty()) {
             return Collections.emptyList();
         }
-        List<TaskCfg> result = new ArrayList<>(n);
-        for (int i = 0; i < n; i++) {
-            result.add(tasks.get(RandomUtils.randomInt(tasks.size())));
+        List<TaskCfg> candidates = new ArrayList<>(allianceTasks.size());
+        for (TaskCfg cfg : allianceTasks) {
+            if (exclude == null || !exclude.contains(cfg.getId())) {
+                candidates.add(cfg);
+            }
         }
-        return result;
+        Collections.shuffle(candidates);
+        return candidates.size() > n ? candidates.subList(0, n) : candidates;
     }
 
     private void ensureAllianceTasksLoaded() {

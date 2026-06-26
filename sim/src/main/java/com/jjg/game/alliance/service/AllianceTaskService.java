@@ -100,38 +100,49 @@ public class AllianceTaskService {
      */
     public ResAllianceTaskList taskList(long playerId) {
         ResAllianceTaskList res = new ResAllianceTaskList(Code.SUCCESS);
-        long allianceId = cacheService.getAllianceId(playerId);
-        AllianceData alliance = cacheService.getAlliance(allianceId);
-        if (alliance == null) {
-            res.code = Code.NOT_FOUND;
-            return res;
-        }
-        alliance = ensurePoolRefreshed(alliance);
-
-        long now = System.currentTimeMillis();
-        res.poolTasks = new ArrayList<>();
-        for (Map.Entry<Integer,AllianceTaskSlot> en: alliance.getTasks().entrySet()) {
-            AllianceTaskSlot value = en.getValue();
-            if (value.getExpireTime() > now && configService.taskCfg(value.getCfgId()) != null) {
-                res.poolTasks.add(AlliancePbConverter.toTaskInfo(value));
+        try {
+            long allianceId = cacheService.getAllianceId(playerId);
+            if (allianceId < 1) {
+                res.code = Code.NOT_FOUND;
+                log.warn("获取联盟任务失败，玩家没有联盟 playerId={}", playerId);
+                return res;
             }
-        }
-        res.nextRefreshTime = nextHourMillis(now);
-
-        AlliancePlayerData playerData = alliancePlayerDao.getOrEmpty(playerId);
-        int today = TimeHelper.getDayNumerical();
-        res.dailyFinished = playerData.taskFinishCountOf(today);
-        res.dailyLimit = AllianceConst.Cfg.DAILY_TASK_LIMIT;
-        res.abandonCdUntil = playerData.getAbandonCdUntil();
-
-        PlayerTakenTask taken = playerData.getTakenTask();
-        if (taken != null) {
-            if (taken.expired(now)) {
-                //超期惰性结算失败
-                failTask(playerId, taken);
-            } else {
-                res.myTask = AlliancePbConverter.toTaskInfo(taken, progressOf(playerId, taken.getCfgId()));
+            AllianceData alliance = cacheService.getAlliance(allianceId);
+            if (alliance == null) {
+                res.code = Code.NOT_FOUND;
+                log.warn("获取联盟任务失败，未找到联盟信息 playerId={},allianceId={}", playerId, allianceId);
+                return res;
             }
+            alliance = ensurePoolRefreshed(alliance);
+
+            long now = System.currentTimeMillis();
+            res.poolTasks = new ArrayList<>();
+            for (Map.Entry<Integer, AllianceTaskSlot> en : alliance.getTasks().entrySet()) {
+                AllianceTaskSlot value = en.getValue();
+                if (value.getExpireTime() > now && configService.taskCfg(value.getCfgId()) != null) {
+                    res.poolTasks.add(AlliancePbConverter.toTaskInfo(value));
+                }
+            }
+            res.nextRefreshTime = nextHourMillis(now);
+
+            AlliancePlayerData playerData = alliancePlayerDao.getOrEmpty(playerId);
+            int today = TimeHelper.getDayNumerical();
+            res.dailyFinished = playerData.taskFinishCountOf(today);
+            res.dailyLimit = AllianceConst.Cfg.DAILY_TASK_LIMIT;
+            res.abandonCdUntil = playerData.getAbandonCdUntil();
+
+            PlayerTakenTask taken = playerData.getTakenTask();
+            if (taken != null) {
+                if (taken.expired(now)) {
+                    //超期惰性结算失败
+                    failTask(playerId, taken);
+                } else {
+                    res.myTask = AlliancePbConverter.toTaskInfo(taken, progressOf(playerId, taken.getCfgId()));
+                }
+            }
+        } catch (Exception e) {
+            log.error("", e);
+            res.code = Code.EXCEPTION;
         }
         return res;
     }
@@ -145,17 +156,18 @@ public class AllianceTaskService {
             return alliance;
         }
         long now = System.currentTimeMillis();
-        //保留未过期的, 补满到池上限 (任务可重复出现)
-        List<AllianceTaskSlot> pool = new ArrayList<>(AllianceConst.Cfg.TASK_POOL_SIZE);
-        for (Map.Entry<Integer,AllianceTaskSlot> en: alliance.getTasks().entrySet()) {
-            if (en.getValue().getExpireTime() > now) {
-                pool.add(en.getValue());
+        //保留未过期的(按 cfgId 去重), 再用"不在池中的其它任务"补满到池上限。
+        //池按 cfgId 索引: 每种任务最多一条, 接取即按 cfgId 移除。
+        Map<Integer, AllianceTaskSlot> pool = new HashMap<>();
+        for (AllianceTaskSlot slot : alliance.getTasks().values()) {
+            if (slot.getExpireTime() > now) {
+                pool.put(slot.getCfgId(), slot);
             }
         }
         int need = AllianceConst.Cfg.TASK_POOL_SIZE - pool.size();
-        for (TaskCfg cfg : configService.randomTasks(need)) {
+        for (TaskCfg cfg : configService.randomTasks(need, pool.keySet())) {
             long durationMs = Math.max(1, cfg.getDuration()) * 60_000L;
-            pool.add(new AllianceTaskSlot(cfg.getId(), now, now + durationMs));
+            pool.put(cfg.getId(), new AllianceTaskSlot(cfg.getId(), now, now + durationMs));
         }
         if (allianceDao.refreshTasks(alliance.getAllianceId(), alliance.getTaskRefreshHour(), currentHour, pool)) {
             cacheService.publishInvalidate(alliance.getAllianceId());
@@ -351,25 +363,20 @@ public class AllianceTaskService {
             return false;
         }
         return switch (event.conditionId()) {
-            case AllianceConst.TaskConditionType.WIN_TIMES ->
-                    matchOptional(longAt(cond, 1, 0), event.gameType())
-                            && event.bet() >= longAt(cond, 2, 0)
-                            && event.param() >= longAt(cond, 3, 0);
-            case AllianceConst.TaskConditionType.BET_TIMES ->
-                    matchOptional(longAt(cond, 1, 0), event.gameType())
-                            && event.bet() >= longAt(cond, 2, 0);
-            case AllianceConst.TaskConditionType.WIN_AMOUNT ->
-                    matchOptional(longAt(cond, 1, 0), event.gameType())
-                            && event.bet() >= longAt(cond, 2, 0)
-                            && matchOptional(longAt(cond, 4, 0), event.coinId());
+            case AllianceConst.TaskConditionType.WIN_TIMES -> matchOptional(longAt(cond, 1, 0), event.gameType())
+                    && event.bet() >= longAt(cond, 2, 0)
+                    && event.param() >= longAt(cond, 3, 0);
+            case AllianceConst.TaskConditionType.BET_TIMES -> matchOptional(longAt(cond, 1, 0), event.gameType())
+                    && event.bet() >= longAt(cond, 2, 0);
+            case AllianceConst.TaskConditionType.WIN_AMOUNT -> matchOptional(longAt(cond, 1, 0), event.gameType())
+                    && event.bet() >= longAt(cond, 2, 0)
+                    && matchOptional(longAt(cond, 4, 0), event.coinId());
             case AllianceConst.TaskConditionType.POOL_DRAW_TIMES,
                  AllianceConst.TaskConditionType.SKILL_RESEARCH_TIMES,
                  AllianceConst.TaskConditionType.BUILDING_UPGRADE_TIMES ->
                     matchOptional(longAt(cond, 1, 0), event.param());
-            case AllianceConst.TaskConditionType.RECHARGE_AMOUNT ->
-                    matchOptional(longAt(cond, 2, 0), event.param());
-            case AllianceConst.TaskConditionType.DONATE_TIMES ->
-                    event.param() >= longAt(cond, 1, 0);
+            case AllianceConst.TaskConditionType.RECHARGE_AMOUNT -> matchOptional(longAt(cond, 2, 0), event.param());
+            case AllianceConst.TaskConditionType.DONATE_TIMES -> event.param() >= longAt(cond, 1, 0);
             default -> matchOptional(longAt(cond, 1, 0), event.param());
         };
     }

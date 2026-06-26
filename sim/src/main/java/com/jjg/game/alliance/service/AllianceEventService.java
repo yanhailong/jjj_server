@@ -1,6 +1,5 @@
 package com.jjg.game.alliance.service;
 
-import com.jjg.game.alliance.constant.AllianceConst;
 import com.jjg.game.sim.data.SpinStatInfo;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
