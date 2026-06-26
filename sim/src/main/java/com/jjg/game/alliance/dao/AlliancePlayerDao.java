@@ -323,10 +323,18 @@ public class AlliancePlayerDao extends MongoBaseDao<AlliancePlayerData, Long> {
         mongoTemplate.updateFirst(byId(playerId), new Update().unset("takenTask"), AlliancePlayerData.class);
     }
 
-    public boolean clearTakenTask(long playerId, long taskUid) {
-        Query query = new Query(Criteria.where("_id").is(playerId).and("takenTask.uid").is(taskUid));
+    public boolean clearTakenTask(long playerId, long taskCfgId) {
+        Query query = new Query(Criteria.where("_id").is(playerId).and("takenTask.cfgId").is(taskCfgId));
         return mongoTemplate.updateFirst(query,
                 new Update().unset("takenTask"), AlliancePlayerData.class).getModifiedCount() > 0;
+    }
+
+    /**
+     * 追加一条已完成任务, 仅保留最近 keep 条 ($slice 负数保留末尾, 最早的被挤掉)。
+     */
+    public void pushFinishedTask(long playerId, PlayerTakenTask task, int keep) {
+        Update update = new Update().push("finishedTasks").slice(-keep).each(task);
+        mongoTemplate.upsert(byId(playerId), update, AlliancePlayerData.class);
     }
 
     public void setAbandonCd(long playerId, long until) {

@@ -13,15 +13,15 @@ import com.jjg.game.alliance.pb.AlliancePbConverter;
 import com.jjg.game.alliance.pb.res.NotifyAllianceTask;
 import com.jjg.game.alliance.pb.res.ResAbandonTask;
 import com.jjg.game.alliance.pb.res.ResAllianceAcceptTask;
+import com.jjg.game.alliance.pb.res.ResAllianceFinishedTask;
 import com.jjg.game.alliance.pb.res.ResAllianceTaskList;
 import com.jjg.game.common.utils.TimeHelper;
 import com.jjg.game.core.constant.AddType;
 import com.jjg.game.core.constant.Code;
-import com.jjg.game.core.manager.SnowflakeManager;
-import com.jjg.game.core.service.PlayerPackService;
 import com.jjg.game.core.utils.ItemUtils;
 import com.jjg.game.sampledata.bean.TaskCfg;
 import com.jjg.game.sim.constant.SimConstant;
+import com.jjg.game.sim.service.SimPackService;
 import com.jjg.game.sim.data.SpinStatInfo;
 import com.jjg.game.social.service.SocialSender;
 import org.slf4j.Logger;
@@ -32,11 +32,7 @@ import org.springframework.stereotype.Service;
 
 import java.time.LocalDateTime;
 import java.time.ZoneId;
-import java.util.ArrayList;
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
-import java.util.Optional;
+import java.util.*;
 import java.util.concurrent.TimeUnit;
 
 /**
@@ -74,9 +70,7 @@ public class AllianceTaskService {
     @Autowired
     private AllianceAssetService assetService;
     @Autowired
-    private PlayerPackService playerPackService;
-    @Autowired
-    private SnowflakeManager snowflakeManager;
+    private SimPackService simPackService;
     @Autowired
     private StringRedisTemplate stringRedisTemplate;
     @Autowired
@@ -137,7 +131,28 @@ public class AllianceTaskService {
                     //超期惰性结算失败
                     failTask(playerId, taken);
                 } else {
-                    res.myTask = AlliancePbConverter.toTaskInfo(taken, progressOf(playerId, taken.getCfgId()));
+                    res.myTask = AlliancePbConverter.toTaskInfo(taken, progressOf(playerId, taken.getCfgId()), null);
+                }
+            }
+        } catch (Exception e) {
+            log.error("", e);
+            res.code = Code.EXCEPTION;
+        }
+        return res;
+    }
+
+    /**
+     * 已完成任务列表 (最近 N 条, 最新在前)。
+     */
+    public ResAllianceFinishedTask finishedTaskList(long playerId) {
+        ResAllianceFinishedTask res = new ResAllianceFinishedTask(Code.SUCCESS);
+        try {
+            AlliancePlayerData playerData = alliancePlayerDao.getOrEmpty(playerId);
+            List<PlayerTakenTask> finished = playerData.getFinishedTasks();
+            res.tasks = new ArrayList<>();
+            if (finished != null) {
+                for (int i = finished.size() - 1; i >= 0; i--) {
+                    res.tasks.add(AlliancePbConverter.toTaskInfo(finished.get(i), 0, null));
                 }
             }
         } catch (Exception e) {
@@ -240,13 +255,13 @@ public class AllianceTaskService {
         }
         cacheService.publishInvalidate(allianceId);
 
-        PlayerTakenTask taken = new PlayerTakenTask(slot.getCfgId(), allianceId, now, slot.getExpireTime());
+        PlayerTakenTask taken = new PlayerTakenTask(slot.getCfgId(), allianceId, now, (long) cfg.getDuration() * TimeHelper.ONE_MINUTE_OF_MILLIS + now);
         alliancePlayerDao.setTakenTask(playerId, taken);
         takenTaskCache.invalidate(playerId);
         //清残留进度 (需求: 放弃清进度, 再接取重新累计)
         stringRedisTemplate.delete(progressKey(playerId, taskCfgId));
 
-        res.task = AlliancePbConverter.toTaskInfo(taken, 0);
+        res.task = AlliancePbConverter.toTaskInfo(taken, 0, cfg);
         log.info("接取联盟任务 playerId={},allianceId={},taskCfgId={},cfgId={}", playerId, allianceId, taskCfgId, slot.getCfgId());
         return res;
     }
@@ -433,6 +448,8 @@ public class AllianceTaskService {
         if (!clearTask(playerId, taken)) {
             return false;
         }
+        taken.setFinishTime(System.currentTimeMillis());
+        alliancePlayerDao.pushFinishedTask(playerId, taken, AllianceConst.Cfg.FINISHED_TASK_KEEP);
         int today = TimeHelper.getDayNumerical();
         alliancePlayerDao.incrementTaskFinish(playerId, today);
 
@@ -474,7 +491,8 @@ public class AllianceTaskService {
             assetService.grantReputation(allianceId, reputation);
         }
         if (!packRewards.isEmpty()) {
-            playerPackService.addItems(playerId, packRewards, AddType.ALLIANCE_TASK_REWARD, "联盟任务奖励", true);
+            //统一走 sim 道具入口: 在线入内存资源/背包, 离线则进背包待上线迁移 (能量等 sim 特殊资源)
+            simPackService.addItemsByPlayerId(playerId, packRewards, AddType.ALLIANCE_TASK_REWARD, "", true);
         }
     }
 

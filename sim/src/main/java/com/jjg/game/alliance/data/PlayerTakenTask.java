@@ -18,6 +18,8 @@ public class PlayerTakenTask {
     private long acceptTime;
     //截止时间(ms): 超期视为失败自动放弃
     private long expireTime;
+    //结束时间
+    private long finishTime;
 
     public PlayerTakenTask() {
     }
@@ -63,5 +65,13 @@ public class PlayerTakenTask {
 
     public boolean expired(long now) {
         return expireTime > 0 && now > expireTime;
+    }
+
+    public long getFinishTime() {
+        return finishTime;
+    }
+
+    public void setFinishTime(long finishTime) {
+        this.finishTime = finishTime;
     }
 }

@@ -7,6 +7,9 @@ import com.jjg.game.alliance.pb.struct.AllianceTaskInfo;
 import com.jjg.game.alliance.pb.struct.ShowAllianceInfo;
 import com.jjg.game.alliance.service.AllianceConfigService;
 import com.jjg.game.common.pb.ItemInfo;
+import com.jjg.game.core.utils.ItemUtils;
+import com.jjg.game.sampledata.GameDataManager;
+import com.jjg.game.sampledata.bean.TaskCfg;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -75,17 +78,45 @@ public class AlliancePbConverter {
         AllianceTaskInfo info = new AllianceTaskInfo();
         info.cfgId = slot.getCfgId();
         info.expireTime = slot.getExpireTime();
+
+        TaskCfg taskCfg = GameDataManager.getTaskCfg(slot.getCfgId());
+        if (taskCfg != null) {
+            info.target = taskCfg.getTaskConditionId().get(taskCfg.getTaskConditionId().size() - 1);
+            info.rewards = ItemUtils.buildItemInfo(taskCfg.getGetItem());
+            info.langId = taskCfg.getLanguage();
+            info.quality = taskCfg.getQuality();
+            info.abandon = taskCfg.getAllowAbandon() == 1;
+            info.conditionId = taskCfg.getTaskConditionId().get(0).intValue();
+            info.duration = taskCfg.getDuration();
+        }
         return info;
     }
 
     /**
      * 已接取任务 -> PB (带进度)
      */
-    public static AllianceTaskInfo toTaskInfo(PlayerTakenTask task, long progress) {
+    public static AllianceTaskInfo toTaskInfo(PlayerTakenTask task, long progress, TaskCfg taskCfg) {
         AllianceTaskInfo info = new AllianceTaskInfo();
         info.cfgId = task.getCfgId();
         info.expireTime = task.getExpireTime();
         info.progress = progress;
+        info.beginTime = task.getAcceptTime();
+        info.endTime = task.getFinishTime();
+
+        if (taskCfg == null) {
+            taskCfg = GameDataManager.getTaskCfg(task.getCfgId());
+        }
+
+        if (taskCfg != null) {
+            info.target = taskCfg.getTaskConditionId().get(taskCfg.getTaskConditionId().size() - 1);
+            info.rewards = ItemUtils.buildItemInfo(taskCfg.getGetItem());
+            info.langId = taskCfg.getLanguage();
+            info.quality = taskCfg.getQuality();
+            info.abandon = taskCfg.getAllowAbandon() == 1;
+            info.conditionId = taskCfg.getTaskConditionId().get(0).intValue();
+            info.duration = taskCfg.getDuration();
+
+        }
         return info;
     }
 

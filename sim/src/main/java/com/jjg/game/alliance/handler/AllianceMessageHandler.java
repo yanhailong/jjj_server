@@ -216,6 +216,14 @@ public class AllianceMessageHandler implements GmListener {
         pc.send(taskService.abandonTask(pc.playerId()));
     }
 
+    /**
+     * 已完成任务列表 (最近N条, 只读)
+     */
+    @Command(AllianceConst.MsgBean.REQ_FINISHED_TASK)
+    public void reqFinishedTask(PlayerController pc, ReqAllianceFinishedTask req) {
+        sendAsync(pc, () -> taskService.finishedTaskList(pc.playerId()));
+    }
+
     // --------------------------- 成员互助 ---------------------------
 
     /**

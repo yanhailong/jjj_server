@@ -91,6 +91,10 @@ public interface AllianceConst {
         //任务完成/失败通知 (服务端 -> 客户端)
         int NOTIFY_TASK = BASE_MSG_PREFIX | 0x36;
 
+        //获取已完成任务列表
+        int REQ_FINISHED_TASK = BASE_MSG_PREFIX | 0x42;
+        int RES_FINISHED_TASK = BASE_MSG_PREFIX | 0x43;
+
         //----------------- 成员互助 -----------------
         //发起求助 (任务求助/建筑加速求助)
         int REQ_SEEK_HELP = BASE_MSG_PREFIX | 0x38;
@@ -301,6 +305,8 @@ public interface AllianceConst {
         int ABANDON_TASK_CD_SEC = 5 * 60;
         //任务进度 Redis 计数 TTL(秒): 略大于最长任务持续时间即可
         int TASK_PROGRESS_TTL_SEC = 2 * 24 * 3600;
+        //已完成任务保留条数 (最近 N 条滚动保留, 供"已完成任务"查询)
+        int FINISHED_TASK_KEEP = 20;
 
         //--------- 互助 ---------
         //每人每日求助次数

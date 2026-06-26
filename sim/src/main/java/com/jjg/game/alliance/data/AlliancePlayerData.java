@@ -3,7 +3,9 @@ package com.jjg.game.alliance.data;
 import org.springframework.data.annotation.Id;
 import org.springframework.data.mongodb.core.mapping.Document;
 
+import java.util.ArrayList;
 import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
 
 /**
@@ -52,6 +54,8 @@ public class AlliancePlayerData {
 
     //当前接取的任务 (null=未接取)
     private PlayerTakenTask takenTask;
+    //已完成任务 (最近 N 条滚动保留, 最早的被挤掉; 供"已完成任务"查询)
+    private List<PlayerTakenTask> finishedTasks = new ArrayList<>();
     //放弃任务冷却截止时间(ms)
     private long abandonCdUntil;
 
@@ -192,6 +196,14 @@ public class AlliancePlayerData {
 
     public void setTakenTask(PlayerTakenTask takenTask) {
         this.takenTask = takenTask;
+    }
+
+    public List<PlayerTakenTask> getFinishedTasks() {
+        return finishedTasks;
+    }
+
+    public void setFinishedTasks(List<PlayerTakenTask> finishedTasks) {
+        this.finishedTasks = finishedTasks == null ? new ArrayList<>() : finishedTasks;
     }
 
     public long getAbandonCdUntil() {

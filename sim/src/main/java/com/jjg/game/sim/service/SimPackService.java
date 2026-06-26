@@ -8,13 +8,17 @@ import com.jjg.game.core.service.PlayerPackService;
 import com.jjg.game.core.utils.ItemUtils;
 import com.jjg.game.sim.constant.BuildingOutputType;
 import com.jjg.game.sim.constant.SimConstant;
+import com.jjg.game.sim.dao.SimCasinoDao;
+import com.jjg.game.sim.dao.SimPlayerGameDao;
 import com.jjg.game.sim.data.SimBaseData;
 import com.jjg.game.sim.data.SimCasinoData;
 import com.jjg.game.sim.data.SimItemOperationResult;
 import com.jjg.game.sim.data.SimPlayerContext;
+import com.jjg.game.sim.manager.SimManager;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.context.annotation.Lazy;
 import org.springframework.stereotype.Service;
 
 import java.util.Collections;
@@ -33,6 +37,14 @@ public class SimPackService {
 
     @Autowired
     private PlayerPackService playerPackService;
+    @Autowired
+    private SimPlayerGameDao simPlayerGameDao;
+    @Autowired
+    private SimCasinoDao simCasinoDao;
+    //@Lazy 打破循环: AllianceTaskService -> 本类 -> SimManager -> AllianceEventService -> AllianceTaskService
+    @Lazy
+    @Autowired
+    private SimManager simManager;
 
 
     /**
@@ -82,10 +94,6 @@ public class SimPackService {
             } else if (itemId == SimConstant.Item.ID_RARE_RESEARCH_POINT) {  //稀有研究点
                 SimBaseData base = ctx.getSimBaseData();
                 base.addResearchPoint(SimConstant.ResearchPoint.RARE_TPYE, (int) count);
-            } else if (itemId == SimConstant.Item.ID_ALLIANCE_REPUTATION) {  //联盟-声誉值
-
-            } else if (itemId == SimConstant.Item.ID_ALLIANCE_Contribution) {  //联盟-贡献值
-
             } else {
                 packItems.merge(itemId, count, Long::sum);
             }
@@ -109,6 +117,101 @@ public class SimPackService {
         data.setRareResearchPoint(ctx.getSimBaseData().findResearchPoint(SimConstant.ResearchPoint.RARE_TPYE));
         result.data = data;
         return result;
+    }
+
+    /**
+     * 按 playerId 添加道具 (联盟等跨节点发奖统一入口):
+     * 玩家在本节点在线则走 {@link #addItems} 正确入账 sim 内存资源/背包;
+     * 不在本节点则走 {@link #addItemsOffline} 直接写入持久化数据。
+     */
+    public void addItemsByPlayerId(long playerId, Map<Integer, Long> items, AddType addType, String desc, boolean notify) {
+        if (items == null || items.isEmpty()) {
+            return;
+        }
+        SimPlayerContext ctx = simManager.getContext(playerId);
+        if (ctx != null) {
+            addItems(ctx, items, addType, desc, notify);
+            return;
+        }
+        addItemsOffline(playerId, items, addType, desc, notify);
+    }
+
+    /**
+     * 离线 (玩家不在本节点) 添加道具: sim 特殊资源直接写入持久化数据 (能量/研究点入 SimBaseData,
+     * 知名度入当前场景 SimCasinoData), 其余道具走背包。
+     * 注: 若玩家此刻正在其它节点在线, 该节点的内存快照落库可能覆盖此处直写 —— 联盟任务离线发奖
+     * 仅 onTaskHelped 触发, 概率低, 暂可接受。
+     */
+    private void addItemsOffline(long playerId, Map<Integer, Long> items, AddType addType, String desc, boolean notify) {
+        int powerAdd = 0;
+        int normalResAdd = 0;
+        int rareResAdd = 0;
+        int awarenessAdd = 0;
+        Map<Integer, Long> packItems = new HashMap<>(items.size());
+        for (Map.Entry<Integer, Long> en : items.entrySet()) {
+            int itemId = en.getKey();
+            long count = en.getValue();
+            if (count <= 0) {
+                continue;
+            }
+            if (itemId == SimConstant.Item.ID_POWER) {
+                powerAdd += (int) count;
+            } else if (itemId == SimConstant.Item.ID_RESEARCH_POINT) {
+                normalResAdd += (int) count;
+            } else if (itemId == SimConstant.Item.ID_RARE_RESEARCH_POINT) {
+                rareResAdd += (int) count;
+            } else if (itemId == SimConstant.Item.ID_AWARENESS) {
+                awarenessAdd += (int) count;
+            } else if (itemId == SimConstant.Item.ID_EXPOD) {
+                //曝光度无内存承载, 与在线入账一致丢弃
+            } else {
+                packItems.merge(itemId, count, Long::sum);
+            }
+        }
+
+        //能量 / 研究点: 写 SimBaseData; 知名度: 写当前场景 SimCasinoData
+        if (powerAdd > 0 || normalResAdd > 0 || rareResAdd > 0 || awarenessAdd > 0) {
+            SimBaseData base = simPlayerGameDao.findById(playerId).orElse(null);
+            if (base == null) {
+                log.warn("离线发放sim资源失败, 无SimBaseData playerId={},items={}", playerId, items);
+            } else {
+                if (powerAdd > 0) {
+                    base.setPower(base.getPower() + powerAdd);
+                }
+                if (normalResAdd > 0) {
+                    base.addResearchPoint(SimConstant.ResearchPoint.NORMAL_TPYE, normalResAdd);
+                }
+                if (rareResAdd > 0) {
+                    base.addResearchPoint(SimConstant.ResearchPoint.RARE_TPYE, rareResAdd);
+                }
+                if (powerAdd > 0 || normalResAdd > 0 || rareResAdd > 0) {
+                    simPlayerGameDao.save(base);
+                }
+                if (awarenessAdd > 0) {
+                    addAwarenessOffline(playerId, base.getCurrentCasinoId(), awarenessAdd);
+                }
+            }
+        }
+
+        if (!packItems.isEmpty()) {
+            playerPackService.addItems(playerId, packItems, addType, desc, notify);
+        }
+    }
+
+    /**
+     * 离线知名度入账: 优先当前场景, currentCasinoId 失效则回退任一场景。
+     */
+    private void addAwarenessOffline(long playerId, int currentCasinoId, int awarenessAdd) {
+        SimCasinoData casino = currentCasinoId > 0 ? simCasinoDao.findOne(playerId, currentCasinoId) : null;
+        if (casino == null) {
+            casino = simCasinoDao.findFirstByPlayerId(playerId);
+        }
+        if (casino == null) {
+            log.warn("离线发放知名度失败, 无场景 playerId={},awareness={}", playerId, awarenessAdd);
+            return;
+        }
+        casino.setAwareness(casino.getAwareness() + awarenessAdd);
+        simCasinoDao.save(casino);
     }
 
     /**
