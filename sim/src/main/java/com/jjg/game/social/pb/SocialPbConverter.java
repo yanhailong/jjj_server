@@ -57,7 +57,7 @@ public final class SocialPbConverter {
         return info;
     }
 
-    public static FriendInfo toFriendInfo(Player p, int status, long offlineSeconds, boolean canGift, boolean hasPendingGift) {
+    public static FriendInfo toFriendInfo(Player p, int status, long offlineSeconds, int toadySendCount, boolean hasPendingGift) {
         FriendInfo info = new FriendInfo();
         if (p != null) {
             info.playerId = p.getId();
@@ -68,7 +68,7 @@ public final class SocialPbConverter {
         }
         info.status = status;
         info.offlineSeconds = offlineSeconds;
-        info.canGift = canGift;
+        info.toadySendCount = toadySendCount;
         info.hasPendingGift = hasPendingGift;
         return info;
     }

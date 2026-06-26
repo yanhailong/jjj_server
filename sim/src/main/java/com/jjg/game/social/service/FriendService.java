@@ -64,14 +64,14 @@ public class FriendService {
             Map<Long, FriendEntry> friends = data.getFriends();
 
             res.friendLimit = SocialConst.Cfg.FRIEND_LIMIT;
-            res.hasPendingGift = data.getPendingGifts() != null && !data.getPendingGifts().isEmpty();
+            res.sendCountLimit = simConfigCacheService.getSendGiftConfig().sendCountPerPersonLimit();
+            res.sendFriendLimit = simConfigCacheService.getSendGiftConfig().sendPersonLimit();
 
+            int hasSendCountToady = 0;
             List<FriendInfo> list = new ArrayList<>();
             int onlineCount = 0;
             if (friends != null && !friends.isEmpty()) {
                 int today = today();
-                SendGiftConfig giftCfg = simConfigCacheService.getSendGiftConfig();
-                int perPersonLimit = giftCfg == null ? 1 : giftCfg.sendCountPerPersonLimit();
                 Map<Long, Player> players = corePlayerService.multiGetPlayerMap(friends.keySet());
                 //一次 HMGET 批量取在线会话信息, 替代逐好友 getInfo/online 的 2N 次 Redis 往返
                 Map<Long, PlayerSessionInfo> sessionInfos = statusService.infosOf(friends.keySet());
@@ -83,18 +83,19 @@ public class FriendService {
                     long offlineSeconds = statusService.offlineSeconds(info, p);
                     //今日对该好友的赠送次数未达每人上限即可继续赠送
                     int sentToday = en.getValue() == null ? 0 : en.getValue().currentGiftSendCount(today);
-                    boolean canGift = sentToday < perPersonLimit;
                     boolean hasPendingGift = data.getPendingGifts() != null && data.getPendingGifts().containsKey(fid);
                     if (status != SocialStatusService.OFFLINE) {
                         onlineCount++;
                     }
-                    list.add(SocialPbConverter.toFriendInfo(p, status, offlineSeconds, canGift, hasPendingGift));
+                    list.add(SocialPbConverter.toFriendInfo(p, status, offlineSeconds, sentToday, hasPendingGift));
+                    hasSendCountToady += sentToday;
                 }
                 //在线 > 游戏中 > 离线
                 list.sort(Comparator.comparingInt(f -> statusRank(f.status)));
             }
             res.friends = list;
             res.onlineCount = onlineCount;
+            res.hasSendCountToady = hasSendCountToady;
         } catch (Exception e) {
             log.error("", e);
             res.code = Code.EXCEPTION;
@@ -104,6 +105,7 @@ public class FriendService {
 
     /**
      * 好友列表中好友状态排序
+     *
      * @param status
      * @return
      */
@@ -354,7 +356,7 @@ public class FriendService {
                 PlayerSessionInfo info = sessionInfos.get(rid);
                 int status = statusService.statusOf(info);
                 long offlineSeconds = statusService.offlineSeconds(info, requester);
-                res.addedFriends.add(SocialPbConverter.toFriendInfo(requester, status, offlineSeconds, true, false));
+                res.addedFriends.add(SocialPbConverter.toFriendInfo(requester, status, offlineSeconds, 0, false));
             }
 
             //一次性写入: 移除全部已处理申请 + 双向建立已同意好友(1 次单文档更新 + 1 次 bulk)

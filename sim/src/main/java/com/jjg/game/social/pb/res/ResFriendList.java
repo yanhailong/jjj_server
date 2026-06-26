@@ -24,8 +24,12 @@ public class ResFriendList extends AbstractResponse {
     public int friendLimit;
     @ProtoDesc("在线好友数")
     public int onlineCount;
-    @ProtoDesc("是否有待领取赠礼(一键收送红点)")
-    public boolean hasPendingGift;
+    @ProtoDesc("每天赠送好友限制")
+    public int sendFriendLimit;
+    @ProtoDesc("每人每天限制赠送次数")
+    public int sendCountLimit;
+    @ProtoDesc("今日已赠送总次数")
+    public int hasSendCountToady;
 
     public ResFriendList(int code) {
         super(code);

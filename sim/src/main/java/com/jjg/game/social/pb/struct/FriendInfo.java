@@ -26,8 +26,8 @@ public class FriendInfo {
     public int status;
     @ProtoDesc("离线时长(秒), 在线为0")
     public long offlineSeconds;
-    @ProtoDesc("今日是否还可向其赠送")
-    public boolean canGift;
+    @ProtoDesc("今日向该好友赠送的礼物次数")
+    public int toadySendCount;
     @ProtoDesc("其是否赠送了我待领礼物")
     public boolean hasPendingGift;
 }
