@@ -15,6 +15,9 @@ import com.jjg.game.sim.data.SimPlayerContext;
 import com.jjg.game.sim.manager.SimManager;
 import com.jjg.game.sim.pb.req.*;
 import com.jjg.game.sim.service.*;
+import com.jjg.game.sim.pb.req.ReqSimTaskList;
+import com.jjg.game.sim.pb.req.ReqSimTaskReward;
+import com.jjg.game.sim.service.SimTaskService;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -49,6 +52,8 @@ public class SimMessageHandler implements GmListener {
     private SimStatsService statsService;
     @Autowired
     private SimConfigCacheService configCacheService;
+    @Autowired
+    private SimTaskService taskService;
 
 
     /**
@@ -356,6 +361,26 @@ public class SimMessageHandler implements GmListener {
     public void reqSimPlayerInfo(PlayerController playerController, ReqSimPlayerInfo req) {
         simManager.simPlayerInfo(playerController, req.playerId);
     }
+
+    //--------------------------任务 (主线/成就) begin--------------------------
+
+    /**
+     * 获取任务列表 (主线 + 成就)
+     */
+    @Command(SimConstant.MsgBean.REQ_SIM_TASK_LIST)
+    public void reqSimTaskList(PlayerController playerController, ReqSimTaskList req) {
+        execute(playerController, ctx -> ctx.send(taskService.buildTaskList(ctx)));
+    }
+
+    /**
+     * 领取任务奖励
+     */
+    @Command(SimConstant.MsgBean.REQ_SIM_TASK_REWARD)
+    public void reqSimTaskReward(PlayerController playerController, ReqSimTaskReward req) {
+        execute(playerController, ctx -> ctx.send(taskService.claimReward(ctx, req.taskId)));
+    }
+
+    //--------------------------任务 (主线/成就) end--------------------------
 
 
     @Override

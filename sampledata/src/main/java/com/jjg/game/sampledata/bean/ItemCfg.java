@@ -19,6 +19,8 @@ public class ItemCfg extends BaseCfgBean {
   /** 配置表工作薄名 */
   public static final String SHEET_NAME = "Item";
 
+  /** 使用道具后选择获得道具 */
+  protected Map<Integer,Long> SelectGetItem;
   /** 自动激活的图鉴ID */
   protected int album;
   /** 激活的装扮 */
@@ -27,7 +29,7 @@ public class ItemCfg extends BaseCfgBean {
   protected boolean displayOrNot;
   /** 掉落ID */
   protected int dropId;
-  /** 使用道具后获得道具 */
+  /** 使用道具后获得固定道具 */
   protected Map<Integer,Long> getItem;
   /** 图标资源名 */
   protected String icon;
@@ -45,6 +47,11 @@ public class ItemCfg extends BaseCfgBean {
   protected int text;
   /** 类型 */
   protected int type;
+
+  /** 返回使用道具后选择获得道具 */
+  public Map<Integer,Long> getSelectGetItem() {
+    return SelectGetItem;
+  }
 
   /** 返回自动激活的图鉴ID */
   public int getAlbum() {
@@ -66,7 +73,7 @@ public class ItemCfg extends BaseCfgBean {
     return dropId;
   }
 
-  /** 返回使用道具后获得道具 */
+  /** 返回使用道具后获得固定道具 */
   public Map<Integer,Long> getGetItem() {
     return getItem;
   }

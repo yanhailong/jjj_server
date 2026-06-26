@@ -25,6 +25,9 @@ import com.jjg.game.sim.pb.SimPbConverter;
 import com.jjg.game.sim.pb.res.ResSimEnterGame;
 import com.jjg.game.sim.pb.res.ResSimPlayerInfo;
 import com.jjg.game.sim.service.*;
+import com.jjg.game.sim.dao.SimTaskDao;
+import com.jjg.game.sim.data.SimTaskData;
+import com.jjg.game.sim.service.SimTaskService;
 import io.netty.util.Timeout;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -93,6 +96,10 @@ public class SimManager {
     private AllianceCacheService allianceCacheService;
     @Autowired
     private CorePlayerService corePlayerService;
+    @Autowired
+    private SimTaskService simTaskService;
+    @Autowired
+    private SimTaskDao simTaskDao;
 
 
     /**
@@ -298,6 +305,8 @@ public class SimManager {
         simCasinoService.loadCasinoData(ctx, baseData);
         //加载雇员数据
         employeeService.loadEmployeeData(ctx);
+        //加载主线/成就任务数据 (首登接取主线首节点+各成就组首节点)
+        simTaskService.initTaskData(ctx);
         this.contextMap.put(playerId, ctx);
         simNodeService.save(playerId, clusterSystem.getNodePath());
         return ctx;
@@ -323,6 +332,7 @@ public class SimManager {
         List<SimCasinoData> simCasinoDataList = new ArrayList<>();
         List<SimEmployeeData> simEmployeeDataList = new ArrayList<>();
         List<SimSkillsData> skillDataList = new ArrayList<>();
+        List<SimTaskData> simTaskDataList = new ArrayList<>();
         for (Map.Entry<Long, SimPlayerContext> en : this.contextMap.entrySet()) {
             try {
                 SimPlayerContext ctx = en.getValue();
@@ -334,6 +344,9 @@ public class SimManager {
                 }
                 simEmployeeDataList.addAll(ctx.getEmployeeMap().values());
                 skillDataList.addAll(ctx.getSkillsDataMap().values());
+                if (ctx.getSimTaskData() != null) {
+                    simTaskDataList.add(ctx.getSimTaskData());
+                }
             } catch (Exception e) {
                 log.error("shutdown onExitGame 异常 playerId={}", en.getKey(), e);
             }
@@ -343,6 +356,7 @@ public class SimManager {
         simCasinoDao.saveAll(simCasinoDataList);
         simEmployeeDao.saveAll(simEmployeeDataList);
         simSkillsDao.saveAll(skillDataList);
+        simTaskDao.saveAll(simTaskDataList);
         //删除本节点上所有玩家的sim节点路由信息
         this.simNodeService.delete(this.contextMap.keySet());
     }
@@ -364,6 +378,9 @@ public class SimManager {
         }
         simEmployeeDao.saveAll(ctx.getEmployeeMap().values());
         simSkillsDao.saveAll(ctx.getSkillsDataMap().values());
+        if (ctx.getSimTaskData() != null) {
+            simTaskDao.save(ctx.getSimTaskData());
+        }
         //删除本节点上玩家的sim节点路由信息
         this.simNodeService.delete(playerId);
         log.info("保存玩家数据 playerId={}", playerId);
@@ -418,7 +435,10 @@ public class SimManager {
             }
 
             //联盟联动: 消耗体力/中奖倍数 -> 任务进度 + 对决积分掉落 (内部吞异常, 不影响主流程)
-            allianceEventService.onSpin(playerId, gameType, winTimes, SimConstant.Common.SPIN_COST_POWER);
+            allianceEventService.onSpin(playerId, gameType, winTimes, SimConstant.Common.SPIN_COST_POWER, statInfo);
+
+            //主线/成就任务联动: 旋转次数 + 累积投注 (内部吞异常, 不影响主流程)
+            simTaskService.onSpin(ctx, gameType, statInfo);
             return result;
         } catch (Exception e) {
             log.error("", e);

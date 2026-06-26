@@ -118,6 +118,11 @@ public class TaskManager implements ConfigExcelChangeListener, IRedDotService, O
                 Map<Integer, List<TaskCfg>> tempMap = new HashMap<>();
                 Map<Integer, List<TaskCfg>> tempGroupMap = new HashMap<>();
                 configList.forEach(taskCfg -> {
+                    //core 只管理积分大奖(taskType=1); 主线(2)/成就(3)是 sim 线性链任务, 由 sim 独立管理,
+                    //不能进入 core 的"每日刷新+组内随机"流程, 否则会与 sim 重复发任务/重复发奖。
+                    if (taskCfg.getTaskType() != TaskConstant.TaskType.POINTS_AWARD) {
+                        return;
+                    }
                     tempMap.computeIfAbsent(taskCfg.getTaskConditionId().getFirst().intValue(), k -> new ArrayList<>())
                             .add(taskCfg);
                     tempGroupMap.computeIfAbsent(taskCfg.getGroup(), k -> new ArrayList<>())

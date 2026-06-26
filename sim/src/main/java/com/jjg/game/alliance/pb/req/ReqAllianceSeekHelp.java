@@ -18,7 +18,7 @@ public class ReqAllianceSeekHelp extends AbstractMessage {
     @ProtoDesc("1任务求助 2建筑加速")
     public int type;
     @ProtoDesc("目标id(任务uid/建筑id)")
-    public long targetId;
+    public int targetId;
     @ProtoDesc("目标展示名(前端卡片用)")
     public String targetName;
 }

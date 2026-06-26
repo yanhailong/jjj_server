@@ -9,8 +9,6 @@ package com.jjg.game.alliance.data;
  * @date 2026/6/11
  */
 public class AllianceTaskSlot {
-    //任务实例唯一 id (雪花)
-    private long uid;
     //任务配置 id (AllianceConfigService 任务表)
     private int cfgId;
     //生成时间(ms)
@@ -21,19 +19,10 @@ public class AllianceTaskSlot {
     public AllianceTaskSlot() {
     }
 
-    public AllianceTaskSlot(long uid, int cfgId, long createTime, long expireTime) {
-        this.uid = uid;
+    public AllianceTaskSlot(int cfgId, long createTime, long expireTime) {
         this.cfgId = cfgId;
         this.createTime = createTime;
         this.expireTime = expireTime;
-    }
-
-    public long getUid() {
-        return uid;
-    }
-
-    public void setUid(long uid) {
-        this.uid = uid;
     }
 
     public int getCfgId() {

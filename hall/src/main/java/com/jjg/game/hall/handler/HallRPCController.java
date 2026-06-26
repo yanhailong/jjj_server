@@ -177,8 +177,8 @@ public class HallRPCController extends CoreRPCController implements GmToHallBrid
 
     @Override
     @RpcCallSetting(processorModKey = "#arg0")
-    public void reportAllianceEvent(long playerId, int goalType, long param, long value) {
-        allianceEventService.onEvent(playerId, goalType, param, value);
+    public void reportAllianceEvent(long playerId, int conditionId, long param, long value) {
+        allianceEventService.onEvent(playerId, conditionId, param, value);
     }
 
     @Override

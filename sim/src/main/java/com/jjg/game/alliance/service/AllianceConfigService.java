@@ -2,6 +2,10 @@ package com.jjg.game.alliance.service;
 
 import com.jjg.game.alliance.constant.AllianceConst;
 import com.jjg.game.common.utils.RandomUtils;
+import com.jjg.game.core.constant.TaskConstant;
+import com.jjg.game.core.listener.ConfigExcelChangeListener;
+import com.jjg.game.sampledata.GameDataManager;
+import com.jjg.game.sampledata.bean.TaskCfg;
 import org.springframework.stereotype.Component;
 
 import java.time.DayOfWeek;
@@ -11,21 +15,21 @@ import java.time.ZoneId;
 import java.time.temporal.WeekFields;
 import java.util.ArrayList;
 import java.util.Collections;
+import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
 /**
- * 联盟结构化配置中心 (开发期: 死常量缺省)。
+ * 联盟结构化配置中心。
  * <p>
- * 需求中大量"根据配置/走配置"的数值集中在本类, 与 social 的 Cfg 死常量策略一致;
- * 上线前策划 Excel 落表后, 在本类实现 {@code ConfigExcelChangeListener} 并把各取数方法
- * 切到 {@code GameDataManager} 即可, 调用方零改动。标量配置见 {@link AllianceConst.Cfg}。
+ * 联盟任务使用 task.xlsx 中 taskType=联盟任务 的 TaskCfg; 其他开发期结构化配置仍集中在本类。
+ * 标量配置见 {@link AllianceConst.Cfg}。
  *
  * @author 11
  * @date 2026/6/11
  */
 @Component
-public class AllianceConfigService {
+public class AllianceConfigService implements ConfigExcelChangeListener {
 
     private static final ZoneId ZONE = ZoneId.systemDefault();
 
@@ -74,67 +78,63 @@ public class AllianceConfigService {
     // 任务表
     // =====================================================================
 
-    /**
-     * 联盟循环任务配置
-     *
-     * @param cfgId              配置 id
-     * @param quality            品质 (AllianceConst.TaskQuality)
-     * @param goalType           目标类型 (AllianceConst.TaskGoalType)
-     * @param goalParam          目标参数 (EARN_GOLD=gameType(0不限) / WIN_TIMES=最低倍数)
-     * @param goalCount          目标数量
-     * @param durationMs         任务持续时间(ms)
-     * @param weight             刷新权重
-     * @param rewardContribution 完成奖励: 贡献值
-     * @param rewardReputation   完成奖励: 联盟声誉值
-     * @param maxHelp            可被盟友帮助的次数上限 (帮助计入进度; 0=不可求助)
-     */
-    public record TaskCfg(int cfgId, int quality, int goalType, long goalParam, long goalCount,
-                          long durationMs, int weight, long rewardContribution, long rewardReputation, int maxHelp) {
+    private volatile List<TaskCfg> allianceTasks = Collections.emptyList();
+    private volatile Map<Integer, TaskCfg> allianceTaskMap = Collections.emptyMap();
+
+    @Override
+    public void initSampleCallbackCollector() {
+        addInitSampleFileObserveWithCallBack(TaskCfg.EXCEL_NAME, this::loadAllianceTasks);
     }
 
-    private static final long HOUR = 3600_000L;
-    //开发期示例任务表 (对应需求示例: 赚金币/N倍中奖/消耗体力); maxHelp=1: 任务求助只能由一名盟友帮助一次
-    private static final List<TaskCfg> TASKS = List.of(
-            new TaskCfg(1001, AllianceConst.TaskQuality.LOW, AllianceConst.TaskGoalType.EARN_GOLD, 0, 1_000_000, 24 * HOUR, 100, 10, 10, 1),
-            new TaskCfg(1002, AllianceConst.TaskQuality.LOW, AllianceConst.TaskGoalType.COST_POWER, 0, 50, 24 * HOUR, 100, 10, 10, 1),
-            new TaskCfg(1003, AllianceConst.TaskQuality.MID, AllianceConst.TaskGoalType.WIN_TIMES, 10, 3, 24 * HOUR, 60, 25, 25, 1),
-            new TaskCfg(1004, AllianceConst.TaskQuality.MID, AllianceConst.TaskGoalType.EARN_GOLD, 0, 5_000_000, 24 * HOUR, 60, 25, 25, 1),
-            new TaskCfg(1005, AllianceConst.TaskQuality.HIGH, AllianceConst.TaskGoalType.WIN_TIMES, 50, 1, 24 * HOUR, 30, 60, 60, 1),
-            new TaskCfg(1006, AllianceConst.TaskQuality.HIGH, AllianceConst.TaskGoalType.COST_POWER, 0, 500, 24 * HOUR, 30, 60, 60, 1));
+    @Override
+    public void changeSampleCallbackCollector() {
+        addChangeSampleFileObserveWithCallBack(TaskCfg.EXCEL_NAME, this::loadAllianceTasks);
+    }
 
     public TaskCfg taskCfg(int cfgId) {
-        for (TaskCfg cfg : TASKS) {
-            if (cfg.cfgId() == cfgId) {
-                return cfg;
-            }
-        }
-        return null;
+        ensureAllianceTasksLoaded();
+        return allianceTaskMap.get(cfgId);
     }
 
     /**
-     * 按权重随机抽 n 条任务配置 (任务可重复出现 —— 需求明确)
+     * 等概率随机抽 n 条联盟任务配置。任务可重复出现。
      */
     public List<TaskCfg> randomTasks(int n) {
-        if (n <= 0 || TASKS.isEmpty()) {
+        ensureAllianceTasksLoaded();
+        List<TaskCfg> tasks = allianceTasks;
+        if (n <= 0 || tasks.isEmpty()) {
             return Collections.emptyList();
-        }
-        int total = 0;
-        for (TaskCfg cfg : TASKS) {
-            total += cfg.weight();
         }
         List<TaskCfg> result = new ArrayList<>(n);
         for (int i = 0; i < n; i++) {
-            int rand = RandomUtils.randomInt(total);
-            int acc = 0;
-            for (TaskCfg cfg : TASKS) {
-                acc += cfg.weight();
-                if (rand < acc) {
-                    result.add(cfg);
-                    break;
-                }
-            }
+            result.add(tasks.get(RandomUtils.randomInt(tasks.size())));
         }
         return result;
+    }
+
+    private void ensureAllianceTasksLoaded() {
+        if (allianceTasks.isEmpty()) {
+            loadAllianceTasks();
+        }
+    }
+
+    public void loadAllianceTasks() {
+        List<TaskCfg> all = GameDataManager.getTaskCfgList();
+        if (all == null || all.isEmpty()) {
+            allianceTasks = Collections.emptyList();
+            allianceTaskMap = Collections.emptyMap();
+            return;
+        }
+        List<TaskCfg> tasks = new ArrayList<>();
+        Map<Integer, TaskCfg> map = new HashMap<>();
+        for (TaskCfg cfg : all) {
+            if (cfg != null && cfg.getTaskType() == TaskConstant.TaskType.ALLIANCE) {
+                tasks.add(cfg);
+                map.put(cfg.getId(), cfg);
+            }
+        }
+        allianceTasks = Collections.unmodifiableList(tasks);
+        allianceTaskMap = Collections.unmodifiableMap(map);
     }
 
     // =====================================================================

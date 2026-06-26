@@ -19,6 +19,16 @@ public class TaskCfg extends BaseCfgBean {
   /** 配置表工作薄名 */
   public static final String SHEET_NAME = "task";
 
+  /** 放弃的冷却时间（秒） */
+  protected int AbandonCooldown;
+  /** 是否允许放弃 */
+  protected int AllowAbandon;
+  /** 持续时间（分） */
+  protected int Duration;
+  /** 解锁功能ID */
+  protected int FunctionId;
+  /** 任务品质 */
+  protected int Quality;
   /** 道具奖励 */
   protected Map<Integer,Long> getItem;
   /** 任务组 */
@@ -31,7 +41,7 @@ public class TaskCfg extends BaseCfgBean {
   protected int jumpType;
   /** 任务描述 */
   protected int language;
-  /** 任务条件（充值货币单位是分，服务端会除以100） */
+  /** 任务条件 */
   protected List<Long> taskConditionId;
   /** 任务图标 */
   protected String taskIcon;
@@ -39,6 +49,31 @@ public class TaskCfg extends BaseCfgBean {
   protected int taskType;
   /** 开启时间 */
   protected String time;
+
+  /** 返回放弃的冷却时间（秒） */
+  public int getAbandonCooldown() {
+    return AbandonCooldown;
+  }
+
+  /** 返回是否允许放弃 */
+  public int getAllowAbandon() {
+    return AllowAbandon;
+  }
+
+  /** 返回持续时间（分） */
+  public int getDuration() {
+    return Duration;
+  }
+
+  /** 返回解锁功能ID */
+  public int getFunctionId() {
+    return FunctionId;
+  }
+
+  /** 返回任务品质 */
+  public int getQuality() {
+    return Quality;
+  }
 
   /** 返回道具奖励 */
   public Map<Integer,Long> getGetItem() {
@@ -70,7 +105,7 @@ public class TaskCfg extends BaseCfgBean {
     return language;
   }
 
-  /** 返回任务条件（充值货币单位是分，服务端会除以100） */
+  /** 返回任务条件 */
   public List<Long> getTaskConditionId() {
     return taskConditionId;
   }

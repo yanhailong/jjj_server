@@ -79,7 +79,7 @@ public class AllianceHelpService {
      * 发起求助。任务求助要求目标是我当前接取的任务; 建筑加速目标为升级中的建筑
      * (建筑状态由消费端校验, 无效订单自然无效果)。
      */
-    public ResAllianceSeekHelp seekHelp(long playerId, int type, long targetId, String targetName) {
+    public ResAllianceSeekHelp seekHelp(long playerId, int type, int targetId, String targetName) {
         ResAllianceSeekHelp res = new ResAllianceSeekHelp(Code.SUCCESS);
         long allianceId = cacheService.getAllianceId(playerId);
         AllianceData alliance = cacheService.getAlliance(allianceId);
@@ -105,13 +105,12 @@ public class AllianceHelpService {
         int maxHelp;
         if (type == AllianceConst.HelpType.TASK) {
             PlayerTakenTask taken = playerData.getTakenTask();
-            if (taken == null || taken.getUid() != targetId) {
+            if (taken == null || taken.getCfgId() != targetId) {
                 res.code = Code.NOT_FOUND;
-                log.warn("发起联盟求助失败,目标任务非当前接取任务 playerId={},targetId={},takenUid={}", playerId, targetId, taken == null ? 0 : taken.getUid());
+                log.warn("发起联盟求助失败,目标任务非当前接取任务 playerId={},targetId={},takenCfgId={}", playerId, targetId, taken == null ? 0 : taken.getCfgId());
                 return res;
             }
-            AllianceConfigService.TaskCfg cfg = configService.taskCfg(taken.getCfgId());
-            maxHelp = cfg == null ? AllianceConst.Cfg.TASK_ORDER_MAX_HELP : cfg.maxHelp();
+            maxHelp = AllianceConst.Cfg.TASK_ORDER_MAX_HELP;
         } else {
             maxHelp = AllianceConst.Cfg.SPEEDUP_ORDER_MAX_HELP;
         }
@@ -261,7 +260,7 @@ public class AllianceHelpService {
 
         long notifyValue;
         if (order.getType() == AllianceConst.HelpType.TASK) {
-            taskService.onTaskHelped(order.getOwnerId(), order.getTargetId());
+            taskService.onTaskHelped(order.getOwnerId(), (int)order.getTargetId());
             notifyValue = 1;
         } else {
             String key = speedupKey(order.getOwnerId(), order.getTargetId());
@@ -311,7 +310,7 @@ public class AllianceHelpService {
         boolean orderDone;
         if (order.getType() == AllianceConst.HelpType.TASK) {
             //任务求助: 帮助即完成对方任务 (上限1次)
-            taskService.onTaskHelped(order.getOwnerId(), order.getTargetId());
+            taskService.onTaskHelped(order.getOwnerId(), (int)order.getTargetId());
             notifyValue = 1;
             orderDone = true;
         } else {

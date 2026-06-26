@@ -220,28 +220,26 @@ public interface AllianceConst {
     }
 
     /**
-     * 联盟任务目标类型。
-     * <p>
-     * 扩展点: 新玩法接入联盟任务只需 1) 新增枚举值 2) 任务配置表配置该类型
-     * 3) 在产生行为处调用 {@code AllianceEventService.onEvent(playerId, goalType, value)}。
-     */
-    interface TaskGoalType {
-        //在指定 slots 玩法赚取金币 (param=gameType, 0表示不限)
-        int EARN_GOLD = 1;
-        //完成 N 次指定倍数中奖 (param=最低倍数)
-        int WIN_TIMES = 2;
-        //消耗体力 (param 不使用)
-        int COST_POWER = 3;
-        //接受盟友帮助 N 次 (任务求助场景, 由互助点击驱动)
-        int RECEIVE_HELP = 4;
-    }
-
-    /**
      * 对决阶段状态机。
      * <p>
      * leader 节点定时 tick 按时间推进, 全部用"旧状态条件更新"幂等化(防 leader 切换双跑);
      * 各阶段时间点见 {@code AllianceConfigService} 的对决时间配置。
      */
+
+    /**
+     * 联盟任务使用 task.xlsx 的 taskConditionId 首位作为条件类型。
+     */
+    interface TaskConditionType {
+        int WIN_TIMES = 12301;
+        int POOL_DRAW_TIMES = 12302;
+        int SKILL_RESEARCH_TIMES = 12303;
+        int BUILDING_UPGRADE_TIMES = 12304;
+        int BET_TIMES = 12305;
+        int WIN_AMOUNT = 12306;
+        int RECHARGE_AMOUNT = 12307;
+        int DONATE_TIMES = 12308;
+    }
+
     interface BattleState {
         //本期未创建/未到报名时间
         int NONE = 0;

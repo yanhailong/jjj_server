@@ -15,6 +15,6 @@ import com.jjg.game.common.proto.ProtobufMessage;
 @ProtobufMessage(messageType = MessageConst.MessageTypeDef.ALLIANCE, cmd = AllianceConst.MsgBean.REQ_ACCEPT_TASK)
 @ProtoDesc("接取任务")
 public class ReqAllianceAcceptTask extends AbstractMessage {
-    @ProtoDesc("任务实例uid")
-    public long taskUid;
+    @ProtoDesc("任务id")
+    public int taskCfgId;
 }

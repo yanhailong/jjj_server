@@ -204,9 +204,9 @@ public class AllianceDao extends MongoBaseDao<AllianceData, Long> {
      *
      * @return true 摘取成功
      */
-    public boolean pullTask(long allianceId, long taskUid) {
+    public boolean pullTask(long allianceId, int taskCfgId) {
         Update update = new Update();
-        update.pull("tasks", new org.bson.Document("uid", taskUid));
+        update.pull("tasks", new org.bson.Document("cfgId", taskCfgId));
         return mongoTemplate.updateFirst(byId(allianceId), update, AllianceData.class).getModifiedCount() > 0;
     }
 

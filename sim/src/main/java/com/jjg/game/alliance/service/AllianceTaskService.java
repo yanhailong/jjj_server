@@ -15,8 +15,14 @@ import com.jjg.game.alliance.pb.res.ResAbandonTask;
 import com.jjg.game.alliance.pb.res.ResAllianceAcceptTask;
 import com.jjg.game.alliance.pb.res.ResAllianceTaskList;
 import com.jjg.game.common.utils.TimeHelper;
+import com.jjg.game.core.constant.AddType;
 import com.jjg.game.core.constant.Code;
 import com.jjg.game.core.manager.SnowflakeManager;
+import com.jjg.game.core.service.PlayerPackService;
+import com.jjg.game.core.utils.ItemUtils;
+import com.jjg.game.sampledata.bean.TaskCfg;
+import com.jjg.game.sim.constant.SimConstant;
+import com.jjg.game.sim.data.SpinStatInfo;
 import com.jjg.game.social.service.SocialSender;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -27,7 +33,9 @@ import org.springframework.stereotype.Service;
 import java.time.LocalDateTime;
 import java.time.ZoneId;
 import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 import java.util.Optional;
 import java.util.concurrent.TimeUnit;
 
@@ -66,6 +74,8 @@ public class AllianceTaskService {
     @Autowired
     private AllianceAssetService assetService;
     @Autowired
+    private PlayerPackService playerPackService;
+    @Autowired
     private SnowflakeManager snowflakeManager;
     @Autowired
     private StringRedisTemplate stringRedisTemplate;
@@ -100,9 +110,10 @@ public class AllianceTaskService {
 
         long now = System.currentTimeMillis();
         res.poolTasks = new ArrayList<>();
-        for (AllianceTaskSlot slot : alliance.getTasks()) {
-            if (slot.getExpireTime() > now) {
-                res.poolTasks.add(AlliancePbConverter.toTaskInfo(slot, configService.taskCfg(slot.getCfgId())));
+        for (Map.Entry<Integer,AllianceTaskSlot> en: alliance.getTasks().entrySet()) {
+            AllianceTaskSlot value = en.getValue();
+            if (value.getExpireTime() > now && configService.taskCfg(value.getCfgId()) != null) {
+                res.poolTasks.add(AlliancePbConverter.toTaskInfo(value));
             }
         }
         res.nextRefreshTime = nextHourMillis(now);
@@ -119,8 +130,7 @@ public class AllianceTaskService {
                 //超期惰性结算失败
                 failTask(playerId, taken);
             } else {
-                res.myTask = AlliancePbConverter.toTaskInfo(taken,
-                        configService.taskCfg(taken.getCfgId()), progressOf(playerId, taken.getUid()));
+                res.myTask = AlliancePbConverter.toTaskInfo(taken, progressOf(playerId, taken.getCfgId()));
             }
         }
         return res;
@@ -137,14 +147,15 @@ public class AllianceTaskService {
         long now = System.currentTimeMillis();
         //保留未过期的, 补满到池上限 (任务可重复出现)
         List<AllianceTaskSlot> pool = new ArrayList<>(AllianceConst.Cfg.TASK_POOL_SIZE);
-        for (AllianceTaskSlot slot : alliance.getTasks()) {
-            if (slot.getExpireTime() > now) {
-                pool.add(slot);
+        for (Map.Entry<Integer,AllianceTaskSlot> en: alliance.getTasks().entrySet()) {
+            if (en.getValue().getExpireTime() > now) {
+                pool.add(en.getValue());
             }
         }
         int need = AllianceConst.Cfg.TASK_POOL_SIZE - pool.size();
-        for (AllianceConfigService.TaskCfg cfg : configService.randomTasks(need)) {
-            pool.add(new AllianceTaskSlot(snowflakeManager.nextId(), cfg.cfgId(), now, now + cfg.durationMs()));
+        for (TaskCfg cfg : configService.randomTasks(need)) {
+            long durationMs = Math.max(1, cfg.getDuration()) * 60_000L;
+            pool.add(new AllianceTaskSlot(cfg.getId(), now, now + durationMs));
         }
         if (allianceDao.refreshTasks(alliance.getAllianceId(), alliance.getTaskRefreshHour(), currentHour, pool)) {
             cacheService.publishInvalidate(alliance.getAllianceId());
@@ -162,13 +173,13 @@ public class AllianceTaskService {
     /**
      * 接取任务: $pull 原子摘取, 摘到者独占。
      */
-    public ResAllianceAcceptTask acceptTask(long playerId, long taskUid) {
+    public ResAllianceAcceptTask acceptTask(long playerId, int taskCfgId) {
         ResAllianceAcceptTask res = new ResAllianceAcceptTask(Code.SUCCESS);
         long allianceId = cacheService.getAllianceId(playerId);
         AllianceData alliance = cacheService.getAlliance(allianceId);
         if (alliance == null) {
             res.code = Code.NOT_FOUND;
-            log.warn("接取联盟任务失败,玩家不在联盟 playerId={},taskUid={}", playerId, taskUid);
+            log.warn("接取联盟任务失败,玩家不在联盟 playerId={},taskCfgId={}", playerId, taskCfgId);
             return res;
         }
         long now = System.currentTimeMillis();
@@ -176,7 +187,7 @@ public class AllianceTaskService {
         //放弃冷却
         if (playerData.getAbandonCdUntil() > now) {
             res.code = Code.FORBID;
-            log.warn("接取联盟任务失败,放弃冷却中 playerId={},taskUid={},cdUntil={}", playerId, taskUid, playerData.getAbandonCdUntil());
+            log.warn("接取联盟任务失败,放弃冷却中 playerId={},taskCfgId={},cdUntil={}", playerId, taskCfgId, playerData.getAbandonCdUntil());
             return res;
         }
         //每日完成次数上限
@@ -191,40 +202,40 @@ public class AllianceTaskService {
         if (current != null) {
             if (!current.expired(now)) {
                 res.code = Code.REPEAT_OP;
-                log.warn("接取联盟任务失败,已有进行中任务 playerId={},currentTaskUid={}", playerId, current.getUid());
+                log.warn("接取联盟任务失败,已有进行中任务 playerId={},currentTaskCfgIf={}", playerId, current.getCfgId());
                 return res;
             }
             failTask(playerId, current);
         }
         //任务存在性与配置 (从最新缓存视图取)
-        AllianceTaskSlot slot = alliance.findTask(taskUid);
+        AllianceTaskSlot slot = alliance.findTask(taskCfgId);
         if (slot == null || slot.getExpireTime() <= now) {
             res.code = Code.NOT_FOUND;
-            log.warn("接取联盟任务失败,任务不存在或已过期 playerId={},allianceId={},taskUid={}", playerId, allianceId, taskUid);
+            log.warn("接取联盟任务失败,任务不存在或已过期 playerId={},allianceId={},taskCfgId={}", playerId, allianceId, taskCfgId);
             return res;
         }
-        AllianceConfigService.TaskCfg cfg = configService.taskCfg(slot.getCfgId());
+        TaskCfg cfg = configService.taskCfg(slot.getCfgId());
         if (cfg == null) {
             res.code = Code.SAMPLE_ERROR;
-            log.warn("接取联盟任务失败,任务配置缺失 playerId={},taskUid={},cfgId={}", playerId, taskUid, slot.getCfgId());
+            log.warn("接取联盟任务失败,任务配置缺失 playerId={},taskCfgId={},cfgId={}", playerId, taskCfgId, slot.getCfgId());
             return res;
         }
         //原子摘取 (并发接取只有一人成功)
-        if (!allianceDao.pullTask(allianceId, taskUid)) {
+        if (!allianceDao.pullTask(allianceId, taskCfgId)) {
             res.code = Code.REPEAT_OP;
-            log.warn("接取联盟任务失败,任务已被他人接取 playerId={},allianceId={},taskUid={}", playerId, allianceId, taskUid);
+            log.warn("接取联盟任务失败,任务已被他人接取 playerId={},allianceId={},taskCfgId={}", playerId, allianceId, taskCfgId);
             return res;
         }
         cacheService.publishInvalidate(allianceId);
 
-        PlayerTakenTask taken = new PlayerTakenTask(taskUid, slot.getCfgId(), allianceId, now, slot.getExpireTime());
+        PlayerTakenTask taken = new PlayerTakenTask(slot.getCfgId(), allianceId, now, slot.getExpireTime());
         alliancePlayerDao.setTakenTask(playerId, taken);
         takenTaskCache.invalidate(playerId);
         //清残留进度 (需求: 放弃清进度, 再接取重新累计)
-        stringRedisTemplate.delete(progressKey(playerId, taskUid));
+        stringRedisTemplate.delete(progressKey(playerId, taskCfgId));
 
-        res.task = AlliancePbConverter.toTaskInfo(taken, cfg, 0);
-        log.info("接取联盟任务 playerId={},allianceId={},taskUid={},cfgId={}", playerId, allianceId, taskUid, slot.getCfgId());
+        res.task = AlliancePbConverter.toTaskInfo(taken, 0);
+        log.info("接取联盟任务 playerId={},allianceId={},taskCfgId={},cfgId={}", playerId, allianceId, taskCfgId, slot.getCfgId());
         return res;
     }
 
@@ -240,15 +251,26 @@ public class AllianceTaskService {
             log.warn("放弃联盟任务失败,无进行中任务 playerId={}", playerId);
             return res;
         }
-        long cdUntil = System.currentTimeMillis() + AllianceConst.Cfg.ABANDON_TASK_CD_SEC * 1000L;
+        TaskCfg cfg = configService.taskCfg(taken.getCfgId());
+        if (cfg == null) {
+            res.code = Code.SAMPLE_ERROR;
+            log.warn("放弃联盟任务失败,任务配置缺失 playerId={},cfgId={}", playerId, taken.getCfgId());
+            return res;
+        }
+        if (cfg.getAllowAbandon() <= 0) {
+            res.code = Code.FORBID;
+            log.warn("放弃联盟任务失败,配置不允许放弃 playerId={},cfgId={}", playerId, taken.getCfgId());
+            return res;
+        }
+        long cdUntil = System.currentTimeMillis() + Math.max(0, cfg.getAbandonCooldown()) * 1000L;
         if (!clearTask(playerId, taken)) {
             res.code = Code.NOT_FOUND;
-            log.warn("放弃联盟任务失败,清理任务快照失败 playerId={},taskUid={}", playerId, taken.getUid());
+            log.warn("放弃联盟任务失败,清理任务快照失败 playerId={},taskCfgId={}", playerId, taken.getCfgId());
             return res;
         }
         alliancePlayerDao.setAbandonCd(playerId, cdUntil);
         res.cdUntil = cdUntil;
-        log.info("放弃联盟任务 playerId={},taskUid={}", playerId, taken.getUid());
+        log.info("放弃联盟任务 playerId={},taskCfgId={}", playerId, taken.getCfgId());
         return res;
     }
 
@@ -260,16 +282,43 @@ public class AllianceTaskService {
      * 任务进度上报 (由 {@code AllianceEventService} 统一调度)。
      * 高频路径: 任务快照走本地缓存, 无任务的玩家在缓存上直接短路, 不触达存储。
      *
-     * @param goalType 目标类型 (AllianceConst.TaskGoalType)
-     * @param param    事件参数 (EARN_GOLD=gameType / WIN_TIMES=本次倍数)
-     * @param value    进度增量 (WIN_TIMES 场景固定 1)
+     * @param conditionId task.xlsx 的 taskConditionId 首位
+     * @param param       事件参数
+     * @param value       进度增量
      */
-    public void onProgress(long playerId, int goalType, long param, long value) {
-        if (value <= 0) {
+    public void onProgress(long playerId, int conditionId, long param, long value) {
+        onProgress(playerId, new TaskEvent(conditionId, param, value, 0, 0, 0));
+    }
+
+    /**
+     * 任务求助被帮助: 求助上限=1 次, 帮助即视为达成 (需求:
+     * 同一任务只能由一名用户帮助, 被帮助者相当于完成任务)。
+     *
+     * @return true 该任务因此完成
+     */
+    public void onSpin(long playerId, int gameType, int winTimes, int costPower, SpinStatInfo statInfo) {
+        long bet = statInfo == null ? costPower : statInfo.getBet();
+        long win = statInfo == null ? 0 : statInfo.getWin();
+        if (costPower > 0 || bet > 0) {
+            onProgress(playerId, new TaskEvent(AllianceConst.TaskConditionType.BET_TIMES, gameType, 1, bet, gameType, 0));
+        }
+        if (winTimes > 0) {
+            onProgress(playerId, new TaskEvent(AllianceConst.TaskConditionType.WIN_TIMES, winTimes, 1, bet, gameType, 0));
+        }
+        if (win > 0) {
+            onProgress(playerId, new TaskEvent(AllianceConst.TaskConditionType.WIN_AMOUNT, 0, win, bet, gameType, ItemUtils.getGoldItemId()));
+        }
+    }
+
+    public void onEarnGold(long playerId, int gameType, long gold) {
+        onProgress(playerId, new TaskEvent(AllianceConst.TaskConditionType.WIN_AMOUNT, 0, gold,
+                Long.MAX_VALUE, gameType, ItemUtils.getGoldItemId()));
+    }
+
+    private void onProgress(long playerId, TaskEvent event) {
+        if (event.value() <= 0) {
             return;
         }
-        //无盟玩家不可能有任务: 在最高频自旋路径上用本地缓存的"玩家->联盟"映射先短路,
-        //避免给从未入盟的在线玩家也回源读其玩家文档 (getAllianceId 命中本地缓存, 近乎零成本)
         if (cacheService.getAllianceId(playerId) <= 0) {
             return;
         }
@@ -277,57 +326,84 @@ public class AllianceTaskService {
         if (taken == null) {
             return;
         }
-        AllianceConfigService.TaskCfg cfg = configService.taskCfg(taken.getCfgId());
-        if (cfg == null || cfg.goalType() != goalType) {
+        TaskCfg cfg = configService.taskCfg(taken.getCfgId());
+        if (cfg == null || !matchesEvent(cfg, event)) {
             return;
-        }
-        //目标参数匹配
-        switch (goalType) {
-            case AllianceConst.TaskGoalType.EARN_GOLD -> {
-                //cfg.goalParam=指定玩法(0不限), param=本次 gameType
-                if (cfg.goalParam() > 0 && cfg.goalParam() != param) {
-                    return;
-                }
-            }
-            case AllianceConst.TaskGoalType.WIN_TIMES -> {
-                //cfg.goalParam=最低倍数, param=本次倍数; 达标则次数+1
-                if (param < cfg.goalParam()) {
-                    return;
-                }
-                value = 1;
-            }
-            default -> {
-                //COST_POWER / RECEIVE_HELP: 直接累计
-            }
         }
         long now = System.currentTimeMillis();
         if (taken.expired(now)) {
             failTask(playerId, taken);
             return;
         }
-        Long progress = stringRedisTemplate.opsForValue().increment(progressKey(playerId, taken.getUid()), value);
-        if (progress != null && progress == value) {
-            //新建的进度键补 TTL
-            stringRedisTemplate.expire(progressKey(playerId, taken.getUid()),
+        Long progress = stringRedisTemplate.opsForValue().increment(progressKey(playerId, taken.getCfgId()), event.value());
+        if (progress != null && progress == event.value()) {
+            stringRedisTemplate.expire(progressKey(playerId, taken.getCfgId()),
                     AllianceConst.Cfg.TASK_PROGRESS_TTL_SEC, TimeUnit.SECONDS);
         }
-        if (progress != null && progress >= cfg.goalCount()) {
+        if (progress != null && progress >= targetValue(cfg)) {
             finishTask(playerId, taken, cfg);
         }
     }
 
-    /**
-     * 任务求助被帮助: 计入 RECEIVE_HELP 进度; 任务求助上限=1 次, 帮助即视为达成 (需求:
-     * 同一任务只能由一名用户帮助, 被帮助者相当于完成任务)。
-     *
-     * @return true 该任务因此完成
-     */
-    public boolean onTaskHelped(long ownerId, long taskUid) {
-        PlayerTakenTask taken = cachedTakenTask(ownerId);
-        if (taken == null || taken.getUid() != taskUid) {
+    private boolean matchesEvent(TaskCfg cfg, TaskEvent event) {
+        List<Long> cond = cfg.getTaskConditionId();
+        if (cond == null || cond.isEmpty() || longAt(cond, 0, 0) != event.conditionId()) {
             return false;
         }
-        AllianceConfigService.TaskCfg cfg = configService.taskCfg(taken.getCfgId());
+        return switch (event.conditionId()) {
+            case AllianceConst.TaskConditionType.WIN_TIMES ->
+                    matchOptional(longAt(cond, 1, 0), event.gameType())
+                            && event.bet() >= longAt(cond, 2, 0)
+                            && event.param() >= longAt(cond, 3, 0);
+            case AllianceConst.TaskConditionType.BET_TIMES ->
+                    matchOptional(longAt(cond, 1, 0), event.gameType())
+                            && event.bet() >= longAt(cond, 2, 0);
+            case AllianceConst.TaskConditionType.WIN_AMOUNT ->
+                    matchOptional(longAt(cond, 1, 0), event.gameType())
+                            && event.bet() >= longAt(cond, 2, 0)
+                            && matchOptional(longAt(cond, 4, 0), event.coinId());
+            case AllianceConst.TaskConditionType.POOL_DRAW_TIMES,
+                 AllianceConst.TaskConditionType.SKILL_RESEARCH_TIMES,
+                 AllianceConst.TaskConditionType.BUILDING_UPGRADE_TIMES ->
+                    matchOptional(longAt(cond, 1, 0), event.param());
+            case AllianceConst.TaskConditionType.RECHARGE_AMOUNT ->
+                    matchOptional(longAt(cond, 2, 0), event.param());
+            case AllianceConst.TaskConditionType.DONATE_TIMES ->
+                    event.param() >= longAt(cond, 1, 0);
+            default -> matchOptional(longAt(cond, 1, 0), event.param());
+        };
+    }
+
+    private long targetValue(TaskCfg cfg) {
+        List<Long> cond = cfg.getTaskConditionId();
+        if (cond == null || cond.isEmpty()) {
+            return Long.MAX_VALUE;
+        }
+        int conditionId = cond.getFirst().intValue();
+        return switch (conditionId) {
+            case AllianceConst.TaskConditionType.WIN_AMOUNT -> longAt(cond, 3, Long.MAX_VALUE);
+            case AllianceConst.TaskConditionType.RECHARGE_AMOUNT -> longAt(cond, 1, Long.MAX_VALUE);
+            default -> cond.getLast();
+        };
+    }
+
+    private boolean matchOptional(long expected, long actual) {
+        return expected <= 0 || expected == actual;
+    }
+
+    private long longAt(List<Long> values, int index, long defaultValue) {
+        return values.size() > index ? values.get(index) : defaultValue;
+    }
+
+    private record TaskEvent(int conditionId, long param, long value, long bet, int gameType, int coinId) {
+    }
+
+    public boolean onTaskHelped(long ownerId, int taskCfgId) {
+        PlayerTakenTask taken = cachedTakenTask(ownerId);
+        if (taken == null || taken.getCfgId() != taskCfgId) {
+            return false;
+        }
+        TaskCfg cfg = configService.taskCfg(taken.getCfgId());
         if (cfg == null) {
             return false;
         }
@@ -346,26 +422,53 @@ public class AllianceTaskService {
      * 完成: 发奖(贡献值+联盟声誉) -> 清快照 -> 每日计数 -> 通知。
      * 声誉入账给"接取时所在联盟" —— 期间换盟则老盟得声誉, 与对决积分归属口径一致。
      */
-    private boolean finishTask(long playerId, PlayerTakenTask taken, AllianceConfigService.TaskCfg cfg) {
+    private boolean finishTask(long playerId, PlayerTakenTask taken, TaskCfg cfg) {
         if (!clearTask(playerId, taken)) {
             return false;
         }
         int today = TimeHelper.getDayNumerical();
         alliancePlayerDao.incrementTaskFinish(playerId, today);
 
-        assetService.grantContribution(playerId, cfg.rewardContribution(), cfg.rewardReputation(), taken.getAllianceId());
-        assetService.grantReputation(taken.getAllianceId(), cfg.rewardReputation());
+        grantTaskRewards(playerId, taken.getAllianceId(), cfg);
 
         NotifyAllianceTask notify = new NotifyAllianceTask(Code.SUCCESS);
         notify.result = TASK_RESULT_FINISH;
-        notify.taskUid = taken.getUid();
         notify.cfgId = taken.getCfgId();
-        notify.rewardContribution = cfg.rewardContribution();
-        notify.rewardReputation = cfg.rewardReputation();
         socialSender.sendTo(playerId, notify);
-        log.info("完成联盟任务 playerId={},taskUid={},cfgId={},allianceId={}",
-                playerId, taken.getUid(), taken.getCfgId(), taken.getAllianceId());
+        log.info("完成联盟任务 playerId={},cfgId={},allianceId={}",
+                playerId, taken.getCfgId(), taken.getAllianceId());
         return true;
+    }
+
+    private void grantTaskRewards(long playerId, long allianceId, TaskCfg cfg) {
+        Map<Integer, Long> rewards = cfg.getGetItem();
+        if (rewards == null || rewards.isEmpty()) {
+            return;
+        }
+        long reputation = 0;
+        long contribution = 0;
+        Map<Integer, Long> packRewards = new HashMap<>();
+        for (Map.Entry<Integer, Long> en : rewards.entrySet()) {
+            if (en.getKey() == null || en.getValue() == null || en.getValue() <= 0) {
+                continue;
+            }
+            if (en.getKey() == SimConstant.Item.ID_ALLIANCE_REPUTATION) {
+                reputation += en.getValue();
+            } else if (en.getKey() == SimConstant.Item.ID_ALLIANCE_Contribution) {
+                contribution += en.getValue();
+            } else {
+                packRewards.merge(en.getKey(), en.getValue(), Long::sum);
+            }
+        }
+        if (contribution > 0 || reputation > 0) {
+            assetService.grantContribution(playerId, contribution, reputation, allianceId);
+        }
+        if (reputation > 0) {
+            assetService.grantReputation(allianceId, reputation);
+        }
+        if (!packRewards.isEmpty()) {
+            playerPackService.addItems(playerId, packRewards, AddType.ALLIANCE_TASK_REWARD, "联盟任务奖励", true);
+        }
     }
 
     /**
@@ -377,16 +480,15 @@ public class AllianceTaskService {
         }
         NotifyAllianceTask notify = new NotifyAllianceTask(Code.SUCCESS);
         notify.result = TASK_RESULT_FAIL;
-        notify.taskUid = taken.getUid();
         notify.cfgId = taken.getCfgId();
         socialSender.sendTo(playerId, notify);
-        log.info("联盟任务超期失败 playerId={},taskUid={}", playerId, taken.getUid());
+        log.info("联盟任务超期失败 playerId={},taskCfgId={}", playerId, taken.getCfgId());
     }
 
     private boolean clearTask(long playerId, PlayerTakenTask taken) {
-        boolean cleared = alliancePlayerDao.clearTakenTask(playerId, taken.getUid());
+        boolean cleared = alliancePlayerDao.clearTakenTask(playerId, taken.getCfgId());
         takenTaskCache.invalidate(playerId);
-        stringRedisTemplate.delete(progressKey(playerId, taken.getUid()));
+        stringRedisTemplate.delete(progressKey(playerId, taken.getCfgId()));
         return cleared;
     }
 
@@ -403,18 +505,18 @@ public class AllianceTaskService {
         return opt == null ? null : opt.orElse(null);
     }
 
-    private long progressOf(long playerId, long taskUid) {
+    private long progressOf(long playerId, int taskCfgId) {
         try {
-            String val = stringRedisTemplate.opsForValue().get(progressKey(playerId, taskUid));
+            String val = stringRedisTemplate.opsForValue().get(progressKey(playerId, taskCfgId));
             return val == null ? 0 : Long.parseLong(val);
         } catch (Exception e) {
-            log.warn("读取任务进度失败 playerId={},taskUid={}", playerId, taskUid, e);
+            log.warn("读取任务进度失败 playerId={},taskCfgId={}", playerId, taskCfgId, e);
             return 0;
         }
     }
 
-    private String progressKey(long playerId, long taskUid) {
-        return AllianceConst.RedisKey.TASK_PROGRESS_PREFIX + playerId + ":" + taskUid;
+    private String progressKey(long playerId, int taskCfgId) {
+        return AllianceConst.RedisKey.TASK_PROGRESS_PREFIX + playerId + ":" + taskCfgId;
     }
 
     /**

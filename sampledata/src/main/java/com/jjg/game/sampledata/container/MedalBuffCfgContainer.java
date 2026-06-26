@@ -4,17 +4,17 @@ import java.util.ArrayList;
 import java.util.List;
 
 import javax.annotation.processing.Generated;
-import com.jjg.game.sampledata.bean.AllianceTaskCfg;
+import com.jjg.game.sampledata.bean.MedalBuffCfg;
 
 /**
- * AllianceTask.xlsx配置管理容器
+ * MedalBuff.xlsx配置管理容器
  *
- * @excelName AllianceTask.xlsx
- * @sheetName AllianceTask
+ * @excelName MedalBuff.xlsx
+ * @sheetName MedalBuff
  * @author auto_generator
  */
 @Generated("com.eouna.configtool.generator.template.java.JavaTemplateGenerator")
-public class AllianceTaskCfgContainer extends BaseCfgContainer<AllianceTaskCfg> {
+public class MedalBuffCfgContainer extends BaseCfgContainer<MedalBuffCfg> {
 
   @Override
   public boolean hasRelatedTable() {
@@ -27,23 +27,23 @@ public class AllianceTaskCfgContainer extends BaseCfgContainer<AllianceTaskCfg> 
   }
 
   @Override
-  public AllianceTaskCfgContainer getNewContainer(){
-    return new AllianceTaskCfgContainer();
+  public MedalBuffCfgContainer getNewContainer(){
+    return new MedalBuffCfgContainer();
   }
 
-  public AllianceTaskCfgContainer() {
+  public MedalBuffCfgContainer() {
     super();
   }
 
   @Override
   public List<String> getExcelNameList() {
     List<String> excelNameList = new ArrayList<>();
-    excelNameList.add("AllianceTask.xlsx");
+    excelNameList.add("MedalBuff.xlsx");
     return excelNameList;
   }
 
   @Override
-  protected AllianceTaskCfg createNewBean() {
-    return new AllianceTaskCfg();
+  protected MedalBuffCfg createNewBean() {
+    return new MedalBuffCfg();
   }
 }

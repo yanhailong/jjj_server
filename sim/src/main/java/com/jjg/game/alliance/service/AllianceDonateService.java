@@ -43,6 +43,8 @@ public class AllianceDonateService {
     @Autowired
     private AllianceAssetService assetService;
     @Autowired
+    private AllianceTaskService taskService;
+    @Autowired
     private PlayerPackService playerPackService;
 
     /**
@@ -128,6 +130,7 @@ public class AllianceDonateService {
         //计数 + 入账 (贡献值给个人, 声誉给联盟, 贡献度计入周榜)
         assetService.grantContribution(playerId, cfg.rewardContribution(), cfg.rewardReputation(), allianceId);
         long newReputation = assetService.grantReputation(allianceId, cfg.rewardReputation());
+        taskService.onProgress(playerId, AllianceConst.TaskConditionType.DONATE_TIMES, cfg.costCount(), 1);
 
         res.rewardContribution = cfg.rewardContribution();
         res.rewardReputation = cfg.rewardReputation();

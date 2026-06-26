@@ -71,38 +71,22 @@ public class AlliancePbConverter {
     /**
      * 任务池条目 -> PB (未接取, 进度 0)
      */
-    public static AllianceTaskInfo toTaskInfo(AllianceTaskSlot slot, AllianceConfigService.TaskCfg cfg) {
+    public static AllianceTaskInfo toTaskInfo(AllianceTaskSlot slot) {
         AllianceTaskInfo info = new AllianceTaskInfo();
-        info.uid = slot.getUid();
         info.cfgId = slot.getCfgId();
         info.expireTime = slot.getExpireTime();
-        fillTaskCfg(info, cfg);
         return info;
     }
 
     /**
      * 已接取任务 -> PB (带进度)
      */
-    public static AllianceTaskInfo toTaskInfo(PlayerTakenTask task, AllianceConfigService.TaskCfg cfg, long progress) {
+    public static AllianceTaskInfo toTaskInfo(PlayerTakenTask task, long progress) {
         AllianceTaskInfo info = new AllianceTaskInfo();
-        info.uid = task.getUid();
         info.cfgId = task.getCfgId();
         info.expireTime = task.getExpireTime();
         info.progress = progress;
-        fillTaskCfg(info, cfg);
         return info;
-    }
-
-    private static void fillTaskCfg(AllianceTaskInfo info, AllianceConfigService.TaskCfg cfg) {
-        if (cfg == null) {
-            return;
-        }
-        info.quality = cfg.quality();
-        info.goalType = cfg.goalType();
-        info.goalParam = cfg.goalParam();
-        info.goalCount = cfg.goalCount();
-        info.rewardContribution = cfg.rewardContribution();
-        info.rewardReputation = cfg.rewardReputation();
     }
 
     /**

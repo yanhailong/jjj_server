@@ -17,6 +17,18 @@ public interface TaskConstant {
          * 积分大奖
          */
         int POINTS_AWARD = 1;
+        /**
+         * 主线任务 (sim 线性链, 不由 core 管理)
+         */
+        int MAIN_LINE = 2;
+        /**
+         * 成就任务 (sim 分组阶梯链, 不由 core 管理)
+         */
+        int ACHIEVEMENT = 3;
+        /**
+         * 联盟任务 (alliance 任务池, 不由 core 管理)
+         */
+        int ALLIANCE = 5;
     }
 
     /**
@@ -93,6 +105,11 @@ public interface TaskConstant {
      * 任务条件类型
      */
     interface ConditionType {
+        /**
+         * 玩家等级 (状态型: 大于等于目标等级)
+         */
+        int PLAYER_LEVEL = 1;
+
         /**
          * 单次充值
          */

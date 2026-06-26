@@ -30,6 +30,9 @@ public class SimPlayerContext {
     //待领取的离线收益 (上线计算, 领取后清空)
     private SimOfflineReward pendingOffline;
 
+    //主线/成就任务数据
+    private SimTaskData simTaskData;
+
     //上次落库时间 (ms)
     private long lastSaveTime;
     //上次活跃时间
@@ -118,6 +121,14 @@ public class SimPlayerContext {
 
     public void setPendingOffline(SimOfflineReward pendingOffline) {
         this.pendingOffline = pendingOffline;
+    }
+
+    public SimTaskData getSimTaskData() {
+        return simTaskData;
+    }
+
+    public void setSimTaskData(SimTaskData simTaskData) {
+        this.simTaskData = simTaskData;
     }
 
     public long getLastSaveTime() {

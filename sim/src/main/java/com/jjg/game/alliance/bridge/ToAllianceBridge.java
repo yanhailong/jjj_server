@@ -18,7 +18,7 @@ import com.jjg.game.common.rpc.IGameRpc;
 public interface ToAllianceBridge extends IGameRpc {
 
     /**
-     * 上报玩家赚取金币 (EARN_GOLD 任务进度): 由游戏节点在结算处调用。
+     * 上报玩家赚取金币任务进度: 由游戏节点在结算处调用。
      *
      * @param playerId 玩家id
      * @param gameType 玩法类型
@@ -29,11 +29,11 @@ public interface ToAllianceBridge extends IGameRpc {
     /**
      * 通用联盟事件上报 (任务进度): 新玩法接入时无需新增 RPC 方法。
      *
-     * @param goalType 目标类型 (AllianceConst.TaskGoalType)
-     * @param param    事件参数
-     * @param value    增量
+     * @param conditionId task.xlsx 的 taskConditionId 首位
+     * @param param       事件参数
+     * @param value       增量
      */
-    void reportAllianceEvent(long playerId, int goalType, long param, long value);
+    void reportAllianceEvent(long playerId, int conditionId, long param, long value);
 
     /**
      * 查询玩家所在联盟 id (0=无盟): 供游戏节点做联盟相关展示/校验。

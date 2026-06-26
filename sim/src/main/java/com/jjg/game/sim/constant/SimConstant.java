@@ -132,6 +132,17 @@ public interface SimConstant {
         //获取玩家信息
         int REQ_SIM_PLAYER_INFO = BASE_MSG_PREFIX | 0x3C;
         int RES_SIM_PLAYER_INFO = BASE_MSG_PREFIX | 0x3D;
+
+        //任务列表 (主线+成就)
+        int REQ_SIM_TASK_LIST = BASE_MSG_PREFIX | 0x3E;
+        int RES_SIM_TASK_LIST = BASE_MSG_PREFIX | 0x3F;
+
+        //领取任务奖励
+        int REQ_SIM_TASK_REWARD = BASE_MSG_PREFIX | 0x40;
+        int RES_SIM_TASK_REWARD = BASE_MSG_PREFIX | 0x41;
+
+        //通知任务更新 (进度/状态变更)
+        int NOTIFY_SIM_TASK_UPDATE = BASE_MSG_PREFIX | 0x42;
     }
 
     interface Common {

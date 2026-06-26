@@ -4,9 +4,7 @@ import com.jjg.game.alliance.constant.AllianceConst;
 import org.springframework.data.annotation.Id;
 import org.springframework.data.mongodb.core.mapping.Document;
 
-import java.util.ArrayList;
 import java.util.HashMap;
-import java.util.List;
 import java.util.Map;
 
 /**
@@ -57,8 +55,8 @@ public class AllianceData {
     //入盟申请 pid -> 条目 (有界, 超期惰性清理)
     private Map<Long, AllianceApplication> applications = new HashMap<>();
 
-    //任务池 (TASK_POOL_SIZE 条, 整点惰性补齐; 接取即原子移除)
-    private List<AllianceTaskSlot> tasks = new ArrayList<>();
+    //任务池 cfgif ->task
+    private Map<Integer, AllianceTaskSlot> tasks = new HashMap<>();
     //任务池最近补齐的整点 (yyyyMMddHH), 条件更新该值保证多节点只补一次
     private long taskRefreshHour;
 
@@ -169,12 +167,12 @@ public class AllianceData {
         this.applications = applications == null ? new HashMap<>() : applications;
     }
 
-    public List<AllianceTaskSlot> getTasks() {
+    public Map<Integer, AllianceTaskSlot> getTasks() {
         return tasks;
     }
 
-    public void setTasks(List<AllianceTaskSlot> tasks) {
-        this.tasks = tasks == null ? new ArrayList<>() : tasks;
+    public void setTasks(Map<Integer, AllianceTaskSlot> tasks) {
+        this.tasks = tasks;
     }
 
     public long getTaskRefreshHour() {
@@ -225,16 +223,11 @@ public class AllianceData {
     /**
      * 按 uid 取任务池条目, 无则 null
      */
-    public AllianceTaskSlot findTask(long taskUid) {
+    public AllianceTaskSlot findTask(int taskCfgId) {
         if (tasks == null) {
             return null;
         }
-        for (AllianceTaskSlot slot : tasks) {
-            if (slot.getUid() == taskUid) {
-                return slot;
-            }
-        }
-        return null;
+        return this.tasks.get(taskCfgId);
     }
 
     public int getMemberCount() {

@@ -10,8 +10,6 @@ package com.jjg.game.alliance.data;
  * @date 2026/6/11
  */
 public class PlayerTakenTask {
-    //任务实例 uid
-    private long uid;
     //任务配置 id
     private int cfgId;
     //接取时所在联盟 (完成时声誉入账给该联盟)
@@ -24,20 +22,11 @@ public class PlayerTakenTask {
     public PlayerTakenTask() {
     }
 
-    public PlayerTakenTask(long uid, int cfgId, long allianceId, long acceptTime, long expireTime) {
-        this.uid = uid;
+    public PlayerTakenTask(int cfgId, long allianceId, long acceptTime, long expireTime) {
         this.cfgId = cfgId;
         this.allianceId = allianceId;
         this.acceptTime = acceptTime;
         this.expireTime = expireTime;
-    }
-
-    public long getUid() {
-        return uid;
-    }
-
-    public void setUid(long uid) {
-        this.uid = uid;
     }
 
     public int getCfgId() {

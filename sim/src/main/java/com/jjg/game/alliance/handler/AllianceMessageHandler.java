@@ -205,7 +205,7 @@ public class AllianceMessageHandler implements GmListener {
      */
     @Command(AllianceConst.MsgBean.REQ_ACCEPT_TASK)
     public void reqAcceptTask(PlayerController pc, ReqAllianceAcceptTask req) {
-        pc.send(taskService.acceptTask(pc.playerId(), req.taskUid));
+        pc.send(taskService.acceptTask(pc.playerId(), req.taskCfgId));
     }
 
     /**
@@ -360,12 +360,8 @@ public class AllianceMessageHandler implements GmListener {
                 reqDonate(pc, req);
             } else if ("allianceTasks".equalsIgnoreCase(cmd)) {
                 reqTaskList(pc, null);
-            } else if ("allianceAccept".equalsIgnoreCase(cmd)) {
-                ReqAllianceAcceptTask req = new ReqAllianceAcceptTask();
-                req.taskUid = Long.parseLong(gmOrders[1]);
-                reqAcceptTask(pc, req);
             } else if ("allianceEvent".equalsIgnoreCase(cmd)) {
-                //模拟事件上报: allianceEvent <goalType> <param> <value>
+                //模拟事件上报: allianceEvent <conditionId> <param> <value>
                 eventService.onEvent(pc.playerId(), Integer.parseInt(gmOrders[1]),
                         Long.parseLong(gmOrders[2]), Long.parseLong(gmOrders[3]));
             } else if ("allianceBattleTick".equalsIgnoreCase(cmd)) {
