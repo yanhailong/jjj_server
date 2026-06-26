@@ -17,8 +17,10 @@ import com.jjg.game.social.constant.SocialConst;
 public class NotifyGiftReceived extends AbstractResponse {
     @ProtoDesc("赠送者id")
     public long senderId;
-    @ProtoDesc("体力数量")
-    public int amount;
+    @ProtoDesc("赠送的道具id")
+    public int itemId;
+    @ProtoDesc("本次赠送的道具数量")
+    public long count;
 
     public NotifyGiftReceived(int code) {
         super(code);

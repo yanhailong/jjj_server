@@ -85,7 +85,7 @@ public class AlliancePbConverter {
             info.rewards = ItemUtils.buildItemInfo(taskCfg.getGetItem());
             info.langId = taskCfg.getLanguage();
             info.quality = taskCfg.getQuality();
-            info.abandon = taskCfg.getAllowAbandon() == 1;
+            info.abandon = taskCfg.getAllowAbandon();
             info.conditionId = taskCfg.getTaskConditionId().get(0).intValue();
             info.duration = taskCfg.getDuration();
         }
@@ -112,7 +112,7 @@ public class AlliancePbConverter {
             info.rewards = ItemUtils.buildItemInfo(taskCfg.getGetItem());
             info.langId = taskCfg.getLanguage();
             info.quality = taskCfg.getQuality();
-            info.abandon = taskCfg.getAllowAbandon() == 1;
+            info.abandon = taskCfg.getAllowAbandon();
             info.conditionId = taskCfg.getTaskConditionId().get(0).intValue();
             info.duration = taskCfg.getDuration();
 

@@ -284,7 +284,7 @@ public class AllianceTaskService {
             log.warn("放弃联盟任务失败,任务配置缺失 playerId={},cfgId={}", playerId, taken.getCfgId());
             return res;
         }
-        if (cfg.getAllowAbandon() <= 0) {
+        if (!cfg.getAllowAbandon()) {
             res.code = Code.FORBID;
             log.warn("放弃联盟任务失败,配置不允许放弃 playerId={},cfgId={}", playerId, taken.getCfgId());
             return res;

@@ -5,6 +5,7 @@ import com.jjg.game.core.listener.ConfigExcelChangeListener;
 import com.jjg.game.sampledata.GameDataManager;
 import com.jjg.game.sampledata.bean.*;
 import com.jjg.game.sim.constant.SimConstant;
+import com.jjg.game.social.data.SendGiftConfig;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Component;
@@ -62,6 +63,8 @@ public class SimConfigCacheService implements ConfigExcelChangeListener {
     //广告收益倍数随机
     private WeightRandom<String> adMultiplierRandom = null;
 
+    //好友赠送礼物配置
+    private SendGiftConfig sendGiftConfig;
 
     public void testInit() {
         loadCasinoStatsSheetCfg();
@@ -284,10 +287,11 @@ public class SimConfigCacheService implements ConfigExcelChangeListener {
      * 加载全局配置
      */
     private void loadGlobalConfig() {
-        GlobalConfigCfg cfg = GameDataManager.getGlobalConfigCfg(SimConstant.Common.GLOBAL_AD_MULTIPLIER_ID);
-        if (cfg != null && cfg.getValue() != null && !cfg.getValue().isEmpty()) {
+        //广告收益倍数配置
+        GlobalConfigCfg adCfg = GameDataManager.getGlobalConfigCfg(SimConstant.Common.GLOBAL_AD_MULTIPLIER_ID);
+        if (adCfg != null && adCfg.getValue() != null && !adCfg.getValue().isEmpty()) {
             WeightRandom<String> random = WeightRandom.create();
-            for (String seg : cfg.getValue().split("\\|")) {
+            for (String seg : adCfg.getValue().split("\\|")) {
                 String[] kv = seg.split("_");
                 if (kv.length < 2) {
                     continue;
@@ -304,6 +308,15 @@ public class SimConfigCacheService implements ConfigExcelChangeListener {
             }
 
             this.adMultiplierRandom = random;
+        }
+
+        //好友聊天：每日赠送礼物详情
+        GlobalConfigCfg giftCfg = GameDataManager.getGlobalConfigCfg(SimConstant.Common.SOCIAL_SEND_GIFT_ID);
+        if (giftCfg != null && giftCfg.getValue() != null && !giftCfg.getValue().isEmpty()) {
+            String[] arr = giftCfg.getValue().split("_");
+            if(arr.length == 4){
+                this.sendGiftConfig = new SendGiftConfig(Integer.parseInt(arr[0]), Long.parseLong(arr[1]), Integer.parseInt(arr[2]), Integer.parseInt(arr[3]));
+            }
         }
     }
 
@@ -517,5 +530,9 @@ public class SimConfigCacheService implements ConfigExcelChangeListener {
             return null;
         }
         return this.visitorBondsMap.get(guestId);
+    }
+
+    public SendGiftConfig getSendGiftConfig() {
+        return sendGiftConfig;
     }
 }

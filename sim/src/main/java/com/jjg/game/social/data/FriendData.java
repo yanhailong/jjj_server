@@ -26,14 +26,18 @@ public class FriendData {
     private Map<Long, Long> blacklist = new HashMap<>();
     //收到的好友申请 requesterId -> 申请时间(ms)
     private Map<Long, Long> pendingRequests = new HashMap<>();
-    //待领取的赠礼 senderId -> 体力数量
-    private Map<Long, Integer> pendingGifts = new HashMap<>();
+    //待领取的赠礼 senderId -> 累计道具数量
+    private Map<Long, Long> pendingGifts = new HashMap<>();
     //私聊会话清除标记 对端id -> 清除时间(ms); 单向删除会话用, 该时间点之前的消息对本人不再展示(不影响对方)
     private Map<Long, Long> conversationClear = new HashMap<>();
     //每日申请计数重置日 (yyyyMMdd)
     private int dailyRequestDay;
     //当日已发送申请数
     private int dailyRequestCount;
+    //每日赠礼人数计数重置日 (yyyyMMdd)
+    private int dailyGiftDay;
+    //当日已赠送的不同好友人数 (用于每日赠送人数上限)
+    private int dailyGiftPersonCount;
 
     public long getPlayerId() {
         return playerId;
@@ -67,11 +71,11 @@ public class FriendData {
         this.pendingRequests = pendingRequests == null ? new HashMap<>() : pendingRequests;
     }
 
-    public Map<Long, Integer> getPendingGifts() {
+    public Map<Long, Long> getPendingGifts() {
         return pendingGifts;
     }
 
-    public void setPendingGifts(Map<Long, Integer> pendingGifts) {
+    public void setPendingGifts(Map<Long, Long> pendingGifts) {
         this.pendingGifts = pendingGifts == null ? new HashMap<>() : pendingGifts;
     }
 
@@ -110,6 +114,22 @@ public class FriendData {
         this.dailyRequestCount = dailyRequestCount;
     }
 
+    public int getDailyGiftDay() {
+        return dailyGiftDay;
+    }
+
+    public void setDailyGiftDay(int dailyGiftDay) {
+        this.dailyGiftDay = dailyGiftDay;
+    }
+
+    public int getDailyGiftPersonCount() {
+        return dailyGiftPersonCount;
+    }
+
+    public void setDailyGiftPersonCount(int dailyGiftPersonCount) {
+        this.dailyGiftPersonCount = dailyGiftPersonCount;
+    }
+
     // ---------------------------------------------------------------------
     // 便捷判断
     // ---------------------------------------------------------------------
@@ -135,5 +155,12 @@ public class FriendData {
      */
     public int currentDailyRequestCount(int today) {
         return this.dailyRequestDay == today ? this.dailyRequestCount : 0;
+    }
+
+    /**
+     * 取当日已赠送的不同好友人数 (跨天自动归零)。
+     */
+    public int currentDailyGiftPersonCount(int today) {
+        return this.dailyGiftDay == today ? this.dailyGiftPersonCount : 0;
     }
 }

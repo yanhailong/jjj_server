@@ -164,8 +164,6 @@ public interface SocialConst {
         int REQUEST_VALID_MILLS = 7 * TimeHelper.ONE_DAY_OF_MILLIS;
         //黑名单数量上限
         int BLACKLIST_LIMIT = 100;
-        //每次赠送礼物的体力数量
-        int GIFT_STAMINA_AMOUNT = 10;
     }
 
     /**

@@ -104,7 +104,7 @@ public class AllianceMessageHandler implements GmListener {
      */
     @Command(AllianceConst.MsgBean.REQ_SEARCH_ALLIANCE)
     public void reqSearchAlliance(PlayerController pc, ReqSearchAlliance req) {
-        sendAsync(pc, () -> allianceService.search(pc.playerId(),req.allianceId));
+        sendAsync(pc, () -> allianceService.search(pc.playerId(), req.allianceId));
     }
 
     /**
@@ -273,7 +273,7 @@ public class AllianceMessageHandler implements GmListener {
      */
     @Command(AllianceConst.MsgBean.REQ_SHOP_BUY)
     public void reqShopBuy(PlayerController pc, ReqAllianceShopBuy req) {
-        pc.send(shopService.buy(pc.playerId(), req.goodsId));
+        pc.send(shopService.buy(pc.playerId(), req.goodsId, req.count));
     }
 
     /**

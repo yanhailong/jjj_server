@@ -1,17 +1,17 @@
 package com.jjg.game.social.service;
 
+import com.jjg.game.core.constant.AddType;
 import com.jjg.game.core.constant.Code;
 import com.jjg.game.core.data.Player;
 import com.jjg.game.core.data.PlayerSessionInfo;
 import com.jjg.game.core.service.CorePlayerService;
-import com.jjg.game.sim.dao.SimPlayerGameDao;
-import com.jjg.game.sim.data.SimBaseData;
-import com.jjg.game.sim.data.SimPlayerContext;
-import com.jjg.game.sim.manager.SimManager;
+import com.jjg.game.sim.service.SimConfigCacheService;
+import com.jjg.game.sim.service.SimPackService;
 import com.jjg.game.social.constant.SocialConst;
 import com.jjg.game.social.dao.FriendDao;
 import com.jjg.game.social.data.FriendData;
 import com.jjg.game.social.data.FriendEntry;
+import com.jjg.game.social.data.SendGiftConfig;
 import com.jjg.game.social.pb.SocialPbConverter;
 import com.jjg.game.social.pb.res.*;
 import com.jjg.game.social.pb.struct.FriendInfo;
@@ -45,9 +45,9 @@ public class FriendService {
     @Autowired
     private SocialRelationCache relationCache;
     @Autowired
-    private SimManager simManager;
+    private SimPackService simPackService;
     @Autowired
-    private SimPlayerGameDao simPlayerGameDao;
+    private SimConfigCacheService simConfigCacheService;
 
     // ----------------------- 列表 -----------------------
 
@@ -70,6 +70,8 @@ public class FriendService {
             int onlineCount = 0;
             if (friends != null && !friends.isEmpty()) {
                 int today = today();
+                SendGiftConfig giftCfg = simConfigCacheService.getSendGiftConfig();
+                int perPersonLimit = giftCfg == null ? 1 : giftCfg.sendCountPerPersonLimit();
                 Map<Long, Player> players = corePlayerService.multiGetPlayerMap(friends.keySet());
                 //一次 HMGET 批量取在线会话信息, 替代逐好友 getInfo/online 的 2N 次 Redis 往返
                 Map<Long, PlayerSessionInfo> sessionInfos = statusService.infosOf(friends.keySet());
@@ -79,7 +81,9 @@ public class FriendService {
                     PlayerSessionInfo info = sessionInfos.get(fid);
                     int status = statusService.statusOf(info);
                     long offlineSeconds = statusService.offlineSeconds(info, p);
-                    boolean canGift = en.getValue() == null || en.getValue().getLastGiftSendDay() != today;
+                    //今日对该好友的赠送次数未达每人上限即可继续赠送
+                    int sentToday = en.getValue() == null ? 0 : en.getValue().currentGiftSendCount(today);
+                    boolean canGift = sentToday < perPersonLimit;
                     boolean hasPendingGift = data.getPendingGifts() != null && data.getPendingGifts().containsKey(fid);
                     if (status != SocialStatusService.OFFLINE) {
                         onlineCount++;
@@ -518,6 +522,12 @@ public class FriendService {
     public ResSendGift sendGift(long selfId, List<Long> ids, boolean all) {
         ResSendGift res = new ResSendGift(Code.SUCCESS);
         try {
+            SendGiftConfig cfg = simConfigCacheService.getSendGiftConfig();
+            if (cfg == null) {
+                res.code = Code.SAMPLE_ERROR;
+                log.warn("赠送礼物失败, 赠礼配置未加载 selfId={}", selfId);
+                return res;
+            }
             FriendData selfData = friendDao.getOrEmpty(selfId);
             res.sentIds = new ArrayList<>();
 
@@ -526,10 +536,9 @@ public class FriendService {
                 return res;
             }
             int today = today();
-            int amount = SocialConst.Cfg.GIFT_STAMINA_AMOUNT;
 
-            //目标 = 全部好友 或 指定好友(必须是好友); 排除今日已赠送
-            Set<Long> candidates = new HashSet<>();
+            //候选 = 全部好友 或 指定好友(必须是好友); LinkedHashSet 保持顺序便于按配额截断
+            Set<Long> candidates = new LinkedHashSet<>();
             if (all) {
                 candidates.addAll(friends.keySet());
             } else if (ids != null) {
@@ -539,24 +548,44 @@ public class FriendService {
                     }
                 }
             }
-            List<Long> targets = new ArrayList<>();
-            for (Long fid : candidates) {
-                FriendEntry entry = friends.get(fid);
-                if (entry != null && entry.getLastGiftSendDay() == today) {
-                    continue;
-                }
-                targets.add(fid);
-            }
-            if (targets.isEmpty()) {
+            if (candidates.isEmpty()) {
                 return res;
             }
 
-            friendDao.bulkSendGift(selfId, targets, amount, today);
+            int perPersonLimit = cfg.sendCountPerPersonLimit();
+            int personsToday = selfData.currentDailyGiftPersonCount(today);
+            //今日剩余可赠送的不同好友数 (新好友才消耗该配额, 给老好友续送不占)
+            int personQuota = cfg.sendPersonLimit() - personsToday;
+
+            //逐个判定: 跳过今日次数已满者; 新好友受今日人数配额约束; 记录赠送后该好友的当日累计次数
+            Map<Long, Integer> targetNewCounts = new LinkedHashMap<>();
+            int newPersons = 0;
+            for (Long fid : candidates) {
+                FriendEntry entry = friends.get(fid);
+                int sentToday = entry == null ? 0 : entry.currentGiftSendCount(today);
+                if (sentToday >= perPersonLimit) {
+                    continue;
+                }
+                if (sentToday == 0) {
+                    if (newPersons >= personQuota) {
+                        continue;
+                    }
+                    newPersons++;
+                }
+                targetNewCounts.put(fid, sentToday + 1);
+            }
+            if (targetNewCounts.isEmpty()) {
+                return res;
+            }
+
+            friendDao.bulkSendGift(selfId, targetNewCounts, cfg.count(), today, personsToday + newPersons);
 
             //通知在线好友(一键收送红点)
+            List<Long> targets = new ArrayList<>(targetNewCounts.keySet());
             NotifyGiftReceived notify = new NotifyGiftReceived(Code.SUCCESS);
             notify.senderId = selfId;
-            notify.amount = amount;
+            notify.itemId = cfg.itemId();
+            notify.count = cfg.count();
             sender.sendTo(targets, notify);
             res.sentIds = targets;
         } catch (Exception e) {
@@ -575,61 +604,39 @@ public class FriendService {
     public ResCollectGift collectGift(long selfId) {
         ResCollectGift res = new ResCollectGift(Code.SUCCESS);
         try {
-            FriendData selfData = friendDao.getOrEmpty(selfId);
-            Map<Long, Integer> pendingGifts = selfData.getPendingGifts();
-
-            if (pendingGifts == null || pendingGifts.isEmpty()) {
-                res.gainStamina = 0;
-                res.totalStamina = currentStamina(selfId);
+            SendGiftConfig cfg = simConfigCacheService.getSendGiftConfig();
+            if (cfg == null) {
+                res.code = Code.SAMPLE_ERROR;
+                log.warn("领取赠礼失败, 赠礼配置未加载 selfId={}", selfId);
                 return res;
             }
-            int total = 0;
-            for (Integer v : pendingGifts.values()) {
-                if (v != null) {
-                    total += v;
+            FriendData selfData = friendDao.getOrEmpty(selfId);
+            Map<Long, Long> pendingGifts = selfData.getPendingGifts();
+
+            long total = 0;
+            if (pendingGifts != null) {
+                for (Long v : pendingGifts.values()) {
+                    if (v != null) {
+                        total += v;
+                    }
                 }
             }
-            int newStamina = addStamina(selfId, total);
+            if (total <= 0) {
+                res.gainCount = 0;
+                return res;
+            }
+            //发放道具 (领取者即调用方本人, addItemsByPlayerId 自动按在线/离线入账)
+            simPackService.addItemsByPlayerId(selfId, Map.of(cfg.itemId(), total),
+                    AddType.FRIEND_GIFT_COLLECT, "好友赠礼领取", true);
             friendDao.clearPendingGifts(selfId);
 
-            res.gainStamina = total;
-            res.totalStamina = newStamina;
+            res.itemId = cfg.itemId();
+            res.gainCount = total;
         } catch (Exception e) {
             log.error("", e);
             res.code = Code.EXCEPTION;
         }
         return res;
-    }
-
-    /**
-     * 给玩家加体力: 在线优先改 sim 上下文(由自动落库持久化), 否则直接落库。
-     *
-     * @return 增加后的体力总量
-     */
-    private int addStamina(long playerId, int amount) {
-        SimPlayerContext ctx = simManager.getContext(playerId);
-        if (ctx != null && ctx.getSimBaseData() != null) {
-            SimBaseData base = ctx.getSimBaseData();
-            base.setStamina(base.getStamina() + amount);
-            return base.getStamina();
-        }
-        SimBaseData base = simPlayerGameDao.findById(playerId).orElse(null);
-        if (base == null) {
-            base = new SimBaseData();
-            base.setPlayerId(playerId);
-        }
-        base.setStamina(base.getStamina() + amount);
-        simPlayerGameDao.save(base);
-        return base.getStamina();
-    }
-
-    private int currentStamina(long playerId) {
-        SimPlayerContext ctx = simManager.getContext(playerId);
-        if (ctx != null && ctx.getSimBaseData() != null) {
-            return ctx.getSimBaseData().getStamina();
-        }
-        SimBaseData base = simPlayerGameDao.findById(playerId).orElse(null);
-        return base == null ? 0 : base.getStamina();
     }
 
     private int today() {

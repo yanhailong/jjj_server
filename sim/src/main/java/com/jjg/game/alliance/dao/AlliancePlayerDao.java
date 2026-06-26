@@ -272,8 +272,8 @@ public class AlliancePlayerDao extends MongoBaseDao<AlliancePlayerData, Long> {
         mongoTemplate.upsert(byId(playerId), update, AlliancePlayerData.class);
     }
 
-    public boolean tryPurchase(long playerId, int day, int goodsId, int dailyLimit, long price) {
-        if (dailyLimit <= 0) {
+    public boolean tryPurchase(long playerId, int day, int goodsId, int dailyLimit, long price, int count) {
+        if (count <= 0 || count > dailyLimit) {
             return false;
         }
         ensurePlayerDocument(playerId);
@@ -286,18 +286,20 @@ public class AlliancePlayerDao extends MongoBaseDao<AlliancePlayerData, Long> {
                 new Update().set("shopDay", day).set("shopPurchases", new HashMap<>()),
                 AlliancePlayerData.class);
 
+        //已购数量 + 本次 count 不得超限: 即已购 <= dailyLimit - count (字段缺省视为 0, 由 count<=dailyLimit 保证)
         String countField = "shopPurchases." + goodsId;
+        long totalCost = price * count;
         Criteria limitCriteria = new Criteria().orOperator(
                 Criteria.where(countField).exists(false),
-                Criteria.where(countField).lt(dailyLimit));
+                Criteria.where(countField).lte(dailyLimit - count));
         Query query = new Query(new Criteria().andOperator(
                 Criteria.where("_id").is(playerId),
                 Criteria.where("shopDay").is(day),
-                Criteria.where("contribution").gte(price),
+                Criteria.where("contribution").gte(totalCost),
                 limitCriteria));
         Update update = new Update()
-                .inc("contribution", -price)
-                .inc(countField, 1);
+                .inc("contribution", -totalCost)
+                .inc(countField, count);
         return mongoTemplate.updateFirst(query, update, AlliancePlayerData.class).getModifiedCount() > 0;
     }
 

@@ -17,4 +17,6 @@ import com.jjg.game.common.proto.ProtobufMessage;
 public class ReqAllianceShopBuy extends AbstractMessage {
     @ProtoDesc("商品id")
     public int goodsId;
+    @ProtoDesc("购买数量")
+    public int count;
 }

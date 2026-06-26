@@ -79,9 +79,14 @@ public class AllianceShopService {
     /**
      * 购买: 等级解锁 -> 每日限购 -> 条件扣贡献值 -> 发货。
      */
-    public ResAllianceShopBuy buy(long playerId, int goodsId) {
+    public ResAllianceShopBuy buy(long playerId, int goodsId, int count) {
         ResAllianceShopBuy res = new ResAllianceShopBuy(Code.SUCCESS);
         res.goodsId = goodsId;
+        if (count <= 0) {
+            res.code = Code.PARAM_ERROR;
+            log.warn("联盟商店兑换失败,购买数量非法 playerId={},goodsId={},count={}", playerId, goodsId, count);
+            return res;
+        }
         long allianceId = cacheService.getAllianceId(playerId);
         AllianceData alliance = cacheService.getAlliance(allianceId);
         if (alliance == null) {
@@ -103,32 +108,33 @@ public class AllianceShopService {
         AlliancePlayerData playerData = alliancePlayerDao.getOrEmpty(playerId);
         int today = TimeHelper.getDayNumerical();
         int bought = playerData.shopPurchasedOf(today, goodsId);
-        if (bought >= cfg.dailyLimit()) {
+        if (bought + count > cfg.dailyLimit()) {
             res.code = Code.FORBID;
-            log.warn("联盟商店兑换失败,今日限购已达上限 playerId={},goodsId={},bought={},limit={}", playerId, goodsId, bought, cfg.dailyLimit());
+            log.warn("联盟商店兑换失败,超出今日限购 playerId={},goodsId={},bought={},count={},limit={}", playerId, goodsId, bought, count, cfg.dailyLimit());
             return res;
         }
-        //条件扣减贡献值 (余额不足返回 false)
-        if (!alliancePlayerDao.tryPurchase(playerId, today, goodsId, cfg.dailyLimit(), cfg.price())) {
+        //条件扣减贡献值 (余额不足/超限返回 false)
+        if (!alliancePlayerDao.tryPurchase(playerId, today, goodsId, cfg.dailyLimit(), cfg.price(), count)) {
             AlliancePlayerData latest = alliancePlayerDao.getOrEmpty(playerId);
-            if (latest.shopPurchasedOf(today, goodsId) >= cfg.dailyLimit()) {
+            if (latest.shopPurchasedOf(today, goodsId) + count > cfg.dailyLimit()) {
                 res.code = Code.FORBID;
-                log.warn("联盟商店兑换失败,今日限购已达上限(并发) playerId={},goodsId={},limit={}", playerId, goodsId, cfg.dailyLimit());
+                log.warn("联盟商店兑换失败,超出今日限购(并发) playerId={},goodsId={},count={},limit={}", playerId, goodsId, count, cfg.dailyLimit());
                 return res;
             }
             res.code = Code.NOT_ENOUGH;
-            log.warn("联盟商店兑换失败,贡献值不足 playerId={},goodsId={},price={},myContribution={}", playerId, goodsId, cfg.price(), latest.getContribution());
+            log.warn("联盟商店兑换失败,贡献值不足 playerId={},goodsId={},price={},count={},myContribution={}", playerId, goodsId, cfg.price(), count, latest.getContribution());
             return res;
         }
         //限购计数 (跨天首次购买重置 map)
-        //发货
-        playerPackService.addItems(playerId, Map.of(cfg.itemId(), cfg.count()),
+        //发货 (单份道具数 * 购买份数)
+        long totalItems = cfg.count() * count;
+        playerPackService.addItems(playerId, Map.of(cfg.itemId(), totalItems),
                 AddType.ALLIANCE_SHOP_BUY, "联盟商店兑换", true);
 
         res.itemId = cfg.itemId();
-        res.count = cfg.count();
+        res.count = totalItems;
         res.myContribution = Math.max(0, alliancePlayerDao.getOrEmpty(playerId).getContribution());
-        log.info("联盟商店兑换 playerId={},goodsId={},price={}", playerId, goodsId, cfg.price());
+        log.info("联盟商店兑换 playerId={},goodsId={},count={},price={}", playerId, goodsId, count, cfg.price());
         return res;
     }
 }

@@ -337,28 +337,34 @@ public class FriendDao extends MongoBaseDao<FriendData, Long> {
     }
 
     /**
-     * 一键收送: 批量把"我"赠送的体力写入每个好友的待领, 并标记我对其的赠送日期。
+     * 一键收送: 批量把"我"赠送的道具数量累加到每个好友的待领, 并刷新我对其的当日赠送次数与当日赠送人数。
+     * <p>
+     * 受赠方为跨玩家写, 用 {@code $inc} 累加(多人/多次赠送并发安全, 领取前不丢失);
+     * 赠送方为本人文档, 写路径在玩家绑定 worker 上串行执行, 故当日次数/人数用调用方算好的绝对值 {@code $set}。
      *
-     * @param senderId 赠送者
-     * @param targets  好友id列表
-     * @param amount   每份体力数量
-     * @param today    今日 yyyyMMdd
+     * @param senderId        赠送者
+     * @param targetNewCounts 好友id -> 本次赠送后该好友的当日累计赠送次数(绝对值)
+     * @param giftCount       每份赠送的道具数量 (累加进受赠方待领)
+     * @param today           今日 yyyyMMdd
+     * @param personCount     赠送方今日已赠送的不同好友人数(绝对值, 含本批新好友)
      */
-    public void bulkSendGift(long senderId, Collection<Long> targets, int amount, int today) {
-        if (targets == null || targets.isEmpty()) {
+    public void bulkSendGift(long senderId, Map<Long, Integer> targetNewCounts, long giftCount, int today, int personCount) {
+        if (targetNewCounts == null || targetNewCounts.isEmpty()) {
             return;
         }
         BulkOperations bulk = mongoTemplate.bulkOps(BulkOperations.BulkMode.UNORDERED, FriendData.class);
-        List<Long> friendIds = new ArrayList<>(targets);
-        //给每个好友写入待领赠礼
-        for (Long targetId : friendIds) {
-            bulk.upsert(byId(targetId), new Update().set("pendingGifts." + senderId, amount));
+        //给每个好友累加待领赠礼
+        for (Long targetId : targetNewCounts.keySet()) {
+            bulk.upsert(byId(targetId), new Update().inc("pendingGifts." + senderId, giftCount));
         }
-        //更新自己对这些好友的赠送日期
+        //刷新自己对这些好友的当日赠送次数 + 当日赠送人数
         Update selfUpdate = new Update();
-        for (Long targetId : friendIds) {
-            selfUpdate.set("friends." + targetId + ".lastGiftSendDay", today);
+        for (Map.Entry<Long, Integer> en : targetNewCounts.entrySet()) {
+            selfUpdate.set("friends." + en.getKey() + ".lastGiftSendDay", today);
+            selfUpdate.set("friends." + en.getKey() + ".giftSendCount", en.getValue());
         }
+        selfUpdate.set("dailyGiftDay", today);
+        selfUpdate.set("dailyGiftPersonCount", personCount);
         bulk.updateOne(byId(senderId), selfUpdate);
         bulk.execute();
     }

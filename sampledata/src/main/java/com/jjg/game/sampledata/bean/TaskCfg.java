@@ -22,11 +22,13 @@ public class TaskCfg extends BaseCfgBean {
   /** 放弃的冷却时间（秒） */
   protected int AbandonCooldown;
   /** 是否允许放弃 */
-  protected int AllowAbandon;
+  protected boolean AllowAbandon;
   /** 持续时间（分） */
   protected int Duration;
   /** 解锁功能ID */
   protected int FunctionId;
+  /** 任务人数上下限 */
+  protected List<Integer> MinandMax;
   /** 任务品质 */
   protected int Quality;
   /** 道具奖励 */
@@ -56,7 +58,7 @@ public class TaskCfg extends BaseCfgBean {
   }
 
   /** 返回是否允许放弃 */
-  public int getAllowAbandon() {
+  public boolean getAllowAbandon() {
     return AllowAbandon;
   }
 
@@ -68,6 +70,11 @@ public class TaskCfg extends BaseCfgBean {
   /** 返回解锁功能ID */
   public int getFunctionId() {
     return FunctionId;
+  }
+
+  /** 返回任务人数上下限 */
+  public List<Integer> getMinandMax() {
+    return MinandMax;
   }
 
   /** 返回任务品质 */

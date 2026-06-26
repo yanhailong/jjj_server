@@ -305,7 +305,10 @@ public enum AddType {
     //联盟对决奖励
     ALLIANCE_BATTLE_REWARD(2006),
     //联盟排行榜奖励
-    ALLIANCE_RANK_REWARD(2007);
+    ALLIANCE_RANK_REWARD(2007),
+
+    //好友赠礼领取
+    FRIEND_GIFT_COLLECT(2101);
     private int value;
 
     AddType(int value) {

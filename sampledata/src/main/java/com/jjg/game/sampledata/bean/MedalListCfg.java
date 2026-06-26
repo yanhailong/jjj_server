@@ -19,6 +19,8 @@ public class MedalListCfg extends BaseCfgBean {
   /** 配置表工作薄名 */
   public static final String SHEET_NAME = "MedalList";
 
+  /** 是否开启 */
+  protected boolean IsOpen;
   /** 勋章名称 */
   protected int LangId;
   /** 勋章图标 */
@@ -29,6 +31,11 @@ public class MedalListCfg extends BaseCfgBean {
   protected int NeedItemId;
   /** 勋章描述 */
   protected int StrDes;
+
+  /** 返回是否开启 */
+  public boolean getIsOpen() {
+    return IsOpen;
+  }
 
   /** 返回勋章名称 */
   public int getLangId() {
