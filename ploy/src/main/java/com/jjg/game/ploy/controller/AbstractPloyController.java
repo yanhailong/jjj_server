@@ -24,6 +24,9 @@ import com.jjg.game.ploy.data.PlayerPloyGameData;
 import com.jjg.game.ploy.data.PloyBetDivideInfo;
 import com.jjg.game.ploy.logger.PloyLogger;
 import com.jjg.game.ploy.pb.ReqPloyRecord;
+import com.jjg.game.room.datatrack.DataTrackNameConstant;
+import com.jjg.game.room.datatrack.EDataTrackLogType;
+import com.jjg.game.room.datatrack.RoomDataTrackLogger;
 import com.jjg.game.sampledata.GameDataManager;
 import com.jjg.game.sampledata.bean.PloygameRoomCfg;
 import com.jjg.game.sampledata.bean.PoolResultLibCfg;
@@ -61,6 +64,8 @@ public abstract class AbstractPloyController<T extends PlayerPloyGameData> imple
     protected TaskManager taskManager;
     @Autowired
     protected PloyLogger logger;
+    @Autowired
+    protected RoomDataTrackLogger dataTrackLogger;
 
     protected AtomicBoolean open = new AtomicBoolean(false);
 
@@ -326,6 +331,65 @@ public abstract class AbstractPloyController<T extends PlayerPloyGameData> imple
         result.data = new Pair<>(addResult.data, afterPool);
         log.info("从奖池扣除，并且给玩家加钱成功 playerId = {},poolChangeValue = {},addToPlayerValue = {},addType = {}", playerGameData.playerId(), poolChangeValue, addToPlayerValue, addType);
         return result;
+    }
+
+    protected long calcRewardAfterTax(long value, int tax) {
+        if (value <= 0) {
+            return 0;
+        }
+        long addToPlayer = value;
+        if (tax > 0) {
+            int addRate = GameConstant.TEN_THOUSAND - tax;
+            if (addRate > 0) {
+                addToPlayer = BigDecimal.valueOf(addRate).multiply(BigDecimal.valueOf(value)).setScale(0, RoundingMode.FLOOR)
+                        .divide(GameConstant.TEN_THOUSAND_BD, RoundingMode.DOWN).longValue();
+            }
+        }
+        return addToPlayer;
+    }
+
+    protected void sendSettlementDataTrack(T playerGameData, long totalBet, long totalWin, Object settlementData) {
+        try {
+            if (playerGameData == null || playerGameData.getPlayerController() == null || playerGameData.getPlayerController().getPlayer() == null) {
+                return;
+            }
+            Player player = playerGameData.getPlayerController().getPlayer();
+
+            HashMap<String, Object> playerInfo = new HashMap<>();
+            playerInfo.put("playerId", player.getId());
+            playerInfo.put("playerName", player.getNickName());
+
+            HashMap<String, Object> playerLogData = new HashMap<>();
+            playerLogData.put(DataTrackNameConstant.TOTAL_BET, totalBet);
+            playerLogData.put(DataTrackNameConstant.TOTAL_WIN, totalWin);
+            playerLogData.put(DataTrackNameConstant.INCOME, totalWin - totalBet);
+            playerLogData.put(DataTrackNameConstant.EFFECTIVE_BET, totalBet);
+
+            HashMap<String, Object> playerData = new HashMap<>();
+            playerData.put("playerInfo", playerInfo);
+            playerData.put("data", playerLogData);
+
+            HashMap<String, Object> playerDataList = new HashMap<>();
+            playerDataList.put(player.getId() + "", playerData);
+
+            HashMap<String, Object> gameData = new HashMap<>();
+            if (settlementData != null) {
+                gameData.put(DataTrackNameConstant.SETTLEMENT_DATA, settlementData);
+            }
+
+            HashMap<String, Object> trackData = new HashMap<>();
+            trackData.put("playerData", playerDataList);
+            trackData.put("gameData", gameData);
+            trackData.put("gameId", playerGameData.getGameType());
+            trackData.put("gameCfgId", playerGameData.getRoomCfgId());
+            trackData.put("roomId", player.getRoomId());
+            trackData.put("orderId", dataTrackLogger.getSnowflake().nextId());
+            trackData.put("sendTime", System.currentTimeMillis());
+
+            dataTrackLogger.sendLog("game_bet_" + EDataTrackLogType.SETTLEMENT.name().toLowerCase(), trackData);
+        } catch (Exception e) {
+            log.error("策略游戏结算埋点发送异常 playerId={}", playerGameData == null ? 0 : playerGameData.playerId(), e);
+        }
     }
 
     /**

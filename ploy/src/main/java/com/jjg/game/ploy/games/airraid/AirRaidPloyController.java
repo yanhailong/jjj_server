@@ -299,6 +299,8 @@ public class AirRaidPloyController extends AbstractMultiPloyController<AirRaidPl
         for (AirRaidPlayerPloyGameData playerData : this.gameDataMap.values()) {
             long playerId = playerData.playerId();
             int roomCfgId = playerData.getRoomCfgId();
+            PloygameRoomCfg cfg = GameDataManager.getPloygameRoomCfg(roomCfgId);
+            int taxRate = cfg == null ? 0 : cfg.getTaxRate();
             // 持有引用即可 — betData 仅在该玩家的 disruptor 分区上被写;
             // 把记录写入发布到同一分区, 保证排在所有 in-flight cashOut 之后, 读到的是最终态
             Map<Integer, AirRaidBetData> betMap = new HashMap<>(playerData.getAirRaidBetDataMap());
@@ -326,6 +328,16 @@ public class AirRaidPloyController extends AbstractMultiPloyController<AirRaidPl
                             record.setWinAmount(betData.getWinAmount());
                             record.setTimestamp(now);
                             recordDao.saveRecord(record);
+                            HashMap<String, Object> settlementData = new HashMap<>();
+                            settlementData.put("roundId", betData.getRoundId());
+                            settlementData.put("betIndex", e.getKey());
+                            settlementData.put("betAmount", betData.getBetAmount());
+                            settlementData.put("crashMultiplier", crashMul);
+                            settlementData.put("cashOutMultiplier", betData.getCashOutMultiplier());
+                            settlementData.put("winAmount", betData.getWinAmount());
+                            settlementData.put("cashedOut", betData.isCashedOut());
+                            settlementData.put("timestamp", now);
+                            sendSettlementDataTrack(playerData, betData.getBetAmount(), calcRewardAfterTax(betData.getWinAmount(), taxRate), settlementData);
                         } catch (Exception ex) {
                             log.error("AirRaid 保存记录异常 playerId={}, betIndex={}", playerId, e.getKey(), ex);
                         }

@@ -31,6 +31,7 @@ import org.springframework.stereotype.Component;
 import java.math.BigDecimal;
 import java.math.RoundingMode;
 import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.function.Function;
@@ -254,6 +255,7 @@ public class LuckyPokerPloyController extends AbstractSinglePloyController<Lucky
             Integer times = cfg.getOdds().get(pokerRank.rank);
 
             long value = times * playerGameData.getLastBet();
+            long tax = 0;
             Player player;
             if (value > 0) {
                 CommonResult<Pair<PloyBetDivideInfo, Player>> winResult = winFromPool(playerGameData, value, cfg.getTaxRate());
@@ -261,6 +263,7 @@ public class LuckyPokerPloyController extends AbstractSinglePloyController<Lucky
                     res.code = winResult.code;
                     return res;
                 }
+                tax = winResult.data.getFirst().getTax();
                 player = winResult.data.getSecond();
             } else {
                 player = playerService.get(playerController.playerId());
@@ -292,6 +295,13 @@ public class LuckyPokerPloyController extends AbstractSinglePloyController<Lucky
 
             //发送日志
             logger.luckpoker(player, playerGameData);
+            HashMap<String, Object> settlementData = new HashMap<>();
+            settlementData.put("firstCards", LuckyPokerUtils.card2Ids(playerGameData.getFirstCardList()));
+            settlementData.put("finalCards", LuckyPokerUtils.card2Ids(drawResult.data.getFirst()));
+            settlementData.put("pokerRank", pokerRank.rank);
+            settlementData.put("times", times);
+            settlementData.put("tax", tax);
+            sendSettlementDataTrack(playerGameData, playerGameData.getLastBet(), value - tax, settlementData);
 
             //清除数据
             playerGameData.setFirstCardList(null);
