@@ -20,8 +20,10 @@ import com.jjg.game.core.data.*;
 import com.jjg.game.core.service.CorePlayerService;
 import com.jjg.game.core.service.PlayerPackService;
 import com.jjg.game.core.utils.ItemUtils;
+import com.jjg.game.sampledata.bean.AllianceLevelCfg;
 import com.jjg.game.sim.data.SimPlayerContext;
 import com.jjg.game.sim.manager.SimManager;
+import com.jjg.game.sim.service.SimConfigCacheService;
 import com.jjg.game.social.channel.AllianceChatChannel;
 import com.jjg.game.social.service.SocialStatusService;
 import org.slf4j.Logger;
@@ -58,7 +60,7 @@ public class AllianceService {
     @Autowired
     private AllianceCacheService cacheService;
     @Autowired
-    private AllianceConfigService configService;
+    private SimConfigCacheService configService;
     @Autowired
     private AllianceAssetService assetService;
     @Autowired
@@ -124,13 +126,18 @@ public class AllianceService {
      */
     public ResAllianceList allianceList(long playerId) {
         ResAllianceList res = new ResAllianceList(Code.SUCCESS);
-        res.list = new ArrayList<>();
         int myCasinoLevel = casinoLevelOf(playerId);
+        res.list = new ArrayList<>();
+
         for (AllianceData data : allianceDao.listByReputation(ONE_KEY_SCAN_LIMIT, playerId)) {
             if (data.getJoinMinCasinoLevel() > myCasinoLevel) {
                 continue;
             }
-            if (data.getMemberCount() >= configService.memberCap(data.getLevel())) {
+            AllianceLevelCfg cfg = configService.allianceLevelCfg(data.getLevel());
+            if (cfg == null) {
+                continue;
+            }
+            if (data.getMemberCount() >= cfg.getMaxMembers()) {
                 continue;
             }
             res.list.add(AlliancePbConverter.toShowInfo(data, configService,
@@ -149,7 +156,12 @@ public class AllianceService {
             res.code = Code.NOT_FOUND;
             return res;
         }
-        res.memberCap = configService.memberCap(alliance.getLevel());
+        AllianceLevelCfg cfg = configService.allianceLevelCfg(alliance.getLevel());
+        if (cfg == null) {
+            res.code = Code.NOT_FOUND;
+            return res;
+        }
+        res.memberCap = cfg.getMaxMembers();
         res.list = new ArrayList<>(alliance.getMemberCount());
 
         List<Long> memberIds = new ArrayList<>(alliance.getMembers().keySet());
@@ -369,7 +381,13 @@ public class AllianceService {
             log.warn("加入单个联盟失败,不满足该联盟的入门等级要求 playerId={},myCasinoLevel={},joinMinLevel={}", player.getId(), myCasinoLevel, alliance.getJoinMinCasinoLevel());
             return res;
         }
-        if (alliance.getMemberCount() >= configService.memberCap(alliance.getLevel())) {
+        AllianceLevelCfg cfg = configService.allianceLevelCfg(alliance.getLevel());
+        if (cfg == null) {
+            res.code = Code.FORBID;
+            log.warn("加入单个联盟失败,获取联盟等级配置失败 playerId={},allianceId={},level={}", player.getId(), allianceId, alliance.getLevel());
+            return res;
+        }
+        if (alliance.getMemberCount() >= cfg.getMaxMembers()) {
             res.code = Code.FORBID;
             log.warn("加入单个联盟失败,该联盟人数已满 playerId={},allianceId={}", player.getId(), allianceId);
             return res;
@@ -419,7 +437,11 @@ public class AllianceService {
             if (data.getJoinMinCasinoLevel() > myCasinoLevel) {
                 continue;
             }
-            if (data.getMemberCount() >= configService.memberCap(data.getLevel())) {
+            AllianceLevelCfg cfg = configService.allianceLevelCfg(data.getLevel());
+            if (cfg == null) {
+                continue;
+            }
+            if (data.getMemberCount() >= cfg.getMaxMembers()) {
                 continue;
             }
             candidates.add(data);
@@ -470,7 +492,9 @@ public class AllianceService {
         if (!alliancePlayerDao.tryOccupy(player.getId(), allianceId, now)) {
             return AllianceConst.ApplyFailReason.ALREADY_IN;
         }
-        int cap = configService.memberCap(alliance.getLevel());
+        AllianceLevelCfg cfg = configService.allianceLevelCfg(alliance.getLevel());
+
+        int cap = cfg.getMaxMembers();
         if (!allianceDao.tryAddMember(allianceId, player.getId(),
                 new AllianceMember(player.getId(), player.getNickName(), AllianceConst.Position.MEMBER, now), cap)) {
             //满员/已解散/已在盟中: 回滚占位

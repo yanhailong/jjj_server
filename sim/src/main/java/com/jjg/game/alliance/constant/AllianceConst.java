@@ -215,15 +215,6 @@ public interface AllianceConst {
     }
 
     /**
-     * 任务品质
-     */
-    interface TaskQuality {
-        int LOW = 1;
-        int MID = 2;
-        int HIGH = 3;
-    }
-
-    /**
      * 对决阶段状态机。
      * <p>
      * leader 节点定时 tick 按时间推进, 全部用"旧状态条件更新"幂等化(防 leader 切换双跑);
@@ -260,14 +251,6 @@ public interface AllianceConst {
     }
 
     /**
-     * 处理入盟申请操作
-     */
-    interface ApplyOp {
-        int REJECT = 0;
-        int AGREE = 1;
-    }
-
-    /**
      * 标量型配置 (死常量, 与需求文档一致; 需调整直接改这里)
      */
     interface Cfg {
@@ -289,8 +272,6 @@ public interface AllianceConst {
         long APPLICATION_VALID_MILLS = 3 * 24 * 3600 * 1000L;
 
         //--------- 等级/人数 ---------
-        //联盟等级上限
-        int MAX_LEVEL = 20;
         //1级人数上限
         int BASE_MEMBER_LIMIT = 20;
         //每升1级增加人数
@@ -326,9 +307,6 @@ public interface AllianceConst {
         //建筑加速抵扣 Redis key TTL(秒)
         int SPEEDUP_TTL_SEC = 7 * 24 * 3600;
 
-        //--------- 捐献 ---------
-        //每日捐献次数
-        int DAILY_DONATE_LIMIT = 3;
 
         //--------- 排行榜 ---------
         //贡献度周榜显示条数

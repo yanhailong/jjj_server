@@ -21,6 +21,7 @@ import com.jjg.game.core.constant.Code;
 import com.jjg.game.core.utils.ItemUtils;
 import com.jjg.game.sampledata.bean.TaskCfg;
 import com.jjg.game.sim.constant.SimConstant;
+import com.jjg.game.sim.service.SimConfigCacheService;
 import com.jjg.game.sim.service.SimPackService;
 import com.jjg.game.sim.data.SpinStatInfo;
 import com.jjg.game.social.service.SocialSender;
@@ -66,7 +67,7 @@ public class AllianceTaskService {
     @Autowired
     private AllianceCacheService cacheService;
     @Autowired
-    private AllianceConfigService configService;
+    private SimConfigCacheService configService;
     @Autowired
     private AllianceAssetService assetService;
     @Autowired
@@ -113,7 +114,7 @@ public class AllianceTaskService {
             res.poolTasks = new ArrayList<>();
             for (Map.Entry<Integer, AllianceTaskSlot> en : alliance.getTasks().entrySet()) {
                 AllianceTaskSlot value = en.getValue();
-                if (value.getExpireTime() > now && configService.taskCfg(value.getCfgId()) != null) {
+                if (value.getExpireTime() > now && configService.getAllianceTaskByCfgId(value.getCfgId()) != null) {
                     res.poolTasks.add(AlliancePbConverter.toTaskInfo(value));
                 }
             }
@@ -180,7 +181,7 @@ public class AllianceTaskService {
             }
         }
         int need = AllianceConst.Cfg.TASK_POOL_SIZE - pool.size();
-        for (TaskCfg cfg : configService.randomTasks(need, pool.keySet())) {
+        for (TaskCfg cfg : configService.randomAllianceTasks(need, pool.keySet())) {
             long durationMs = Math.max(1, cfg.getDuration()) * 60_000L;
             pool.put(cfg.getId(), new AllianceTaskSlot(cfg.getId(), now, now + durationMs));
         }
@@ -241,7 +242,7 @@ public class AllianceTaskService {
             log.warn("接取联盟任务失败,任务不存在或已过期 playerId={},allianceId={},taskCfgId={}", playerId, allianceId, taskCfgId);
             return res;
         }
-        TaskCfg cfg = configService.taskCfg(slot.getCfgId());
+        TaskCfg cfg = configService.getAllianceTaskByCfgId(slot.getCfgId());
         if (cfg == null) {
             res.code = Code.SAMPLE_ERROR;
             log.warn("接取联盟任务失败,任务配置缺失 playerId={},taskCfgId={},cfgId={}", playerId, taskCfgId, slot.getCfgId());
@@ -278,7 +279,7 @@ public class AllianceTaskService {
             log.warn("放弃联盟任务失败,无进行中任务 playerId={}", playerId);
             return res;
         }
-        TaskCfg cfg = configService.taskCfg(taken.getCfgId());
+        TaskCfg cfg = configService.getAllianceTaskByCfgId(taken.getCfgId());
         if (cfg == null) {
             res.code = Code.SAMPLE_ERROR;
             log.warn("放弃联盟任务失败,任务配置缺失 playerId={},cfgId={}", playerId, taken.getCfgId());
@@ -353,7 +354,7 @@ public class AllianceTaskService {
         if (taken == null) {
             return;
         }
-        TaskCfg cfg = configService.taskCfg(taken.getCfgId());
+        TaskCfg cfg = configService.getAllianceTaskByCfgId(taken.getCfgId());
         if (cfg == null || !matchesEvent(cfg, event)) {
             return;
         }
@@ -425,7 +426,7 @@ public class AllianceTaskService {
         if (taken == null || taken.getCfgId() != taskCfgId) {
             return false;
         }
-        TaskCfg cfg = configService.taskCfg(taken.getCfgId());
+        TaskCfg cfg = configService.getAllianceTaskByCfgId(taken.getCfgId());
         if (cfg == null) {
             return false;
         }

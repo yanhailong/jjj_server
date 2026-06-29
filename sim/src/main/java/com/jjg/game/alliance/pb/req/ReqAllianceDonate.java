@@ -15,6 +15,4 @@ import com.jjg.game.common.proto.ProtobufMessage;
 @ProtobufMessage(messageType = MessageConst.MessageTypeDef.ALLIANCE, cmd = AllianceConst.MsgBean.REQ_DONATE)
 @ProtoDesc("捐献")
 public class ReqAllianceDonate extends AbstractMessage {
-    @ProtoDesc("捐献档位id")
-    public int donateId;
 }

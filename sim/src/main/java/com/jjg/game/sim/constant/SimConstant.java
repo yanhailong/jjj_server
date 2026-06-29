@@ -162,6 +162,10 @@ public interface SimConstant {
         //广告收益倍数全局配置id (global.xlsx 135)
         int GLOBAL_AD_MULTIPLIER_ID = 135;
         int SOCIAL_SEND_GIFT_ID = 241;
+        int ALLIANCE_DAILY_DONATE_ID = 229;
+        int ALLIANCE_DONATE_ITEMS_ID = 230;
+        int ALLIANCE_DONATE_REWARD_ID = 231;
+        int ALLIANCE_DONATE_REPUTATION_ID = 242;
 
         //slots 每次旋转消耗的能量
         int SPIN_COST_POWER = 1;

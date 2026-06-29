@@ -8,6 +8,7 @@ import com.jjg.game.alliance.pb.res.NotifyAlliance;
 import com.jjg.game.common.utils.TimeHelper;
 import com.jjg.game.core.constant.Code;
 import com.jjg.game.core.service.RankService;
+import com.jjg.game.sim.service.SimConfigCacheService;
 import com.jjg.game.social.service.SocialSender;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -38,7 +39,7 @@ public class AllianceAssetService {
     @Autowired
     private AllianceCacheService cacheService;
     @Autowired
-    private AllianceConfigService configService;
+    private SimConfigCacheService configService;
     @Autowired
     private RankService rankService;
     @Autowired
@@ -69,7 +70,7 @@ public class AllianceAssetService {
         rankService.addPoints(seasonRankKey(), allianceId, (int) delta);
 
         //等级重算: 条件更新只升不降, 并发重算只有一个节点会成功并广播
-        int newLevel = configService.levelOf(updated.getReputation());
+        int newLevel = configService.allianceLevelOf(updated.getLevel(), updated.getReputation());
         if (newLevel > updated.getLevel() && allianceDao.tryUpgradeLevel(allianceId, newLevel)) {
             cacheService.publishInvalidate(allianceId);
             broadcastToAlliance(allianceId, AllianceConst.NotifyType.LEVEL_UP, String.valueOf(newLevel));

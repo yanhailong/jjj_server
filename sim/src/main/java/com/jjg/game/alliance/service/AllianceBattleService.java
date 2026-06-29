@@ -6,20 +6,14 @@ import com.jjg.game.alliance.constant.AllianceConst;
 import com.jjg.game.alliance.dao.AllianceBattleDao;
 import com.jjg.game.alliance.dao.AllianceDao;
 import com.jjg.game.alliance.dao.AlliancePlayerDao;
-import com.jjg.game.alliance.data.AllianceBattleData;
-import com.jjg.game.alliance.data.AllianceData;
-import com.jjg.game.alliance.data.AlliancePlayerData;
-import com.jjg.game.alliance.data.BattleResult;
-import com.jjg.game.alliance.data.BattleSignup;
+import com.jjg.game.alliance.data.*;
 import com.jjg.game.alliance.pb.AlliancePbConverter;
 import com.jjg.game.alliance.pb.res.ResAllianceBattleInfo;
 import com.jjg.game.alliance.pb.res.ResAllianceBattleRank;
 import com.jjg.game.alliance.pb.res.ResAllianceBattleSignup;
 import com.jjg.game.alliance.pb.res.ResBattleStageClaim;
-import com.jjg.game.alliance.pb.struct.BattleStageInfo;
 import com.jjg.game.alliance.pb.struct.ContribRankInfo;
 import com.jjg.game.common.utils.RandomUtils;
-import com.jjg.game.core.constant.AddType;
 import com.jjg.game.core.constant.Code;
 import com.jjg.game.core.data.Item;
 import com.jjg.game.core.data.Player;
@@ -28,18 +22,14 @@ import com.jjg.game.core.service.CorePlayerService;
 import com.jjg.game.core.service.MailService;
 import com.jjg.game.core.service.PlayerPackService;
 import com.jjg.game.core.service.RankService;
+import com.jjg.game.sim.service.SimConfigCacheService;
 import org.redisson.api.RedissonClient;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 
-import java.util.ArrayList;
-import java.util.Collections;
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
-import java.util.Optional;
+import java.util.*;
 import java.util.concurrent.TimeUnit;
 
 /**
@@ -73,7 +63,7 @@ public class AllianceBattleService {
     @Autowired
     private AllianceCacheService cacheService;
     @Autowired
-    private AllianceConfigService configService;
+    private SimConfigCacheService configService;
     @Autowired
     private RankService rankService;
     @Autowired
@@ -99,50 +89,50 @@ public class AllianceBattleService {
      * 推进本期状态机: 创建期文档 + 按时间逐步迁移状态。每步条件更新, 任意并发/重入安全。
      */
     public void tick() {
-        long now = System.currentTimeMillis();
-        String period = configService.battlePeriod(now);
-        AllianceBattleData battle = battleDao.findById(period).orElse(null);
-        if (battle == null) {
-            //创建本期 (时间点固化, 改配置不影响进行中的期)
-            battle = new AllianceBattleData();
-            battle.setPeriod(period);
-            battle.setState(AllianceConst.BattleState.NONE);
-            battle.setSignupStartTime(configService.battleSignupStart(now));
-            battle.setSignupEndTime(configService.battleSignupEnd(now));
-            battle.setMatchTime(configService.battleMatchTime(now));
-            battle.setFightStartTime(configService.battleFightStart(now));
-            battle.setFightEndTime(configService.battleFightEnd(now));
-            battleDao.insertIfAbsent(battle);
-            battle = battleDao.findById(period).orElse(null);
-            if (battle == null) {
-                return;
-            }
-        }
-        //逐步推进 (宕机错过窗口时一次 tick 连续补推到位)
-        for (int i = 0; i < 5; i++) {
-            int state = battle.getState();
-            boolean advanced = switch (state) {
-                case AllianceConst.BattleState.NONE -> now >= battle.getSignupStartTime()
-                        && battleDao.tryAdvanceState(period, state, AllianceConst.BattleState.SIGNUP);
-                case AllianceConst.BattleState.SIGNUP -> now >= battle.getSignupEndTime()
-                        && battleDao.tryAdvanceState(period, state, AllianceConst.BattleState.SIGNUP_CLOSED);
-                case AllianceConst.BattleState.SIGNUP_CLOSED -> now >= battle.getMatchTime()
-                        && doMatch(battle);
-                case AllianceConst.BattleState.MATCHED -> now >= battle.getFightStartTime()
-                        && battleDao.tryAdvanceState(period, state, AllianceConst.BattleState.FIGHTING);
-                case AllianceConst.BattleState.FIGHTING -> now >= battle.getFightEndTime()
-                        && doSettle(battle);
-                default -> false;
-            };
-            if (!advanced) {
-                break;
-            }
-            battleCache.invalidate(period);
-            battle = battleDao.findById(period).orElse(null);
-            if (battle == null) {
-                return;
-            }
-        }
+//        long now = System.currentTimeMillis();
+//        String period = configService.battlePeriod(now);
+//        AllianceBattleData battle = battleDao.findById(period).orElse(null);
+//        if (battle == null) {
+//            //创建本期 (时间点固化, 改配置不影响进行中的期)
+//            battle = new AllianceBattleData();
+//            battle.setPeriod(period);
+//            battle.setState(AllianceConst.BattleState.NONE);
+//            battle.setSignupStartTime(configService.battleSignupStart(now));
+//            battle.setSignupEndTime(configService.battleSignupEnd(now));
+//            battle.setMatchTime(configService.battleMatchTime(now));
+//            battle.setFightStartTime(configService.battleFightStart(now));
+//            battle.setFightEndTime(configService.battleFightEnd(now));
+//            battleDao.insertIfAbsent(battle);
+//            battle = battleDao.findById(period).orElse(null);
+//            if (battle == null) {
+//                return;
+//            }
+//        }
+//        //逐步推进 (宕机错过窗口时一次 tick 连续补推到位)
+//        for (int i = 0; i < 5; i++) {
+//            int state = battle.getState();
+//            boolean advanced = switch (state) {
+//                case AllianceConst.BattleState.NONE -> now >= battle.getSignupStartTime()
+//                        && battleDao.tryAdvanceState(period, state, AllianceConst.BattleState.SIGNUP);
+//                case AllianceConst.BattleState.SIGNUP -> now >= battle.getSignupEndTime()
+//                        && battleDao.tryAdvanceState(period, state, AllianceConst.BattleState.SIGNUP_CLOSED);
+//                case AllianceConst.BattleState.SIGNUP_CLOSED -> now >= battle.getMatchTime()
+//                        && doMatch(battle);
+//                case AllianceConst.BattleState.MATCHED -> now >= battle.getFightStartTime()
+//                        && battleDao.tryAdvanceState(period, state, AllianceConst.BattleState.FIGHTING);
+//                case AllianceConst.BattleState.FIGHTING -> now >= battle.getFightEndTime()
+//                        && doSettle(battle);
+//                default -> false;
+//            };
+//            if (!advanced) {
+//                break;
+//            }
+//            battleCache.invalidate(period);
+//            battle = battleDao.findById(period).orElse(null);
+//            if (battle == null) {
+//                return;
+//            }
+//        }
     }
 
     /**
@@ -231,7 +221,7 @@ public class AllianceBattleService {
             return res;
         }
         long now = System.currentTimeMillis();
-        String period = configService.battlePeriod(now);
+        String period = null;
         AllianceBattleData battle = battleDao.findById(period).orElse(null);
         if (battle == null || battle.getState() != AllianceConst.BattleState.SIGNUP) {
             res.code = Code.FORBID;
@@ -321,14 +311,6 @@ public class AllianceBattleService {
         AlliancePlayerData playerData = alliancePlayerDao.getOrEmpty(playerId);
         int claimedMask = playerData.battleClaimedMask(battle.getPeriod());
         res.stages = new ArrayList<>();
-        for (AllianceConfigService.BattleStageCfg stage : configService.battleStages()) {
-            BattleStageInfo info = new BattleStageInfo();
-            info.stage = stage.stage();
-            info.scoreThreshold = stage.scoreThreshold();
-            info.rewards = AlliancePbConverter.toItemInfos(stage.rewards());
-            info.claimed = (claimedMask & (1 << stage.stage())) != 0;
-            res.stages.add(info);
-        }
         return res;
     }
 
@@ -374,35 +356,35 @@ public class AllianceBattleService {
             log.warn("领取对决阶段奖励失败,玩家不在联盟或无进行中对决 playerId={},allianceId={},stage={}", playerId, allianceId, stage);
             return res;
         }
-        AllianceConfigService.BattleStageCfg cfg = configService.battleStages().stream()
-                .filter(s -> s.stage() == stage).findFirst().orElse(null);
-        if (cfg == null) {
-            res.code = Code.PARAM_ERROR;
-            log.warn("领取对决阶段奖励失败,阶段配置不存在 playerId={},stage={}", playerId, stage);
-            return res;
-        }
-        AlliancePlayerData playerData = alliancePlayerDao.getOrEmpty(playerId);
-        int claimedMask = playerData.battleClaimedMask(battle.getPeriod());
-        if ((claimedMask & (1 << stage)) != 0) {
-            res.code = Code.REPEAT_OP;
-            log.warn("领取对决阶段奖励失败,已领取过 playerId={},period={},stage={}", playerId, battle.getPeriod(), stage);
-            return res;
-        }
-        long personalScore = rankService.getPoints(personalKey(battle.getPeriod(), allianceId), playerId);
-        if (personalScore < cfg.scoreThreshold()) {
-            res.code = Code.NOT_ENOUGH;
-            log.warn("领取对决阶段奖励失败,个人积分不足 playerId={},period={},stage={},score={},threshold={}", playerId, battle.getPeriod(), stage, personalScore, cfg.scoreThreshold());
-            return res;
-        }
-        int stageMask = 1 << stage;
-        if (!alliancePlayerDao.tryClaimBattleStage(playerId, battle.getPeriod(), stageMask)) {
-            res.code = Code.REPEAT_OP;
-            log.warn("领取对决阶段奖励失败,并发重复领取 playerId={},period={},stage={}", playerId, battle.getPeriod(), stage);
-            return res;
-        }
-        playerPackService.addItems(playerId, cfg.rewards(), AddType.ALLIANCE_BATTLE_REWARD, "联盟对决阶段奖励", true);
-        res.rewards = AlliancePbConverter.toItemInfos(cfg.rewards());
-        log.info("领取对决阶段奖励 playerId={},period={},stage={}", playerId, battle.getPeriod(), stage);
+//        AllianceConfigService.BattleStageCfg cfg = configService.battleStages().stream()
+//                .filter(s -> s.stage() == stage).findFirst().orElse(null);
+//        if (cfg == null) {
+//            res.code = Code.PARAM_ERROR;
+//            log.warn("领取对决阶段奖励失败,阶段配置不存在 playerId={},stage={}", playerId, stage);
+//            return res;
+//        }
+//        AlliancePlayerData playerData = alliancePlayerDao.getOrEmpty(playerId);
+//        int claimedMask = playerData.battleClaimedMask(battle.getPeriod());
+//        if ((claimedMask & (1 << stage)) != 0) {
+//            res.code = Code.REPEAT_OP;
+//            log.warn("领取对决阶段奖励失败,已领取过 playerId={},period={},stage={}", playerId, battle.getPeriod(), stage);
+//            return res;
+//        }
+//        long personalScore = rankService.getPoints(personalKey(battle.getPeriod(), allianceId), playerId);
+//        if (personalScore < cfg.scoreThreshold()) {
+//            res.code = Code.NOT_ENOUGH;
+//            log.warn("领取对决阶段奖励失败,个人积分不足 playerId={},period={},stage={},score={},threshold={}", playerId, battle.getPeriod(), stage, personalScore, cfg.scoreThreshold());
+//            return res;
+//        }
+//        int stageMask = 1 << stage;
+//        if (!alliancePlayerDao.tryClaimBattleStage(playerId, battle.getPeriod(), stageMask)) {
+//            res.code = Code.REPEAT_OP;
+//            log.warn("领取对决阶段奖励失败,并发重复领取 playerId={},period={},stage={}", playerId, battle.getPeriod(), stage);
+//            return res;
+//        }
+//        playerPackService.addItems(playerId, cfg.rewards(), AddType.ALLIANCE_BATTLE_REWARD, "联盟对决阶段奖励", true);
+//        res.rewards = AlliancePbConverter.toItemInfos(cfg.rewards());
+//        log.info("领取对决阶段奖励 playerId={},period={},stage={}", playerId, battle.getPeriod(), stage);
         return res;
     }
 
@@ -452,39 +434,39 @@ public class AllianceBattleService {
         if (alliance == null) {
             return;
         }
-        Map<Integer, Long> rewards = result.isWin()
-                ? configService.battleWinRewards() : configService.battleLoseRewards();
-        String title = result.isWin() ? "联盟对决胜利奖励" : "联盟对决参与奖励";
-        String content = "联盟对决已结束, 比分 " + result.getMyScore() + " : " + result.getOppScore()
-                + (result.isWin() ? ", 恭喜获胜!" : ", 虽败犹荣, 再接再厉!");
-        List<Item> mailItems = toMailItems(rewards);
-        for (Long pid : alliance.getMembers().keySet()) {
-            mailService.addMail(pid, title, content, mailItems, AddType.ALLIANCE_BATTLE_REWARD);
-        }
-        //阶段奖励补发: 个人分达标但未手动领取的现任成员
-        List<RankEntry> entries = rankService.topN(personalKey(period, allianceId), AllianceConst.Cfg.BATTLE_RANK_SHOW);
-        for (RankEntry entry : entries) {
-            long pid = entry.getPlayerId();
-            if (!alliance.isMember(pid)) {
-                //退盟玩家不补发 (需求明确)
-                continue;
-            }
-            AlliancePlayerData playerData = alliancePlayerDao.getOrEmpty(pid);
-            int claimedMask = playerData.battleClaimedMask(period);
-            int newMask = claimedMask;
-            for (AllianceConfigService.BattleStageCfg stage : configService.battleStages()) {
-                if (entry.getPoints() < stage.scoreThreshold() || (claimedMask & (1 << stage.stage())) != 0) {
-                    continue;
-                }
-                mailService.addMail(pid, "联盟对决阶段奖励",
-                        "对决已结束, 未领取的第" + (stage.stage() + 1) + "阶段奖励已通过邮件发放。",
-                        toMailItems(stage.rewards()), AddType.ALLIANCE_BATTLE_REWARD);
-                newMask |= (1 << stage.stage());
-            }
-            if (newMask != claimedMask) {
-                alliancePlayerDao.setBattleClaim(pid, period, newMask);
-            }
-        }
+//        Map<Integer, Long> rewards = result.isWin()
+//                ? configService.battleWinRewards() : configService.battleLoseRewards();
+//        String title = result.isWin() ? "联盟对决胜利奖励" : "联盟对决参与奖励";
+//        String content = "联盟对决已结束, 比分 " + result.getMyScore() + " : " + result.getOppScore()
+//                + (result.isWin() ? ", 恭喜获胜!" : ", 虽败犹荣, 再接再厉!");
+//        List<Item> mailItems = toMailItems(rewards);
+//        for (Long pid : alliance.getMembers().keySet()) {
+//            mailService.addMail(pid, title, content, mailItems, AddType.ALLIANCE_BATTLE_REWARD);
+//        }
+//        //阶段奖励补发: 个人分达标但未手动领取的现任成员
+//        List<RankEntry> entries = rankService.topN(personalKey(period, allianceId), AllianceConst.Cfg.BATTLE_RANK_SHOW);
+//        for (RankEntry entry : entries) {
+//            long pid = entry.getPlayerId();
+//            if (!alliance.isMember(pid)) {
+//                //退盟玩家不补发 (需求明确)
+//                continue;
+//            }
+//            AlliancePlayerData playerData = alliancePlayerDao.getOrEmpty(pid);
+//            int claimedMask = playerData.battleClaimedMask(period);
+//            int newMask = claimedMask;
+//            for (AllianceConfigService.BattleStageCfg stage : configService.battleStages()) {
+//                if (entry.getPoints() < stage.scoreThreshold() || (claimedMask & (1 << stage.stage())) != 0) {
+//                    continue;
+//                }
+//                mailService.addMail(pid, "联盟对决阶段奖励",
+//                        "对决已结束, 未领取的第" + (stage.stage() + 1) + "阶段奖励已通过邮件发放。",
+//                        toMailItems(stage.rewards()), AddType.ALLIANCE_BATTLE_REWARD);
+//                newMask |= (1 << stage.stage());
+//            }
+//            if (newMask != claimedMask) {
+//                alliancePlayerDao.setBattleClaim(pid, period, newMask);
+//            }
+//        }
         //积分 key 留存 7 天供战绩查询, 之后自动过期
         try {
             redissonClient.getKeys().expire(scoreKey(period), 7, TimeUnit.DAYS);
@@ -502,10 +484,11 @@ public class AllianceBattleService {
      * 本期文档 (10s 本地缓存)。
      */
     private AllianceBattleData cachedBattle() {
-        String period = configService.battlePeriod(System.currentTimeMillis());
-        Optional<AllianceBattleData> opt = battleCache.get(period,
-                p -> Optional.ofNullable(battleDao.findById(p).orElse(null)));
-        return opt == null ? null : opt.orElse(null);
+//        String period = configService.battlePeriod(System.currentTimeMillis());
+//        Optional<AllianceBattleData> opt = battleCache.get(period,
+//                p -> Optional.ofNullable(battleDao.findById(p).orElse(null)));
+//        return opt == null ? null : opt.orElse(null);
+        return null;
     }
 
     private ContribRankInfo toRankInfo(long playerId, int rank, long score, Map<Long, Player> playerMap) {

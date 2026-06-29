@@ -289,7 +289,7 @@ public class AllianceMessageHandler implements GmListener {
      */
     @Command(AllianceConst.MsgBean.REQ_DONATE)
     public void reqDonate(PlayerController pc, ReqAllianceDonate req) {
-        pc.send(donateService.donate(pc, req.donateId));
+        pc.send(donateService.donate(pc));
     }
 
     // --------------------------- 排行榜 ---------------------------
@@ -364,7 +364,6 @@ public class AllianceMessageHandler implements GmListener {
                 reqJoinAlliance(pc, req);
             } else if ("allianceDonate".equalsIgnoreCase(cmd)) {
                 ReqAllianceDonate req = new ReqAllianceDonate();
-                req.donateId = 1;
                 reqDonate(pc, req);
             } else if ("allianceTasks".equalsIgnoreCase(cmd)) {
                 reqTaskList(pc, null);

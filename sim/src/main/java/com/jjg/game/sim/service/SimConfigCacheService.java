@@ -1,6 +1,8 @@
 package com.jjg.game.sim.service;
 
+import com.jjg.game.alliance.data.DonateCfg;
 import com.jjg.game.common.utils.WeightRandom;
+import com.jjg.game.core.constant.TaskConstant;
 import com.jjg.game.core.listener.ConfigExcelChangeListener;
 import com.jjg.game.sampledata.GameDataManager;
 import com.jjg.game.sampledata.bean.*;
@@ -66,6 +68,14 @@ public class SimConfigCacheService implements ConfigExcelChangeListener {
     //好友赠送礼物配置
     private SendGiftConfig sendGiftConfig;
 
+    //联盟等级
+    private Map<Integer, AllianceLevelCfg> allianceLevelCfgMap;
+    private List<TaskCfg> allianceTasks;
+    private Map<Integer, TaskCfg> allianceTaskMap;
+    //联盟捐献配置
+    private DonateCfg allianceDonateCfg;
+
+
     public void testInit() {
         loadCasinoStatsSheetCfg();
         loadResearchInstituteCfg();
@@ -88,6 +98,9 @@ public class SimConfigCacheService implements ConfigExcelChangeListener {
         loadGlobalConfig();
 
         loadPropConfig();
+
+        loadAllianceLevelConfig();
+        loadAllianceTasks();
     }
 
     /**
@@ -314,10 +327,32 @@ public class SimConfigCacheService implements ConfigExcelChangeListener {
         GlobalConfigCfg giftCfg = GameDataManager.getGlobalConfigCfg(SimConstant.Common.SOCIAL_SEND_GIFT_ID);
         if (giftCfg != null && giftCfg.getValue() != null && !giftCfg.getValue().isEmpty()) {
             String[] arr = giftCfg.getValue().split("_");
-            if(arr.length == 4){
+            if (arr.length == 4) {
                 this.sendGiftConfig = new SendGiftConfig(Integer.parseInt(arr[0]), Long.parseLong(arr[1]), Integer.parseInt(arr[2]), Integer.parseInt(arr[3]));
             }
         }
+
+        //联盟捐献
+        DonateCfg tmpAllianceDonateCfg = new DonateCfg();
+        GlobalConfigCfg allianceDailyDonateCfg = GameDataManager.getGlobalConfigCfg(SimConstant.Common.ALLIANCE_DAILY_DONATE_ID);
+        GlobalConfigCfg allianceDonateItemsCfg = GameDataManager.getGlobalConfigCfg(SimConstant.Common.ALLIANCE_DONATE_ITEMS_ID);
+        if (allianceDonateItemsCfg != null && allianceDonateItemsCfg.getValue() != null && !allianceDonateItemsCfg.getValue().isEmpty()) {
+            String[] split = allianceDonateItemsCfg.getValue().split("_");
+            tmpAllianceDonateCfg.setItemId(Integer.parseInt(split[0]));
+
+            String[] split1 = split[1].split(",");
+            List<Long> counts = new ArrayList<>();
+            for (String s : split1) {
+                counts.add(Long.parseLong(s));
+            }
+            tmpAllianceDonateCfg.setCounts(counts);
+        }
+        GlobalConfigCfg allianceDonateRewardsCfg = GameDataManager.getGlobalConfigCfg(SimConstant.Common.ALLIANCE_DONATE_REWARD_ID);
+        GlobalConfigCfg allianceDonateRewardsReputationCfg = GameDataManager.getGlobalConfigCfg(SimConstant.Common.ALLIANCE_DONATE_REPUTATION_ID);
+        tmpAllianceDonateCfg.setMemberDailyLimit(allianceDailyDonateCfg.getIntValue());
+        tmpAllianceDonateCfg.setRewardContribution(allianceDonateRewardsCfg.getIntValue());
+        tmpAllianceDonateCfg.setRewardReputation(allianceDonateRewardsReputationCfg.getIntValue());
+        this.allianceDonateCfg = tmpAllianceDonateCfg;
     }
 
     private void loadPropConfig() {
@@ -326,6 +361,33 @@ public class SimConfigCacheService implements ConfigExcelChangeListener {
             tmpMap.computeIfAbsent(cfg.getGameType(), k -> new ArrayList<>()).add(cfg);
         }
         this.propCfgMap = tmpMap;
+    }
+
+    private void loadAllianceLevelConfig() {
+        Map<Integer, AllianceLevelCfg> tmpAllianceLevelCfgMap = new HashMap<>();
+        for (AllianceLevelCfg cfg : GameDataManager.getAllianceLevelCfgList()) {
+            tmpAllianceLevelCfgMap.put(cfg.getLevel(), cfg);
+        }
+        this.allianceLevelCfgMap = tmpAllianceLevelCfgMap;
+    }
+
+    private void loadAllianceTasks() {
+        List<TaskCfg> all = GameDataManager.getTaskCfgList();
+        if (all == null || all.isEmpty()) {
+            allianceTasks = Collections.emptyList();
+            allianceTaskMap = Collections.emptyMap();
+            return;
+        }
+        List<TaskCfg> tasks = new ArrayList<>();
+        Map<Integer, TaskCfg> map = new HashMap<>();
+        for (TaskCfg cfg : all) {
+            if (cfg != null && cfg.getTaskType() == TaskConstant.TaskType.ALLIANCE) {
+                tasks.add(cfg);
+                map.put(cfg.getId(), cfg);
+            }
+        }
+        allianceTasks = Collections.unmodifiableList(tasks);
+        allianceTaskMap = Collections.unmodifiableMap(map);
     }
 
     @Override
@@ -350,6 +412,9 @@ public class SimConfigCacheService implements ConfigExcelChangeListener {
         addInitSampleFileObserveWithCallBack(GlobalConfigCfg.EXCEL_NAME, this::loadGlobalConfig);
 
         addInitSampleFileObserveWithCallBack(PropCfg.EXCEL_NAME, this::loadPropConfig);
+
+        addInitSampleFileObserveWithCallBack(AllianceLevelCfg.EXCEL_NAME, this::loadAllianceLevelConfig);
+        addInitSampleFileObserveWithCallBack(TaskCfg.EXCEL_NAME, this::loadAllianceTasks);
     }
 
     // ---------------------------------------------------------------------
@@ -534,5 +599,57 @@ public class SimConfigCacheService implements ConfigExcelChangeListener {
 
     public SendGiftConfig getSendGiftConfig() {
         return sendGiftConfig;
+    }
+
+    public AllianceLevelCfg allianceLevelCfg(int level) {
+        if (this.allianceLevelCfgMap == null || this.allianceLevelCfgMap.isEmpty()) {
+            return null;
+        }
+        return this.allianceLevelCfgMap.get(level);
+    }
+
+    public int allianceLevelOf(int nowLevel, int reputation) {
+        int size = this.allianceLevelCfgMap.size();
+        if (nowLevel >= size) {
+            return nowLevel;
+        }
+
+        int newLevel = nowLevel;
+        for (int i = nowLevel; i <= size; i++) {
+            AllianceLevelCfg cfg = this.allianceLevelCfgMap.get(i);
+            if (cfg == null) {
+                continue;
+            }
+            if (reputation < cfg.getReputationRequired()) {
+                break;
+            }
+            newLevel = cfg.getLevel();
+        }
+        return newLevel;
+    }
+
+    public TaskCfg getAllianceTaskByCfgId(int cfgId) {
+        if (this.allianceTaskMap == null) {
+            return null;
+        }
+        return this.allianceTaskMap.get(cfgId);
+    }
+
+    public List<TaskCfg> randomAllianceTasks(int n, Set<Integer> exclude) {
+        if (n <= 0 || allianceTasks.isEmpty()) {
+            return Collections.emptyList();
+        }
+        List<TaskCfg> candidates = new ArrayList<>(allianceTasks.size());
+        for (TaskCfg cfg : allianceTasks) {
+            if (exclude == null || !exclude.contains(cfg.getId())) {
+                candidates.add(cfg);
+            }
+        }
+        Collections.shuffle(candidates);
+        return candidates.size() > n ? candidates.subList(0, n) : candidates;
+    }
+
+    public DonateCfg getAllianceDonateCfg() {
+        return allianceDonateCfg;
     }
 }

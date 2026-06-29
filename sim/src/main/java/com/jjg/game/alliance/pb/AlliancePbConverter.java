@@ -5,11 +5,12 @@ import com.jjg.game.alliance.pb.struct.AllianceBrief;
 import com.jjg.game.alliance.pb.struct.AllianceHelpOrderInfo;
 import com.jjg.game.alliance.pb.struct.AllianceTaskInfo;
 import com.jjg.game.alliance.pb.struct.ShowAllianceInfo;
-import com.jjg.game.alliance.service.AllianceConfigService;
 import com.jjg.game.common.pb.ItemInfo;
 import com.jjg.game.core.utils.ItemUtils;
 import com.jjg.game.sampledata.GameDataManager;
+import com.jjg.game.sampledata.bean.AllianceLevelCfg;
 import com.jjg.game.sampledata.bean.TaskCfg;
+import com.jjg.game.sim.service.SimConfigCacheService;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -29,7 +30,7 @@ public class AlliancePbConverter {
     /**
      * 联盟概要 (memberCap/nextLevelReputation 由配置推导, 调用方传入 config)
      */
-    public static AllianceBrief toBrief(AllianceData data, AllianceConfigService config) {
+    public static AllianceBrief toBrief(AllianceData data, SimConfigCacheService config) {
         if (data == null) {
             return null;
         }
@@ -41,7 +42,7 @@ public class AlliancePbConverter {
     /**
      * 可加入联盟信息 (概要 + 当前玩家是否已申请过)
      */
-    public static ShowAllianceInfo toShowInfo(AllianceData data, AllianceConfigService config, boolean applied) {
+    public static ShowAllianceInfo toShowInfo(AllianceData data, SimConfigCacheService config, boolean applied) {
         if (data == null) {
             return null;
         }
@@ -51,16 +52,21 @@ public class AlliancePbConverter {
         return info;
     }
 
-    private static void fillBrief(AllianceBrief brief, AllianceData data, AllianceConfigService config) {
+    private static void fillBrief(AllianceBrief brief, AllianceData data, SimConfigCacheService config) {
         brief.allianceId = data.getAllianceId();
         brief.name = data.getName();
         brief.icon = data.getIcon();
         brief.notice = data.getNotice();
         brief.level = data.getLevel();
         brief.reputation = data.getReputation();
-        brief.nextLevelReputation = config.nextLevelReputation(data.getLevel());
+
+        AllianceLevelCfg cfg = config.allianceLevelCfg(data.getLevel() + 1);
+        if (cfg != null) {
+            brief.nextLevelReputation = cfg.getReputationRequired();
+            brief.memberCap = cfg.getMaxMembers();
+        }
+
         brief.memberCount = data.getMemberCount();
-        brief.memberCap = config.memberCap(data.getLevel());
         brief.joinMinCasinoLevel = data.getJoinMinCasinoLevel();
         brief.joinNeedAudit = data.isJoinNeedAudit();
         brief.leaderId = data.getLeaderId();

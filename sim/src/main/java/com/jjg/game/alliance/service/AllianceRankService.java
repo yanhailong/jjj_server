@@ -8,7 +8,6 @@ import com.jjg.game.alliance.pb.res.ResAllianceRank;
 import com.jjg.game.alliance.pb.res.ResContribRank;
 import com.jjg.game.alliance.pb.struct.AllianceRankInfo;
 import com.jjg.game.alliance.pb.struct.ContribRankInfo;
-import com.jjg.game.core.constant.AddType;
 import com.jjg.game.core.constant.Code;
 import com.jjg.game.core.data.Item;
 import com.jjg.game.core.data.Player;
@@ -16,6 +15,7 @@ import com.jjg.game.core.data.RankEntry;
 import com.jjg.game.core.service.CorePlayerService;
 import com.jjg.game.core.service.MailService;
 import com.jjg.game.core.service.RankService;
+import com.jjg.game.sim.service.SimConfigCacheService;
 import org.redisson.api.RedissonClient;
 import org.redisson.client.codec.LongCodec;
 import org.slf4j.Logger;
@@ -61,7 +61,7 @@ public class AllianceRankService {
     @Autowired
     private AllianceCacheService cacheService;
     @Autowired
-    private AllianceConfigService configService;
+    private SimConfigCacheService configService;
     @Autowired
     private AllianceAssetService assetService;
     @Autowired
@@ -216,13 +216,13 @@ public class AllianceRankService {
                     }
                     List<RankEntry> entries = rankService.topN(key, AllianceConst.Cfg.CONTRIB_RANK_SHOW);
                     for (RankEntry entry : entries) {
-                        Map<Integer, Long> rewards = configService.contribRankRewards((int) entry.getRank());
-                        if (rewards.isEmpty()) {
-                            continue;
-                        }
-                        mailService.addMail(entry.getPlayerId(), "联盟贡献度周榜奖励",
-                                "上周贡献度排名第" + entry.getRank() + "名, 奖励已发放, 请查收。",
-                                toMailItems(rewards), AddType.ALLIANCE_RANK_REWARD);
+//                        Map<Integer, Long> rewards = configService.contribRankRewards((int) entry.getRank());
+//                        if (rewards.isEmpty()) {
+//                            continue;
+//                        }
+//                        mailService.addMail(entry.getPlayerId(), "联盟贡献度周榜奖励",
+//                                "上周贡献度排名第" + entry.getRank() + "名, 奖励已发放, 请查收。",
+//                                toMailItems(rewards), AddType.ALLIANCE_RANK_REWARD);
                     }
                     redissonClient.getKeys().delete(key);
                     settled++;
@@ -248,21 +248,21 @@ public class AllianceRankService {
             }
             List<RankEntry> entries = rankService.topN(key, AllianceConst.Cfg.ALLIANCE_RANK_SHOW);
             for (RankEntry entry : entries) {
-                long aid = entry.getPlayerId();
-                Map<Integer, Long> rewards = configService.seasonRankRewards((int) entry.getRank());
-                if (rewards.isEmpty()) {
-                    continue;
-                }
-                AllianceData alliance = allianceDao.findById(aid).orElse(null);
-                if (alliance == null) {
-                    //赛季中解散的联盟不发奖
-                    continue;
-                }
-                for (Long pid : alliance.getMembers().keySet()) {
-                    mailService.addMail(pid, "联盟赛季排行奖励",
-                            "联盟[" + alliance.getName() + "]上赛季排名第" + entry.getRank() + "名, 奖励已发放, 请查收。",
-                            toMailItems(rewards), AddType.ALLIANCE_RANK_REWARD);
-                }
+//                long aid = entry.getPlayerId();
+//                Map<Integer, Long> rewards = configService.seasonRankRewards((int) entry.getRank());
+//                if (rewards.isEmpty()) {
+//                    continue;
+//                }
+//                AllianceData alliance = allianceDao.findById(aid).orElse(null);
+//                if (alliance == null) {
+//                    //赛季中解散的联盟不发奖
+//                    continue;
+//                }
+//                for (Long pid : alliance.getMembers().keySet()) {
+//                    mailService.addMail(pid, "联盟赛季排行奖励",
+//                            "联盟[" + alliance.getName() + "]上赛季排名第" + entry.getRank() + "名, 奖励已发放, 请查收。",
+//                            toMailItems(rewards), AddType.ALLIANCE_RANK_REWARD);
+//                }
             }
             redissonClient.getKeys().delete(key);
             log.info("联盟赛季榜结算完成 month={},rewarded={}", lastMonth, entries.size());

@@ -18,6 +18,7 @@ import com.jjg.game.core.constant.Code;
 import com.jjg.game.core.data.Player;
 import com.jjg.game.core.manager.SnowflakeManager;
 import com.jjg.game.core.service.CorePlayerService;
+import com.jjg.game.sim.service.SimConfigCacheService;
 import com.jjg.game.social.service.SocialSender;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -57,7 +58,7 @@ public class AllianceHelpService {
     @Autowired
     private AllianceCacheService cacheService;
     @Autowired
-    private AllianceConfigService configService;
+    private SimConfigCacheService configService;
     @Autowired
     private AllianceAssetService assetService;
     @Autowired

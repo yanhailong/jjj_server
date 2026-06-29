@@ -624,14 +624,12 @@ public class FriendService {
                 }
             }
             if (total <= 0) {
-                res.gainCount = 0;
+                res.code = Code.NOT_FOUND;
                 return res;
             }
             //发放道具 (领取者即调用方本人, addItemsByPlayerId 自动按在线/离线入账)
-            simPackService.addItemsByPlayerId(selfId, Map.of(cfg.itemId(), total),
-                    AddType.FRIEND_GIFT_COLLECT, "好友赠礼领取", true);
+            simPackService.addItemsByPlayerId(selfId, Map.of(cfg.itemId(), total),AddType.FRIEND_GIFT_COLLECT, "", true);
             friendDao.clearPendingGifts(selfId);
-
             res.itemId = cfg.itemId();
             res.gainCount = total;
         } catch (Exception e) {

@@ -40,7 +40,7 @@ public class AllianceData {
     //等级 (1-20, 由累计声誉推导, 只升不降)
     private int level = 1;
     //累计声誉值 (只增不消耗)
-    private long reputation;
+    private int reputation;
 
     //入盟最低场景等级 (1-99)
     private int joinMinCasinoLevel = AllianceConst.Cfg.JOIN_LEVEL_MIN;
@@ -127,11 +127,11 @@ public class AllianceData {
         this.level = level;
     }
 
-    public long getReputation() {
+    public int getReputation() {
         return reputation;
     }
 
-    public void setReputation(long reputation) {
+    public void setReputation(int reputation) {
         this.reputation = reputation;
     }
 
