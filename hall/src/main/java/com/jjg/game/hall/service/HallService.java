@@ -628,7 +628,7 @@ public class HallService implements ConfigExcelChangeListener, TimerListener {
      * @param player
      * @param itemId
      */
-    public CommonResult<Map<Integer, Long>> useItem(Player player, int girdId, int itemId, long useItemCount) {
+    public CommonResult<Map<Integer, Long>> useItem(Player player, int girdId, int itemId, long useItemCount, int selectItemId) {
         CommonResult<Map<Integer, Long>> result = new CommonResult<>(Code.SUCCESS);
         try {
             log.debug("玩家使用道具 playerId = {},girdId = {},itemId = {}", player.getId(), girdId, itemId);
@@ -647,7 +647,7 @@ public class HallService implements ConfigExcelChangeListener, TimerListener {
             }
 
             Map<Integer, Long> addItemsMap = new HashMap<>();
-            //是否有获取的道具
+            //是否有获取的固定道具
             if (itemCfg.getGetItem() != null && !itemCfg.getGetItem().isEmpty()) {
                 for (Map.Entry<Integer, Long> en : itemCfg.getGetItem().entrySet()) {
                     int addItemId = en.getKey();
@@ -661,7 +661,32 @@ public class HallService implements ConfigExcelChangeListener, TimerListener {
 
                 CommonResult<ItemOperationResult> useResult = playerPackService.useItem(player.getId(), girdId, itemId, useItemCount, addItemsMap, AddType.USE_ITEM);
                 if (!useResult.success()) {
-                    log.debug("使用道具后获得新道具失败 playerId = {},itemId = {}", player.getId(), itemId);
+                    log.debug("使用道具后获得固定道具失败 playerId = {},itemId = {}", player.getId(), itemId);
+                    result.code = useResult.code;
+                    return result;
+                }
+            }
+
+            //是否有获取可选择的道具
+            if (itemCfg.getSelectGetItem() != null && !itemCfg.getSelectGetItem().isEmpty()) {
+                if (selectItemId < 1) {
+                    log.debug("使用道具时，获取可选择道具失败，必须要选择奖励的道具 playerId = {},itemId = {},selectItemId={}", player.getId(), itemId, selectItemId);
+                    result.code = Code.PARAM_ERROR;
+                    return result;
+                }
+                Long selectRewardCount = itemCfg.getSelectGetItem().get(selectItemId);
+                if (selectRewardCount == null || selectRewardCount < 1) {
+                    log.debug("使用道具时，获取可选择道具失败，奖励改道具的数据获取失败 playerId = {},itemId = {},selectItemId={},selectRewardCount={}", player.getId(), itemId, selectItemId, selectRewardCount);
+                    result.code = Code.PARAM_ERROR;
+                    return result;
+                }
+
+                long finalSelectItemCount = selectRewardCount * useItemCount;
+                addItemsMap.put(selectItemId, finalSelectItemCount);
+
+                CommonResult<ItemOperationResult> useResult = playerPackService.useItem(player.getId(), girdId, itemId, useItemCount, addItemsMap, AddType.USE_ITEM);
+                if (!useResult.success()) {
+                    log.debug("使用道具后获得选择道具失败 playerId = {},itemId = {},selectItemId={},finalSelectItemCount={}", player.getId(), itemId, selectItemId, finalSelectItemCount);
                     result.code = useResult.code;
                     return result;
                 }

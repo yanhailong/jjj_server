@@ -497,7 +497,7 @@ public class HallMessageHandler implements GmListener, ChooseWareListener, Choos
             return;
         }
         try {
-            CommonResult<Map<Integer, Long>> useResult = hallService.useItem(playerController.getPlayer(), req.girdId, req.itemId, req.useItemCount);
+            CommonResult<Map<Integer, Long>> useResult = hallService.useItem(playerController.getPlayer(), req.girdId, req.itemId, req.useItemCount,req.selectItemId);
             if (!useResult.success()) {
                 res.code = useResult.code;
                 playerController.send(res);
