@@ -33,15 +33,11 @@ public class SimCasinoData extends AbstractData {
     private int prosperity;
     //知名度 (场景宣传度)
     private int awareness;
-    //经营信息-接待游客人次 (累计)
+    //旧版经营信息统计 (仅用于一次性迁移到 SimBaseData)
     private long receptionCount;
-    //经营信息-经营收益 (累计金币)
     private long businessIncome;
-    //经营信息-观看广告数 (累计)
     private int watchAdCount;
-    //经营信息-完成任务数 (累计; 待任务系统接入后累加)
     private int finishedTaskCount;
-    //经营信息-SPINE游戏统计 gameType -> 统计
     private Map<Integer, SlotGameStatsData> slotStatsMap;
     //建筑数据
     private Map<Integer, BuildingData> buildingData;

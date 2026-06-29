@@ -97,7 +97,7 @@ public interface SimConstant {
         int REQ_OPERATION_DATA = BASE_MSG_PREFIX | 0x2A;
         int RES_OPERATION_DATA = BASE_MSG_PREFIX | 0x2B;
 
-        //经营信息-SPINE游戏数据 (指定游戏)
+        //经营信息-SPINE游戏数据 (>0指定游戏, 0所有游戏汇总)
         int REQ_SLOT_STAT = BASE_MSG_PREFIX | 0x2C;
         int RES_SLOT_STAT = BASE_MSG_PREFIX | 0x2D;
 
@@ -143,6 +143,10 @@ public interface SimConstant {
 
         //通知任务更新 (进度/状态变更)
         int NOTIFY_SIM_TASK_UPDATE = BASE_MSG_PREFIX | 0x42;
+
+        //设置经营信息展示的成就勋章
+        int REQ_SET_DISPLAYED_MEDALS = BASE_MSG_PREFIX | 0x43;
+        int RES_SET_DISPLAYED_MEDALS = BASE_MSG_PREFIX | 0x44;
     }
 
     interface Common {

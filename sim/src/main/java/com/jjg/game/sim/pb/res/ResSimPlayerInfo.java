@@ -29,6 +29,16 @@ public class ResSimPlayerInfo extends AbstractResponse {
     public String allianceName;
     @ProtoDesc("以解锁场景id")
     public List<Integer> unlockCasinoIds;
+    @ProtoDesc("VIP等级")
+    public int vipLevel;
+    @ProtoDesc("经营角色等级(所有娱乐城等级之和)")
+    public int roleLevel;
+    @ProtoDesc("注册时间(秒)")
+    public int createTime;
+    @ProtoDesc("性别")
+    public int gender;
+    @ProtoDesc("该玩家当前展示的成就勋章配置id")
+    public List<Integer> displayedMedalIds;
 
     public ResSimPlayerInfo(int code) {
         super(code);

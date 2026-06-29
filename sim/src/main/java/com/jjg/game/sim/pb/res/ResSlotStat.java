@@ -16,7 +16,7 @@ import java.util.List;
 @ProtobufMessage(messageType = MessageConst.MessageTypeDef.SIM_GAME, cmd = SimConstant.MsgBean.RES_SLOT_STAT, resp = true)
 @ProtoDesc("经营信息-SPINE游戏数据返回")
 public class ResSlotStat extends AbstractResponse {
-    @ProtoDesc("指定的游戏类型")
+    @ProtoDesc("请求的游戏类型 (0=所有游戏累计汇总)")
     public int gameType;
     @ProtoDesc("SPINE游戏数据列表 (KEY->数值)")
     public List<StatInfo> stats;

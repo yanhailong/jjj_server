@@ -34,6 +34,18 @@ public class SimBaseData extends AbstractData {
     private Map<Integer, Integer> researchPointMap;
     //所有场景等级之和
     private int allLevel;
+    //经营信息-高级游客人次 (玩家跨娱乐城累计)
+    private long receptionCount;
+    //经营信息-经营总收益 (玩家跨娱乐城累计金币)
+    private long businessIncome;
+    //经营信息-观看广告数 (玩家跨娱乐城累计)
+    private int watchAdCount;
+    //经营信息-完成任务数 (玩家跨娱乐城累计, 完成即计数)
+    private int finishedTaskCount;
+    //经营信息-SPINE游戏统计 gameType -> 玩家累计统计
+    private Map<Integer, SlotGameStatsData> slotStatsMap;
+    //旧版按娱乐城保存的统计是否已迁移到玩家数据
+    private boolean operationStatsMigrated;
 
     public long getPlayerId() {
         return playerId;
@@ -113,6 +125,85 @@ public class SimBaseData extends AbstractData {
 
     public void setAllLevel(int allLevel) {
         this.allLevel = allLevel;
+    }
+
+    public long getReceptionCount() {
+        return receptionCount;
+    }
+
+    public void setReceptionCount(long receptionCount) {
+        this.receptionCount = receptionCount;
+    }
+
+    public void addReceptionCount(long count) {
+        if (count > 0) {
+            this.receptionCount += count;
+        }
+    }
+
+    public long getBusinessIncome() {
+        return businessIncome;
+    }
+
+    public void setBusinessIncome(long businessIncome) {
+        this.businessIncome = businessIncome;
+    }
+
+    public void addBusinessIncome(long gold) {
+        if (gold > 0) {
+            this.businessIncome += gold;
+        }
+    }
+
+    public int getWatchAdCount() {
+        return watchAdCount;
+    }
+
+    public void setWatchAdCount(int watchAdCount) {
+        this.watchAdCount = watchAdCount;
+    }
+
+    public void incWatchAdCount() {
+        this.watchAdCount++;
+    }
+
+    public int getFinishedTaskCount() {
+        return finishedTaskCount;
+    }
+
+    public void setFinishedTaskCount(int finishedTaskCount) {
+        this.finishedTaskCount = finishedTaskCount;
+    }
+
+    public void incFinishedTaskCount() {
+        this.finishedTaskCount++;
+    }
+
+    public Map<Integer, SlotGameStatsData> getSlotStatsMap() {
+        return slotStatsMap;
+    }
+
+    public void setSlotStatsMap(Map<Integer, SlotGameStatsData> slotStatsMap) {
+        this.slotStatsMap = slotStatsMap;
+    }
+
+    public SlotGameStatsData findSlotStats(int gameType) {
+        return slotStatsMap == null ? null : slotStatsMap.get(gameType);
+    }
+
+    public SlotGameStatsData findOrCreateSlotStats(int gameType) {
+        if (slotStatsMap == null) {
+            slotStatsMap = new HashMap<>();
+        }
+        return slotStatsMap.computeIfAbsent(gameType, ignored -> new SlotGameStatsData());
+    }
+
+    public boolean isOperationStatsMigrated() {
+        return operationStatsMigrated;
+    }
+
+    public void setOperationStatsMigrated(boolean operationStatsMigrated) {
+        this.operationStatsMigrated = operationStatsMigrated;
     }
 
     /**

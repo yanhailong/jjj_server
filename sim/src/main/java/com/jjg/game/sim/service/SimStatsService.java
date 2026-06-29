@@ -7,7 +7,9 @@ import com.jjg.game.sim.constant.BonusType;
 import com.jjg.game.sim.constant.BuildingOutputType;
 import com.jjg.game.sim.constant.SimConstant;
 import com.jjg.game.sim.constant.SimStatKey;
+import com.jjg.game.sim.data.SimBaseData;
 import com.jjg.game.sim.data.SimCasinoData;
+import com.jjg.game.sim.data.SimCasinoUnlock;
 import com.jjg.game.sim.data.SimPlayerContext;
 import com.jjg.game.sim.data.SimSkillsData;
 import com.jjg.game.sim.data.SlotGameStatsData;
@@ -21,6 +23,7 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 
 import java.util.ArrayList;
+import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
@@ -39,6 +42,8 @@ public class SimStatsService {
     private SimBuildingService buildingService;
     @Autowired
     private SimConfigCacheService configCache;
+    @Autowired
+    private SimCasinoService casinoService;
 
     // ---------------------------------------------------------------------
     // 累加 (slots 旋转上报)
@@ -47,11 +52,11 @@ public class SimStatsService {
     /**
      * 记录一次 slots 旋转的统计 (运行在玩家线程; 直接操作当前场景内存数据)
      */
-    public void recordSpin(SimCasinoData casino, int gameType, SpinStatInfo info) {
-        if (casino == null || info == null) {
+    public void recordSpin(SimBaseData baseData, int gameType, SpinStatInfo info) {
+        if (baseData == null || info == null) {
             return;
         }
-        SlotGameStatsData s = casino.findOrCreateSlotStats(gameType);
+        SlotGameStatsData s = baseData.findOrCreateSlotStats(gameType);
         if (info.getBet() > 0) {
             s.setTotalBet(s.getTotalBet() + info.getBet());
         }
@@ -121,7 +126,7 @@ public class SimStatsService {
     }
 
     /**
-     * 经营信息-SPINE游戏数据 (指定游戏)
+     * 经营信息-SPINE游戏数据 (>0指定游戏, 0所有游戏汇总)
      */
     public void onSlotStat(SimPlayerContext ctx, int gameType) {
         ResSlotStat res = new ResSlotStat(Code.SUCCESS);
@@ -134,7 +139,7 @@ public class SimStatsService {
                 ctx.send(res);
                 return;
             }
-            res.stats = buildSlotStats(casino, gameType);
+            res.stats = buildSlotStats(ctx, casino, gameType);
         } catch (Exception e) {
             log.error("", e);
             res.code = Code.EXCEPTION;
@@ -159,16 +164,17 @@ public class SimStatsService {
         int totalEmployee = GameDataManager.getEmployeeProfileCfgList() == null ? 0 : GameDataManager.getEmployeeProfileCfgList().size();
         list.add(new StatInfo(SimStatKey.Operation.EMPLOYEE, activated, totalEmployee));
 
-        //累计统计
-        list.add(new StatInfo(SimStatKey.Operation.RECEPTION, casino.getReceptionCount()));
-        list.add(new StatInfo(SimStatKey.Operation.BUSINESS_INCOME, casino.getBusinessIncome()));
-        list.add(new StatInfo(SimStatKey.Operation.FINISH_TASK, casino.getFinishedTaskCount()));
-        list.add(new StatInfo(SimStatKey.Operation.WATCH_AD, casino.getWatchAdCount()));
+        //玩家跨娱乐城累计统计
+        SimBaseData baseData = ctx.getSimBaseData();
+        list.add(new StatInfo(SimStatKey.Operation.RECEPTION, baseData.getReceptionCount()));
+        list.add(new StatInfo(SimStatKey.Operation.BUSINESS_INCOME, baseData.getBusinessIncome()));
+        list.add(new StatInfo(SimStatKey.Operation.FINISH_TASK, baseData.getFinishedTaskCount()));
+        list.add(new StatInfo(SimStatKey.Operation.WATCH_AD, baseData.getWatchAdCount()));
 
         //房间每分钟产量
         Map<Integer, Long> roomOutputs = buildingService.computeRoomOutputs(ctx, casino);
         list.add(new StatInfo(SimStatKey.Operation.ENERGY_ROOM, roomOutputs.getOrDefault(SimStatKey.Operation.ENERGY_ROOM, 0L)));
-        list.add(new StatInfo(SimStatKey.Operation.SLOT_ROOM, roomOutputs.getOrDefault(SimStatKey.Operation.SLOT_ROOM, 0L)));
+        list.add(new StatInfo(SimStatKey.Operation.GOLD_INCOME, roomOutputs.getOrDefault(SimStatKey.Operation.GOLD_INCOME, 0L)));
         list.add(new StatInfo(SimStatKey.Operation.POKER_ROOM, roomOutputs.getOrDefault(SimStatKey.Operation.POKER_ROOM, 0L)));
         list.add(new StatInfo(SimStatKey.Operation.FISHING_ROOM, roomOutputs.getOrDefault(SimStatKey.Operation.FISHING_ROOM, 0L)));
 
@@ -178,8 +184,9 @@ public class SimStatsService {
         list.add(new StatInfo(SimStatKey.Operation.OPERATIONS_DEPT, buildingService.computeDeptValue(ctx, casino, BuildingOutputType.AWARENESS, BonusType.AWARENESS)));
 
         //研发部: 已研发 / 游戏总数
-        Set<Integer> unlockGames = configCache.getUnlockGameByRegionId(casino.getCasinoId());
-        int totalGame = unlockGames == null ? 0 : unlockGames.size();
+        Set<Integer> unlockGames = findAllUnlockedGames(ctx.playerId(), casino.getCasinoId());
+        int totalGame = unlockGames.size();
+        list.add(new StatInfo(SimStatKey.Operation.UNLOCK_GAME, totalGame));
         int researched = countResearchedGames(ctx, unlockGames);
         list.add(new StatInfo(SimStatKey.Operation.RESEARCH_DEPT, researched, totalGame));
 
@@ -187,25 +194,17 @@ public class SimStatsService {
     }
 
     /**
-     * 组装 SPINE游戏数据列表 (gameType<=0 时仅返回解锁游戏数)
+     * 组装 SPINE游戏数据列表 (gameType<=0 时汇总所有游戏)
      */
-    private List<StatInfo> buildSlotStats(SimCasinoData casino, int gameType) {
+    private List<StatInfo> buildSlotStats(SimPlayerContext ctx, SimCasinoData casino, int gameType) {
         List<StatInfo> list = new ArrayList<>();
 
-        //解锁游戏数 (当前场景)
-        Set<Integer> unlockGames = configCache.getUnlockGameByRegionId(casino.getCasinoId());
-        int unlockCount = unlockGames == null ? 0 : unlockGames.size();
+        //玩家所有已解锁娱乐城的游戏并集
+        Set<Integer> unlockGames = findAllUnlockedGames(ctx.playerId(), casino.getCasinoId());
+        int unlockCount = unlockGames.size();
         list.add(new StatInfo(SimStatKey.Slot.UNLOCK_GAME, unlockCount));
 
-        if (gameType <= 0) {
-            return list;
-        }
-
-        SlotGameStatsData s = casino.findSlotStats(gameType);
-        if (s == null) {
-            //未游玩过的游戏: 返回全 0
-            s = new SlotGameStatsData();
-        }
+        SlotGameStatsData s = aggregateSlotStats(ctx.getSimBaseData().getSlotStatsMap(), gameType);
         list.add(new StatInfo(SimStatKey.Slot.TOTAL_BET, s.getTotalBet()));
         list.add(new StatInfo(SimStatKey.Slot.SPIN_COUNT, s.getSpinCount()));
         list.add(new StatInfo(SimStatKey.Slot.TOTAL_WIN, s.getTotalWin()));
@@ -222,6 +221,47 @@ public class SimStatsService {
         list.add(new StatInfo(SimStatKey.Slot.GRAND, s.getGrandCount()));
         list.add(new StatInfo(SimStatKey.Slot.FREE_GAME, s.getFreeCount()));
         return list;
+    }
+
+    /**
+     * gameType>0 返回指定游戏快照; gameType<=0 汇总所有游戏。
+     */
+    static SlotGameStatsData aggregateSlotStats(Map<Integer, SlotGameStatsData> statsMap, int gameType) {
+        SlotGameStatsData result = new SlotGameStatsData();
+        if (statsMap == null || statsMap.isEmpty()) {
+            return result;
+        }
+        if (gameType > 0) {
+            result.mergeFrom(statsMap.get(gameType));
+            return result;
+        }
+        for (SlotGameStatsData stats : statsMap.values()) {
+            result.mergeFrom(stats);
+        }
+        return result;
+    }
+
+    /**
+     * 玩家已解锁的所有娱乐城对应游戏并集。旧数据缺少解锁记录时回退当前娱乐城。
+     */
+    private Set<Integer> findAllUnlockedGames(long playerId, int currentCasinoId) {
+        Set<Integer> result = new HashSet<>();
+        SimCasinoUnlock unlock = casinoService.getCasinoUnlock(playerId);
+        if (unlock != null && unlock.getResearchLevelMap() != null) {
+            for (Integer casinoId : unlock.getResearchLevelMap().keySet()) {
+                Set<Integer> games = configCache.getUnlockGameByRegionId(casinoId);
+                if (games != null) {
+                    result.addAll(games);
+                }
+            }
+        }
+        if (result.isEmpty()) {
+            Set<Integer> currentGames = configCache.getUnlockGameByRegionId(currentCasinoId);
+            if (currentGames != null) {
+                result.addAll(currentGames);
+            }
+        }
+        return result;
     }
 
     /**

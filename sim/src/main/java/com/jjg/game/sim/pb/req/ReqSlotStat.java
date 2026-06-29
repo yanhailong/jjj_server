@@ -13,6 +13,6 @@ import com.jjg.game.sim.constant.SimConstant;
 @ProtobufMessage(messageType = MessageConst.MessageTypeDef.SIM_GAME, cmd = SimConstant.MsgBean.REQ_SLOT_STAT)
 @ProtoDesc("经营信息-SPINE游戏数据 (指定游戏)")
 public class ReqSlotStat extends AbstractMessage {
-    @ProtoDesc("指定游戏类型 (0=不指定,仅返回解锁游戏数)")
+    @ProtoDesc("指定游戏类型 (>0=单游戏, 0=所有游戏累计汇总)")
     public int gameType;
 }

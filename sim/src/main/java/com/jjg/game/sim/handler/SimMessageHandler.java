@@ -343,7 +343,7 @@ public class SimMessageHandler implements GmListener {
     }
 
     /**
-     * 经营信息-SPINE游戏数据 (指定游戏)
+     * 经营信息-SPINE游戏数据 (>0指定游戏, 0所有游戏汇总)
      */
     @Command(SimConstant.MsgBean.REQ_SLOT_STAT)
     public void reqSlotStat(PlayerController playerController, ReqSlotStat req) {
@@ -378,6 +378,14 @@ public class SimMessageHandler implements GmListener {
     @Command(SimConstant.MsgBean.REQ_SIM_TASK_REWARD)
     public void reqSimTaskReward(PlayerController playerController, ReqSimTaskReward req) {
         execute(playerController, ctx -> ctx.send(taskService.claimReward(ctx, req.taskId)));
+    }
+
+    /**
+     * 设置经营信息中展示的成就勋章
+     */
+    @Command(SimConstant.MsgBean.REQ_SET_DISPLAYED_MEDALS)
+    public void reqSetDisplayedMedals(PlayerController playerController, ReqSetDisplayedMedals req) {
+        execute(playerController, ctx -> ctx.send(taskService.setDisplayedMedals(ctx, req.medalIds)));
     }
 
     //--------------------------任务 (主线/成就) end--------------------------

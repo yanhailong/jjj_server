@@ -2,9 +2,12 @@ package com.jjg.game.social.service;
 
 import com.jjg.game.core.constant.AddType;
 import com.jjg.game.core.constant.Code;
+import com.jjg.game.core.data.NoticeTipBuilder;
 import com.jjg.game.core.data.Player;
+import com.jjg.game.core.data.PlayerController;
 import com.jjg.game.core.data.PlayerSessionInfo;
 import com.jjg.game.core.service.CorePlayerService;
+import com.jjg.game.core.utils.TipUtils;
 import com.jjg.game.sim.service.SimConfigCacheService;
 import com.jjg.game.sim.service.SimPackService;
 import com.jjg.game.social.constant.SocialConst;
@@ -291,21 +294,23 @@ public class FriendService {
     /**
      * 处理好友申请
      *
-     * @param selfId
      * @param ids
      * @param agree
      * @return
      */
-    public ResHandleRequest handleRequest(long selfId, List<Long> ids, boolean agree) {
+    public void handleRequest(PlayerController playerController, List<Long> ids, boolean agree) {
         ResHandleRequest res = new ResHandleRequest(Code.SUCCESS);
         try {
-            FriendData selfData = friendDao.getOrEmpty(selfId);
+            FriendData selfData = friendDao.getOrEmpty(playerController.playerId());
             res.handledIds = new ArrayList<>();
             res.addedFriends = new ArrayList<>();
 
             Map<Long, Long> pending = selfData.getPendingRequests();
             if (pending == null || pending.isEmpty()) {
-                return res;
+                res.code = Code.PARAM_ERROR;
+                playerController.send(res);
+                log.warn("处理好友申请失败，申请列表为空 playerId={}", playerController.playerId());
+                return;
             }
             //ids 为空表示一键处理全部
             List<Long> targetIds = (ids == null || ids.isEmpty()) ? new ArrayList<>(pending.keySet()) : ids;
@@ -322,60 +327,68 @@ public class FriendService {
                 }
             }
             if (handledIds.isEmpty()) {
-                return res;
+                res.code = Code.NOT_FOUND;
+                playerController.send(res);
+                log.warn("处理好友申请失败，实际处理申请列表为空 playerId={}", playerController.playerId());
+                return;
             }
             res.handledIds.addAll(handledIds);
 
-            if (!agree) {
+            if (agree) {
+                //同意: 批量取申请者资料 + 在线状态, 受双方好友上限约束筛出可加好友
+                Map<Long, Player> players = corePlayerService.multiGetPlayerMap(handledIds);
+                Map<Long, PlayerSessionInfo> sessionInfos = statusService.infosOf(handledIds);
+                //一次聚合取各申请者当前好友数, 申请方已满者不建立关系(其申请照常移除)
+                Map<Long, Integer> requesterCounts = friendDao.friendCounts(handledIds);
+                Map<Long, FriendEntry> acceptedFriends = new LinkedHashMap<>();
+                for (Long rid : handledIds) {
+                    if (friendCount >= friendLimit) {
+                        break;
+                    }
+                    Player requester = players.get(rid);
+                    if (requester == null) {
+                        continue;
+                    }
+                    if (requesterCounts.getOrDefault(rid, 0) >= friendLimit) {
+                        log.info("同意好友申请跳过，申请方好友数已达上限 selfId={},requesterId={}", playerController.playerId(), rid);
+                        continue;
+                    }
+                    acceptedFriends.put(rid, new FriendEntry(now));
+                    friendCount++;
+
+                    PlayerSessionInfo info = sessionInfos.get(rid);
+                    int status = statusService.statusOf(info);
+                    long offlineSeconds = statusService.offlineSeconds(info, requester);
+                    res.addedFriends.add(SocialPbConverter.toFriendInfo(requester, status, offlineSeconds, 0, false));
+                }
+
+                //一次性写入: 移除全部已处理申请 + 双向建立已同意好友(1 次单文档更新 + 1 次 bulk)
+                friendDao.applyHandleRequest(playerController.playerId(), handledIds, acceptedFriends, now);
+
+                playerController.send(res);
+
+                //通知已同意的申请方刷新(其新增了我这个好友); selfId 状态为常量, 循环外算一次
+                if (!acceptedFriends.isEmpty()) {
+                    //好友关系已变更, 失效双方的好友id缓存
+                    relationCache.invalidateFriendIds(playerController.playerId(), acceptedFriends.keySet());
+                    NotifyNewFriendHandle notify = new NotifyNewFriendHandle();
+                    notify.friendInfo = SocialPbConverter.toFriendInfo(playerController.getPlayer(), statusService.statusOf(playerController.playerId()), 0, 0, false);
+                    notify.agree = true;
+                    sender.sendTo(acceptedFriends.keySet(), notify);
+                }
+
+            } else {
                 //全部拒绝: 一次性移除全部已处理申请
-                friendDao.removeRequests(selfId, handledIds);
-                return res;
-            }
-
-            //同意: 批量取申请者资料 + 在线状态, 受双方好友上限约束筛出可加好友
-            Map<Long, Player> players = corePlayerService.multiGetPlayerMap(handledIds);
-            Map<Long, PlayerSessionInfo> sessionInfos = statusService.infosOf(handledIds);
-            //一次聚合取各申请者当前好友数, 申请方已满者不建立关系(其申请照常移除)
-            Map<Long, Integer> requesterCounts = friendDao.friendCounts(handledIds);
-            Map<Long, FriendEntry> acceptedFriends = new LinkedHashMap<>();
-            for (Long rid : handledIds) {
-                if (friendCount >= friendLimit) {
-                    break;
-                }
-                Player requester = players.get(rid);
-                if (requester == null) {
-                    continue;
-                }
-                if (requesterCounts.getOrDefault(rid, 0) >= friendLimit) {
-                    log.info("同意好友申请跳过，申请方好友数已达上限 selfId={},requesterId={}", selfId, rid);
-                    continue;
-                }
-                acceptedFriends.put(rid, new FriendEntry(now));
-                friendCount++;
-
-                PlayerSessionInfo info = sessionInfos.get(rid);
-                int status = statusService.statusOf(info);
-                long offlineSeconds = statusService.offlineSeconds(info, requester);
-                res.addedFriends.add(SocialPbConverter.toFriendInfo(requester, status, offlineSeconds, 0, false));
-            }
-
-            //一次性写入: 移除全部已处理申请 + 双向建立已同意好友(1 次单文档更新 + 1 次 bulk)
-            friendDao.applyHandleRequest(selfId, handledIds, acceptedFriends, now);
-
-            //通知已同意的申请方刷新(其新增了我这个好友); selfId 状态为常量, 循环外算一次
-            if (!acceptedFriends.isEmpty()) {
-                //好友关系已变更, 失效双方的好友id缓存
-                relationCache.invalidateFriendIds(selfId, acceptedFriends.keySet());
-                NotifyFriendStatus notify = new NotifyFriendStatus(Code.SUCCESS);
-                notify.playerId = selfId;
-                notify.status = statusService.statusOf(selfId);
-                sender.sendTo(acceptedFriends.keySet(), notify);
+                friendDao.removeRequests(playerController.playerId(), handledIds);
+                NoticeTipBuilder builder = NoticeTipBuilder.builder().tipType(TipUtils.TipType.TOAST).languageId(SocialConst.LangIds.REJECT_ADD_FRIEND_APPLY);
+                builder.addArg(0, playerController.getPlayer().getNickName());
+                TipUtils.sendTip(playerController,TipUtils.TipType.TOAST,() -> builder.build());
             }
         } catch (Exception e) {
             log.error("", e);
             res.code = Code.EXCEPTION;
+            playerController.send(res);
         }
-        return res;
     }
 
     // ----------------------- 删除 -----------------------
@@ -411,6 +424,10 @@ public class FriendService {
             relationCache.invalidateFriendIds(selfId, toRemove);
             res.removedIds.addAll(toRemove);
             log.info("删除好友 playerId={},ids={}", selfId, toRemove);
+
+            NotifyDeleteFriend notify = new NotifyDeleteFriend();
+            notify.friendId = selfId;
+            sender.sendTo(toRemove, notify);
         } catch (Exception e) {
             log.error("", e);
             res.code = Code.EXCEPTION;
@@ -628,7 +645,7 @@ public class FriendService {
                 return res;
             }
             //发放道具 (领取者即调用方本人, addItemsByPlayerId 自动按在线/离线入账)
-            simPackService.addItemsByPlayerId(selfId, Map.of(cfg.itemId(), total),AddType.FRIEND_GIFT_COLLECT, "", true);
+            simPackService.addItemsByPlayerId(selfId, Map.of(cfg.itemId(), total), AddType.FRIEND_GIFT_COLLECT, "", true);
             friendDao.clearPendingGifts(selfId);
             res.itemId = cfg.itemId();
             res.gainCount = total;

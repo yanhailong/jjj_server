@@ -3,6 +3,8 @@ package com.jjg.game.common.rpc;
 import cn.hutool.core.convert.BasicType;
 import com.alibaba.fastjson.JSON;
 import com.alibaba.fastjson.JSONObject;
+import com.alibaba.fastjson.parser.ParserConfig;
+import com.alibaba.fastjson.util.TypeUtils;
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.jjg.game.common.cluster.ClusterConnect;
 import com.jjg.game.common.cluster.ClusterMessage;
@@ -81,7 +83,7 @@ public class RpcServerService {
             String[] paramsName = new String[parameterNameOfData.size()];
             for (Object entry : parameterNameOfData) {
                 JSONObject paramTypeData = (JSONObject) entry;
-                args[i] = paramTypeData.get("second");
+                Object rawArg = paramTypeData.get("second");
                 String paramType = paramTypeData.get("first").toString();
                 // 如果是基础类型
                 if (basicName.containsKey(paramType)) {
@@ -89,6 +91,7 @@ public class RpcServerService {
                 } else {
                     parameterTypes[i] = Class.forName(paramType);
                 }
+                args[i] = convertArgument(rawArg, parameterTypes[i]);
                 if (parameterTypes[i].isAnnotationPresent(Param.class)) {
                     Param param = parameterTypes[i].getAnnotation(Param.class);
                     paramsName[i] = param.value();
@@ -124,6 +127,17 @@ public class RpcServerService {
         } catch (InvocationTargetException | IllegalAccessException e) {
             log.error("调用RPC时，发生逻辑异常 类：{} 对应的方法：{}", req.serviceClassName, req.serviceMethodName, e);
         }
+    }
+
+    /**
+     * 将 Fastjson 解析出的 JSONObject/JSONArray 等中间类型转换为 RPC 方法声明的参数类型。
+     * 基础类型、Map/List 实现以及 null 已经可直接用于反射调用，保持原值不变。
+     */
+    private Object convertArgument(Object rawArg, Class<?> parameterType) {
+        if (rawArg == null || parameterType.isPrimitive() || parameterType.isInstance(rawArg)) {
+            return rawArg;
+        }
+        return TypeUtils.cast(rawArg, parameterType, ParserConfig.getGlobalInstance());
     }
 
     /**

@@ -1,7 +1,7 @@
 package com.jjg.game.sim.data;
 
 /**
- * 单个 slots 游戏的累计统计数据 (按 gameType 存于 {@link SimCasinoData#slotStatsMap}).
+ * 单个 slots 游戏的累计统计数据 (按 gameType 存于玩家级 {@link SimBaseData}).
  * <p>
  * 数据来源: slots 每次旋转经 ToSimBridge.onSlotsSpin 上报的 {@link SpinStatInfo}.
  *
@@ -161,5 +161,30 @@ public class SlotGameStatsData {
 
     public void setLastRemainFree(int lastRemainFree) {
         this.lastRemainFree = lastRemainFree;
+    }
+
+    /**
+     * 合并另一份累计数据。累计项相加，单次峰值项取最大值。
+     */
+    public void mergeFrom(SlotGameStatsData other) {
+        if (other == null) {
+            return;
+        }
+        this.totalBet += other.totalBet;
+        this.spinCount += other.spinCount;
+        this.totalWin += other.totalWin;
+        this.maxWin = Math.max(this.maxWin, other.maxWin);
+        this.maxMultiple = Math.max(this.maxMultiple, other.maxMultiple);
+        this.sweetWin += other.sweetWin;
+        this.bigWin += other.bigWin;
+        this.megaWin += other.megaWin;
+        this.epicWin += other.epicWin;
+        this.legendaryWin += other.legendaryWin;
+        this.miniCount += other.miniCount;
+        this.minorCount += other.minorCount;
+        this.majorCount += other.majorCount;
+        this.grandCount += other.grandCount;
+        this.freeCount += other.freeCount;
+        this.lastRemainFree = Math.max(this.lastRemainFree, other.lastRemainFree);
     }
 }

@@ -24,6 +24,10 @@ public class ResSimTaskList extends AbstractResponse {
     public boolean mainFinished;
     @ProtoDesc("成就当前节点列表 (每个成就组一条)")
     public List<Task> achievementTasks;
+    @ProtoDesc("已激活的成就勋章配置id")
+    public List<Integer> activatedMedalIds;
+    @ProtoDesc("当前展示的成就勋章配置id, 顺序即展示顺序")
+    public List<Integer> displayedMedalIds;
 
     public ResSimTaskList(int code) {
         super(code);

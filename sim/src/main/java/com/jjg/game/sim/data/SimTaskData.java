@@ -5,6 +5,8 @@ import org.springframework.data.annotation.Id;
 import org.springframework.data.mongodb.core.mapping.Document;
 
 import java.util.HashMap;
+import java.util.ArrayList;
+import java.util.List;
 import java.util.Map;
 
 /**
@@ -31,6 +33,11 @@ public class SimTaskData extends AbstractData {
      */
     private Map<Integer, TaskDetail> achievements = new HashMap<>();
 
+    /**
+     * 经营信息中当前展示的成就勋章配置id, 顺序即展示顺序。
+     */
+    private List<Integer> displayedMedalIds = new ArrayList<>();
+
     public long getPlayerId() {
         return playerId;
     }
@@ -56,5 +63,16 @@ public class SimTaskData extends AbstractData {
 
     public void setAchievements(Map<Integer, TaskDetail> achievements) {
         this.achievements = achievements == null ? new HashMap<>() : achievements;
+    }
+
+    public List<Integer> getDisplayedMedalIds() {
+        if (displayedMedalIds == null) {
+            displayedMedalIds = new ArrayList<>();
+        }
+        return displayedMedalIds;
+    }
+
+    public void setDisplayedMedalIds(List<Integer> displayedMedalIds) {
+        this.displayedMedalIds = displayedMedalIds == null ? new ArrayList<>() : displayedMedalIds;
     }
 }

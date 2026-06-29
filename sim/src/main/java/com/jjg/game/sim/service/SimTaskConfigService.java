@@ -149,4 +149,24 @@ public class SimTaskConfigService implements ConfigExcelChangeListener {
     public int next(int taskId) {
         return this.nextIndex.getOrDefault(taskId, 0);
     }
+
+    /**
+     * 根据当前链节点推导已完成节点数，用于旧数据补齐累计完成任务数。
+     */
+    public int completedCountThrough(TaskCfg cfg, boolean currentCompleted) {
+        if (cfg == null) {
+            return 0;
+        }
+        List<Integer> chain = cfg.getTaskType() == TaskConstant.TaskType.MAIN_LINE
+                ? this.mainChain
+                : this.achievementGroups.get(cfg.getGroup());
+        if (chain == null || chain.isEmpty()) {
+            return 0;
+        }
+        int index = chain.indexOf(cfg.getId());
+        if (index < 0) {
+            return 0;
+        }
+        return index + (currentCompleted ? 1 : 0);
+    }
 }

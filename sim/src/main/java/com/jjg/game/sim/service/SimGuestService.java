@@ -252,6 +252,8 @@ public class SimGuestService implements SimPlayerTickListener {
         }
         data.setDestinations(map);
         casino.addPurchasedGuest(data);
+        //经营信息: 招商生成一名高级游客即累计一次, 与该游客的目的地数量无关
+        ctx.getSimBaseData().addReceptionCount(1);
 
         res.guest = SimPbConverter.toGuestInfo(data);
         ctx.send(res);
@@ -321,11 +323,9 @@ public class SimGuestService implements SimPlayerTickListener {
                 //添加道具
                 simPackService.addItems(ctx, rewardsMap, AddType.SIM_GUEST_REWARDS, null, false);
                 //经营信息: 购买游客交互产出金币计入经营收益
-                casino.addBusinessIncome(rewardsMap.getOrDefault(ItemUtils.getGoldItemId(), 0L));
+                ctx.getSimBaseData().addBusinessIncome(rewardsMap.getOrDefault(ItemUtils.getGoldItemId(), 0L));
             }
             dest.claimed = true;
-            //经营信息: 接待游客人次 (购买游客每个目的地领取一次记一次交互)
-            casino.addReceptionCount(1);
         }
         res.rewards = dest.rewards;
 
@@ -430,11 +430,9 @@ public class SimGuestService implements SimPlayerTickListener {
             simPackService.addItems(ctx, rewardsMap, AddType.SIM_GUEST_REWARDS, null, false);
         }
 
-        //经营信息: 接待游客人次(每个目的地一次交互) + 游客交互产出金币计入经营收益
-        SimCasinoData statCasino = ctx.getCurrentCasino();
-        statCasino.addReceptionCount(destinations.size());
+        //经营信息: 普通游客不计入高级游客人次; 游客交互产出金币计入玩家经营总收益
         if (!rewardsMap.isEmpty()) {
-            statCasino.addBusinessIncome(rewardsMap.getOrDefault(ItemUtils.getGoldItemId(), 0L));
+            ctx.getSimBaseData().addBusinessIncome(rewardsMap.getOrDefault(ItemUtils.getGoldItemId(), 0L));
         }
 
         //累加经验

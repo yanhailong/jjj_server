@@ -390,7 +390,7 @@ public class SimBuildingService implements SimPlayerTickListener {
                 data.setCdEndTime(data.getCdEndTime() - reduceMs);
                 data.setAdClearCount(data.getAdClearCount() + 1);
                 //经营信息: 观看广告数 +1
-                casino.incWatchAdCount();
+                ctx.getSimBaseData().incWatchAdCount();
             } else {
                 if (costCount < 1) {
                     res.code = Code.NOT_ENOUGH;
@@ -454,7 +454,7 @@ public class SimBuildingService implements SimPlayerTickListener {
                 Map<BuildingOutputType, Long> total = multiply(perMinute, fullMinutes);
                 simPackService.addItem(ctx, total, AddType.SIM_BUILD_MINUTE_REWARDS, null, false);
                 //经营信息: 累加每分钟自产金币收益
-                casino.addBusinessIncome(total.getOrDefault(BuildingOutputType.GOLD, 0L));
+                ctx.getSimBaseData().addBusinessIncome(total.getOrDefault(BuildingOutputType.GOLD, 0L));
             }
             //仅推进已结算的整分钟, 保留余量
             casino.setLastOutputTime(casino.getLastOutputTime() + fullMinutes * TimeHelper.ONE_MINUTE_OF_MILLIS);
@@ -573,11 +573,33 @@ public class SimBuildingService implements SimPlayerTickListener {
                 //能量房间: 休息区 POWER 产量
                 result.merge(SimStatKey.Operation.ENERGY_ROOM, actual.getOrDefault(BuildingOutputType.POWER, 0L), Long::sum);
             } else {
-                //游戏区 GOLD 产量; TODO 待建筑细分(SLOT/扑克/捕鱼)配置后区分, 暂统一计入 SLOT房间
-                result.merge(SimStatKey.Operation.SLOT_ROOM, actual.getOrDefault(BuildingOutputType.GOLD, 0L), Long::sum);
+                //BuildingAreaTable.SequenceID: 1~6 SLOT, 7~9 扑克, 10~12 捕鱼
+                long gold = actual.getOrDefault(BuildingOutputType.GOLD, 0L);
+                result.merge(SimStatKey.Operation.GOLD_INCOME, gold, Long::sum);
+                int statKey = resolveGameRoomStatKey(areaCfg);
+                if (statKey > 0 && statKey != SimStatKey.Operation.GOLD_INCOME) {
+                    result.merge(statKey, gold, Long::sum);
+                }
             }
         }
         return result;
+    }
+
+    static int resolveGameRoomStatKey(BuildingAreaTableCfg areaCfg) {
+        if (areaCfg == null) {
+            return 0;
+        }
+        int sequenceId = areaCfg.getSequenceID();
+        if (sequenceId >= 1 && sequenceId <= 6) {
+            return SimStatKey.Operation.GOLD_INCOME;
+        }
+        if (sequenceId >= 7 && sequenceId <= 9) {
+            return SimStatKey.Operation.POKER_ROOM;
+        }
+        if (sequenceId >= 10 && sequenceId <= 12) {
+            return SimStatKey.Operation.FISHING_ROOM;
+        }
+        return 0;
     }
 
     /**
@@ -867,9 +889,9 @@ public class SimBuildingService implements SimPlayerTickListener {
         Map<BuildingOutputType, Long> finalReward = scale(reward.getBaseReward(), multiplier);
         simPackService.addItem(ctx, finalReward, AddType.SIM_BUILD_OFFLINE_REWARDS, null, false);
         //经营信息: 离线产出金币计入经营收益; 看广告领取计入观看广告数
-        casino.addBusinessIncome(finalReward.getOrDefault(BuildingOutputType.GOLD, 0L));
+        ctx.getSimBaseData().addBusinessIncome(finalReward.getOrDefault(BuildingOutputType.GOLD, 0L));
         if (watchAd) {
-            casino.incWatchAdCount();
+            ctx.getSimBaseData().incWatchAdCount();
         }
         //领取后重置
         ctx.setPendingOffline(null);

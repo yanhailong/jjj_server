@@ -81,7 +81,10 @@ public interface SocialConst {
         int NOTIFY_FRIEND_REQUEST = BASE_MSG_PREFIX | 0x31;
         //收到好友赠礼通知
         int NOTIFY_GIFT_RECEIVED = BASE_MSG_PREFIX | 0x32;
-
+        //好友申请处理结果
+        int NOTIFY_NEW_FRIEND_HANDLE = BASE_MSG_PREFIX | 0x33;
+        //通知删除好友
+        int NOTIFY_DELETE_FRIEND = BASE_MSG_PREFIX | 0x34;
 
 
         //----------------- 玩家信息卡 -----------------
@@ -182,5 +185,10 @@ public interface SocialConst {
         int ONLINE = 0;
         int OFFLINE = 1;
         int IN_GAME = 2;
+    }
+
+    interface LangIds{
+        //拒绝好友
+        int REJECT_ADD_FRIEND_APPLY = 4058048;
     }
 }

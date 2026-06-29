@@ -16,7 +16,7 @@ import java.util.List;
 @ProtobufMessage(messageType = MessageConst.MessageTypeDef.SIM_GAME, cmd = SimConstant.MsgBean.RES_OPERATION_DATA, resp = true)
 @ProtoDesc("经营信息-运营数据返回")
 public class ResOperationData extends AbstractResponse {
-    @ProtoDesc("运营数据列表 (KEY->数值)")
+    @ProtoDesc("运营数据列表")
     public List<StatInfo> stats;
 
     public ResOperationData(int code) {

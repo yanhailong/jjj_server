@@ -223,6 +223,23 @@ public class SimManager {
             res.headImgId = targetPlayer.getHeadImgId();
             res.headFrameId = targetPlayer.getHeadFrameId();
             res.nationalId = targetPlayer.getNationalId();
+            res.vipLevel = targetPlayer.getVipLevel();
+            res.createTime = targetPlayer.getCreateTime();
+            res.gender = targetPlayer.getGender();
+
+            SimPlayerContext targetCtx = getContext(targetPlayerId);
+            SimBaseData targetBaseData = targetCtx == null
+                    ? simPlayerGameDao.findById(targetPlayerId).orElse(null)
+                    : targetCtx.getSimBaseData();
+            if (targetBaseData != null) {
+                res.roleLevel = targetBaseData.getAllLevel();
+            }
+            SimTaskData targetTaskData = targetCtx == null
+                    ? simTaskDao.findById(targetPlayerId).orElse(null)
+                    : targetCtx.getSimTaskData();
+            if (targetTaskData != null) {
+                res.displayedMedalIds = new ArrayList<>(targetTaskData.getDisplayedMedalIds());
+            }
 
             //联盟名称: 经读缓存统一入口取, 避开 SimManager <-> AllianceService 循环引用
             long allianceId = allianceCacheService.getAllianceId(targetPlayerId);
@@ -303,13 +320,52 @@ public class SimManager {
         ctx.setSimBaseData(baseData);
         //加载场景数据
         simCasinoService.loadCasinoData(ctx, baseData);
+        migrateLegacyOperationStats(ctx);
         //加载雇员数据
         employeeService.loadEmployeeData(ctx);
         //加载主线/成就任务数据 (首登接取主线首节点+各成就组首节点)
         simTaskService.initTaskData(ctx);
+        simTaskService.reconcileFinishedTaskCount(ctx);
         this.contextMap.put(playerId, ctx);
         simNodeService.save(playerId, clusterSystem.getNodePath());
         return ctx;
+    }
+
+    /**
+     * 将旧版本按娱乐城保存的经营累计数据一次性汇总到玩家级数据。
+     */
+    private void migrateLegacyOperationStats(SimPlayerContext ctx) {
+        SimBaseData baseData = ctx.getSimBaseData();
+        if (baseData == null) {
+            return;
+        }
+        List<SimCasinoData> casinos = simCasinoDao.findByPlayerId(ctx.playerId());
+        if (casinos.isEmpty() && ctx.getCurrentCasino() != null) {
+            casinos = List.of(ctx.getCurrentCasino());
+        }
+        int allLevel = 0;
+        boolean migrateStats = !baseData.isOperationStatsMigrated();
+        for (SimCasinoData casino : casinos) {
+            allLevel += casino.getCasinoLevel();
+            if (!migrateStats) {
+                continue;
+            }
+            //旧 receptionCount 混入了普通游客及每个目的地交互，无法转换为“高级游客人数”，不迁移该字段
+            baseData.addBusinessIncome(casino.getBusinessIncome());
+            baseData.setWatchAdCount(baseData.getWatchAdCount() + casino.getWatchAdCount());
+            baseData.setFinishedTaskCount(baseData.getFinishedTaskCount() + casino.getFinishedTaskCount());
+            if (casino.getSlotStatsMap() != null) {
+                for (Map.Entry<Integer, SlotGameStatsData> entry : casino.getSlotStatsMap().entrySet()) {
+                    baseData.findOrCreateSlotStats(entry.getKey()).mergeFrom(entry.getValue());
+                }
+            }
+        }
+        if (allLevel > 0) {
+            baseData.setAllLevel(allLevel);
+        }
+        if (migrateStats) {
+            baseData.setOperationStatsMigrated(true);
+        }
     }
 
     public SimPlayerContext getContext(long playerId) {
@@ -426,7 +482,7 @@ public class SimManager {
             }
 
             //经营信息: 先记录 SPINE 游戏统计 (与掉落联动解耦, 旋转必计数)
-            simStatsService.recordSpin(ctx.getCurrentCasino(), gameType, statInfo);
+            simStatsService.recordSpin(ctx.getSimBaseData(), gameType, statInfo);
 
             CommonResult<SlotsSpinResult> result = simDropService.onSpin(ctx, gameType, winTimes);
             if (!result.success()) {

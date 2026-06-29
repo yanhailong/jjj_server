@@ -8,6 +8,7 @@ import com.jjg.game.core.constant.TaskConstant;
 import com.jjg.game.core.dao.CountDao;
 import com.jjg.game.core.data.Player;
 import com.jjg.game.core.data.PlayerController;
+import com.jjg.game.core.data.PlayerPack;
 import com.jjg.game.core.manager.ConditionManager;
 import com.jjg.game.core.service.CorePlayerService;
 import com.jjg.game.core.service.PlayerPackService;
@@ -16,7 +17,9 @@ import com.jjg.game.core.task.pb.Task;
 import com.jjg.game.core.task.pb.TaskCondition;
 import com.jjg.game.sampledata.GameDataManager;
 import com.jjg.game.sampledata.bean.ConditionCfg;
+import com.jjg.game.sampledata.bean.MedalListCfg;
 import com.jjg.game.sampledata.bean.TaskCfg;
+import com.jjg.game.sim.data.SimBaseData;
 import com.jjg.game.sim.data.SimPlayerContext;
 import com.jjg.game.sim.data.SpinStatInfo;
 import com.jjg.game.sim.dao.SimTaskDao;
@@ -24,13 +27,18 @@ import com.jjg.game.sim.data.SimTaskData;
 import com.jjg.game.sim.pb.res.NotifySimTaskUpdate;
 import com.jjg.game.sim.pb.res.ResSimTaskList;
 import com.jjg.game.sim.pb.res.ResSimTaskReward;
+import com.jjg.game.sim.pb.res.ResSetDisplayedMedals;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 
 import java.util.ArrayList;
+import java.util.Collections;
+import java.util.HashSet;
+import java.util.LinkedHashSet;
 import java.util.List;
+import java.util.Set;
 
 /**
  * sim 主线/成就任务服务 (线性链)。
@@ -50,6 +58,7 @@ public class SimTaskService {
     //计数 prefix: 主线整条共享一个, 成就每组一个 (featureId = 条件type + prefix)
     private static final String PREFIX_MAIN = "simTaskMain";
     private static final String PREFIX_ACH = "simTaskAch";
+    private static final int MAX_DISPLAYED_MEDALS = 3;
 
     @Autowired
     private SimTaskConfigService taskConfig;
@@ -80,6 +89,33 @@ public class SimTaskService {
         }
         ctx.setSimTaskData(data);
         ensureActive(playerId, data);
+    }
+
+    /**
+     * 由任务链当前节点补齐历史完成数量。配置缩减时不回退已经累计的数值。
+     */
+    public void reconcileFinishedTaskCount(SimPlayerContext ctx) {
+        SimTaskData data = ctx.getSimTaskData();
+        SimBaseData baseData = ctx.getSimBaseData();
+        if (data == null || baseData == null) {
+            return;
+        }
+        int completed = completedCount(data.getMainTask());
+        for (TaskDetail node : data.getAchievements().values()) {
+            completed += completedCount(node);
+        }
+        if (completed > baseData.getFinishedTaskCount()) {
+            baseData.setFinishedTaskCount(completed);
+        }
+    }
+
+    private int completedCount(TaskDetail node) {
+        if (node == null) {
+            return 0;
+        }
+        TaskCfg cfg = GameDataManager.getTaskCfg(node.getConfigId());
+        boolean currentCompleted = node.getStatus() != TaskConstant.TaskStatus.STATUS_IN_PROGRESS;
+        return taskConfig.completedCountThrough(cfg, currentCompleted);
     }
 
     /**
@@ -156,10 +192,10 @@ public class SimTaskService {
             BetEvent event = buildBetEvent(gameType, statInfo);
             List<Task> changed = new ArrayList<>();
 
-            evaluateOnEvent(player, data, data.getMainTask(), event, changed);
+            evaluateOnEvent(player, data, ctx.getSimBaseData(), data.getMainTask(), event, changed);
             //成就组在事件推进中可能续接(替换同 group 节点), 用 keySet 快照遍历
             for (Integer group : new ArrayList<>(data.getAchievements().keySet())) {
-                evaluateOnEvent(player, data, data.getAchievements().get(group), event, changed);
+                evaluateOnEvent(player, data, ctx.getSimBaseData(), data.getAchievements().get(group), event, changed);
             }
 
             if (!changed.isEmpty()) {
@@ -175,7 +211,7 @@ public class SimTaskService {
     /**
      * 事件推进单个节点: 累计进度(条件系统) + 判定完成。
      */
-    private void evaluateOnEvent(Player player, SimTaskData data, TaskDetail node, BetEvent event, List<Task> changed) {
+    private void evaluateOnEvent(Player player, SimTaskData data, SimBaseData baseData, TaskDetail node, BetEvent event, List<Task> changed) {
         if (node == null || node.getStatus() != TaskConstant.TaskStatus.STATUS_IN_PROGRESS) {
             return;
         }
@@ -194,14 +230,14 @@ public class SimTaskService {
         boolean done = r == MatchResult.MATCH
                 || (r == MatchResult.UNKNOWN && conditionManager.isAchievement(player, prefix, expr));
         if (done) {
-            onComplete(player, data, node, cfg, changed);
+            onComplete(player, data, baseData, node, cfg, changed);
         }
     }
 
     /**
      * 状态轮询(无事件): 开界面/上线时结算已达标的节点(覆盖玩家等级提升、计数已够等场景)。
      */
-    private void pollState(Player player, SimTaskData data, TaskDetail node, List<Task> changed) {
+    private void pollState(Player player, SimTaskData data, SimBaseData baseData, TaskDetail node, List<Task> changed) {
         if (node == null || node.getStatus() != TaskConstant.TaskStatus.STATUS_IN_PROGRESS) {
             return;
         }
@@ -211,7 +247,7 @@ public class SimTaskService {
         }
         String expr = exprOf(cfg);
         if (expr != null && conditionManager.isAchievement(player, prefixOf(cfg), expr)) {
-            onComplete(player, data, node, cfg, changed);
+            onComplete(player, data, baseData, node, cfg, changed);
         }
     }
 
@@ -222,10 +258,13 @@ public class SimTaskService {
     /**
      * 节点完成: 置完成态; 无奖励则直接领取并续接, 有奖励则等待客户端领取。
      */
-    private void onComplete(Player player, SimTaskData data, TaskDetail node, TaskCfg cfg, List<Task> changed) {
+    private void onComplete(Player player, SimTaskData data, SimBaseData baseData, TaskDetail node, TaskCfg cfg, List<Task> changed) {
         long now = System.currentTimeMillis();
         node.setStatus(TaskConstant.TaskStatus.STATUS_COMPLETED);
         node.setCompleteTime(now);
+        if (baseData != null) {
+            baseData.incFinishedTaskCount();
+        }
         log.info("玩家[{}]完成 sim 任务[{}]", player.getId(), node.getConfigId());
 
         boolean noReward = (cfg.getGetItem() == null || cfg.getGetItem().isEmpty())
@@ -334,9 +373,9 @@ public class SimTaskService {
         //开界面时顺带补齐(配置热更新增成就组/主线续接) + 状态轮询结算
         ensureActive(player.getId(), data);
         List<Task> ignore = new ArrayList<>();
-        pollState(player, data, data.getMainTask(), ignore);
+        pollState(player, data, ctx.getSimBaseData(), data.getMainTask(), ignore);
         for (Integer group : new ArrayList<>(data.getAchievements().keySet())) {
-            pollState(player, data, data.getAchievements().get(group), ignore);
+            pollState(player, data, ctx.getSimBaseData(), data.getAchievements().get(group), ignore);
         }
 
         TaskDetail main = data.getMainTask();
@@ -356,7 +395,92 @@ public class SimTaskService {
             }
         }
         res.achievementTasks = achievements;
+        List<Integer> activatedMedals = findActivatedMedalIds(player.getId());
+        Set<Integer> activated = new HashSet<>(activatedMedals);
+        List<Integer> displayed = new ArrayList<>();
+        for (Integer medalId : data.getDisplayedMedalIds()) {
+            if (displayed.size() >= MAX_DISPLAYED_MEDALS) {
+                break;
+            }
+            if (activated.contains(medalId) && !displayed.contains(medalId)) {
+                displayed.add(medalId);
+            }
+        }
+        if (!displayed.equals(data.getDisplayedMedalIds())) {
+            data.setDisplayedMedalIds(displayed);
+            ctx.setLastSaveTime(0);
+        }
+        //选择界面要求已展示勋章优先，其余按配置顺序排列
+        List<Integer> sortedActivated = new ArrayList<>(displayed);
+        for (Integer medalId : activatedMedals) {
+            if (!activated.contains(medalId) || sortedActivated.contains(medalId)) {
+                continue;
+            }
+            sortedActivated.add(medalId);
+        }
+        res.activatedMedalIds = sortedActivated;
+        res.displayedMedalIds = new ArrayList<>(displayed);
         return res;
+    }
+
+    /**
+     * 设置经营信息中展示的成就勋章。空列表表示全部取消展示。
+     */
+    public ResSetDisplayedMedals setDisplayedMedals(SimPlayerContext ctx, List<Integer> medalIds) {
+        ResSetDisplayedMedals res = new ResSetDisplayedMedals(Code.SUCCESS);
+        SimTaskData data = ctx.getSimTaskData();
+        if (data == null) {
+            res.code = Code.NOT_FOUND;
+            return res;
+        }
+        Set<Integer> activated = new HashSet<>(findActivatedMedalIds(ctx.playerId()));
+        if (!isValidDisplayedMedals(medalIds, activated)) {
+            res.code = Code.PARAM_ERROR;
+            res.medalIds = new ArrayList<>(data.getDisplayedMedalIds());
+            return res;
+        }
+        List<Integer> displayed = copyDisplayedMedals(medalIds);
+        data.setDisplayedMedalIds(displayed);
+        ctx.setLastSaveTime(0);
+        res.medalIds = new ArrayList<>(displayed);
+        log.info("玩家[{}]设置经营信息展示勋章 {}", ctx.playerId(), displayed);
+        return res;
+    }
+
+    /**
+     * 从勋章配置和玩家背包推导已激活勋章。NeedItemId 是成就任务最终激活物。
+     */
+    private List<Integer> findActivatedMedalIds(long playerId) {
+        PlayerPack pack = playerPackService.getFromAllDB(playerId);
+        List<MedalListCfg> configs = GameDataManager.getMedalListCfgList();
+        if (pack == null || configs == null || configs.isEmpty()) {
+            return Collections.emptyList();
+        }
+        List<Integer> result = new ArrayList<>();
+        for (MedalListCfg cfg : configs) {
+            if (cfg != null && cfg.getIsOpen() && cfg.getNeedItemId() > 0
+                    && pack.getItemCount(cfg.getNeedItemId()) > 0) {
+                result.add(cfg.getId());
+            }
+        }
+        return result;
+    }
+
+    static boolean isValidDisplayedMedals(List<Integer> medalIds, Set<Integer> activated) {
+        if (medalIds == null || medalIds.isEmpty()) {
+            return true;
+        }
+        if (medalIds.size() > MAX_DISPLAYED_MEDALS || activated == null) {
+            return false;
+        }
+        LinkedHashSet<Integer> unique = new LinkedHashSet<>(medalIds);
+        return unique.size() == medalIds.size()
+                && !unique.contains(null)
+                && activated.containsAll(unique);
+    }
+
+    static List<Integer> copyDisplayedMedals(List<Integer> medalIds) {
+        return medalIds == null ? new ArrayList<>() : new ArrayList<>(medalIds);
     }
 
     /**

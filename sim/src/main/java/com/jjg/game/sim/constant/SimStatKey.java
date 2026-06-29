@@ -31,8 +31,10 @@ public interface SimStatKey {
         int WATCH_AD = 6;
         //能量房间 每分钟产量
         int ENERGY_ROOM = 7;
-        //SLOT房间 每分钟产量
-        int SLOT_ROOM = 8;
+        //游戏区金币总收益 (SLOT+扑克+捕鱼每分钟产量)
+        int GOLD_INCOME = 8;
+        //兼容旧客户端命名
+        int SLOT_ROOM = GOLD_INCOME;
         //扑克房间 每分钟产量
         int POKER_ROOM = 9;
         //捕鱼房间 每分钟产量
@@ -45,10 +47,12 @@ public interface SimStatKey {
         int OPERATIONS_DEPT = 13;
         //研发部 (value=已研发游戏数, max=游戏总数)
         int RESEARCH_DEPT = 14;
+        //玩家所有娱乐城已解锁的SLOT游戏数
+        int UNLOCK_GAME = 15;
     }
 
     /**
-     * SPINE游戏数据 (指定游戏)
+     * SPINE游戏数据 (>0指定游戏, 0所有游戏汇总)
      */
     interface Slot {
         //解锁游戏数 (当前场景)

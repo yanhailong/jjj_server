@@ -153,7 +153,7 @@ public class SocialMessageHandler implements GmListener {
      */
     @Command(SocialConst.MsgBean.REQ_HANDLE_REQUEST)
     public void reqHandleRequest(PlayerController pc, ReqHandleRequest req) {
-        pc.send(friendService.handleRequest(pc.playerId(), req.playerIds, req.agree));
+        friendService.handleRequest(pc, req.playerIds, req.agree);
     }
 
     /**
