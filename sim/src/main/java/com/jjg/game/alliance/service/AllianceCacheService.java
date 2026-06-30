@@ -10,6 +10,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.data.redis.core.StringRedisTemplate;
+import org.springframework.data.redis.core.script.RedisScript;
 import org.springframework.stereotype.Component;
 
 import java.util.concurrent.TimeUnit;
@@ -37,10 +38,18 @@ public class AllianceCacheService {
     private static final int ALLIANCE_CACHE_SECONDS = 30;
     private static final int ALLIANCE_CACHE_MAX = 2000;
     //玩家映射本地缓存 TTL(秒)
-    private static final int PLAYER_CACHE_SECONDS = 3600;
+    // Pub/Sub 丢消息时最多陈旧 5 分钟；5000 个持续活跃玩家约增加 17 次 Redis GET/s/节点
+    private static final int PLAYER_CACHE_SECONDS = (int) TimeUnit.MINUTES.toSeconds(5);
     private static final int PLAYER_CACHE_MAX = 20000;
     //玩家映射 Redis TTL(秒): 不活跃玩家自然过期
     private static final long PLAYER_REDIS_TTL_SECONDS = TimeUnit.DAYS.toSeconds(1);
+    // 删除共享映射与发布本地缓存失效必须在 Redis 内原子完成
+    private static final RedisScript<Long> PLAYER_INVALIDATE_SCRIPT = RedisScript.of("""
+            for i = 1, #KEYS do
+                redis.call('DEL', KEYS[i])
+            end
+            return redis.call('PUBLISH', ARGV[1], ARGV[2])
+            """, Long.class);
 
     @Autowired
     private AllianceDao allianceDao;
@@ -134,14 +143,16 @@ public class AllianceCacheService {
     }
 
     /**
-     * 玩家联盟关系变更 (加入/退出/被踢/解散) 后失效映射: 删 Redis key + 本地, 下次读取回源重建。
+     * 玩家联盟关系变更后失效映射: 本地立即清理，Redis 原子执行删 key + 广播。
      */
     public void invalidatePlayer(long playerId) {
         playerAllianceCache.invalidate(playerId);
         try {
-            stringRedisTemplate.delete(AllianceConst.RedisKey.PLAYER_ALLIANCE_PREFIX + playerId);
+            stringRedisTemplate.execute(PLAYER_INVALIDATE_SCRIPT,
+                    java.util.List.of(AllianceConst.RedisKey.PLAYER_ALLIANCE_PREFIX + playerId),
+                    AllianceConst.RedisKey.PLAYER_INVALIDATE_CHANNEL, String.valueOf(playerId));
         } catch (Exception e) {
-            log.warn("失效玩家联盟映射缓存失败 playerId={}", playerId, e);
+            log.warn("原子失效玩家联盟映射缓存失败 playerId={}", playerId, e);
         }
     }
 
@@ -153,16 +164,34 @@ public class AllianceCacheService {
             return;
         }
         java.util.List<String> keys = new java.util.ArrayList<>(playerIds.size());
+        StringBuilder payload = new StringBuilder();
         for (Long pid : playerIds) {
             if (pid != null) {
                 playerAllianceCache.invalidate(pid);
                 keys.add(AllianceConst.RedisKey.PLAYER_ALLIANCE_PREFIX + pid);
+                if (payload.length() > 0) {
+                    payload.append(',');
+                }
+                payload.append(pid);
             }
         }
         try {
-            stringRedisTemplate.delete(keys);
+            if (!keys.isEmpty()) {
+                stringRedisTemplate.execute(PLAYER_INVALIDATE_SCRIPT, keys,
+                        AllianceConst.RedisKey.PLAYER_INVALIDATE_CHANNEL, payload.toString());
+            }
         } catch (Exception e) {
-            log.warn("批量失效玩家联盟映射缓存失败 size={}", keys.size(), e);
+            log.warn("批量原子失效玩家联盟映射缓存失败 size={}", keys.size(), e);
         }
     }
+
+    /**
+     * 本地失效玩家->联盟映射 (Redis 订阅回调用; Redis key 已由发起节点删除, 此处只清本地 Caffeine)。
+     */
+    public void invalidatePlayerLocal(long playerId) {
+        if (playerId > 0) {
+            playerAllianceCache.invalidate(playerId);
+        }
+    }
+
 }

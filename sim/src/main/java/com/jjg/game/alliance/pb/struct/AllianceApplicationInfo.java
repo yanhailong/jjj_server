@@ -22,4 +22,6 @@ public class AllianceApplicationInfo {
     public int casinoLevel;
     @ProtoDesc("申请时间(ms)")
     public long applyTime;
+    @ProtoDesc("头像框id")
+    public int headFrame;
 }

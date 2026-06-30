@@ -342,6 +342,8 @@ public interface AllianceConst {
         String ID_SEQ = "alliance:id:seq";
         //联盟数据变更失效广播频道 (payload=allianceId)
         String INVALIDATE_CHANNEL = "alliance:invalidate";
+        //玩家->联盟映射失效广播频道 (payload=playerId, 逗号分隔支持批量)
+        String PLAYER_INVALIDATE_CHANNEL = "alliance:invalidate:player";
         //玩家 -> 联盟 id 映射缓存 (string, 拼接 playerId)
         String PLAYER_ALLIANCE_PREFIX = "alliance:pid:";
         //声誉总榜 zset (member=allianceId)

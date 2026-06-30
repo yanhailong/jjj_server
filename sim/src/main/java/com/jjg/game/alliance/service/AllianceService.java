@@ -246,6 +246,7 @@ public class AllianceService {
             info.playerId = pid;
             info.nick = player.getNickName();
             info.headImg = player.getHeadImgId();
+            info.headFrame = player.getHeadFrameId();
             info.casinoLevel = app.getCasinoLevel();
             info.applyTime = app.getApplyTime();
             res.list.add(info);

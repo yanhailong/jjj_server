@@ -64,7 +64,7 @@ public class FriendService {
         ResFriendList res = new ResFriendList(Code.SUCCESS);
         try {
             FriendData data = friendDao.getOrEmpty(playerId);
-            Map<Long, FriendEntry> friends = data.getFriends();
+            Map<Long, FriendEntry> friends = data.friendsExcludeBlacklist();
 
             res.friendLimit = SocialConst.Cfg.FRIEND_LIMIT;
             res.sendCountLimit = simConfigCacheService.getSendGiftConfig().sendCountPerPersonLimit();
@@ -382,7 +382,7 @@ public class FriendService {
                 friendDao.removeRequests(playerController.playerId(), handledIds);
                 NoticeTipBuilder builder = NoticeTipBuilder.builder().tipType(TipUtils.TipType.TOAST).languageId(SocialConst.LangIds.REJECT_ADD_FRIEND_APPLY);
                 builder.addArg(0, playerController.getPlayer().getNickName());
-                TipUtils.sendTip(playerController,TipUtils.TipType.TOAST,() -> builder.build());
+                TipUtils.sendTip(playerController, TipUtils.TipType.TOAST, () -> builder.build());
             }
         } catch (Exception e) {
             log.error("", e);
@@ -550,7 +550,7 @@ public class FriendService {
             FriendData selfData = friendDao.getOrEmpty(selfId);
             res.sentIds = new ArrayList<>();
 
-            Map<Long, FriendEntry> friends = selfData.getFriends();
+            Map<Long, FriendEntry> friends = selfData.friendsExcludeBlacklist();
             if (friends == null || friends.isEmpty()) {
                 return res;
             }

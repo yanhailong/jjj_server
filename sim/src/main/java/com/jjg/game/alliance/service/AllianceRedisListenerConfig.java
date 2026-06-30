@@ -34,6 +34,20 @@ public class AllianceRedisListenerConfig {
                 log.warn("忽略非法联盟缓存失效消息 body={}", body);
             }
         }, new ChannelTopic(AllianceConst.RedisKey.INVALIDATE_CHANNEL));
+        //玩家->联盟映射失效: payload 为单个或逗号分隔的多个 playerId
+        container.addMessageListener((message, pattern) -> {
+            String body = new String(message.getBody(), StandardCharsets.UTF_8);
+            for (String part : body.split(",")) {
+                if (part.isEmpty()) {
+                    continue;
+                }
+                try {
+                    cacheService.invalidatePlayerLocal(Long.parseLong(part.trim()));
+                } catch (NumberFormatException e) {
+                    log.warn("忽略非法玩家联盟映射失效消息 part={}", part);
+                }
+            }
+        }, new ChannelTopic(AllianceConst.RedisKey.PLAYER_INVALIDATE_CHANNEL));
         return container;
     }
 }

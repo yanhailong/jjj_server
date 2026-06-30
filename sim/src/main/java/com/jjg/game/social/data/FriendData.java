@@ -163,4 +163,20 @@ public class FriendData {
     public int currentDailyGiftPersonCount(int today) {
         return this.dailyGiftDay == today ? this.dailyGiftPersonCount : 0;
     }
+
+    /**
+     * 获取排除黑名单的好友
+     * @return
+     */
+    public Map<Long, FriendEntry> friendsExcludeBlacklist() {
+        if (this.friends == null || this.friends.isEmpty()) {
+            return this.friends;
+        }
+        if (blacklist == null || blacklist.isEmpty()) {
+            return this.friends;
+        }
+        Map<Long, FriendEntry> tmpFriends = new HashMap<>(this.friends);
+        this.blacklist.keySet().forEach(tmpFriends::remove);
+        return tmpFriends;
+    }
 }
