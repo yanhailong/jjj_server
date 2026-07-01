@@ -631,7 +631,7 @@ public class HallService implements ConfigExcelChangeListener, TimerListener {
     public CommonResult<Map<Integer, Long>> useItem(Player player, int girdId, int itemId, long useItemCount, int selectItemId) {
         CommonResult<Map<Integer, Long>> result = new CommonResult<>(Code.SUCCESS);
         try {
-            log.debug("玩家使用道具 playerId = {},girdId = {},itemId = {}", player.getId(), girdId, itemId);
+            log.debug("玩家使用道具 playerId = {},girdId = {},itemId = {},useItemCount={}", player.getId(), girdId, itemId, useItemCount);
             ItemCfg itemCfg = GameDataManager.getItemCfg(itemId);
             if (itemCfg == null) {
                 result.code = Code.NOT_FOUND;
@@ -658,13 +658,6 @@ public class HallService implements ConfigExcelChangeListener, TimerListener {
                     }
                     addItemsMap.merge(addItemId, en.getValue(), Long::sum);
                 }
-
-                CommonResult<ItemOperationResult> useResult = playerPackService.useItem(player.getId(), girdId, itemId, useItemCount, addItemsMap, AddType.USE_ITEM);
-                if (!useResult.success()) {
-                    log.debug("使用道具后获得固定道具失败 playerId = {},itemId = {}", player.getId(), itemId);
-                    result.code = useResult.code;
-                    return result;
-                }
             }
 
             //是否有获取可选择的道具
@@ -682,23 +675,32 @@ public class HallService implements ConfigExcelChangeListener, TimerListener {
                 }
 
                 long finalSelectItemCount = selectRewardCount * useItemCount;
-                addItemsMap.put(selectItemId, finalSelectItemCount);
+                addItemsMap.merge(selectItemId, finalSelectItemCount, Long::sum);
+            }
 
-                CommonResult<ItemOperationResult> useResult = playerPackService.useItem(player.getId(), girdId, itemId, useItemCount, addItemsMap, AddType.USE_ITEM);
+            boolean removeItems = false;
+            //使用道具
+            if (!addItemsMap.isEmpty()) {
+                CommonResult<ItemOperationResult> useResult = playerPackService.useItem(player, null, itemId, useItemCount, addItemsMap, AddType.USE_ITEM);
                 if (!useResult.success()) {
-                    log.debug("使用道具后获得选择道具失败 playerId = {},itemId = {},selectItemId={},finalSelectItemCount={}", player.getId(), itemId, selectItemId, finalSelectItemCount);
+                    log.debug("使用道具后获得选择道具失败 playerId = {},itemId = {},selectItemId={}", player.getId(), itemId, selectItemId);
                     result.code = useResult.code;
                     return result;
                 }
+                removeItems = true;
             }
 
             //是否有掉落的道具
             if (itemCfg.getDropId() > 0) {
-                CommonResult<ItemOperationResult> removed = playerPackService.removeItem(player.getId(), girdId, itemId, useItemCount, AddType.USE_ITEM);
-                if (!removed.success()) {
-                    result.code = removed.code;
-                    return result;
+                if (!removeItems) {
+                    CommonResult<ItemOperationResult> removed = playerPackService.removeItem(player, null, itemId, useItemCount, AddType.USE_ITEM);
+                    if (!removed.success()) {
+                        result.code = removed.code;
+                        log.debug("使用道具获取掉落时，扣除道具失败 playerId = {},itemId = {},code={}", player.getId(), itemId, removed.code);
+                        return result;
+                    }
                 }
+
                 Map<Integer, Long> useItem = dropItemManager.triggerDropItem(player, useItemCount, AddType.USE_ITEM, player.getId() + "", itemCfg.getDropId());
                 addItemsMap.putAll(useItem);
             }

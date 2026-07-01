@@ -145,7 +145,7 @@ public class SocialSender {
         if (info != null) {
             sessionInfoCache.put(playerId, info);
         }else {
-            log.warn("获取玩家PlayerSessionInfo失败 playerId={}",playerId);
+//            log.warn("获取玩家PlayerSessionInfo失败 playerId={}",playerId);
         }
         return info;
     }

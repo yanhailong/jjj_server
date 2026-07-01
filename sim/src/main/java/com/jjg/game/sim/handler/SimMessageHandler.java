@@ -14,6 +14,7 @@ import com.jjg.game.sim.constant.SimConstant;
 import com.jjg.game.sim.data.SimPlayerContext;
 import com.jjg.game.sim.manager.SimManager;
 import com.jjg.game.sim.pb.req.*;
+import com.jjg.game.sim.pb.res.*;
 import com.jjg.game.sim.service.*;
 import com.jjg.game.sim.pb.req.ReqSimTaskList;
 import com.jjg.game.sim.pb.req.ReqSimTaskReward;
@@ -24,6 +25,9 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Component;
 
 import java.util.function.Consumer;
+import java.util.function.Function;
+import java.util.function.IntFunction;
+import java.util.function.Supplier;
 
 /**
  * 模拟经营游戏消息处理器
@@ -54,6 +58,8 @@ public class SimMessageHandler implements GmListener {
     private SimConfigCacheService configCacheService;
     @Autowired
     private SimTaskService taskService;
+    @Autowired
+    private SimVisitService visitService;
 
 
     /**
@@ -390,6 +396,87 @@ public class SimMessageHandler implements GmListener {
 
     //--------------------------任务 (主线/成就) end--------------------------
 
+    //--------------------------拜访相关 begin--------------------------
+
+    @Command(SimConstant.MsgBean.REQ_VISIT_CASINO)
+    public void reqVisitCasino(PlayerController playerController, ReqVisitCasino req) {
+        executeVisit(playerController, ctx -> visitService.visit(ctx, req.playerId, req.casinoId),
+                ResVisitCasino::new);
+    }
+
+    @Command(SimConstant.MsgBean.REQ_RANDOM_VISIT)
+    public void reqRandomVisit(PlayerController playerController, ReqRandomVisit req) {
+        executeVisit(playerController, ctx -> visitService.randomVisit(ctx, req.lastPlayerId),
+                ResVisitCasino::new);
+    }
+
+    @Command(SimConstant.MsgBean.REQ_VISIT_LIKE)
+    public void reqVisitLike(PlayerController playerController, ReqVisitLike req) {
+        executeVisit(playerController, ctx -> visitService.like(ctx, req.playerId, req.casinoId),
+                ResVisitAction::new);
+    }
+
+    @Command(SimConstant.MsgBean.REQ_VISIT_COMMENT)
+    public void reqVisitComment(PlayerController playerController, ReqVisitComment req) {
+        executeVisit(playerController,
+                ctx -> visitService.comment(ctx, req.playerId, req.casinoId, req.content),
+                ResVisitAction::new);
+    }
+
+    @Command(SimConstant.MsgBean.REQ_VISIT_GIFT)
+    public void reqVisitGift(PlayerController playerController, ReqVisitGift req) {
+        executeVisit(playerController,
+                ctx -> visitService.gift(ctx, req.playerId, req.casinoId, req.giftId),
+                ResVisitAction::new);
+    }
+
+    @Command(SimConstant.MsgBean.REQ_VISIT_RECORDS)
+    public void reqVisitRecords(PlayerController playerController, ReqVisitRecords req) {
+        sendVisit(playerController,
+                () -> visitService.records(playerController.playerId(), req.offset, req.limit),
+                ResVisitRecords::new);
+    }
+
+    @Command(SimConstant.MsgBean.REQ_VISIT_COMMENTS)
+    public void reqVisitComments(PlayerController playerController, ReqVisitComments req) {
+        sendVisit(playerController,
+                () -> visitService.comments(playerController.playerId(), req.offset, req.limit),
+                ResVisitComments::new);
+    }
+
+    @Command(SimConstant.MsgBean.REQ_DELETE_VISIT_COMMENT)
+    public void reqDeleteVisitComment(PlayerController playerController, ReqDeleteVisitComment req) {
+        sendVisit(playerController,
+                () -> visitService.deleteComment(playerController.playerId(), req.commentId),
+                ResDeleteVisitComment::new);
+    }
+
+    @Command(SimConstant.MsgBean.REQ_VISIT_SUMMARY)
+    public void reqVisitSummary(PlayerController playerController, ReqVisitSummary req) {
+        sendVisit(playerController, () -> visitService.summary(playerController.playerId()),
+                ResVisitSummary::new);
+    }
+
+    @Command(SimConstant.MsgBean.REQ_VISIT_RANK)
+    public void reqVisitRank(PlayerController playerController, ReqVisitRank req) {
+        sendVisit(playerController, () -> visitService.rank(playerController.playerId()),
+                ResVisitRank::new);
+    }
+
+    @Command(SimConstant.MsgBean.REQ_START_VISIT_TRIAL)
+    public void reqStartVisitTrial(PlayerController playerController, ReqStartVisitTrial req) {
+        executeVisit(playerController, ctx -> visitService.startTrial(
+                ctx, req.playerId, req.casinoId, req.gameType), ResVisitTrial::new);
+    }
+
+    @Command(SimConstant.MsgBean.REQ_EXIT_VISIT_TRIAL)
+    public void reqExitVisitTrial(PlayerController playerController, ReqExitVisitTrial req) {
+        sendVisit(playerController, () -> visitService.exitTrial(playerController.playerId()),
+                ResVisitTrial::new);
+    }
+
+    //--------------------------拜访相关 end--------------------------
+
 
     @Override
     public CommonResult<String> gm(PlayerController playerController, String[] gmOrders) {
@@ -537,5 +624,28 @@ public class SimMessageHandler implements GmListener {
             return;
         }
         action.accept(ctx);
+    }
+
+    private <T extends AbstractResponse> void executeVisit(PlayerController pc,
+                                                           Function<SimPlayerContext, T> action,
+                                                           IntFunction<T> exceptionResponse) {
+        execute(pc, ctx -> {
+            try {
+                ctx.send(action.apply(ctx));
+            } catch (Exception e) {
+                log.error("处理拜访请求异常 playerId={}", pc.playerId(), e);
+                ctx.send(exceptionResponse.apply(Code.EXCEPTION));
+            }
+        });
+    }
+
+    private <T extends AbstractResponse> void sendVisit(PlayerController pc, Supplier<T> action,
+                                                        IntFunction<T> exceptionResponse) {
+        try {
+            pc.send(action.get());
+        } catch (Exception e) {
+            log.error("处理拜访请求异常 playerId={}", pc.playerId(), e);
+            pc.send(exceptionResponse.apply(Code.EXCEPTION));
+        }
     }
 }

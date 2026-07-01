@@ -82,6 +82,11 @@ public class SlotsPlayerGameData {
     protected transient Set<Long> tmpSkillStakeSet;
     @Transient
     protected transient ClusterClient simClient;
+    //客座赌局会话 (仅运行时): skillsMap 使用房主研发属性
+    @Transient
+    protected transient long visitOwnerId;
+    @Transient
+    protected transient int visitCasinoId;
 
     public long getPlayerId() {
         if (playerId == 0) {
@@ -415,5 +420,21 @@ public class SlotsPlayerGameData {
 
     public void setSimClient(ClusterClient simClient) {
         this.simClient = simClient;
+    }
+
+    public long getVisitOwnerId() {
+        return visitOwnerId;
+    }
+
+    public void setVisitOwnerId(long visitOwnerId) {
+        this.visitOwnerId = visitOwnerId;
+    }
+
+    public int getVisitCasinoId() {
+        return visitCasinoId;
+    }
+
+    public void setVisitCasinoId(int visitCasinoId) {
+        this.visitCasinoId = visitCasinoId;
     }
 }

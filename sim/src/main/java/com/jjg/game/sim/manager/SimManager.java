@@ -100,6 +100,8 @@ public class SimManager {
     private SimTaskService simTaskService;
     @Autowired
     private SimTaskDao simTaskDao;
+    @Autowired
+    private SimVisitService simVisitService;
 
 
     /**
@@ -466,7 +468,8 @@ public class SimManager {
         }
     }
 
-    public CommonResult<SlotsSpinResult> onSlotsSpin(long playerId, int gameType, int winTimes, boolean changeNode, SpinStatInfo statInfo) {
+    public CommonResult<SlotsSpinResult> onSlotsSpin(long playerId, int gameType, int winTimes, boolean changeNode,
+                                                    SpinStatInfo statInfo, VisitTrialSpinPermit trialPermit) {
         try {
             SimPlayerContext ctx = getContext(playerId);
             if (ctx == null) {
@@ -481,13 +484,20 @@ public class SimManager {
                 }
             }
 
-            //经营信息: 先记录 SPINE 游戏统计 (与掉落联动解耦, 旋转必计数)
-            simStatsService.recordSpin(ctx.getSimBaseData(), gameType, statInfo);
-
-            CommonResult<SlotsSpinResult> result = simDropService.onSpin(ctx, gameType, winTimes);
+            boolean visitTrial = trialPermit != null && trialPermit.isTrial();
+            //普通旋转沿用原语义：即使掉落失败也计入统计。试玩需要先通过 permit 幂等结算，避免 RPC 重试重复计数。
+            if (!visitTrial) {
+                simStatsService.recordSpin(ctx.getSimBaseData(), gameType, statInfo);
+            }
+            CommonResult<SlotsSpinResult> result = visitTrial
+                    ? simVisitService.settleTrialSpin(ctx, gameType, statInfo, trialPermit)
+                    : simDropService.onSpin(ctx, gameType, winTimes);
             if (!result.success()) {
                 log.warn("slots 联动失败, onSpin执行失败 playerId={},gameType={},winTimes={},code={}", playerId, gameType, winTimes, result.code);
                 return result;
+            }
+            if (visitTrial) {
+                simStatsService.recordSpin(ctx.getSimBaseData(), gameType, statInfo);
             }
 
             //联盟联动: 消耗体力/中奖倍数 -> 任务进度 + 对决积分掉落 (内部吞异常, 不影响主流程)
@@ -499,6 +509,36 @@ public class SimManager {
         } catch (Exception e) {
             log.error("", e);
             return new CommonResult<>(Code.EXCEPTION);
+        }
+    }
+
+    public CommonResult<VisitTrialSpinPermit> prepareVisitTrialSpin(long playerId, int gameType) {
+        try {
+            SimPlayerContext ctx = getContext(playerId);
+            if (ctx == null) {
+                ctx = createContextByPlayerId(playerId);
+            }
+            if (ctx == null) {
+                return new CommonResult<>(Code.NOT_FOUND);
+            }
+            return simVisitService.prepareTrialSpin(ctx, gameType);
+        } catch (Exception e) {
+            log.error("准备客座赌局旋转失败 playerId={},gameType={}", playerId, gameType, e);
+            return new CommonResult<>(Code.EXCEPTION);
+        }
+    }
+
+    public CommonResult<Boolean> cancelVisitTrialSpin(long playerId, VisitTrialSpinPermit permit) {
+        try {
+            SimPlayerContext ctx = getContext(playerId);
+            if (ctx == null) {
+                return new CommonResult<>(Code.NOT_FOUND, false);
+            }
+            boolean cancelled = simVisitService.cancelTrialSpin(ctx, permit);
+            return new CommonResult<>(cancelled ? Code.SUCCESS : Code.FAIL, cancelled);
+        } catch (Exception e) {
+            log.error("取消客座赌局旋转失败 playerId={}", playerId, e);
+            return new CommonResult<>(Code.EXCEPTION, false);
         }
     }
 }

@@ -18,6 +18,7 @@ import com.jjg.game.sim.data.SimPlayerContext;
 import com.jjg.game.sim.data.SimSkillsData;
 import com.jjg.game.sim.data.SlotsSpinResult;
 import com.jjg.game.sim.data.SpinStatInfo;
+import com.jjg.game.sim.data.VisitTrialSpinPermit;
 import com.jjg.game.sim.manager.SimManager;
 import com.jjg.game.sim.service.SimSkillService;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -153,8 +154,19 @@ public class HallRPCController extends CoreRPCController implements GmToHallBrid
     }
 
     @Override
-    public CommonResult<SlotsSpinResult> onSlotsSpin(long playerId, int gameType, int winTimes, boolean changeNode, SpinStatInfo statInfo) {
-        return simManager.onSlotsSpin(playerId, gameType, winTimes, changeNode, statInfo);
+    public CommonResult<SlotsSpinResult> onSlotsSpin(long playerId, int gameType, int winTimes, boolean changeNode,
+                                                    SpinStatInfo statInfo, VisitTrialSpinPermit trialPermit) {
+        return simManager.onSlotsSpin(playerId, gameType, winTimes, changeNode, statInfo, trialPermit);
+    }
+
+    @Override
+    public CommonResult<VisitTrialSpinPermit> prepareVisitTrialSpin(long playerId, int gameType) {
+        return simManager.prepareVisitTrialSpin(playerId, gameType);
+    }
+
+    @Override
+    public CommonResult<Boolean> cancelVisitTrialSpin(long playerId, VisitTrialSpinPermit permit) {
+        return simManager.cancelVisitTrialSpin(playerId, permit);
     }
 
     @Override

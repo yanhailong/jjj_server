@@ -5,6 +5,7 @@ import com.jjg.game.core.data.CommonResult;
 import com.jjg.game.sim.data.SimSkillsData;
 import com.jjg.game.sim.data.SlotsSpinResult;
 import com.jjg.game.sim.data.SpinStatInfo;
+import com.jjg.game.sim.data.VisitTrialSpinPermit;
 
 import java.util.Map;
 
@@ -40,7 +41,18 @@ public interface ToSimBridge extends IGameRpc {
      * @param statInfo   本次旋转统计明细 (用于经营信息 SPINE游戏面板; 可为 null)
      * @return
      */
-    CommonResult<SlotsSpinResult> onSlotsSpin(long playerId, int gameType, int winTimes, boolean changeNode, SpinStatInfo statInfo);
+    CommonResult<SlotsSpinResult> onSlotsSpin(long playerId, int gameType, int winTimes, boolean changeNode,
+                                             SpinStatInfo statInfo, VisitTrialSpinPermit trialPermit);
+
+    /**
+     * 客座赌局每次旋转前授权；普通旋转由 slots 本地直接跳过该 RPC。
+     */
+    CommonResult<VisitTrialSpinPermit> prepareVisitTrialSpin(long playerId, int gameType);
+
+    /**
+     * slots 生成结果失败时退回试玩次数和能量。
+     */
+    CommonResult<Boolean> cancelVisitTrialSpin(long playerId, VisitTrialSpinPermit permit);
 
     /**
      * 升级技能

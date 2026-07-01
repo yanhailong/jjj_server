@@ -109,7 +109,7 @@ public class ShopService implements OrderGenerate {
         }
 
         long useItemCount = shopProduct.getMoney().longValue() * count;
-        CommonResult<ItemOperationResult> result = playerPackService.useItem(playerController.playerId(), shopProduct.getPayType(), useItemCount, addItemMap, AddType.ITEM_EXCHANGE);
+        CommonResult<ItemOperationResult> result = playerPackService.useItem(playerController.getPlayer(), shopProduct.getPayType(), useItemCount, addItemMap, AddType.ITEM_EXCHANGE);
         if (!result.success()) {
             return result;
         }

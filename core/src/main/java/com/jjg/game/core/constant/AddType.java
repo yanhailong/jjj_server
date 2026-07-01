@@ -291,6 +291,14 @@ public enum AddType {
     SIM_EMPLOYEE_STAR_UP(1810),
     //sim雇员升级
     SIM_EMPLOYEE_LEVEL_UP(1811),
+    //拜访送礼消耗
+    SIM_VISIT_GIFT(1812),
+    //拜访送礼失败返还
+    SIM_VISIT_GIFT_REFUND(1813),
+    //拜访客座赌局房主抽成
+    SIM_VISIT_COMMISSION(1814),
+    //拜访人气榜奖励
+    SIM_VISIT_RANK_REWARD(1815),
 
     //创建联盟
     ALLIANCE_CREATE(2001),

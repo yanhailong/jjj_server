@@ -18,6 +18,7 @@ import com.jjg.game.hall.pointsaward.PointsAwardManager;
 import com.jjg.game.hall.service.HallService;
 import com.jjg.game.hall.service.NoticeService;
 import com.jjg.game.sim.manager.SimManager;
+import com.jjg.game.sim.manager.SimVisitManager;
 import com.jjg.game.social.manager.SocialManager;
 import org.springframework.beans.BeansException;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -73,6 +74,8 @@ public class HallStartManager implements SmartLifecycle, ApplicationContextAware
     @Autowired
     private SimManager simManager;
     @Autowired
+    private SimVisitManager simVisitManager;
+    @Autowired
     private SocialManager socialManager;
     @Autowired
     private AllianceManager allianceManager;
@@ -98,6 +101,7 @@ public class HallStartManager implements SmartLifecycle, ApplicationContextAware
         smsService.init();
         commonDao.init();
         simManager.init();
+        simVisitManager.init();
         socialManager.init();
         allianceManager.init();
 
@@ -107,6 +111,7 @@ public class HallStartManager implements SmartLifecycle, ApplicationContextAware
     @Override
     public void stop() {
         allianceManager.shutdown();
+        simVisitManager.shutdown();
         socialManager.shutdown();
         simManager.shutdown();
         casinoManager.shutdown();

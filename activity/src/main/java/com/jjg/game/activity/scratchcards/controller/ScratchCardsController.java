@@ -98,7 +98,7 @@ public class ScratchCardsController extends BaseActivityController implements Or
         costItem.setItemCount(costItem.getItemCount() * times);
 
         // 扣除玩家道具
-        CommonResult<ItemOperationResult> removedItem = playerPackService.removeItem(playerId, costItem, AddType.ACTIVITY_SCRATCH_CARDS_JOIN);
+        CommonResult<ItemOperationResult> removedItem = playerPackService.removeItem(player, costItem, AddType.ACTIVITY_SCRATCH_CARDS_JOIN);
         if (!removedItem.success()) {
             res.code = removedItem.code;
             return res;

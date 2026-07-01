@@ -35,8 +35,11 @@ import com.jjg.game.core.utils.ItemUtils;
 import com.jjg.game.sampledata.GameDataManager;
 import com.jjg.game.sampledata.bean.*;
 import com.jjg.game.sim.data.SimSkillsData;
+import com.jjg.game.sim.data.SimVisitTrialSession;
 import com.jjg.game.sim.data.SpinStatInfo;
+import com.jjg.game.sim.data.VisitTrialSpinPermit;
 import com.jjg.game.sim.service.SimNodeService;
+import com.jjg.game.sim.service.SimVisitQuotaService;
 import com.jjg.game.slots.constant.SlotsConst;
 import com.jjg.game.slots.controller.SlotsRoomController;
 import com.jjg.game.slots.dao.*;
@@ -106,6 +109,8 @@ public abstract class AbstractSlotsGameManager<T extends SlotsPlayerGameData, L 
     protected SimNodeService simNodeService;
     @Autowired
     protected SlotsRPCLinkManager slotsRPCLinkManager;
+    @Autowired
+    protected SimVisitQuotaService simVisitQuotaService;
 
     protected AtomicBoolean open = new AtomicBoolean(false);
 
@@ -376,10 +381,26 @@ public abstract class AbstractSlotsGameManager<T extends SlotsPlayerGameData, L 
                 return createGameRunInfo(playerController.playerId(), code);
             }
         }
-        G gameRunInfo = startGame(playerController, playerGameData, betValue, false);
+        CommonResult<VisitTrialSpinPermit> permitResult = slotsRPCLinkManager.prepareVisitTrialSpin(
+                playerGameData, getGameType());
+        if (permitResult == null || !permitResult.success()) {
+            int code = permitResult == null ? Code.EXCEPTION : permitResult.code;
+            return createGameRunInfo(playerController.playerId(), code);
+        }
+        VisitTrialSpinPermit trialPermit = permitResult.data;
+        G gameRunInfo;
+        try {
+            gameRunInfo = startGame(playerController, playerGameData, betValue, false);
+        } catch (Exception e) {
+            slotsRPCLinkManager.cancelVisitTrialSpin(playerGameData, trialPermit);
+            throw e;
+        }
         //公共: 旋转成功后通知 sim 联动 (扣能量/加经验/赌场升级/道具掉落), winTimes 取各游戏写入的 allWinTimes
         if (gameRunInfo != null && gameRunInfo.success()) {
-            slotsRPCLinkManager.notifySpin(playerGameData, getGameType(), gameRunInfo.getAllWinTimes(), buildSpinStatInfo(gameRunInfo));
+            slotsRPCLinkManager.notifySpin(playerGameData, getGameType(), gameRunInfo.getAllWinTimes(),
+                    buildSpinStatInfo(gameRunInfo), trialPermit);
+        } else {
+            slotsRPCLinkManager.cancelVisitTrialSpin(playerGameData, trialPermit);
         }
         return gameRunInfo;
     }
@@ -991,8 +1012,12 @@ public abstract class AbstractSlotsGameManager<T extends SlotsPlayerGameData, L 
             playerAllSlotsData.setPlayerId(playerController.playerId());
         }
 
-        //获取该slots游戏的技能数据并解锁技能
-        SimSkillsData simSkillsData = simSkillService.getSkillDataByGameType(playerController.playerId(), this.gameType);
+        //客座赌局使用房主研发属性，普通游戏仍使用玩家自己的技能
+        SimVisitTrialSession visitSession = simVisitQuotaService.getTrialSession(playerController.playerId());
+        boolean activeVisit = visitSession != null
+                && visitSession.activeFor(playerController.playerId(), this.gameType, System.currentTimeMillis());
+        long skillOwnerId = activeVisit ? visitSession.getOwnerId() : playerController.playerId();
+        SimSkillsData simSkillsData = simSkillService.getSkillDataByGameType(skillOwnerId, this.gameType);
         //获取sim节点
         ClusterClient simClusterClient = simNodeService.getSimClusterClient(playerController.playerId(), playerController.ipAddress());
 
@@ -1005,9 +1030,8 @@ public abstract class AbstractSlotsGameManager<T extends SlotsPlayerGameData, L 
             playerGameData.setOfflineEventMap(initOffLineEvent());
             playerGameData.setPlayerAllSlotsData(playerAllSlotsData);
 
-            if (simSkillsData != null) {
-                playerGameData.setSkillsMap(simSkillsData.getSkillsMap());
-            }
+            playerGameData.setSkillsMap(simSkillsData == null ? null : simSkillsData.getSkillsMap());
+            applyVisitSession(playerGameData, activeVisit ? visitSession : null);
             playerGameData.setSimClient(simClusterClient);
             return playerGameData;
         }
@@ -1041,14 +1065,23 @@ public abstract class AbstractSlotsGameManager<T extends SlotsPlayerGameData, L 
         playerGameData.setOfflineEventMap(initOffLineEvent());
         playerGameData.setPlayerAllSlotsData(playerAllSlotsData);
 
-        if (simSkillsData != null) {
-            playerGameData.setSkillsMap(simSkillsData.getSkillsMap());
-        }
+        playerGameData.setSkillsMap(simSkillsData == null ? null : simSkillsData.getSkillsMap());
+        applyVisitSession(playerGameData, activeVisit ? visitSession : null);
         playerGameData.setSimClient(simClusterClient);
 
         //保存到缓存中
         this.gameDataMap.put(playerId, playerGameData);
         return playerGameData;
+    }
+
+    private void applyVisitSession(T playerGameData, SimVisitTrialSession session) {
+        if (session == null) {
+            playerGameData.setVisitOwnerId(0);
+            playerGameData.setVisitCasinoId(0);
+            return;
+        }
+        playerGameData.setVisitOwnerId(session.getOwnerId());
+        playerGameData.setVisitCasinoId(session.getCasinoId());
     }
 
     /**

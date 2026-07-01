@@ -132,7 +132,7 @@ public class CasinoManager implements TimerListener<String>, SessionCloseListene
                 return res;
             }
             //扣除道具
-            CommonResult<ItemOperationResult> result = playerPackService.removeItem(playerController.playerId(),
+            CommonResult<ItemOperationResult> result = playerPackService.removeItem(playerController.getPlayer(),
                     buyClaimAllRewardsConsumer.getFirst(), AddType.ONE_CLICK_UPGRADE_PURCHASE);
             if (!result.success()) {
                 res.code = result.code;
@@ -458,7 +458,7 @@ public class CasinoManager implements TimerListener<String>, SessionCloseListene
             CasinoEmployment casinoEmployment = employmentMap.getOrDefault(req.index, new CasinoEmployment());
             List<Integer> cost = dealerFunctionCfg.getHiringExpenses();
             Item costItem = new Item(cost.getFirst(), cost.getLast());
-            CommonResult<ItemOperationResult> result = playerPackService.removeItem(playerController.playerId(), costItem, AddType.EMPLOYEE_STAFF);
+            CommonResult<ItemOperationResult> result = playerPackService.removeItem(playerController.getPlayer(), costItem, AddType.EMPLOYEE_STAFF);
             if (!result.success()) {
                 res.code = result.code;
                 return res;
@@ -555,7 +555,7 @@ public class CasinoManager implements TimerListener<String>, SessionCloseListene
             return res;
         }
         //扣除消耗
-        CommonResult<ItemOperationResult> result = playerPackService.removeItem(playerController.playerId(), item, AddType.CLEANUP_PROCESS);
+        CommonResult<ItemOperationResult> result = playerPackService.removeItem(playerController.getPlayer(), item, AddType.CLEANUP_PROCESS);
         if (!result.success()) {
             res.code = result.code;
             return res;
@@ -735,7 +735,7 @@ public class CasinoManager implements TimerListener<String>, SessionCloseListene
             return res;
         }
         //扣除消耗
-        CommonResult<ItemOperationResult> result = playerPackService.removeItem(playerController.playerId(), item, AddType.UPGRADE_PROCESS);
+        CommonResult<ItemOperationResult> result = playerPackService.removeItem(playerController.getPlayer(), item, AddType.UPGRADE_PROCESS);
         if (!result.success()) {
             res.code = result.code;
             return res;

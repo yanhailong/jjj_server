@@ -168,14 +168,14 @@ public class SimBuildingService implements SimPlayerTickListener {
                 for (Map.Entry<Integer, Integer> en : cfg.getUnlockMethod().entrySet()) {
                     BuildingData building = casino.findBuilding(en.getKey());
                     if (building == null) {
-                        log.warn("解锁建筑失败, 解锁方式未通过 playerId={},buildingId={},unLockBuildingId={}", ctx.playerId(), building, en.getKey());
+                        log.warn("解锁建筑失败, 解锁方式未通过 playerId={},buildingId={},unLockBuildingId={}", ctx.playerId(), buildingId, en.getKey());
                         res.code = Code.PARAM_ERROR;
                         ctx.send(res);
                         return;
                     }
 
                     if (building.getLevel() < en.getValue()) {
-                        log.warn("解锁建筑失败, 解锁方式未通过 playerId={},buildingId={},level={},unLockBuildingId={},cfgLevel={}", ctx.playerId(), building, building.getLevel(), en.getKey(), en.getValue());
+                        log.warn("解锁建筑失败, 解锁方式未通过 playerId={},buildingId={},level={},unLockBuildingId={},cfgLevel={}", ctx.playerId(), buildingId, building.getLevel(), en.getKey(), en.getValue());
                         res.code = Code.PARAM_ERROR;
                         ctx.send(res);
                         return;

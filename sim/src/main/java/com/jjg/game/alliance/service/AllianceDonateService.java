@@ -109,7 +109,7 @@ public class AllianceDonateService {
         }
         Long count = cfg.getCounts().get(donated);
         if (count != null && count > 0) {
-            var deduct = playerPackService.removeItem(pc.getPlayer().getId(), cfg.getItemId(), count, AddType.ALLIANCE_DONATE);
+            var deduct = playerPackService.removeItem(pc.getPlayer(), cfg.getItemId(), count, AddType.ALLIANCE_DONATE);
             if (!deduct.success()) {
                 alliancePlayerDao.rollbackDonate(playerId, today);
                 res.code = Code.NOT_ENOUGH_ITEM;

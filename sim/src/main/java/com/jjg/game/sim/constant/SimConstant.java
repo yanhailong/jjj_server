@@ -147,6 +147,36 @@ public interface SimConstant {
         //设置经营信息展示的成就勋章
         int REQ_SET_DISPLAYED_MEDALS = BASE_MSG_PREFIX | 0x43;
         int RES_SET_DISPLAYED_MEDALS = BASE_MSG_PREFIX | 0x44;
+
+        //拜访赌场快照/随机切换
+        int REQ_VISIT_CASINO = BASE_MSG_PREFIX | 0x45;
+        int RES_VISIT_CASINO = BASE_MSG_PREFIX | 0x46;
+        int REQ_RANDOM_VISIT = BASE_MSG_PREFIX | 0x47;
+
+        //点赞/留言/送礼共用操作返回
+        int REQ_VISIT_LIKE = BASE_MSG_PREFIX | 0x48;
+        int RES_VISIT_ACTION = BASE_MSG_PREFIX | 0x49;
+        int REQ_VISIT_COMMENT = BASE_MSG_PREFIX | 0x4A;
+        int REQ_VISIT_GIFT = BASE_MSG_PREFIX | 0x4B;
+
+        //记录/留言板
+        int REQ_VISIT_RECORDS = BASE_MSG_PREFIX | 0x4C;
+        int RES_VISIT_RECORDS = BASE_MSG_PREFIX | 0x4D;
+        int REQ_VISIT_COMMENTS = BASE_MSG_PREFIX | 0x4E;
+        int RES_VISIT_COMMENTS = BASE_MSG_PREFIX | 0x4F;
+        int REQ_DELETE_VISIT_COMMENT = BASE_MSG_PREFIX | 0x50;
+        int RES_DELETE_VISIT_COMMENT = BASE_MSG_PREFIX | 0x51;
+
+        //当日汇总/人气榜
+        int REQ_VISIT_SUMMARY = BASE_MSG_PREFIX | 0x52;
+        int RES_VISIT_SUMMARY = BASE_MSG_PREFIX | 0x53;
+        int REQ_VISIT_RANK = BASE_MSG_PREFIX | 0x54;
+        int RES_VISIT_RANK = BASE_MSG_PREFIX | 0x55;
+
+        //客座赌局
+        int REQ_START_VISIT_TRIAL = BASE_MSG_PREFIX | 0x56;
+        int RES_VISIT_TRIAL = BASE_MSG_PREFIX | 0x57;
+        int REQ_EXIT_VISIT_TRIAL = BASE_MSG_PREFIX | 0x58;
     }
 
     interface Common {
@@ -170,6 +200,23 @@ public interface SimConstant {
         int ALLIANCE_DONATE_ITEMS_ID = 230;
         int ALLIANCE_DONATE_REWARD_ID = 231;
         int ALLIANCE_DONATE_REPUTATION_ID = 242;
+
+        //拜访系统全局配置
+        int VISIT_LIKE_POPULARITY_ID = 232;
+        int VISIT_COMMENT_POPULARITY_ID = 233;
+        int VISIT_TRIAL_POPULARITY_ID = 234;
+        int VISIT_DAILY_POPULARITY_LIMIT_ID = 235;
+        int VISIT_DAILY_TRIAL_LIMIT_ID = 236;
+        int VISIT_COMMISSION_RATE_ID = 237;
+        int VISIT_DAILY_LIKE_LIMIT_ID = 243;
+        int VISIT_DAILY_COMMENT_LIMIT_ID = 244;
+        int VISIT_COMMENT_RECHARGE_ID = 245;
+        int VISIT_COMMENT_MAX_LENGTH_ID = 246;
+        int VISIT_RECORD_LIMIT_ID = 247;
+        int VISIT_GIFT_LIST_ID = 248;
+        int VISIT_DAILY_COMMISSION_LIMIT_ID = 249;
+        int VISIT_TRIAL_SESSION_SECONDS_ID = 250;
+        int VISIT_RANK_REWARD_ID = 251;
 
         //slots 每次旋转消耗的能量
         int SPIN_COST_POWER = 1;

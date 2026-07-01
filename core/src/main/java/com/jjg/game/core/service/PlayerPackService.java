@@ -1,7 +1,6 @@
 package com.jjg.game.core.service;
 
 import cn.hutool.core.collection.CollectionUtil;
-import com.alibaba.fastjson.JSONObject;
 import com.jjg.game.common.data.DataSaveCallback;
 import com.jjg.game.common.pb.ItemInfo;
 import com.jjg.game.common.redis.RedisLock;
@@ -281,37 +280,30 @@ public class PlayerPackService implements IPlayerRegister {
     /**
      * 移除道具
      *
-     * @param playerId 玩家id
      * @param remove   移除的道具
      * @return 最新的背包结果
      */
-    public CommonResult<ItemOperationResult> removeItem(long playerId, Item remove, AddType addType) {
+    public CommonResult<ItemOperationResult> removeItem(Player player, Item remove, AddType addType) {
         if (remove == null) {
             CommonResult<ItemOperationResult> result = new CommonResult<>(Code.PARAM_ERROR);
             result.data = new ItemOperationResult();
             return result;
         }
-        return removeItem(playerId, remove.getId(), remove.getItemCount(), addType);
+        return removeItem(player, remove.getId(), remove.getItemCount(), addType);
     }
 
     /**
      * 移除道具
      */
-    public CommonResult<ItemOperationResult> removeItem(long playerId, int id, long count, AddType addType) {
-        return removeItem(playerId, null, id, count, addType);
+    public CommonResult<ItemOperationResult> removeItem(Player player, int id, long count, AddType addType) {
+        return removeItem(player, null, id, count, addType);
     }
 
     /**
      * 移除道具
      */
-    public CommonResult<ItemOperationResult> removeItem(long playerId, Integer girdId, int id, long count,
+    public CommonResult<ItemOperationResult> removeItem(Player player, Integer girdId, int id, long count,
                                                         AddType addType) {
-        Player player = corePlayerService.get(playerId);
-        if (player == null) {
-            CommonResult<ItemOperationResult> result = new CommonResult<>(Code.NOT_FOUND);
-            result.data = new ItemOperationResult();
-            return result;
-        }
         return removeItem(player, Collections.singletonList(new Item(girdId, id, count)), addType);
     }
 
@@ -657,46 +649,44 @@ public class PlayerPackService implements IPlayerRegister {
     /**
      * 使用道具
      *
-     * @param playerId
      * @param useItemId
      * @return
      */
-    public CommonResult<ItemOperationResult> useItem(long playerId, int useItemId, long useItemCount,
+    public CommonResult<ItemOperationResult> useItem(Player player, int useItemId, long useItemCount,
                                                      Map<Integer, Long> addItemsMap,
                                                      AddType addType) {
-        return useItem(playerId, null, useItemId, useItemCount, addItemsMap, addType);
+        return useItem(player, null, useItemId, useItemCount, addItemsMap, addType);
     }
 
 
     /**
      * 使用道具
      *
-     * @param playerId
      * @param useItemId
      * @return
      */
-    public CommonResult<ItemOperationResult> useItem(long playerId, Integer girdId, int useItemId, long useItemCount,
+    public CommonResult<ItemOperationResult> useItem(Player player, Integer girdId, int useItemId, long useItemCount,
                                                      Map<Integer, Long> addItemsMap,
                                                      AddType addType) {
         CommonResult<ItemOperationResult> result = new CommonResult<>(Code.FAIL);
 
-        CommonResult<ItemOperationResult> removeResult = removeItem(playerId, girdId, useItemId, useItemCount, addType);
+        CommonResult<ItemOperationResult> removeResult = removeItem(player, girdId, useItemId, useItemCount, addType);
         if (!removeResult.success()) {
             result.code = removeResult.code;
             return result;
         }
-        CommonResult<ItemOperationResult> addResult = addItems(playerId, addItemsMap, addType);
+        CommonResult<ItemOperationResult> addResult = addItems(player.getId(), addItemsMap, addType);
         if (!addResult.success()) {
             //添加失败，要将之前扣除的道具加回去
-            CommonResult<ItemOperationResult> rollbackResult = addItem(playerId, useItemId, useItemCount, AddType.FAIL_ROLLBACK);
+            CommonResult<ItemOperationResult> rollbackResult = addItem(player.getId(), useItemId, useItemCount, AddType.FAIL_ROLLBACK);
             if (!rollbackResult.success()) {
                 log.error("使用道具失败后回滚道具失败(需人工修复) playerId={},girdId={},useItemId={},useItemCount={},addCode={},rollbackCode={}",
-                        playerId, girdId, useItemId, useItemCount, addResult.code, rollbackResult.code);
+                        player.getId(), girdId, useItemId, useItemCount, addResult.code, rollbackResult.code);
                 result.code = Code.FAIL;
                 return result;
             }
             result.code = addResult.code;
-            log.debug("使用道具时，添加失败 playerId = {},girdId = {},useItemId = {}", playerId, girdId, useItemId);
+            log.debug("使用道具时，添加失败 playerId = {},girdId = {},useItemId = {}", player.getId(), girdId, useItemId);
             return result;
         }
         result.code = Code.SUCCESS;
