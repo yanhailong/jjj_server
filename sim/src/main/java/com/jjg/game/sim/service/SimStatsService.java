@@ -42,8 +42,6 @@ public class SimStatsService {
     private SimBuildingService buildingService;
     @Autowired
     private SimConfigCacheService configCache;
-    @Autowired
-    private SimCasinoService casinoService;
 
     // ---------------------------------------------------------------------
     // 累加 (slots 旋转上报)
@@ -184,7 +182,7 @@ public class SimStatsService {
         list.add(new StatInfo(SimStatKey.Operation.OPERATIONS_DEPT, buildingService.computeDeptValue(ctx, casino, BuildingOutputType.AWARENESS, BonusType.AWARENESS)));
 
         //研发部: 已研发 / 游戏总数
-        Set<Integer> unlockGames = findAllUnlockedGames(ctx.playerId(), casino.getCasinoId());
+        Set<Integer> unlockGames = findAllUnlockedGames(ctx, casino.getCasinoId());
         int totalGame = unlockGames.size();
         list.add(new StatInfo(SimStatKey.Operation.UNLOCK_GAME, totalGame));
         int researched = countResearchedGames(ctx, unlockGames);
@@ -200,7 +198,7 @@ public class SimStatsService {
         List<StatInfo> list = new ArrayList<>();
 
         //玩家所有已解锁娱乐城的游戏并集
-        Set<Integer> unlockGames = findAllUnlockedGames(ctx.playerId(), casino.getCasinoId());
+        Set<Integer> unlockGames = findAllUnlockedGames(ctx, casino.getCasinoId());
         int unlockCount = unlockGames.size();
         list.add(new StatInfo(SimStatKey.Slot.UNLOCK_GAME, unlockCount));
 
@@ -243,10 +241,11 @@ public class SimStatsService {
 
     /**
      * 玩家已解锁的所有娱乐城对应游戏并集。旧数据缺少解锁记录时回退当前娱乐城。
+     * 解锁数据取 ctx 登录缓存, 不在高频看板路径上同步读 Redis。
      */
-    private Set<Integer> findAllUnlockedGames(long playerId, int currentCasinoId) {
+    private Set<Integer> findAllUnlockedGames(SimPlayerContext ctx, int currentCasinoId) {
         Set<Integer> result = new HashSet<>();
-        SimCasinoUnlock unlock = casinoService.getCasinoUnlock(playerId);
+        SimCasinoUnlock unlock = ctx.getCasinoUnlock();
         if (unlock != null && unlock.getResearchLevelMap() != null) {
             for (Integer casinoId : unlock.getResearchLevelMap().keySet()) {
                 Set<Integer> games = configCache.getUnlockGameByRegionId(casinoId);

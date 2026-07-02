@@ -175,6 +175,8 @@ public class SimCasinoService {
      * @return 当前场景; 加载失败返回 null
      */
     public SimCasinoData loadCasinoData(SimPlayerContext ctx, SimBaseData baseData) {
+        //预热已解锁场景缓存: 供本玩家高频看板读取, 避免每次访问都同步读 Redis (新玩家为 null, 建默认场景时刷新)
+        ctx.setCasinoUnlock(getCasinoUnlock(ctx.playerId()));
         SimCasinoData currentCasino;
         if (baseData.getCurrentCasinoId() > 0) {
             //加载当前所在场景
@@ -231,7 +233,7 @@ public class SimCasinoService {
             casino.setCasinoLevel(statsCfg.getLevel());
         }
 
-        updateCasinoUnlock(ctx.playerId(), casinoId, INITIAL_BUILDING_LEVEL);
+        updateCasinoUnlock(ctx, casinoId, INITIAL_BUILDING_LEVEL);
         simSkillService.initUnlock(ctx, casinoId);
         ctx.getSimBaseData().addAllLevel(casino.getCasinoLevel());
         //TODO 初始游客: VisitorQuest 无场景维度配置, 待策划补充配置后在此初始化 guestMap
@@ -341,19 +343,24 @@ public class SimCasinoService {
     }
 
     /**
-     * 更新 SimCasinoUnlock 信息
+     * 更新 SimCasinoUnlock 信息: 写 Redis 的同时刷新 ctx 缓存, 保证本玩家后续读取命中最新数据。
      *
-     * @param playerId
-     * @param casinoId
-     * @param level
+     * @param ctx      玩家上下文 (缓存已解锁场景)
+     * @param casinoId 场景id
+     * @param level    研究院等级
      */
-    public void updateCasinoUnlock(long playerId, int casinoId, int level) {
-        SimCasinoUnlock casinoUnlock = getCasinoUnlock(playerId);
+    public void updateCasinoUnlock(SimPlayerContext ctx, int casinoId, int level) {
+        SimCasinoUnlock casinoUnlock = ctx.getCasinoUnlock();
         if (casinoUnlock == null) {
-            casinoUnlock = new SimCasinoUnlock();
+            //缓存未命中时回源一次, 避免覆盖 Redis 中已有的解锁记录
+            casinoUnlock = getCasinoUnlock(ctx.playerId());
+            if (casinoUnlock == null) {
+                casinoUnlock = new SimCasinoUnlock();
+            }
+            ctx.setCasinoUnlock(casinoUnlock);
         }
         casinoUnlock.changeUnlockLevel(casinoId, level);
-        redisTemplate.opsForHash().put(TABLE_NAME, playerId, casinoUnlock);
+        redisTemplate.opsForHash().put(TABLE_NAME, ctx.playerId(), casinoUnlock);
     }
 
     public SimCasinoUnlock getCasinoUnlock(long playerId) {
