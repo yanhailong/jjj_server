@@ -314,6 +314,8 @@ public enum AddType {
     ALLIANCE_BATTLE_REWARD(2006),
     //联盟排行榜奖励
     ALLIANCE_RANK_REWARD(2007),
+    //联盟任务刷新消耗
+    ALLIANCE_TASK_REFRESH(2008),
 
     //好友赠礼领取
     FRIEND_GIFT_COLLECT(2101);

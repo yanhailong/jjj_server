@@ -25,8 +25,12 @@ public class BuildingUpgradeTableCfg extends BaseCfgBean {
   protected List<List<Integer>> CostPerLevel;
   /** 最大交互数量 */
   protected int MaxInteractionCount;
+  /** 解锁装饰 */
+  protected List<Integer> UnlockDecorationId;
   /** 解锁设备 */
   protected List<Integer> UnlockEquipment;
+  /** 交互点ID */
+  protected List<Integer> UnlockInteractionId;
   /** 建筑升级CD时间（min） */
   protected int UpgradeCD;
   /** 升级消耗道具 */
@@ -53,9 +57,19 @@ public class BuildingUpgradeTableCfg extends BaseCfgBean {
     return MaxInteractionCount;
   }
 
+  /** 返回解锁装饰 */
+  public List<Integer> getUnlockDecorationId() {
+    return UnlockDecorationId;
+  }
+
   /** 返回解锁设备 */
   public List<Integer> getUnlockEquipment() {
     return UnlockEquipment;
+  }
+
+  /** 返回交互点ID */
+  public List<Integer> getUnlockInteractionId() {
+    return UnlockInteractionId;
   }
 
   /** 返回建筑升级CD时间（min） */

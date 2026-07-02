@@ -333,7 +333,6 @@ public class SimMessageHandler implements GmListener {
             guestService.onPool(ctx);
         });
     }
-
     //--------------------------游客相关 end--------------------------
 
     //--------------------------经营信息 begin--------------------------

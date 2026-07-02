@@ -8,6 +8,7 @@ import com.jjg.game.core.data.CommonResult;
 import com.jjg.game.core.data.Player;
 import com.jjg.game.core.dao.CountDao;
 import com.jjg.game.core.manager.SnowflakeManager;
+import com.jjg.game.core.pb.KVInfo;
 import com.jjg.game.core.service.CorePlayerService;
 import com.jjg.game.sampledata.bean.CasinoStatsSheetCfg;
 import com.jjg.game.sim.constant.SimVisitConstant;
@@ -567,8 +568,13 @@ public class SimVisitService {
             VisitGameInfo pb = new VisitGameInfo();
             pb.gameType = gameType;
             SimSkillsData data = skills.get(gameType);
-            pb.skills = data == null || data.getSkillsMap() == null
-                    ? Map.of() : new HashMap<>(data.getSkillsMap());
+
+            if (data != null && data.getSkillsMap() != null) {
+                pb.skills = new ArrayList<>();
+                for (Map.Entry<Integer, Integer> en : data.getSkillsMap().entrySet()) {
+                    pb.skills.add(new KVInfo(en.getKey(), en.getValue()));
+                }
+            }
             return pb;
         }).toList();
         info.gifts = configService.getGifts().stream().map(gift -> {

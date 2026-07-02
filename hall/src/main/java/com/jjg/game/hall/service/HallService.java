@@ -18,6 +18,7 @@ import com.jjg.game.core.dao.PlayerSkinDao;
 import com.jjg.game.core.dao.VerCodeDao;
 import com.jjg.game.core.data.*;
 import com.jjg.game.core.listener.ConfigExcelChangeListener;
+import com.jjg.game.core.listener.ItemListener;
 import com.jjg.game.core.manager.DropItemManager;
 import com.jjg.game.core.service.*;
 import com.jjg.game.core.utils.CoreUtil;
@@ -97,6 +98,8 @@ public class HallService implements ConfigExcelChangeListener, TimerListener {
     public NewGameExpectDao newGameExpectDao;
     @Autowired
     private SimCasinoService simCasinoService;
+    @Autowired
+    private List<ItemListener> itemListenerList;
 
     //普通场次缓存信息
     private Map<Integer, List<WareHouseConfigInfo>> wareHouseConfigMap = new HashMap<>();
@@ -661,6 +664,7 @@ public class HallService implements ConfigExcelChangeListener, TimerListener {
             }
 
             //是否有获取可选择的道具
+            long selectItemCount = 0;
             if (itemCfg.getSelectGetItem() != null && !itemCfg.getSelectGetItem().isEmpty()) {
                 if (selectItemId < 1) {
                     log.debug("使用道具时，获取可选择道具失败，必须要选择奖励的道具 playerId = {},itemId = {},selectItemId={}", player.getId(), itemId, selectItemId);
@@ -674,8 +678,8 @@ public class HallService implements ConfigExcelChangeListener, TimerListener {
                     return result;
                 }
 
-                long finalSelectItemCount = selectRewardCount * useItemCount;
-                addItemsMap.merge(selectItemId, finalSelectItemCount, Long::sum);
+                selectItemCount = selectRewardCount * useItemCount;
+                addItemsMap.merge(selectItemId, selectItemCount, Long::sum);
             }
 
             boolean removeItems = false;
@@ -705,11 +709,11 @@ public class HallService implements ConfigExcelChangeListener, TimerListener {
                 addItemsMap.putAll(useItem);
             }
 
-            if (addItemsMap.isEmpty()) {
-                log.debug("随机到空道具 playerId = {},itemId = {}", player.getId(), itemId);
-                return result;
-            }
             result.data = addItemsMap;
+            final long finalSelectItemCount = selectItemCount;
+            itemListenerList.forEach(listener -> {
+                listener.useItem(player, itemId, useItemCount, selectItemId, finalSelectItemCount);
+            });
         } catch (Exception e) {
             log.error("", e);
             result.code = Code.EXCEPTION;

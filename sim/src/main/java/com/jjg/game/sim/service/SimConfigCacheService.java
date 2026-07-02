@@ -1,5 +1,6 @@
 package com.jjg.game.sim.service;
 
+import com.jjg.game.alliance.data.AllianceRefreshTaskConfig;
 import com.jjg.game.alliance.data.DonateCfg;
 import com.jjg.game.common.utils.WeightRandom;
 import com.jjg.game.core.constant.TaskConstant;
@@ -41,6 +42,8 @@ public class SimConfigCacheService implements ConfigExcelChangeListener {
     private Map<Integer, WeightRandom<List<Integer>>> visitorPoolRandomMap;
     //游客羁绊 guestId -> bondsCfgId
     private Map<Integer, Set<Integer>> visitorBondsMap = null;
+    //游客品质道具对应
+    private Map<Integer, Integer> guestQulityItemMap = new HashMap<>();
 
 
     //EmployeeLevel配置 employeeId -> level -> cfg
@@ -74,9 +77,15 @@ public class SimConfigCacheService implements ConfigExcelChangeListener {
     private Map<Integer, TaskCfg> allianceTaskMap;
     //联盟捐献配置
     private DonateCfg allianceDonateCfg;
+    //联盟刷新任务配置
+    private AllianceRefreshTaskConfig allianceRefreshTaskConfig;
+
+    public void init() {
+        initGuestQualityItems();
+    }
 
 
-    public void testInit() {
+    public void testLoadConfig() {
         loadCasinoStatsSheetCfg();
         loadResearchInstituteCfg();
 
@@ -101,6 +110,17 @@ public class SimConfigCacheService implements ConfigExcelChangeListener {
 
         loadAllianceLevelConfig();
         loadAllianceTasks();
+    }
+
+    /**
+     * 将游客道具id和品质id对应
+     */
+    private void initGuestQualityItems() {
+        this.guestQulityItemMap.put(SimConstant.Item.ID_GUEST_QULITY_WHITE, 1);
+        this.guestQulityItemMap.put(SimConstant.Item.ID_GUEST_QULITY_GREEN, 2);
+        this.guestQulityItemMap.put(SimConstant.Item.ID_GUEST_QULITY_BLUE, 3);
+        this.guestQulityItemMap.put(SimConstant.Item.ID_GUEST_QULITY_PUEPLE, 4);
+        this.guestQulityItemMap.put(SimConstant.Item.ID_GUEST_QULITY_GOLD, 5);
     }
 
     /**
@@ -353,6 +373,17 @@ public class SimConfigCacheService implements ConfigExcelChangeListener {
         tmpAllianceDonateCfg.setRewardContribution(allianceDonateRewardsCfg.getIntValue());
         tmpAllianceDonateCfg.setRewardReputation(allianceDonateRewardsReputationCfg.getIntValue());
         this.allianceDonateCfg = tmpAllianceDonateCfg;
+
+        //联盟每日任务刷新
+        GlobalConfigCfg aRefreshTaskCfg = GameDataManager.getGlobalConfigCfg(SimConstant.Common.ALLIANCE_DAILY_FRESH_TASK);
+        if (aRefreshTaskCfg != null && aRefreshTaskCfg.getValue() != null && !aRefreshTaskCfg.getValue().isEmpty()) {
+            AllianceRefreshTaskConfig tmpAllianceRefreshTaskConfig = new AllianceRefreshTaskConfig();
+            String[] s = aRefreshTaskCfg.getValue().split("_");
+            tmpAllianceRefreshTaskConfig.setItemId(Integer.parseInt(s[0]));
+            tmpAllianceRefreshTaskConfig.setDailyCountLimit(Integer.parseInt(s[1]));
+            tmpAllianceRefreshTaskConfig.setSpendCountEach(Integer.parseInt(s[2]));
+            this.allianceRefreshTaskConfig = tmpAllianceRefreshTaskConfig;
+        }
     }
 
     private void loadPropConfig() {
@@ -651,5 +682,13 @@ public class SimConfigCacheService implements ConfigExcelChangeListener {
 
     public DonateCfg getAllianceDonateCfg() {
         return allianceDonateCfg;
+    }
+
+    public Integer queryGuestQuality(int itemId) {
+        return this.guestQulityItemMap.get(itemId);
+    }
+
+    public AllianceRefreshTaskConfig getAllianceRefreshTaskConfig() {
+        return allianceRefreshTaskConfig;
     }
 }

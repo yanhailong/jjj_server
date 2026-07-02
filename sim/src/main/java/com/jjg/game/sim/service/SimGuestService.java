@@ -8,12 +8,15 @@ import com.jjg.game.common.utils.WeightRandom;
 import com.jjg.game.core.constant.AddType;
 import com.jjg.game.core.constant.Code;
 import com.jjg.game.core.data.CommonResult;
+import com.jjg.game.core.data.Player;
+import com.jjg.game.core.listener.ItemListener;
 import com.jjg.game.core.utils.ItemUtils;
 import com.jjg.game.sampledata.GameDataManager;
 import com.jjg.game.sampledata.bean.*;
 import com.jjg.game.sim.constant.SimConstant;
 import com.jjg.game.sim.data.*;
 import com.jjg.game.sim.listener.SimPlayerTickListener;
+import com.jjg.game.sim.manager.SimManager;
 import com.jjg.game.sim.pb.SimPbConverter;
 import com.jjg.game.sim.pb.res.*;
 import com.jjg.game.sim.pb.struct.DestinationInfo;
@@ -34,7 +37,7 @@ import java.util.*;
  * @date 2026/5/26
  */
 @Service
-public class SimGuestService implements SimPlayerTickListener {
+public class SimGuestService implements SimPlayerTickListener, ItemListener {
     private static final Logger log = LoggerFactory.getLogger(SimGuestService.class);
 
     //购买游客 uid 生成器
@@ -46,6 +49,8 @@ public class SimGuestService implements SimPlayerTickListener {
     private SimRewardService rewardService;
     @Autowired
     private SimPackService simPackService;
+    @Autowired
+    private SimManager simManager;
 
     @Override
     public void onTick(SimPlayerContext ctx, long now) {
@@ -117,7 +122,6 @@ public class SimGuestService implements SimPlayerTickListener {
             log.warn("生成指定游客id失败，获取 CasinoStatsSheetCfg 配置未找到 playerId={},casinoId={},level={}", ctx.playerId(), casino.getCasinoId(), casino.getCasinoLevel());
             return;
         }
-
         GuestData guestData = new GuestData();
         guestData.setId(guestId);
         guestData.setLevel(1);
@@ -709,7 +713,7 @@ public class SimGuestService implements SimPlayerTickListener {
             int nextStar = guestData.getStar() + 1;
             VisitorStarCfg nextStarCfg = configCache.getVisitorStarCfgByGuest(guestId, nextStar);
             if (nextStarCfg == null) {
-                log.warn("升星游客失败,星级已满 playerId={},guestId={},star={},nextStar={}", ctx.playerId(), guestId, guestData.getStar(),nextStar);
+                log.warn("升星游客失败,星级已满 playerId={},guestId={},star={},nextStar={}", ctx.playerId(), guestId, guestData.getStar(), nextStar);
                 res.code = Code.PARAM_ERROR;
                 ctx.send(res);
                 return;
@@ -1044,5 +1048,47 @@ public class SimGuestService implements SimPlayerTickListener {
             res.code = Code.EXCEPTION;
         }
         ctx.send(res);
+    }
+
+    @Override
+    public void useItem(Player player, int itemId, long useItemCount, int selectItemId, long finalSelectItemCount) {
+        try {
+            if (selectItemId < 1) {
+                return;
+            }
+            VisitorQuestCfg cfg = null;
+            if (itemId == SimConstant.Item.ID_BATCH_GENERATE_SPECIFY_ID_GUEST) {
+                cfg = configCache.getVisitorQuestCfgByItemId(selectItemId);
+            } else if (itemId == SimConstant.Item.ID_BATCH_GENERATE_SPECIFY_QUALITY_GUEST) {
+                Integer qulity = configCache.queryGuestQuality(selectItemId);
+                if (qulity != null) {
+                    List<VisitorQuestCfg> tmpList = configCache.getVisitorQuestCfgList(qulity);
+                    if (tmpList == null || tmpList.isEmpty()) {
+                        return;
+                    }
+                    cfg = RandomUtils.randomEle(tmpList);
+                }
+            } else {
+                return;
+            }
+
+            if (cfg == null) {
+                return;
+            }
+
+            SimPlayerContext context = simManager.getContext(player.getId());
+            if (context == null) {
+                log.warn("使用道具后生成游客失败，获取context 失败 playerId={}", player.getId());
+                return;
+            }
+
+            if (itemId == SimConstant.Item.ID_BATCH_GENERATE_SPECIFY_ID_GUEST) {
+                batchGenerateSpecifyIdGuest(context, cfg.getId(), (int) finalSelectItemCount);
+            } else {
+                batchGenerateSpecifyQualityGuest(context, cfg.getQuality(), (int) finalSelectItemCount);
+            }
+        } catch (Exception e) {
+            log.error("", e);
+        }
     }
 }

@@ -91,6 +91,9 @@ public interface AllianceConst {
         //任务完成/失败通知 (服务端 -> 客户端)
         int NOTIFY_TASK = BASE_MSG_PREFIX | 0x36;
 
+        //刷新任务
+        int REQ_REFRESH_TASK = BASE_MSG_PREFIX | 0x37;
+
         //获取已完成任务列表
         int REQ_FINISHED_TASK = BASE_MSG_PREFIX | 0x42;
         int RES_FINISHED_TASK = BASE_MSG_PREFIX | 0x43;
@@ -162,6 +165,8 @@ public interface AllianceConst {
         //----------------- 通知 -----------------
         //联盟通用变更通知 (升级/被踢/解散/审批通过等, 以 type 区分)
         int NOTIFY_ALLIANCE = BASE_MSG_PREFIX | 0x70;
+
+
     }
 
     /**

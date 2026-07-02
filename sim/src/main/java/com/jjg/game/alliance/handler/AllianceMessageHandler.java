@@ -224,6 +224,14 @@ public class AllianceMessageHandler implements GmListener {
         sendAsync(pc, () -> taskService.finishedTaskList(pc.playerId()));
     }
 
+    /**
+     * 刷新任务 (扣道具 + 改任务池的写路径, 留在 worker 串行)
+     */
+    @Command(AllianceConst.MsgBean.REQ_REFRESH_TASK)
+    public void reqAllianceRefreshTask(PlayerController pc, ReqAllianceRefreshTask req) {
+        pc.send(taskService.refreshTaskList(pc));
+    }
+
     // --------------------------- 成员互助 ---------------------------
 
     /**

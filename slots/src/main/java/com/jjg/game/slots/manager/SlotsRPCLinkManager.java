@@ -163,6 +163,15 @@ public class SlotsRPCLinkManager {
         }
     }
 
+    /**
+     * 本地绑定了客座会话但 sim 侧已失效: 用拜访侧 TRIAL_INVALID 标记上抛,
+     * 供上层识别并清理本地客座绑定, 避免新增通用 Code。
+     */
+    private CommonResult<VisitTrialSpinPermit> trialEnded(VisitTrialSpinPermit normal) {
+        normal.setReason(SimVisitConstant.Reason.TRIAL_INVALID);
+        return new CommonResult<>(Code.FAIL, normal);
+    }
+
     public void cancelVisitTrialSpin(SlotsPlayerGameData playerGameData, VisitTrialSpinPermit permit) {
         if (permit == null || !permit.isTrial()) {
             return;

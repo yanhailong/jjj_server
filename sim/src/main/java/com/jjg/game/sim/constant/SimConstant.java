@@ -200,6 +200,7 @@ public interface SimConstant {
         int ALLIANCE_DONATE_ITEMS_ID = 230;
         int ALLIANCE_DONATE_REWARD_ID = 231;
         int ALLIANCE_DONATE_REPUTATION_ID = 242;
+        int ALLIANCE_DAILY_FRESH_TASK = 243;
 
         //拜访系统全局配置
         int VISIT_LIKE_POPULARITY_ID = 232;
@@ -251,7 +252,22 @@ public interface SimConstant {
         //联盟-声誉值
         int ID_ALLIANCE_REPUTATION = 1024011;
         //联盟-贡献值
-        int ID_ALLIANCE_Contribution = 1024012;
+        int ID_ALLIANCE_CONTRIBUTION = 1024012;
+
+        //指定游客id生成游客的道具
+        int ID_BATCH_GENERATE_SPECIFY_ID_GUEST = 1024015;
+        //指定游客品质生成游客的道具
+        int ID_BATCH_GENERATE_SPECIFY_QUALITY_GUEST = 1024016;
+        //白色品质游客
+        int ID_GUEST_QULITY_WHITE = 1024019;
+        //绿色品质游客
+        int ID_GUEST_QULITY_GREEN = 1024020;
+        //蓝色品质游客
+        int ID_GUEST_QULITY_BLUE = 1024021;
+        //紫色品质游客
+        int ID_GUEST_QULITY_PUEPLE = 1024022;
+        //金色品质游客
+        int ID_GUEST_QULITY_GOLD = 1024023;
     }
 
     /**

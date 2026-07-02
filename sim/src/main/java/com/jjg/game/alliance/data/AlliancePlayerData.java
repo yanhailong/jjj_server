@@ -42,6 +42,9 @@ public class AlliancePlayerData {
     //任务完成次数
     private int taskDay;
     private int taskFinishCount;
+    //任务刷新次数
+    private int refreshDay;
+    private int refreshCount;
     //求助次数
     private int seekHelpDay;
     private int seekHelpCount;
@@ -140,6 +143,22 @@ public class AlliancePlayerData {
 
     public void setTaskFinishCount(int taskFinishCount) {
         this.taskFinishCount = taskFinishCount;
+    }
+
+    public int getRefreshDay() {
+        return refreshDay;
+    }
+
+    public void setRefreshDay(int refreshDay) {
+        this.refreshDay = refreshDay;
+    }
+
+    public int getRefreshCount() {
+        return refreshCount;
+    }
+
+    public void setRefreshCount(int refreshCount) {
+        this.refreshCount = refreshCount;
     }
 
     public int getSeekHelpDay() {

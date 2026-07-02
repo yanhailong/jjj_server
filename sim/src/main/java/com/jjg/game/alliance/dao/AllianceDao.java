@@ -202,6 +202,16 @@ public class AllianceDao extends MongoBaseDao<AllianceData, Long> {
     }
 
     /**
+     * 强制整池重 roll (玩家付费刷新): 无条件覆盖任务池并标记当前整点。
+     * 不走 {@link #refreshTasks} 的旧整点 CAS —— 付费刷新必须落库成功, 不能因缓存旧整点失配而丢写。
+     */
+    public void forceRefreshTasks(long allianceId, long newHour, Map<Integer, AllianceTaskSlot> tasks) {
+        Query query = new Query(Criteria.where("_id").is(allianceId));
+        Update update = new Update().set("taskRefreshHour", newHour).set("tasks", tasks);
+        mongoTemplate.updateFirst(query, update, AllianceData.class);
+    }
+
+    /**
      * 原子摘取任务: 仅当 tasks.{cfgId} 存在时移除该条目, 接取成功者独占。
      * 并发接取同一 cfgId 时, 只有第一个匹配 exists 条件并 $unset 成功, 其余命中数为 0。
      *

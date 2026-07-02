@@ -7,17 +7,16 @@ import com.jjg.game.alliance.dao.AllianceDao;
 import com.jjg.game.alliance.dao.AlliancePlayerDao;
 import com.jjg.game.alliance.data.AllianceData;
 import com.jjg.game.alliance.data.AlliancePlayerData;
+import com.jjg.game.alliance.data.AllianceRefreshTaskConfig;
 import com.jjg.game.alliance.data.AllianceTaskSlot;
 import com.jjg.game.alliance.data.PlayerTakenTask;
 import com.jjg.game.alliance.pb.AlliancePbConverter;
-import com.jjg.game.alliance.pb.res.NotifyAllianceTask;
-import com.jjg.game.alliance.pb.res.ResAbandonTask;
-import com.jjg.game.alliance.pb.res.ResAllianceAcceptTask;
-import com.jjg.game.alliance.pb.res.ResAllianceFinishedTask;
-import com.jjg.game.alliance.pb.res.ResAllianceTaskList;
+import com.jjg.game.alliance.pb.res.*;
 import com.jjg.game.common.utils.TimeHelper;
 import com.jjg.game.core.constant.AddType;
 import com.jjg.game.core.constant.Code;
+import com.jjg.game.core.data.PlayerController;
+import com.jjg.game.core.service.PlayerPackService;
 import com.jjg.game.core.utils.ItemUtils;
 import com.jjg.game.sampledata.bean.TaskCfg;
 import com.jjg.game.sim.constant.SimConstant;
@@ -76,6 +75,8 @@ public class AllianceTaskService {
     private StringRedisTemplate stringRedisTemplate;
     @Autowired
     private SocialSender socialSender;
+    @Autowired
+    private PlayerPackService playerPackService;
 
     /**
      * 玩家当前任务快照本地缓存: 进度上报(spin)高频, 不能每次读 Mongo。
@@ -109,37 +110,43 @@ public class AllianceTaskService {
                 return res;
             }
             alliance = ensurePoolRefreshed(alliance);
-
-            long now = System.currentTimeMillis();
-            res.poolTasks = new ArrayList<>();
-            for (Map.Entry<Integer, AllianceTaskSlot> en : alliance.getTasks().entrySet()) {
-                AllianceTaskSlot value = en.getValue();
-                if (value.getExpireTime() > now && configService.getAllianceTaskByCfgId(value.getCfgId()) != null) {
-                    res.poolTasks.add(AlliancePbConverter.toTaskInfo(value));
-                }
-            }
-            res.nextRefreshTime = nextHourMillis(now);
-
-            AlliancePlayerData playerData = alliancePlayerDao.getOrEmpty(playerId);
-            int today = TimeHelper.getDayNumerical();
-            res.dailyFinished = playerData.taskFinishCountOf(today);
-            res.dailyLimit = AllianceConst.Cfg.DAILY_TASK_LIMIT;
-            res.abandonCdUntil = playerData.getAbandonCdUntil();
-
-            PlayerTakenTask taken = playerData.getTakenTask();
-            if (taken != null) {
-                if (taken.expired(now)) {
-                    //超期惰性结算失败
-                    failTask(playerId, taken);
-                } else {
-                    res.myTask = AlliancePbConverter.toTaskInfo(taken, progressOf(playerId, taken.getCfgId()), null);
-                }
-            }
+            fillTaskList(playerId, alliance, res);
         } catch (Exception e) {
             log.error("", e);
             res.code = Code.EXCEPTION;
         }
         return res;
+    }
+
+    /**
+     * 填充任务列表返回体: 任务池(未过期且配置存在) + 下次整点 + 每日完成计数 + 我的任务(超期惰性结算)。
+     */
+    private void fillTaskList(long playerId, AllianceData alliance, ResAllianceTaskList res) {
+        long now = System.currentTimeMillis();
+        res.poolTasks = new ArrayList<>();
+        for (Map.Entry<Integer, AllianceTaskSlot> en : alliance.getTasks().entrySet()) {
+            AllianceTaskSlot value = en.getValue();
+            if (value.getExpireTime() > now && configService.getAllianceTaskByCfgId(value.getCfgId()) != null) {
+                res.poolTasks.add(AlliancePbConverter.toTaskInfo(value));
+            }
+        }
+        res.nextRefreshTime = nextHourMillis(now);
+
+        AlliancePlayerData playerData = alliancePlayerDao.getOrEmpty(playerId);
+        int today = TimeHelper.getDayNumerical();
+        res.dailyFinished = playerData.taskFinishCountOf(today);
+        res.dailyLimit = AllianceConst.Cfg.DAILY_TASK_LIMIT;
+        res.abandonCdUntil = playerData.getAbandonCdUntil();
+
+        PlayerTakenTask taken = playerData.getTakenTask();
+        if (taken != null) {
+            if (taken.expired(now)) {
+                //超期惰性结算失败
+                failTask(playerId, taken);
+            } else {
+                res.myTask = AlliancePbConverter.toTaskInfo(taken, progressOf(playerId, taken.getCfgId()), null);
+            }
+        }
     }
 
     /**
@@ -156,6 +163,55 @@ public class AllianceTaskService {
                     res.tasks.add(AlliancePbConverter.toTaskInfo(finished.get(i), 0, null));
                 }
             }
+        } catch (Exception e) {
+            log.error("", e);
+            res.code = Code.EXCEPTION;
+        }
+        return res;
+    }
+
+    /**
+     * 玩家主动刷新任务: 消耗道具 + 每日次数上限约束, 强制整池重 roll 后返回最新任务列表。
+     * 写路径(扣道具/改池/每日计数), 留在 worker 串行执行。
+     */
+    public ResAllianceTaskList refreshTaskList(PlayerController pc) {
+        ResAllianceTaskList res = new ResAllianceTaskList(Code.SUCCESS);
+        long playerId = pc.playerId();
+        try {
+            AllianceRefreshTaskConfig cfg = configService.getAllianceRefreshTaskConfig();
+            if (cfg == null) {
+                res.code = Code.PARAM_ERROR;
+                log.warn("刷新联盟任务失败,刷新配置不存在 playerId={}", playerId);
+                return res;
+            }
+            long allianceId = cacheService.getAllianceId(playerId);
+            AllianceData alliance = cacheService.getAlliance(allianceId);
+            if (alliance == null) {
+                res.code = Code.NOT_FOUND;
+                log.warn("刷新联盟任务失败,玩家不在联盟 playerId={}", playerId);
+                return res;
+            }
+            //占用每日刷新次数 (原子, 并发达上限失败)
+            int today = TimeHelper.getDayNumerical();
+            if (!alliancePlayerDao.tryConsumeRefresh(playerId, today, cfg.getDailyCountLimit())) {
+                res.code = Code.FORBID;
+                log.warn("刷新联盟任务失败,今日刷新次数已达上限 playerId={},limit={}", playerId, cfg.getDailyCountLimit());
+                return res;
+            }
+            //扣道具; 不足则回滚已占用的刷新次数
+            if (cfg.getItemId() > 0 && cfg.getSpendCountEach() > 0) {
+                var deduct = playerPackService.removeItem(pc.getPlayer(), cfg.getItemId(), cfg.getSpendCountEach(), AddType.ALLIANCE_TASK_REFRESH);
+                if (!deduct.success()) {
+                    alliancePlayerDao.rollbackRefresh(playerId, today);
+                    res.code = Code.NOT_ENOUGH_ITEM;
+                    log.warn("刷新联盟任务失败,消耗道具不足已回滚 playerId={},itemId={},count={}", playerId, cfg.getItemId(), cfg.getSpendCountEach());
+                    return res;
+                }
+            }
+            //补齐任务
+            alliance = ensurePoolRefreshed(alliance);
+            fillTaskList(playerId, alliance, res);
+            log.info("刷新联盟任务 playerId={},allianceId={}", playerId, allianceId);
         } catch (Exception e) {
             log.error("", e);
             res.code = Code.EXCEPTION;
@@ -479,7 +535,7 @@ public class AllianceTaskService {
             }
             if (en.getKey() == SimConstant.Item.ID_ALLIANCE_REPUTATION) {
                 reputation += en.getValue();
-            } else if (en.getKey() == SimConstant.Item.ID_ALLIANCE_Contribution) {
+            } else if (en.getKey() == SimConstant.Item.ID_ALLIANCE_CONTRIBUTION) {
                 contribution += en.getValue();
             } else {
                 packRewards.merge(en.getKey(), en.getValue(), Long::sum);
