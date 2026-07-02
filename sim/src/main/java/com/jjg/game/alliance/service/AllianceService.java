@@ -19,10 +19,8 @@ import com.jjg.game.core.constant.Code;
 import com.jjg.game.core.data.*;
 import com.jjg.game.core.service.CorePlayerService;
 import com.jjg.game.core.service.PlayerPackService;
-import com.jjg.game.core.utils.ItemUtils;
 import com.jjg.game.sampledata.bean.AllianceLevelCfg;
 import com.jjg.game.sim.data.SimPlayerContext;
-import com.jjg.game.sim.manager.SimManager;
 import com.jjg.game.sim.manager.SimPlayerContextRegistry;
 import com.jjg.game.sim.service.SimConfigCacheService;
 import com.jjg.game.social.channel.AllianceChatChannel;
@@ -299,9 +297,14 @@ public class AllianceService {
             return res;
         }
 
+        if (configService.getCreateAllianceItem() == null) {
+            res.code = Code.NOT_FOUND;
+            log.warn("创建联盟失败,未找到扣除的道具配置 playerId={},createdAllianceId={}", playerId, playerData.getCreatedAllianceId());
+            return res;
+        }
+
         //扣除资源
-        Map<Integer, Long> cost = Map.of(ItemUtils.getDiamondItemId(), (long) AllianceConst.Cfg.CREATE_COST_DIAMOND);
-        CommonResult<ItemOperationResult> deduct = playerPackService.removeItems(pc.getPlayer(), cost, AddType.ALLIANCE_CREATE, "");
+        CommonResult<ItemOperationResult> deduct = playerPackService.removeItem(pc.getPlayer(), configService.getCreateAllianceItem(), AddType.ALLIANCE_CREATE);
         if (!deduct.success()) {
             res.code = Code.NOT_ENOUGH_ITEM;
             log.warn("创建联盟失败,余额不足 playerId={},allLevel={}", playerId, allLevel);
@@ -315,7 +318,7 @@ public class AllianceService {
         //占位玩家侧归属: 原子写入"当前联盟 + 已创建联盟"(条件: 未在盟 且 未创建过), 兜底跨节点并发
         if (!alliancePlayerDao.tryOccupyCreate(playerId, allianceId, now)) {
             //同一玩家请求按 playerId 串行, 预检已过, 正常不触发; 极端并发下退还钻石
-            playerPackService.addItems(playerId, cost, AddType.ALLIANCE_CREATE, "创建联盟回滚", true);
+            playerPackService.addItem(playerId, configService.getCreateAllianceItem().getId(), configService.getCreateAllianceItem().getItemCount(), AddType.ALLIANCE_CREATE);
             res.code = Code.FORBID;
             log.warn("创建联盟失败,占位失败已退钻石 playerId={},allianceId={}", playerId, allianceId);
             return res;

@@ -221,17 +221,7 @@ public interface AllianceConst {
     }
 
     /**
-     * 对决阶段状态机。
-     * <p>
-     * leader 节点定时 tick 按时间推进, 全部用"旧状态条件更新"幂等化(防 leader 切换双跑);
-     * 各阶段时间点见 {@code AllianceConfigService} 的对决时间配置。
-     */
-
-    /**
-     * 联盟任务使用 task.xlsx 的 taskConditionId 首位作为条件类型。
-     * <p>
-     * 编号严格对齐 condition.csv, 括号内为该条件的参数格式(taskConditionId 去掉首位后的排布)。
-     * 注意: 建筑升级在 condition 表落在 122xx 段(12206), 不在 123xx 段, 不要按顺序臆测。
+     * 条件，对齐condition表
      */
     interface TaskConditionType {
         //建筑升级次数 (建筑ID(0=任意)_次数)
@@ -272,8 +262,6 @@ public interface AllianceConst {
      */
     interface Cfg {
         //--------- 创建/加入 ---------
-        //创建消耗钻石数
-        int CREATE_COST_DIAMOND = 100;
         //创建/加入所需最低场景等级
         int CREATE_MIN_CASINO_LEVEL = 1;
         //联盟名称最大字符数 (前端限定 11 字符)

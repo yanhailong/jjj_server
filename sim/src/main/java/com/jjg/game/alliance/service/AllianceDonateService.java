@@ -43,7 +43,7 @@ public class AllianceDonateService {
     @Autowired
     private PlayerPackService playerPackService;
     @Autowired
-    private AllianceTaskService tasksService;
+    private AllianceEventService allianceEventService;
 
     /**
      * 捐献界面信息。
@@ -122,7 +122,7 @@ public class AllianceDonateService {
         assetService.grantContribution(playerId, cfg.getRewardContribution(), cfg.getRewardReputation(), allianceId);
         long newReputation = assetService.grantReputation(allianceId, cfg.getRewardReputation());
         if(count != null && count > 0){
-            tasksService.onProgress(playerId, AllianceConst.TaskConditionType.DONATE_TIMES, count, 1);
+            allianceEventService.onEvent(playerId, AllianceConst.TaskConditionType.DONATE_TIMES, count, 1);
         }
 
         res.rewardContribution = cfg.getRewardContribution();

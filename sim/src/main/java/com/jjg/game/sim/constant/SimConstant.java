@@ -201,6 +201,7 @@ public interface SimConstant {
         int ALLIANCE_DONATE_REWARD_ID = 231;
         int ALLIANCE_DONATE_REPUTATION_ID = 242;
         int ALLIANCE_DAILY_FRESH_TASK = 243;
+        int ALLIANCE_CREATE_ALLIANCE_CFG_ID = 222;
 
         //拜访系统全局配置
         int VISIT_LIKE_POPULARITY_ID = 232;

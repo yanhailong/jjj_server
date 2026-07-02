@@ -4,6 +4,7 @@ import com.jjg.game.alliance.data.AllianceRefreshTaskConfig;
 import com.jjg.game.alliance.data.DonateCfg;
 import com.jjg.game.common.utils.WeightRandom;
 import com.jjg.game.core.constant.TaskConstant;
+import com.jjg.game.core.data.Item;
 import com.jjg.game.core.listener.ConfigExcelChangeListener;
 import com.jjg.game.sampledata.GameDataManager;
 import com.jjg.game.sampledata.bean.*;
@@ -79,6 +80,8 @@ public class SimConfigCacheService implements ConfigExcelChangeListener {
     private DonateCfg allianceDonateCfg;
     //联盟刷新任务配置
     private AllianceRefreshTaskConfig allianceRefreshTaskConfig;
+    //创建联盟需要消耗的道具
+    private Item createAllianceItem;
 
     public void init() {
         initGuestQualityItems();
@@ -383,6 +386,13 @@ public class SimConfigCacheService implements ConfigExcelChangeListener {
             tmpAllianceRefreshTaskConfig.setDailyCountLimit(Integer.parseInt(s[1]));
             tmpAllianceRefreshTaskConfig.setSpendCountEach(Integer.parseInt(s[2]));
             this.allianceRefreshTaskConfig = tmpAllianceRefreshTaskConfig;
+        }
+
+        //联盟每日任务刷新
+        GlobalConfigCfg createAllianceCfg = GameDataManager.getGlobalConfigCfg(SimConstant.Common.ALLIANCE_CREATE_ALLIANCE_CFG_ID);
+        if(createAllianceCfg != null){
+            String[] s = createAllianceCfg.getValue().split("_");
+            this.createAllianceItem = new Item(Integer.parseInt(s[0]), Long.parseLong(s[1]));
         }
     }
 
@@ -690,5 +700,9 @@ public class SimConfigCacheService implements ConfigExcelChangeListener {
 
     public AllianceRefreshTaskConfig getAllianceRefreshTaskConfig() {
         return allianceRefreshTaskConfig;
+    }
+
+    public Item getCreateAllianceItem() {
+        return createAllianceItem;
     }
 }
