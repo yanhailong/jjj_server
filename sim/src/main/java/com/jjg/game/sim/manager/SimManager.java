@@ -15,19 +15,13 @@ import com.jjg.game.core.data.Player;
 import com.jjg.game.core.data.PlayerController;
 import com.jjg.game.core.service.CorePlayerService;
 import com.jjg.game.sim.constant.SimConstant;
-import com.jjg.game.sim.dao.SimCasinoDao;
-import com.jjg.game.sim.dao.SimEmployeeDao;
-import com.jjg.game.sim.dao.SimPlayerGameDao;
-import com.jjg.game.sim.dao.SimSkillsDao;
+import com.jjg.game.sim.dao.*;
 import com.jjg.game.sim.data.*;
 import com.jjg.game.sim.listener.SimPlayerTickListener;
 import com.jjg.game.sim.pb.SimPbConverter;
 import com.jjg.game.sim.pb.res.ResSimEnterGame;
 import com.jjg.game.sim.pb.res.ResSimPlayerInfo;
 import com.jjg.game.sim.service.*;
-import com.jjg.game.sim.dao.SimTaskDao;
-import com.jjg.game.sim.data.SimTaskData;
-import com.jjg.game.sim.service.SimTaskService;
 import io.netty.util.Timeout;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -38,7 +32,6 @@ import java.util.ArrayList;
 import java.util.Comparator;
 import java.util.List;
 import java.util.Map;
-import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.TimeUnit;
 
 /**
@@ -72,8 +65,6 @@ public class SimManager {
     //玩家状态检查任务句柄
     private volatile Timeout checkPlayerDataTimeout;
 
-    //储存玩家会话上下文
-    protected Map<Long, SimPlayerContext> contextMap = new ConcurrentHashMap<>();
     @Autowired
     private SimCasinoDao simCasinoDao;
     @Autowired
@@ -102,6 +93,8 @@ public class SimManager {
     private SimTaskDao simTaskDao;
     @Autowired
     private SimVisitService simVisitService;
+    @Autowired
+    private SimPlayerContextRegistry simPlayerContextRegistry;
 
 
     /**
@@ -138,7 +131,7 @@ public class SimManager {
     public void onEnterGame(PlayerController playerController) {
         ResSimEnterGame res = new ResSimEnterGame(Code.SUCCESS);
         try {
-            SimPlayerContext ctx = getContext(playerController.playerId());
+            SimPlayerContext ctx = this.simPlayerContextRegistry.getContext(playerController.playerId());
             if (ctx == null) {
                 //兜底: 登录扩展点未触发时现场加载并结算离线收益
                 ctx = createContext(playerController);
@@ -229,7 +222,7 @@ public class SimManager {
             res.createTime = targetPlayer.getCreateTime();
             res.gender = targetPlayer.getGender();
 
-            SimPlayerContext targetCtx = getContext(targetPlayerId);
+            SimPlayerContext targetCtx = this.simPlayerContextRegistry.getContext(targetPlayerId);
             SimBaseData targetBaseData = targetCtx == null
                     ? simPlayerGameDao.findById(targetPlayerId).orElse(null)
                     : targetCtx.getSimBaseData();
@@ -266,7 +259,7 @@ public class SimManager {
      * 玩家退出游戏
      */
     public boolean onExitGame(long playerId, ExitType exitType) {
-        SimPlayerContext ctx = this.contextMap.get(playerId);
+        SimPlayerContext ctx = this.simPlayerContextRegistry.getContext(playerId);
         if (ctx != null) {
             ctx.getSimBaseData().setLastOfflineTime(System.currentTimeMillis());
             exitSaveData(playerId);
@@ -280,7 +273,7 @@ public class SimManager {
      */
     public void onFinishGuide(long playerId) {
         try {
-            SimPlayerContext ctx = getContext(playerId);
+            SimPlayerContext ctx = this.simPlayerContextRegistry.getContext(playerId);
             if (ctx == null) {
                 log.warn("玩家完成新手引导时获取 SimPlayerContext 失败 playerId={}", playerId);
                 return;
@@ -304,7 +297,7 @@ public class SimManager {
     }
 
     public SimPlayerContext createContextByPlayerId(long playerId) {
-        SimPlayerContext ctx = getContext(playerId);
+        SimPlayerContext ctx = this.simPlayerContextRegistry.getContext(playerId);
         if (ctx != null) {
             return ctx;
         }
@@ -328,7 +321,7 @@ public class SimManager {
         //加载主线/成就任务数据 (首登接取主线首节点+各成就组首节点)
         simTaskService.initTaskData(ctx);
         simTaskService.reconcileFinishedTaskCount(ctx);
-        this.contextMap.put(playerId, ctx);
+        this.simPlayerContextRegistry.putContext(ctx);
         simNodeService.save(playerId, clusterSystem.getNodePath());
         return ctx;
     }
@@ -370,10 +363,6 @@ public class SimManager {
         }
     }
 
-    public SimPlayerContext getContext(long playerId) {
-        return this.contextMap.get(playerId);
-    }
-
     /**
      * 服务器关闭: 让所有玩家走一遍 onExitGame, 然后统一刷盘 + 释放缓存
      */
@@ -386,12 +375,12 @@ public class SimManager {
         this.autoSaveService.destroy();
 
         //玩家级 SimPlayerGameData
-        List<SimBaseData> gameDataList = new ArrayList<>(this.contextMap.size());
+        List<SimBaseData> gameDataList = new ArrayList<>(this.simPlayerContextRegistry.ctxSize());
         List<SimCasinoData> simCasinoDataList = new ArrayList<>();
         List<SimEmployeeData> simEmployeeDataList = new ArrayList<>();
         List<SimSkillsData> skillDataList = new ArrayList<>();
         List<SimTaskData> simTaskDataList = new ArrayList<>();
-        for (Map.Entry<Long, SimPlayerContext> en : this.contextMap.entrySet()) {
+        for (Map.Entry<Long, SimPlayerContext> en : this.simPlayerContextRegistry.getContextMap().entrySet()) {
             try {
                 SimPlayerContext ctx = en.getValue();
                 onExitGame(en.getKey(), ExitType.DROPPED);
@@ -416,14 +405,14 @@ public class SimManager {
         simSkillsDao.saveAll(skillDataList);
         simTaskDao.saveAll(simTaskDataList);
         //删除本节点上所有玩家的sim节点路由信息
-        this.simNodeService.delete(this.contextMap.keySet());
+        this.simNodeService.delete(this.simPlayerContextRegistry.getContextMap().keySet());
     }
 
     /**
      * 单玩家退出落库 + 释放缓存 (供长时掉线/主动登出场景使用)
      */
     public void exitSaveData(long playerId) {
-        SimPlayerContext ctx = this.contextMap.remove(playerId);
+        SimPlayerContext ctx = this.simPlayerContextRegistry.removeContext(playerId);
         if (ctx == null) {
             return;
         }
@@ -450,7 +439,7 @@ public class SimManager {
     private void checkPlayerDataTimer() {
         long now = System.currentTimeMillis();
 
-        for (Map.Entry<Long, SimPlayerContext> en : this.contextMap.entrySet()) {
+        for (Map.Entry<Long, SimPlayerContext> en : this.simPlayerContextRegistry.getContextMap().entrySet()) {
             final SimPlayerContext ctx = en.getValue();
             //分发到对应的线程
             PlayerExecutorGroupDisruptor.getDefaultExecutor().tryPublish(en.getKey(), 0, new BaseHandler<String>() {
@@ -471,7 +460,7 @@ public class SimManager {
     public CommonResult<SlotsSpinResult> onSlotsSpin(long playerId, int gameType, int winTimes, boolean changeNode,
                                                     SpinStatInfo statInfo, VisitTrialSpinPermit trialPermit) {
         try {
-            SimPlayerContext ctx = getContext(playerId);
+            SimPlayerContext ctx = this.simPlayerContextRegistry.getContext(playerId);
             if (ctx == null) {
                 if (changeNode) {
                     ctx = createContextByPlayerId(playerId);
@@ -514,7 +503,7 @@ public class SimManager {
 
     public CommonResult<VisitTrialSpinPermit> prepareVisitTrialSpin(long playerId, int gameType) {
         try {
-            SimPlayerContext ctx = getContext(playerId);
+            SimPlayerContext ctx = this.simPlayerContextRegistry.getContext(playerId);
             if (ctx == null) {
                 ctx = createContextByPlayerId(playerId);
             }
@@ -530,7 +519,7 @@ public class SimManager {
 
     public CommonResult<Boolean> cancelVisitTrialSpin(long playerId, VisitTrialSpinPermit permit) {
         try {
-            SimPlayerContext ctx = getContext(playerId);
+            SimPlayerContext ctx = this.simPlayerContextRegistry.getContext(playerId);
             if (ctx == null) {
                 return new CommonResult<>(Code.NOT_FOUND, false);
             }

@@ -1,6 +1,8 @@
 package com.jjg.game.sim.service;
 
 import com.alibaba.fastjson.JSON;
+import com.jjg.game.alliance.constant.AllianceConst;
+import com.jjg.game.alliance.service.AllianceEventService;
 import com.jjg.game.core.constant.Code;
 import com.jjg.game.core.data.CommonResult;
 import com.jjg.game.core.listener.ConfigExcelChangeListener;
@@ -34,6 +36,8 @@ public class SimSkillService extends AbstractSkillService implements ConfigExcel
     private SimSkillsDao simSkillsDao;
     @Autowired
     private SimConfigCacheService simConfigCacheService;
+    @Autowired
+    private AllianceEventService allianceEventService;
 
     /**
      * 初始时解锁技能
@@ -168,6 +172,8 @@ public class SimSkillService extends AbstractSkillService implements ConfigExcel
             //检查新等级所需要的研究点
             if (newLevelCfg.getResearchPoints() == null || newLevelCfg.getResearchPoints().isEmpty()) {
                 skillData.changeSkillLevel(skillPropId, newLevelCfg.getGrade());
+                //联盟任务: 技能研究次数 (param=游戏类型, 供 0=任意/指定游戏 过滤)
+                allianceEventService.onEvent(ctx.playerId(), AllianceConst.TaskConditionType.SKILL_RESEARCH_TIMES, gameType, 1);
                 log.warn("该技能等级升级无需研究点，升级技能成功 playerId={},propId={},newLevelCfgId={}", skillData.getPlayerId(), skillPropId, newLevelCfg.getId());
                 res.code = Code.SUCCESS;
                 ctx.send(res);
@@ -202,6 +208,8 @@ public class SimSkillService extends AbstractSkillService implements ConfigExcel
                 ctx.getSimBaseData().deductResearchPoint(en.getKey(), en.getValue());
             }
             skillData.changeSkillLevel(skillPropId, newLevelCfg.getGrade());
+            //联盟任务: 技能研究次数 (param=游戏类型, 供 0=任意/指定游戏 过滤)
+            allianceEventService.onEvent(ctx.playerId(), AllianceConst.TaskConditionType.SKILL_RESEARCH_TIMES, gameType, 1);
 
             res.gameType = gameType;
             res.skillId = skillPropId;

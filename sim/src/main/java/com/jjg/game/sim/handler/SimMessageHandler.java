@@ -13,6 +13,7 @@ import com.jjg.game.sampledata.bean.CasinoStatsSheetCfg;
 import com.jjg.game.sim.constant.SimConstant;
 import com.jjg.game.sim.data.SimPlayerContext;
 import com.jjg.game.sim.manager.SimManager;
+import com.jjg.game.sim.manager.SimPlayerContextRegistry;
 import com.jjg.game.sim.pb.req.*;
 import com.jjg.game.sim.pb.res.*;
 import com.jjg.game.sim.service.*;
@@ -42,6 +43,8 @@ public class SimMessageHandler implements GmListener {
 
     @Autowired
     private SimManager simManager;
+    @Autowired
+    private SimPlayerContextRegistry simPlayerContextRegistry;
     @Autowired
     private SimGuestService guestService;
     @Autowired
@@ -484,10 +487,10 @@ public class SimMessageHandler implements GmListener {
             if ("simFinishGuide".equalsIgnoreCase(gmOrders[0])) {
                 reqFinishGuide(playerController, null);
             } else if ("printGuest".equalsIgnoreCase(gmOrders[0])) {
-                SimPlayerContext context = simManager.getContext(playerController.playerId());
+                SimPlayerContext context = this.simPlayerContextRegistry.getContext(playerController.playerId());
                 context.printGuest();
             } else if ("printBuilding".equalsIgnoreCase(gmOrders[0])) {
-                SimPlayerContext context = simManager.getContext(playerController.playerId());
+                SimPlayerContext context = this.simPlayerContextRegistry.getContext(playerController.playerId());
                 context.printBuilding();
             } else if ("unlockGuest".equalsIgnoreCase(gmOrders[0])) {
                 int guestId = Integer.parseInt(gmOrders[1]);
@@ -534,16 +537,16 @@ public class SimMessageHandler implements GmListener {
             } else if ("addResearch".equalsIgnoreCase(gmOrders[0])) {
                 int type = Integer.parseInt(gmOrders[1]);
                 int num = Integer.parseInt(gmOrders[2]);
-                SimPlayerContext context = simManager.getContext(playerController.playerId());
+                SimPlayerContext context = this.simPlayerContextRegistry.getContext(playerController.playerId());
                 context.getSimBaseData().addResearchPoint(type, num);
             } else if ("addPower".equalsIgnoreCase(gmOrders[0])) {
                 int num = Integer.parseInt(gmOrders[1]);
-                SimPlayerContext context = simManager.getContext(playerController.playerId());
+                SimPlayerContext context = this.simPlayerContextRegistry.getContext(playerController.playerId());
                 context.getSimBaseData().setPower(num + context.getSimBaseData().getPower());
             } else if ("caLevel".equalsIgnoreCase(gmOrders[0])) {
                 reqSimCasinoInfo(playerController, null);
             } else if ("genGuest".equalsIgnoreCase(gmOrders[0])) {
-                SimPlayerContext ctx = simManager.getContext(playerController.playerId());
+                SimPlayerContext ctx = this.simPlayerContextRegistry.getContext(playerController.playerId());
                 int num = Integer.parseInt(gmOrders[1]);
                 if (num > 500 || num < 1) {
                     log.warn("单次生成游客数量区间在 1-500");
@@ -567,7 +570,7 @@ public class SimMessageHandler implements GmListener {
                     return res;
                 }
 
-                SimPlayerContext context = simManager.getContext(playerController.playerId());
+                SimPlayerContext context = this.simPlayerContextRegistry.getContext(playerController.playerId());
                 guestService.batchGenerateSpecifyIdGuest(context, id, num);
             } else if ("specifyQualityGenGuest".equalsIgnoreCase(gmOrders[0])) {
                 int quality = Integer.parseInt(gmOrders[1]);
@@ -578,7 +581,7 @@ public class SimMessageHandler implements GmListener {
                     return res;
                 }
 
-                SimPlayerContext context = simManager.getContext(playerController.playerId());
+                SimPlayerContext context = this.simPlayerContextRegistry.getContext(playerController.playerId());
                 guestService.batchGenerateSpecifyQualityGuest(context, quality, num);
             } else if ("genPurchasedGuest".equalsIgnoreCase(gmOrders[0])) {
                 int guestId = Integer.parseInt(gmOrders[1]);
@@ -604,7 +607,7 @@ public class SimMessageHandler implements GmListener {
                     log.warn("未找到该配置 statsId={}", statsId);
                     return res;
                 }
-                SimPlayerContext ctx = simManager.getContext(playerController.playerId());
+                SimPlayerContext ctx = this.simPlayerContextRegistry.getContext(playerController.playerId());
                 ctx.getCurrentCasino().setCasinoLevel(cfg.getLevel());
             } else {
                 res.code = Code.NOT_FOUND;
@@ -617,7 +620,7 @@ public class SimMessageHandler implements GmListener {
     }
 
     public <T extends AbstractResponse> void execute(PlayerController pc, Consumer<SimPlayerContext> action) {
-        SimPlayerContext ctx = simManager.getContext(pc.playerId());
+        SimPlayerContext ctx = this.simPlayerContextRegistry.getContext(pc.playerId());
         if (ctx == null) {
             log.warn("获取ctx为空 playerId={}", pc.playerId());
             return;

@@ -20,6 +20,7 @@ import com.jjg.game.sim.data.SlotsSpinResult;
 import com.jjg.game.sim.data.SpinStatInfo;
 import com.jjg.game.sim.data.VisitTrialSpinPermit;
 import com.jjg.game.sim.manager.SimManager;
+import com.jjg.game.sim.manager.SimPlayerContextRegistry;
 import com.jjg.game.sim.service.SimSkillService;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Component;
@@ -40,13 +41,15 @@ public class HallRPCController extends CoreRPCController implements GmToHallBrid
     @Autowired
     private HallService hallService;
     @Autowired
-    private SimManager simManager;
-    @Autowired
     private SimSkillService simSkillService;
     @Autowired
     private AllianceEventService allianceEventService;
     @Autowired
     private AllianceCacheService allianceCacheService;
+    @Autowired
+    private SimPlayerContextRegistry simPlayerContextRegistry;
+    @Autowired
+    private SimManager simManager;
 
     @Override
     public int playerBindPhone(long playerId, String phone, int type, boolean reward) {
@@ -108,7 +111,7 @@ public class HallRPCController extends CoreRPCController implements GmToHallBrid
         if (deductMap == null || deductMap.isEmpty()) {
             return Code.SUCCESS;
         }
-        SimPlayerContext ctx = simManager.getContext(playerId);
+        SimPlayerContext ctx = this.simPlayerContextRegistry.getContext(playerId);
         if (ctx == null) {
             log.warn("扣除研究点失败，未找到玩家 sim 数据 playerId={}", playerId);
             return Code.NOT_FOUND;
@@ -135,7 +138,7 @@ public class HallRPCController extends CoreRPCController implements GmToHallBrid
             log.warn("添加技能失败，未找到技能配置 playerId={},skillId={}", playerId, skillId);
             return new CommonResult<>(Code.NOT_FOUND);
         }
-        SimPlayerContext ctx = simManager.getContext(playerId);
+        SimPlayerContext ctx = this.simPlayerContextRegistry.getContext(playerId);
         if (ctx == null) {
             log.warn("添加技能失败，未找到玩家 sim 数据 playerId={}", playerId);
             return new CommonResult<>(Code.NOT_FOUND);
@@ -171,7 +174,7 @@ public class HallRPCController extends CoreRPCController implements GmToHallBrid
 
     @Override
     public CommonResult<Map<Integer, Integer>> skillLevelUp(long playerId, int gameType, int skillId) {
-        SimPlayerContext ctx = simManager.getContext(playerId);
+        SimPlayerContext ctx = this.simPlayerContextRegistry.getContext(playerId);
         if (ctx == null) {
             log.warn("技能升级失败，未找到SimPlayerContext playerId={}", playerId);
             return new CommonResult<>(Code.NOT_FOUND);

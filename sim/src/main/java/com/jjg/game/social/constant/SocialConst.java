@@ -123,7 +123,7 @@ public interface SocialConst {
     interface Cfg {
         //--------- 世界聊天 ---------
         //单条消息最大字数
-        int WORLD_MSG_MAX_LEN = 30;
+        int WORLD_MSG_MAX_LEN = 200;
         //同一玩家最小发送间隔(秒)
         int WORLD_SEND_INTERVAL_SEC = 5;
         //节点级全服发送上限(条/秒): 每条世界消息要扇出给全部在线客户端, 必须封顶;
@@ -140,7 +140,7 @@ public interface SocialConst {
 
         //--------- 联盟聊天 ---------
         //单条消息最大字数
-        int ALLIANCE_MSG_MAX_LEN = 50;
+        int ALLIANCE_MSG_MAX_LEN = 300;
         //同一玩家最小发送间隔(秒)
         int ALLIANCE_SEND_INTERVAL_SEC = 5;
         //服务器常驻缓存条数
@@ -148,7 +148,7 @@ public interface SocialConst {
 
         //--------- 私聊 ---------
         //单条消息最大字数
-        int PRIVATE_MSG_MAX_LEN = 50;
+        int PRIVATE_MSG_MAX_LEN = 300;
         //消息保留天数(TTL 自动过期)
         int PRIVATE_KEEP_DAYS = 7;
         //私聊消息批量落库间隔(秒)

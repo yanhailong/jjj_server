@@ -1,6 +1,8 @@
 package com.jjg.game.sim.service;
 
 import com.alibaba.fastjson.JSON;
+import com.jjg.game.alliance.constant.AllianceConst;
+import com.jjg.game.alliance.service.AllianceEventService;
 import com.jjg.game.alliance.service.AllianceHelpService;
 import com.jjg.game.common.pb.ItemInfo;
 import com.jjg.game.common.utils.TimeHelper;
@@ -48,6 +50,8 @@ public class SimBuildingService implements SimPlayerTickListener {
     private SimPackService simPackService;
     @Autowired
     private AllianceHelpService allianceHelpService;
+    @Autowired
+    private AllianceEventService allianceEventService;
 
     @Override
     public void onTick(SimPlayerContext ctx, long now) {
@@ -332,6 +336,8 @@ public class SimBuildingService implements SimPlayerTickListener {
             res.code = completeBuildingUpgrade(casino, data, now);
             if (res.code == Code.SUCCESS) {
                 res.level = data.getLevel();
+                //联盟任务: 建筑升级次数 (param=建筑ID, 供 0=任意/指定建筑 过滤)
+                allianceEventService.onEvent(ctx.playerId(), AllianceConst.TaskConditionType.BUILDING_UPGRADE_TIMES, buildingId, 1);
             }
         } catch (Exception e) {
             log.error("", e);

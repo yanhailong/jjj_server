@@ -1,6 +1,8 @@
 package com.jjg.game.sim.service;
 
 import cn.hutool.core.lang.Snowflake;
+import com.jjg.game.alliance.constant.AllianceConst;
+import com.jjg.game.alliance.service.AllianceEventService;
 import com.jjg.game.common.pb.ItemInfo;
 import com.jjg.game.common.utils.RandomUtils;
 import com.jjg.game.common.utils.TimeHelper;
@@ -16,7 +18,7 @@ import com.jjg.game.sampledata.bean.*;
 import com.jjg.game.sim.constant.SimConstant;
 import com.jjg.game.sim.data.*;
 import com.jjg.game.sim.listener.SimPlayerTickListener;
-import com.jjg.game.sim.manager.SimManager;
+import com.jjg.game.sim.manager.SimPlayerContextRegistry;
 import com.jjg.game.sim.pb.SimPbConverter;
 import com.jjg.game.sim.pb.res.*;
 import com.jjg.game.sim.pb.struct.DestinationInfo;
@@ -50,7 +52,9 @@ public class SimGuestService implements SimPlayerTickListener, ItemListener {
     @Autowired
     private SimPackService simPackService;
     @Autowired
-    private SimManager simManager;
+    private SimPlayerContextRegistry simPlayerContextRegistry;
+    @Autowired
+    private AllianceEventService allianceEventService;
 
     @Override
     public void onTick(SimPlayerContext ctx, long now) {
@@ -890,6 +894,8 @@ public class SimGuestService implements SimPlayerTickListener, ItemListener {
             }
 
             res.shardInfos = recruitItems;
+            //联盟任务: 卡池抽奖次数 (param=卡池ID, 供 0=任意/指定卡池 过滤; 10 连计为 10 次)
+            allianceEventService.onEvent(ctx.playerId(), AllianceConst.TaskConditionType.POOL_DRAW_TIMES, tmpCfg.getId(), count);
             log.info("招募游客成功 playerId={},count={},newEmployee={},addAllItems={}", ctx.playerId(), count, addGuest, addAllItems);
         } catch (Exception e) {
             log.error("", e);
@@ -1076,7 +1082,7 @@ public class SimGuestService implements SimPlayerTickListener, ItemListener {
                 return;
             }
 
-            SimPlayerContext context = simManager.getContext(player.getId());
+            SimPlayerContext context = this.simPlayerContextRegistry.getContext(player.getId());
             if (context == null) {
                 log.warn("使用道具后生成游客失败，获取context 失败 playerId={}", player.getId());
                 return;

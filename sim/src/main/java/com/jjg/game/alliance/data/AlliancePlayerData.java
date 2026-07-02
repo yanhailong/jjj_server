@@ -280,4 +280,8 @@ public class AlliancePlayerData {
         Integer mask = battleClaims.get(period);
         return mask == null ? 0 : mask;
     }
+
+    public int refreshCountOf(int today) {
+        return refreshDay == today ? refreshCount : 0;
+    }
 }

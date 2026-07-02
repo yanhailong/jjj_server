@@ -93,6 +93,7 @@ public interface AllianceConst {
 
         //刷新任务
         int REQ_REFRESH_TASK = BASE_MSG_PREFIX | 0x37;
+        int RES_REFRESH_TASK = BASE_MSG_PREFIX | 0x41;
 
         //获取已完成任务列表
         int REQ_FINISHED_TASK = BASE_MSG_PREFIX | 0x42;
@@ -228,16 +229,27 @@ public interface AllianceConst {
 
     /**
      * 联盟任务使用 task.xlsx 的 taskConditionId 首位作为条件类型。
+     * <p>
+     * 编号严格对齐 condition.csv, 括号内为该条件的参数格式(taskConditionId 去掉首位后的排布)。
+     * 注意: 建筑升级在 condition 表落在 122xx 段(12206), 不在 123xx 段, 不要按顺序臆测。
      */
     interface TaskConditionType {
+        //建筑升级次数 (建筑ID(0=任意)_次数)
+        int BUILDING_UPGRADE_TIMES = 12206;
+        //游戏中奖倍数 (游戏ID(0=任意)_大于等于总押注_中奖倍数_达标次数)
         int WIN_TIMES = 12301;
-        int POOL_DRAW_TIMES = 12302;
-        int SKILL_RESEARCH_TIMES = 12303;
-        int BUILDING_UPGRADE_TIMES = 12304;
-        int BET_TIMES = 12305;
+        //游戏下注次数-消耗能量 (游戏ID(0=任意)_大于等于总押注_目标投注次数)
+        int BET_TIMES = 12302;
+        //卡池抽奖次数 (卡池ID(0=任意)_抽奖次数)
+        int POOL_DRAW_TIMES = 12303;
+        //技能研究次数 (游戏ID(0=任意)_研究次数)
+        int SKILL_RESEARCH_TIMES = 12304;
+        //联盟捐献次数 (大于等于捐献量门槛_目标捐献次数)
+        int DONATE_TIMES = 12305;
+        //游戏赢奖金额 (游戏ID(0=任意)_大于等于总押注_货币ID_目标获胜金额)
         int WIN_AMOUNT = 12306;
+        //接取任务后个人累计充值 (渠道ID(0=任意)_累计充值金额)
         int RECHARGE_AMOUNT = 12307;
-        int DONATE_TIMES = 12308;
     }
 
     interface BattleState {

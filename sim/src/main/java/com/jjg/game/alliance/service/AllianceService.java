@@ -23,6 +23,7 @@ import com.jjg.game.core.utils.ItemUtils;
 import com.jjg.game.sampledata.bean.AllianceLevelCfg;
 import com.jjg.game.sim.data.SimPlayerContext;
 import com.jjg.game.sim.manager.SimManager;
+import com.jjg.game.sim.manager.SimPlayerContextRegistry;
 import com.jjg.game.sim.service.SimConfigCacheService;
 import com.jjg.game.social.channel.AllianceChatChannel;
 import com.jjg.game.social.service.SocialStatusService;
@@ -72,11 +73,11 @@ public class AllianceService {
     @Autowired
     private SocialStatusService statusService;
     @Autowired
-    private SimManager simManager;
-    @Autowired
     private AllianceChatChannel allianceChatChannel;
     @Autowired
     private AllianceIdDao allianceIdDao;
+    @Autowired
+    private SimPlayerContextRegistry simPlayerContextRegistry;
 
     // =====================================================================
     // 信息查询
@@ -791,7 +792,7 @@ public class AllianceService {
      * 玩家场景等级: 在线取 ctx 当前场景, 离线回源场景文档取最高等级。
      */
     public int casinoLevelOf(long playerId) {
-        SimPlayerContext ctx = simManager.getContext(playerId);
+        SimPlayerContext ctx = this.simPlayerContextRegistry.getContext(playerId);
         if (ctx == null) {
             return 0;
         }

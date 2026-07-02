@@ -235,8 +235,9 @@ public class AlliancePlayerDao extends MongoBaseDao<AlliancePlayerData, Long> {
                 new Update().inc("taskFinishCount", 1), AlliancePlayerData.class);
     }
 
-    public boolean tryConsumeRefresh(long playerId, int day, int limit) {
-        return tryIncrementDailyCounter(playerId, day, "refreshDay", "refreshCount", limit);
+    public int tryConsumeRefresh(long playerId, int day, int limit) {
+        AlliancePlayerData data = incrementDailyCounterReturning(playerId, day, "refreshDay", "refreshCount", limit);
+        return data == null ? -1 : data.getRefreshCount();
     }
 
     public void rollbackRefresh(long playerId, int day) {

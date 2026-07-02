@@ -14,11 +14,10 @@ import com.jjg.game.sim.data.SimBaseData;
 import com.jjg.game.sim.data.SimCasinoData;
 import com.jjg.game.sim.data.SimItemOperationResult;
 import com.jjg.game.sim.data.SimPlayerContext;
-import com.jjg.game.sim.manager.SimManager;
+import com.jjg.game.sim.manager.SimPlayerContextRegistry;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.context.annotation.Lazy;
 import org.springframework.stereotype.Service;
 
 import java.util.Collections;
@@ -41,10 +40,8 @@ public class SimPackService {
     private SimPlayerGameDao simPlayerGameDao;
     @Autowired
     private SimCasinoDao simCasinoDao;
-    //@Lazy 打破循环: AllianceTaskService -> 本类 -> SimManager -> AllianceEventService -> AllianceTaskService
-    @Lazy
     @Autowired
-    private SimManager simManager;
+    private SimPlayerContextRegistry simPlayerContextRegistry;
 
 
     /**
@@ -128,7 +125,7 @@ public class SimPackService {
         if (items == null || items.isEmpty()) {
             return;
         }
-        SimPlayerContext ctx = simManager.getContext(playerId);
+        SimPlayerContext ctx = this.simPlayerContextRegistry.getContext(playerId);
         if (ctx != null) {
             addItems(ctx, items, addType, desc, notify);
             return;

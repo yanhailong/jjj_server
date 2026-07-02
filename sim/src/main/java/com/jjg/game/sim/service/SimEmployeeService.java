@@ -1,5 +1,7 @@
 package com.jjg.game.sim.service;
 
+import com.jjg.game.alliance.constant.AllianceConst;
+import com.jjg.game.alliance.service.AllianceEventService;
 import com.jjg.game.common.utils.TimeHelper;
 import com.jjg.game.common.utils.WeightRandom;
 import com.jjg.game.core.constant.AddType;
@@ -44,6 +46,8 @@ public class SimEmployeeService {
     private SimEmployeeDao simEmployeeDao;
     @Autowired
     private SimPackService simPackService;
+    @Autowired
+    private AllianceEventService allianceEventService;
 
     /**
      * 招募雇员 (卡池抽取):
@@ -179,6 +183,8 @@ public class SimEmployeeService {
             }
 
             res.shardInfos = recruitItems;
+            //联盟任务: 卡池抽奖次数 (param=卡池ID, 供 0=任意/指定卡池 过滤; 10 连计为 10 次)
+            allianceEventService.onEvent(ctx.playerId(), AllianceConst.TaskConditionType.POOL_DRAW_TIMES, tmpCfg.getId(), count);
             log.info("招募雇员成功 playerId={},count={},newEmployee={},addAllItems={}", ctx.playerId(), count, addEmployee, addAllItems);
         } catch (Exception e) {
             log.error("", e);
