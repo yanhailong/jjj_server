@@ -177,6 +177,10 @@ public interface SimConstant {
         int REQ_START_VISIT_TRIAL = BASE_MSG_PREFIX | 0x56;
         int RES_VISIT_TRIAL = BASE_MSG_PREFIX | 0x57;
         int REQ_EXIT_VISIT_TRIAL = BASE_MSG_PREFIX | 0x58;
+
+        //成就勋章面板 (达成统计/全服排行/品质统计/加成)
+        int REQ_MEDAL_PANEL = BASE_MSG_PREFIX | 0x59;
+        int RES_MEDAL_PANEL = BASE_MSG_PREFIX | 0x5A;
     }
 
     interface Common {

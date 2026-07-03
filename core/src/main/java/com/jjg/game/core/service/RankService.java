@@ -307,6 +307,16 @@ public class RankService {
     }
 
     /**
+     * 榜单人数 (上榜成员数)
+     *
+     * @param rankKey 排行榜 key
+     * @return 成员总数
+     */
+    public int size(String rankKey) {
+        return redissonClient.getScoredSortedSet(rankKey, LongCodec.INSTANCE).size();
+    }
+
+    /**
      * 清除排行榜
      *
      * @param rankKey 排行榜 key

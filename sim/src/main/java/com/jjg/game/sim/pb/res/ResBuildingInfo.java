@@ -25,6 +25,8 @@ public class ResBuildingInfo extends AbstractResponse {
     public List<KVInfo> manageEmployeeBonus;
     @ProtoDesc("配置的观看广告次数")
     public int watchAdLimit;
+    @ProtoDesc("主管id")
+    public int managerId;
 
 
     public ResBuildingInfo(int code) {

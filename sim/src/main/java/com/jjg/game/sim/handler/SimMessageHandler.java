@@ -62,6 +62,8 @@ public class SimMessageHandler implements GmListener {
     @Autowired
     private SimTaskService taskService;
     @Autowired
+    private SimMedalService medalService;
+    @Autowired
     private SimVisitService visitService;
 
 
@@ -394,6 +396,14 @@ public class SimMessageHandler implements GmListener {
     @Command(SimConstant.MsgBean.REQ_SET_DISPLAYED_MEDALS)
     public void reqSetDisplayedMedals(PlayerController playerController, ReqSetDisplayedMedals req) {
         execute(playerController, ctx -> ctx.send(taskService.setDisplayedMedals(ctx, req.medalIds)));
+    }
+
+    /**
+     * 成就勋章面板 (达成统计/全服排行/品质统计/加成档)
+     */
+    @Command(SimConstant.MsgBean.REQ_MEDAL_PANEL)
+    public void reqMedalPanel(PlayerController playerController, ReqMedalPanel req) {
+        execute(playerController, ctx -> ctx.send(medalService.buildMedalPanel(ctx)));
     }
 
     //--------------------------任务 (主线/成就) end--------------------------

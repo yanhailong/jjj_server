@@ -379,10 +379,10 @@ public class SimEmployeeService {
     }
 
     /**
-     * 计算所有已解锁雇员加成固定值之和:
+     * 汇总玩家加成固定值之和 (雇员等级加成 + 勋章品质加成) 到 bonusesMap; 单位千分比。
      *
-     * @param ctx 玩家上下文
-     * @return 加成之和
+     * @param ctx        玩家上下文
+     * @param bonusesMap 加成汇总输出 (BonusType -> 千分比值)
      */
     public void computeTypeBonusFixed(SimPlayerContext ctx, Map<BonusType, Integer> bonusesMap) {
         //所有已解锁同职业雇员的等级加成

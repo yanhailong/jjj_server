@@ -6,9 +6,10 @@ import com.jjg.game.core.constant.AddType;
 import com.jjg.game.core.constant.Code;
 import com.jjg.game.core.constant.TaskConstant;
 import com.jjg.game.core.dao.CountDao;
+import com.jjg.game.core.data.Item;
 import com.jjg.game.core.data.Player;
 import com.jjg.game.core.data.PlayerController;
-import com.jjg.game.core.data.PlayerPack;
+import com.jjg.game.core.logger.TaskLogger;
 import com.jjg.game.core.manager.ConditionManager;
 import com.jjg.game.core.service.CorePlayerService;
 import com.jjg.game.core.service.PlayerPackService;
@@ -17,7 +18,6 @@ import com.jjg.game.core.task.pb.Task;
 import com.jjg.game.core.task.pb.TaskCondition;
 import com.jjg.game.sampledata.GameDataManager;
 import com.jjg.game.sampledata.bean.ConditionCfg;
-import com.jjg.game.sampledata.bean.MedalListCfg;
 import com.jjg.game.sampledata.bean.TaskCfg;
 import com.jjg.game.sim.data.SimBaseData;
 import com.jjg.game.sim.data.SimPlayerContext;
@@ -34,7 +34,6 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 
 import java.util.ArrayList;
-import java.util.Collections;
 import java.util.HashSet;
 import java.util.LinkedHashSet;
 import java.util.List;
@@ -72,6 +71,10 @@ public class SimTaskService {
     private CountDao countDao;
     @Autowired
     private CorePlayerService corePlayerService;
+    @Autowired
+    private SimMedalService simMedalService;
+    @Autowired
+    private TaskLogger taskLogger;
 
     // =====================================================================
     // 加载 / 接取
@@ -265,6 +268,8 @@ public class SimTaskService {
         if (baseData != null) {
             baseData.incFinishedTaskCount();
         }
+        //后台任务日志: 完成 (主线/成就类型由后台按 taskType 区分)
+        taskLogger.completeTask(player.getId(), node.getConfigId());
         log.info("玩家[{}]完成 sim 任务[{}]", player.getId(), node.getConfigId());
 
         boolean noReward = (cfg.getGetItem() == null || cfg.getGetItem().isEmpty())
@@ -272,12 +277,16 @@ public class SimTaskService {
         if (noReward) {
             node.setStatus(TaskConstant.TaskStatus.STATUS_REWARDED);
             node.setRewardTime(now);
+            taskLogger.receiveTaskAward(player.getId(), node.getConfigId(), null,
+                    cfg.getIntegralNum(), TaskConstant.TaskStatus.STATUS_REWARDED);
             changed.add(assemble(player, node, cfg));
             Task next = advance(player, data, node, cfg);
             if (next != null) {
                 changed.add(next);
             }
         } else {
+            taskLogger.receiveTaskAward(player.getId(), node.getConfigId(), null,
+                    cfg.getIntegralNum(), TaskConstant.TaskStatus.STATUS_COMPLETED);
             changed.add(assemble(player, node, cfg));
         }
     }
@@ -312,16 +321,25 @@ public class SimTaskService {
             return res;
         }
         //发奖 (主线/成就奖励均为玩家背包道具; type2/3 当前无积分奖励)
+        List<Item> rewardItems = null;
         if (cfg.getGetItem() != null && !cfg.getGetItem().isEmpty()) {
             playerPackService.addItems(playerId, cfg.getGetItem(), AddType.TASKAWARD);
+            rewardItems = toItemList(cfg.getGetItem());
         }
         node.setStatus(TaskConstant.TaskStatus.STATUS_REWARDED);
         node.setRewardTime(System.currentTimeMillis());
+        //后台任务日志: 奖励领取 (含领取内容)
+        taskLogger.receiveTaskAward(playerId, taskId, rewardItems, cfg.getIntegralNum(),
+                TaskConstant.TaskStatus.STATUS_REWARDED);
 
         res.taskId = taskId;
         res.nextTask = advance(player, data, node, cfg);
         //领奖后强制下个 tick 尽快落库(走 autosave 规范路径), 收窄崩溃重复领取窗口
         ctx.setLastSaveTime(0);
+        //成就任务末节点奖励含勋章道具, 领取后可能新激活勋章 -> 刷新全服勋章榜分值
+        if (cfg.getTaskType() == TaskConstant.TaskType.ACHIEVEMENT) {
+            simMedalService.refreshRankScore(playerId);
+        }
         log.info("玩家[{}]领取 sim 任务[{}]奖励成功", playerId, taskId);
         return res;
     }
@@ -395,7 +413,7 @@ public class SimTaskService {
             }
         }
         res.achievementTasks = achievements;
-        List<Integer> activatedMedals = findActivatedMedalIds(player.getId());
+        List<Integer> activatedMedals = simMedalService.getActivatedMedalIds(player.getId());
         Set<Integer> activated = new HashSet<>(activatedMedals);
         List<Integer> displayed = new ArrayList<>();
         for (Integer medalId : data.getDisplayedMedalIds()) {
@@ -433,7 +451,7 @@ public class SimTaskService {
             res.code = Code.NOT_FOUND;
             return res;
         }
-        Set<Integer> activated = new HashSet<>(findActivatedMedalIds(ctx.playerId()));
+        Set<Integer> activated = new HashSet<>(simMedalService.getActivatedMedalIds(ctx.playerId()));
         if (!isValidDisplayedMedals(medalIds, activated)) {
             res.code = Code.PARAM_ERROR;
             res.medalIds = new ArrayList<>(data.getDisplayedMedalIds());
@@ -448,22 +466,12 @@ public class SimTaskService {
     }
 
     /**
-     * 从勋章配置和玩家背包推导已激活勋章。NeedItemId 是成就任务最终激活物。
+     * 任务道具奖励 Map 转道具列表 (后台日志领取内容)。
      */
-    private List<Integer> findActivatedMedalIds(long playerId) {
-        PlayerPack pack = playerPackService.getFromAllDB(playerId);
-        List<MedalListCfg> configs = GameDataManager.getMedalListCfgList();
-        if (pack == null || configs == null || configs.isEmpty()) {
-            return Collections.emptyList();
-        }
-        List<Integer> result = new ArrayList<>();
-        for (MedalListCfg cfg : configs) {
-            if (cfg != null && cfg.getIsOpen() && cfg.getNeedItemId() > 0
-                    && pack.getItemCount(cfg.getNeedItemId()) > 0) {
-                result.add(cfg.getId());
-            }
-        }
-        return result;
+    private static List<Item> toItemList(java.util.Map<Integer, Long> items) {
+        List<Item> list = new ArrayList<>(items.size());
+        items.forEach((id, count) -> list.add(new Item(id, count)));
+        return list;
     }
 
     static boolean isValidDisplayedMedals(List<Integer> medalIds, Set<Integer> activated) {

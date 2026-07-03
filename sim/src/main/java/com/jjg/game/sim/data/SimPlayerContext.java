@@ -34,6 +34,8 @@ public class SimPlayerContext {
 
     //主线/成就任务数据
     private SimTaskData simTaskData;
+    //勋章品质加成缓存 (condition表id -> 千分比加成值; 登录/成就领奖后刷新; 内存态不落库, 供收益计算零IO读取)
+    private Map<Integer, Integer> medalBuffMap = new HashMap<>();
 
     //上次落库时间 (ms)
     private long lastSaveTime;
@@ -139,6 +141,14 @@ public class SimPlayerContext {
 
     public void setSimTaskData(SimTaskData simTaskData) {
         this.simTaskData = simTaskData;
+    }
+
+    public Map<Integer, Integer> getMedalBuffMap() {
+        return medalBuffMap;
+    }
+
+    public void setMedalBuffMap(Map<Integer, Integer> medalBuffMap) {
+        this.medalBuffMap = medalBuffMap == null ? new HashMap<>() : medalBuffMap;
     }
 
     public long getLastSaveTime() {

@@ -52,6 +52,8 @@ public class SimBuildingService implements SimPlayerTickListener {
     private AllianceHelpService allianceHelpService;
     @Autowired
     private AllianceEventService allianceEventService;
+    @Autowired
+    private SimMedalService medalService;
 
     @Override
     public void onTick(SimPlayerContext ctx, long now) {
@@ -98,11 +100,28 @@ public class SimBuildingService implements SimPlayerTickListener {
             res.manageEmployeeBonus = manageEmployeeBonus(ctx, base, buildingData);
             //观看广告次数限制
             res.watchAdLimit = GameDataManager.getGlobalConfigCfg(SimConstant.Global.ID_WATCH_AD_LIMIT).getIntValue();
+            //主管id
+            res.managerId = managerId(ctx, buildingData);
             log.info("返回建筑信息 playerId={},res={}", ctx.playerId(), JSON.toJSONString(res));
         } catch (Exception e) {
             log.error("", e);
         }
         ctx.send(res);
+    }
+
+    /**
+     * 获取主管id
+     *
+     * @param ctx
+     * @param buildingData
+     * @return
+     */
+    private int managerId(SimPlayerContext ctx, BuildingData buildingData) {
+        BuildingAreaTableCfg areaCfg = GameDataManager.getBuildingAreaTableCfg(buildingData.getId());
+        if (areaCfg == null || areaCfg.getEmployeeProfile() < 1) {
+            return 0;
+        }
+        return ctx.getCurrentCasino().manageEmploy(areaCfg.getEmployeeProfile());
     }
 
     /**
@@ -746,7 +765,11 @@ public class SimBuildingService implements SimPlayerTickListener {
         //主管加成
         Map<BonusType, Integer> withSupervisor = employeeService.manageEmployeeBonus(ctx, areaCfg.getEmployeeProfile());
 
-        int managerBonus = withSupervisor.getOrDefault(bonusType, 0);
+        Integer managerBonus = withSupervisor.get(bonusType);
+        if(!withSupervisor.isEmpty() && managerBonus == null){
+            log.warn("获取主管加成错误 playerId={},buildingId={},base={},withSupervisor={},bonusType={}",ctx.playerId(),buildingData.getId(),base,withSupervisor,bonusType);
+            managerBonus = 0;
+        }
         return buildBonusList(base, managerBonus);
     }
 
