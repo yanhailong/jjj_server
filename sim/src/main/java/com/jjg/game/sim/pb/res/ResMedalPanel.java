@@ -29,6 +29,8 @@ public class ResMedalPanel extends AbstractResponse {
     public List<MedalQualityInfo> qualityInfos;
     @ProtoDesc("勋章最大展示数量")
     public int medalShowMax;
+    @ProtoDesc("展示中的勋章")
+    public List<Integer> showMedalIds;
 
     public ResMedalPanel(int code) {
         super(code);

@@ -21,12 +21,19 @@ public class MedalListCfg extends BaseCfgBean {
 
   /** 是否开启 */
   protected boolean IsOpen;
+  /** 多语言ID */
+  protected int MedalNameId;
   /** 需求激活道具ID */
   protected int NeedItemId;
 
   /** 返回是否开启 */
   public boolean getIsOpen() {
     return IsOpen;
+  }
+
+  /** 返回多语言ID */
+  public int getMedalNameId() {
+    return MedalNameId;
   }
 
   /** 返回需求激活道具ID */

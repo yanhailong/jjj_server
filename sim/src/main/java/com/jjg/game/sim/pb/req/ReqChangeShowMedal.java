@@ -13,6 +13,8 @@ import com.jjg.game.sim.constant.SimConstant;
 @ProtobufMessage(messageType = MessageConst.MessageTypeDef.SIM_GAME, cmd = SimConstant.MsgBean.REQ_CHANGE_SHOW_MEDAL)
 @ProtoDesc("修改展示的勋章")
 public class ReqChangeShowMedal extends AbstractMessage {
-    @ProtoDesc("勋章id")
-    public int medalId;
+    @ProtoDesc("旧勋章id,若该id为0表示是新增展示勋章")
+    public int oldMedalId;
+    @ProtoDesc("新勋章id")
+    public int newMedalId;
 }

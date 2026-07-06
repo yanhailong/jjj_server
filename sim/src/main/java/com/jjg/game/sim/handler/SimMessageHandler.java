@@ -410,6 +410,14 @@ public class SimMessageHandler implements GmListener {
         execute(playerController, ctx -> ctx.send(medalService.buildMedalPanel(ctx)));
     }
 
+    /**
+     * 修改展示中的勋章
+     */
+    @Command(SimConstant.MsgBean.REQ_CHANGE_SHOW_MEDAL)
+    public void reqChangeShowMwdal(PlayerController playerController, ReqChangeShowMedal req) {
+        execute(playerController, ctx -> ctx.send(medalService.changeShowMwdal(ctx, req.oldMedalId, req.newMedalId)));
+    }
+
     //--------------------------任务 (主线/成就) end--------------------------
 
     //--------------------------多人协作任务 begin--------------------------

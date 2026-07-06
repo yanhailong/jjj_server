@@ -13,6 +13,7 @@ import com.jjg.game.sampledata.bean.MedalListCfg;
 import com.jjg.game.sim.constant.BonusType;
 import com.jjg.game.sim.constant.SimConstant;
 import com.jjg.game.sim.data.SimPlayerContext;
+import com.jjg.game.sim.pb.res.ResChangeShowMedal;
 import com.jjg.game.sim.pb.res.ResMedalPanel;
 import com.jjg.game.sim.pb.struct.MedalQualityInfo;
 import org.slf4j.Logger;
@@ -135,6 +136,67 @@ public class SimMedalService {
         res.qualityInfos = buildQualityInfos(qualityCount);
         res.rankPermil = syncAndGetRankPermil(playerId, activated.size());
         res.medalShowMax = GameDataManager.getGlobalConfigCfg(SimConstant.Common.MEDAL_SHOW_MAX_ID).getIntValue();
+        res.showMedalIds = ctx.getSimBaseData().getShowMedalIds();
+        return res;
+    }
+
+    /**
+     * 修改展示中的勋章
+     *
+     * @param ctx
+     * @return
+     */
+    public ResChangeShowMedal changeShowMwdal(SimPlayerContext ctx, int oldMedalId, int newMedalId) {
+        ResChangeShowMedal res = new ResChangeShowMedal(Code.SUCCESS);
+
+        if (newMedalId < 1) {
+            res.code = Code.PARAM_ERROR;
+            log.warn("修改勋章时，新勋章id不能小于1 playerId={},oldMedalId={},newMedalId={}", ctx.playerId(), oldMedalId, newMedalId);
+            return res;
+        }
+
+        MedalListCfg medalListCfg = GameDataManager.getMedalListCfg(newMedalId);
+        if (medalListCfg == null) {
+            res.code = Code.PARAM_ERROR;
+            log.warn("修改勋章时，未找到新勋章的配置 playerId={},oldMedalId={},newMedalId={}", ctx.playerId(), oldMedalId, newMedalId);
+            return res;
+        }
+
+        //检查是否超过限制
+        int showMax = GameDataManager.getGlobalConfigCfg(SimConstant.Common.MEDAL_SHOW_MAX_ID).getIntValue();
+        if (oldMedalId < 1) {
+            if (ctx.getSimBaseData().getShowMedalIds() != null && ctx.getSimBaseData().getShowMedalIds().size() >= showMax) {
+                res.code = Code.FORBID;
+                log.warn("展示的勋章已经达到上限，无法再新增 playerId={},oldMedalId={},newMedalId={}", ctx.playerId(), oldMedalId, newMedalId);
+                return res;
+            }
+
+            PlayerPack pack = playerPackService.getFromAllDB(ctx.playerId());
+            if (isActivated(medalListCfg, pack)) {
+                res.code = Code.PARAM_ERROR;
+                log.warn("新增展示勋章时，该勋章未激活 playerId={},oldMedalId={},newMedalId={}", ctx.playerId(), oldMedalId, newMedalId);
+                return res;
+            }
+
+            ctx.getSimBaseData().addMedalId(newMedalId);
+        } else {
+            if (!ctx.getSimBaseData().hasShowMedalId(oldMedalId)) {
+                res.code = Code.FORBID;
+                log.warn("展示勋章中没有该勋章id，无法被替换 playerId={},oldMedalId={},newMedalId={}", ctx.playerId(), oldMedalId, newMedalId);
+                return res;
+            }
+
+            PlayerPack pack = playerPackService.getFromAllDB(ctx.playerId());
+            if (isActivated(medalListCfg, pack)) {
+                res.code = Code.PARAM_ERROR;
+                log.warn("替换勋章时，该勋章未激活 playerId={},oldMedalId={},newMedalId={}", ctx.playerId(), oldMedalId, newMedalId);
+                return res;
+            }
+
+            //替换
+            ctx.getSimBaseData().replaceMedalId(oldMedalId, newMedalId);
+        }
+        res.showMedalIds = ctx.getSimBaseData().getShowMedalIds();
         return res;
     }
 

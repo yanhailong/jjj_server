@@ -3,7 +3,9 @@ package com.jjg.game.sim.data;
 import org.springframework.data.annotation.Id;
 import org.springframework.data.mongodb.core.mapping.Document;
 
+import java.util.ArrayList;
 import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
 
 /**
@@ -46,6 +48,8 @@ public class SimBaseData extends AbstractData {
     private Map<Integer, SlotGameStatsData> slotStatsMap;
     //旧版按娱乐城保存的统计是否已迁移到玩家数据
     private boolean operationStatsMigrated;
+    //展示的勋章
+    private List<Integer> showMedalIds;
 
     public long getPlayerId() {
         return playerId;
@@ -280,5 +284,45 @@ public class SimBaseData extends AbstractData {
 
     public void addAllLevel(int level) {
         this.allLevel += level;
+    }
+
+    public List<Integer> getShowMedalIds() {
+        return showMedalIds;
+    }
+
+    public void setShowMedalIds(List<Integer> showMedalIds) {
+        this.showMedalIds = showMedalIds;
+    }
+
+    public boolean hasShowMedalId(int id) {
+        if (this.showMedalIds == null || this.showMedalIds.isEmpty()) {
+            return false;
+        }
+        return this.showMedalIds.contains(id);
+    }
+
+    public void replaceMedalId(int oldMedalId, int newMedalId) {
+        if (this.showMedalIds == null || this.showMedalIds.isEmpty()) {
+            return;
+        }
+
+        int oldIndex = this.showMedalIds.indexOf(oldMedalId);
+        List<Integer> tmpShowMedalIds = new ArrayList<>();
+
+        for (int i = 0; i < this.showMedalIds.size(); i++) {
+            if (i == oldIndex) {
+                tmpShowMedalIds.add(newMedalId);
+            } else {
+                tmpShowMedalIds.add(this.showMedalIds.get(i));
+            }
+        }
+        this.showMedalIds = tmpShowMedalIds;
+    }
+
+    public void addMedalId(int id) {
+        if (this.showMedalIds == null) {
+            this.showMedalIds = new ArrayList<>();
+        }
+        this.showMedalIds.add(id);
     }
 }
