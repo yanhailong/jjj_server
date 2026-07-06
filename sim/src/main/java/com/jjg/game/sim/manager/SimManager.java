@@ -92,6 +92,10 @@ public class SimManager {
     @Autowired
     private SimTaskDao simTaskDao;
     @Autowired
+    private SimCoopTaskService simCoopTaskService;
+    @Autowired
+    private SimCoopTaskDao simCoopTaskDao;
+    @Autowired
     private SimVisitService simVisitService;
     @Autowired
     private SimPlayerContextRegistry simPlayerContextRegistry;
@@ -321,6 +325,8 @@ public class SimManager {
         //加载主线/成就任务数据 (首登接取主线首节点+各成就组首节点)
         simTaskService.initTaskData(ctx);
         simTaskService.reconcileFinishedTaskCount(ctx);
+        //加载多人协作任务数据 (每日池懒重置)
+        simCoopTaskService.initData(ctx);
         this.simPlayerContextRegistry.putContext(ctx);
         simNodeService.save(playerId, clusterSystem.getNodePath());
         return ctx;
@@ -380,6 +386,7 @@ public class SimManager {
         List<SimEmployeeData> simEmployeeDataList = new ArrayList<>();
         List<SimSkillsData> skillDataList = new ArrayList<>();
         List<SimTaskData> simTaskDataList = new ArrayList<>();
+        List<SimCoopTaskData> simCoopTaskDataList = new ArrayList<>();
         for (Map.Entry<Long, SimPlayerContext> en : this.simPlayerContextRegistry.getContextMap().entrySet()) {
             try {
                 SimPlayerContext ctx = en.getValue();
@@ -394,6 +401,9 @@ public class SimManager {
                 if (ctx.getSimTaskData() != null) {
                     simTaskDataList.add(ctx.getSimTaskData());
                 }
+                if (ctx.getSimCoopTaskData() != null) {
+                    simCoopTaskDataList.add(ctx.getSimCoopTaskData());
+                }
             } catch (Exception e) {
                 log.error("shutdown onExitGame 异常 playerId={}", en.getKey(), e);
             }
@@ -404,6 +414,7 @@ public class SimManager {
         simEmployeeDao.saveAll(simEmployeeDataList);
         simSkillsDao.saveAll(skillDataList);
         simTaskDao.saveAll(simTaskDataList);
+        simCoopTaskDao.saveAll(simCoopTaskDataList);
         //删除本节点上所有玩家的sim节点路由信息
         this.simNodeService.delete(this.simPlayerContextRegistry.getContextMap().keySet());
     }
@@ -427,6 +438,9 @@ public class SimManager {
         simSkillsDao.saveAll(ctx.getSkillsDataMap().values());
         if (ctx.getSimTaskData() != null) {
             simTaskDao.save(ctx.getSimTaskData());
+        }
+        if (ctx.getSimCoopTaskData() != null) {
+            simCoopTaskDao.save(ctx.getSimCoopTaskData());
         }
         //删除本节点上玩家的sim节点路由信息
         this.simNodeService.delete(playerId);

@@ -1,0 +1,432 @@
+package com.jjg.game.sim.service;
+
+import com.jjg.game.core.constant.AddType;
+import com.jjg.game.core.constant.Code;
+import com.jjg.game.core.data.Item;
+import com.jjg.game.core.data.Player;
+import com.jjg.game.core.service.CorePlayerService;
+import com.jjg.game.core.service.MailService;
+import com.jjg.game.core.service.PlayerPackService;
+import com.jjg.game.sampledata.GameDataManager;
+import com.jjg.game.sampledata.bean.TaskCfg;
+import com.jjg.game.sim.constant.CoopTaskConst;
+import com.jjg.game.sim.dao.CoopRoomRecordDao;
+import com.jjg.game.sim.dao.SimCoopTaskDao;
+import com.jjg.game.sim.data.SimCoopTaskData;
+import com.jjg.game.sim.data.SimCoopTaskEntry;
+import com.jjg.game.sim.data.SimPlayerContext;
+import com.jjg.game.sim.pb.res.NotifyCoopTaskUpdate;
+import com.jjg.game.sim.pb.res.ResCoopTaskClaim;
+import com.jjg.game.sim.pb.res.ResCoopTaskList;
+import com.jjg.game.sim.pb.res.ResCoopTaskRefresh;
+import com.jjg.game.sim.pb.res.ResCoopTaskReward;
+import com.jjg.game.sim.pb.struct.CoopTaskInfo;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.stereotype.Service;
+
+import java.time.LocalDate;
+import java.time.ZoneId;
+import java.util.ArrayList;
+import java.util.LinkedHashSet;
+import java.util.List;
+import java.util.Map;
+import java.util.Set;
+import java.util.concurrent.ThreadLocalRandom;
+
+/**
+ * 多人协作任务服务 (任务层: 每日池/刷新/领取/领奖/结算回写)。
+ * <p>
+ * 与主线/成就任务 ({@link SimTaskService}) 完全独立: 生命周期为"每日池领取 -> slots 协作房间
+ * -> 团队结算 -> 领奖", 进度由 slots 房间内存聚合, 不走 core 条件计数系统, 任务层零轮询零计数 IO。
+ * 每日重置按 dayKey 懒触发, 无全服定时任务。
+ *
+ * @author 11
+ * @date 2026/7/6
+ */
+@Service
+public class SimCoopTaskService {
+    private static final Logger log = LoggerFactory.getLogger(SimCoopTaskService.class);
+
+    @Autowired
+    private CoopTaskConfigService configService;
+    @Autowired
+    private SimCoopTaskDao coopTaskDao;
+    @Autowired
+    private CoopRoomRecordDao roomRecordDao;
+    @Autowired
+    private PlayerPackService playerPackService;
+    @Autowired
+    private CorePlayerService corePlayerService;
+    @Autowired
+    private MailService mailService;
+
+    // =====================================================================
+    // 加载 / 每日重置
+    // =====================================================================
+
+    /**
+     * 登录加载 (挂入 ctx, 复用 sim 装配链)。
+     */
+    public void initData(SimPlayerContext ctx) {
+        SimCoopTaskData data = coopTaskDao.findById(ctx.playerId()).orElse(null);
+        if (data == null) {
+            data = new SimCoopTaskData();
+            data.setPlayerId(ctx.playerId());
+        }
+        ctx.setSimCoopTaskData(data);
+        ensureDaily(data);
+    }
+
+    /**
+     * 每日懒重置: 重抽今日列表/清领取次数/清免费刷新。已领取未完结任务跨天保留。
+     */
+    private void ensureDaily(SimCoopTaskData data) {
+        int today = todayKey();
+        if (data.getDayKey() == today) {
+            return;
+        }
+        data.setDayKey(today);
+        data.setFreeRefreshUsed(false);
+        data.setClaimedCount(0);
+        //失败为终态, 不跨天保留: 清理避免 tasks 无限膨胀(文档/落库脏哈希/池抽取排除放大); 待领奖(REWARDABLE)跨天保留
+        data.getTasks().values().removeIf(entry -> entry.getStatus() == CoopTaskConst.TaskStatus.FAILED);
+        data.setPoolTaskIds(drawTasks(configService.getDailyPoolCount(), data.getTasks().keySet()));
+        log.info("多人任务每日重置 playerId={},pool={}", data.getPlayerId(), data.getPoolTaskIds());
+    }
+
+    /**
+     * 从任务池随机抽取 count 个互不重复且不与 exclude 重复的任务 (部分 Fisher-Yates, O(count))。
+     */
+    private List<Integer> drawTasks(int count, Set<Integer> exclude) {
+        List<Integer> pool = new ArrayList<>(configService.getPoolTaskIds());
+        if (exclude != null && !exclude.isEmpty()) {
+            pool.removeAll(exclude);
+        }
+        int n = Math.min(count, pool.size());
+        ThreadLocalRandom random = ThreadLocalRandom.current();
+        for (int i = 0; i < n; i++) {
+            int j = i + random.nextInt(pool.size() - i);
+            Integer tmp = pool.get(i);
+            pool.set(i, pool.get(j));
+            pool.set(j, tmp);
+        }
+        return new ArrayList<>(pool.subList(0, n));
+    }
+
+    // =====================================================================
+    // 列表 / 刷新
+    // =====================================================================
+
+    public ResCoopTaskList buildTaskList(SimPlayerContext ctx) {
+        ResCoopTaskList res = new ResCoopTaskList(Code.SUCCESS);
+        SimCoopTaskData data = ctx.getSimCoopTaskData();
+        if (data == null) {
+            res.code = Code.NOT_FOUND;
+            return res;
+        }
+        ensureDaily(data);
+        selfHealRooms(ctx, data);
+
+        //今日池 + 跨天保留的已领取任务 (顺序: 池序在前)
+        LinkedHashSet<Integer> ids = new LinkedHashSet<>(data.getPoolTaskIds());
+        ids.addAll(data.getTasks().keySet());
+        List<CoopTaskInfo> tasks = new ArrayList<>(ids.size());
+        for (Integer taskId : ids) {
+            tasks.add(toInfo(taskId, data.getTasks().get(taskId)));
+        }
+        res.tasks = tasks;
+        res.remainClaimCount = Math.max(0, configService.getDailyClaimLimit() - data.getClaimedCount());
+        res.freeRefresh = !data.isFreeRefreshUsed();
+        res.refreshItemId = configService.getRefreshCostItemId();
+        res.refreshItemCount = configService.getRefreshCostCount();
+        res.nextRefreshTime = nextMidnightMillis();
+        return res;
+    }
+
+    /**
+     * 刷新今日列表: 每日首次免费, 之后每次消耗道具; 已领取任务保留原位不刷走。
+     */
+    public ResCoopTaskRefresh refresh(SimPlayerContext ctx) {
+        ResCoopTaskRefresh res = new ResCoopTaskRefresh(Code.FAIL);
+        SimCoopTaskData data = ctx.getSimCoopTaskData();
+        Player player = resolvePlayer(ctx);
+        if (data == null || player == null) {
+            res.code = Code.NOT_FOUND;
+            log.warn("多人任务刷新失败,数据缺失 playerId={}", ctx.playerId());
+            return res;
+        }
+        ensureDaily(data);
+
+        if (data.isFreeRefreshUsed()) {
+            int itemId = configService.getRefreshCostItemId();
+            long count = configService.getRefreshCostCount();
+            if (itemId <= 0 || count <= 0) {
+                log.warn("多人任务刷新失败,刷新道具配置缺失 playerId={},itemId={},count={}", ctx.playerId(), itemId, count);
+                return res;
+            }
+            //先扣后刷; 扣除失败直接返回, 不动列表
+            if (!playerPackService.removeItems(player, Map.of(itemId, count),
+                    AddType.SIM_COOP_TASK_REFRESH).success()) {
+                log.info("多人任务刷新道具不足 playerId={},itemId={},count={}", ctx.playerId(), itemId, count);
+                return res;
+            }
+        }
+
+        //已领取任务保留原位, 其余槽位重抽 (排除保留项避免重复)
+        List<Integer> kept = new ArrayList<>();
+        for (Integer taskId : data.getPoolTaskIds()) {
+            if (data.getTasks().containsKey(taskId)) {
+                kept.add(taskId);
+            }
+        }
+        List<Integer> fresh = drawTasks(configService.getDailyPoolCount() - kept.size(),
+                data.getTasks().keySet());
+        List<Integer> pool = new ArrayList<>(kept);
+        pool.addAll(fresh);
+        data.setPoolTaskIds(pool);
+        data.setFreeRefreshUsed(true);
+        ctx.setLastSaveTime(0);
+
+        res.code = Code.SUCCESS;
+        res.freeRefresh = false;
+        List<CoopTaskInfo> tasks = new ArrayList<>(pool.size());
+        for (Integer taskId : pool) {
+            tasks.add(toInfo(taskId, data.getTasks().get(taskId)));
+        }
+        res.tasks = tasks;
+        log.info("多人任务刷新列表 playerId={},kept={},pool={}", ctx.playerId(), kept, pool);
+        return res;
+    }
+
+    // =====================================================================
+    // 领取 / 领奖
+    // =====================================================================
+
+    public ResCoopTaskClaim claim(SimPlayerContext ctx, int taskId) {
+        ResCoopTaskClaim res = new ResCoopTaskClaim(Code.FAIL);
+        res.taskId = taskId;
+        SimCoopTaskData data = ctx.getSimCoopTaskData();
+        if (data == null) {
+            res.code = Code.NOT_FOUND;
+            log.warn("多人任务领取失败,数据缺失 playerId={},taskId={}", ctx.playerId(), taskId);
+            return res;
+        }
+        ensureDaily(data);
+        res.remainClaimCount = Math.max(0, configService.getDailyClaimLimit() - data.getClaimedCount());
+
+        if (!data.getPoolTaskIds().contains(taskId)) {
+            log.info("多人任务领取失败,任务不在今日列表 playerId={},taskId={}", ctx.playerId(), taskId);
+            return res;
+        }
+        if (data.getTasks().containsKey(taskId)) {
+            log.info("多人任务领取失败,任务已领取 playerId={},taskId={}", ctx.playerId(), taskId);
+            return res;
+        }
+        if (data.getClaimedCount() >= configService.getDailyClaimLimit()) {
+            log.info("多人任务领取失败,今日领取次数已用完 playerId={},taskId={},claimedCount={}",
+                    ctx.playerId(), taskId, data.getClaimedCount());
+            return res;
+        }
+        if (configService.ruleOf(taskId) == null) {
+            log.warn("多人任务领取失败,配置非法 playerId={},taskId={}", ctx.playerId(), taskId);
+            return res;
+        }
+
+        SimCoopTaskEntry entry = new SimCoopTaskEntry();
+        entry.setTaskId(taskId);
+        entry.setStatus(CoopTaskConst.TaskStatus.CLAIMED);
+        entry.setClaimTime(System.currentTimeMillis());
+        data.getTasks().put(taskId, entry);
+        data.setClaimedCount(data.getClaimedCount() + 1);
+        ctx.setLastSaveTime(0);
+
+        res.code = Code.SUCCESS;
+        res.remainClaimCount = Math.max(0, configService.getDailyClaimLimit() - data.getClaimedCount());
+        log.info("多人任务领取 playerId={},taskId={},claimedCount={}", ctx.playerId(), taskId, data.getClaimedCount());
+        return res;
+    }
+
+    /**
+     * 发起者领取任务奖励: 校验待领奖态 -> 发奖 -> 任务从列表移除。
+     */
+    public ResCoopTaskReward claimReward(SimPlayerContext ctx, int taskId) {
+        ResCoopTaskReward res = new ResCoopTaskReward(Code.FAIL);
+        res.taskId = taskId;
+        SimCoopTaskData data = ctx.getSimCoopTaskData();
+        if (data == null) {
+            res.code = Code.NOT_FOUND;
+            log.warn("多人任务领奖失败,数据缺失 playerId={},taskId={}", ctx.playerId(), taskId);
+            return res;
+        }
+        SimCoopTaskEntry entry = data.getTasks().get(taskId);
+        if (entry == null || entry.getStatus() != CoopTaskConst.TaskStatus.REWARDABLE) {
+            log.warn("多人任务领奖失败,状态不符 playerId={},taskId={},status={}",
+                    ctx.playerId(), taskId, entry == null ? null : entry.getStatus());
+            return res;
+        }
+        TaskCfg cfg = GameDataManager.getTaskCfg(taskId);
+        if (cfg == null) {
+            log.warn("多人任务领奖失败,任务配置缺失 playerId={},taskId={}", ctx.playerId(), taskId);
+            return res;
+        }
+        if (cfg.getGetItem() != null && !cfg.getGetItem().isEmpty()) {
+            playerPackService.addItems(ctx.playerId(), cfg.getGetItem(), AddType.SIM_COOP_TASK_REWARD);
+        }
+        //领取后任务直接移除列表 (含今日池位)
+        data.getTasks().remove(taskId);
+        data.getPoolTaskIds().remove(Integer.valueOf(taskId));
+        //领奖后尽快落库, 收窄崩溃重复领取窗口 (对齐 SimTaskService.claimReward)
+        ctx.setLastSaveTime(0);
+
+        res.code = Code.SUCCESS;
+        log.info("多人任务领奖成功 playerId={},taskId={}", ctx.playerId(), taskId);
+        return res;
+    }
+
+    // =====================================================================
+    // 房间联动 (由路由层/结算回写调用)
+    // =====================================================================
+
+    /**
+     * 房间创建成功: CLAIMED -> IN_ROOM。
+     */
+    public void markRoomCreated(SimPlayerContext ctx, int taskId, long roomId, int gameType) {
+        SimCoopTaskData data = ctx.getSimCoopTaskData();
+        SimCoopTaskEntry entry = data == null ? null : data.getTasks().get(taskId);
+        if (entry == null) {
+            return;
+        }
+        entry.setStatus(CoopTaskConst.TaskStatus.IN_ROOM);
+        entry.setRoomId(roomId);
+        entry.setGameType(gameType);
+        ctx.setLastSaveTime(0);
+    }
+
+    /**
+     * 结算回写 (slots 房间结束经 RPC 调用, 发起者可能已离线)。
+     * <p>
+     * 发起者: IN_ROOM -> REWARDABLE/FAILED; 协助者: 成功时奖励经邮件发放
+     * ("协助者通过其它形式领取奖励", 无贡献门槛)。
+     *
+     * @param ctx       发起者在线时的上下文 (离线为 null, 直接读写 DB)
+     * @param ownerId   发起者
+     * @param taskId    任务配置id
+     * @param success   任务是否完成
+     * @param helperIds 协助者 (不含发起者)
+     */
+    public void onSettle(SimPlayerContext ctx, long ownerId, int taskId, boolean success, List<Long> helperIds) {
+        int status = success ? CoopTaskConst.TaskStatus.REWARDABLE : CoopTaskConst.TaskStatus.FAILED;
+        //本次是否真正完成 IN_ROOM->终态: 作为幂等锚点, 防结算回写重试/重复投递导致协助者奖励翻倍发放
+        boolean settled = false;
+        if (ctx != null && ctx.getSimCoopTaskData() != null) {
+            SimCoopTaskEntry entry = ctx.getSimCoopTaskData().getTasks().get(taskId);
+            if (entry != null && entry.getStatus() == CoopTaskConst.TaskStatus.IN_ROOM) {
+                entry.setStatus(status);
+                entry.setFinishTime(System.currentTimeMillis());
+                ctx.setLastSaveTime(0);
+                settled = true;
+                if (ctx.getPlayerController() != null) {
+                    NotifyCoopTaskUpdate notify = new NotifyCoopTaskUpdate(Code.SUCCESS);
+                    notify.task = toInfo(taskId, entry);
+                    ctx.send(notify);
+                }
+            }
+        } else {
+            //发起者离线: 直接读改写 DB (玩家离线无并发写者)
+            SimCoopTaskData data = coopTaskDao.findById(ownerId).orElse(null);
+            SimCoopTaskEntry entry = data == null ? null : data.getTasks().get(taskId);
+            if (entry != null && entry.getStatus() == CoopTaskConst.TaskStatus.IN_ROOM) {
+                entry.setStatus(status);
+                entry.setFinishTime(System.currentTimeMillis());
+                coopTaskDao.save(data);
+                settled = true;
+            }
+        }
+
+        //协助者奖励: 仅本次真正结算才发放, 借发起者状态机幂等避免重复发奖 (完整协助奖励经邮件, 无贡献门槛)
+        //TODO 待策划提供独立协助奖励字段/邮件模板, 当前同任务奖励
+        if (settled && success && helperIds != null && !helperIds.isEmpty()) {
+            TaskCfg cfg = GameDataManager.getTaskCfg(taskId);
+            if (cfg != null && cfg.getGetItem() != null && !cfg.getGetItem().isEmpty()) {
+                List<Item> items = toItemList(cfg.getGetItem());
+                for (Long helperId : helperIds) {
+                    if (helperId == null || helperId == ownerId) {
+                        continue;
+                    }
+                    try {
+                        mailService.addMail(helperId, "多人任务协助奖励", "感谢协助完成多人任务，奖励已发放，请查收。",
+                                items, AddType.SIM_COOP_ASSIST_REWARD);
+                    } catch (Exception e) {
+                        log.error("多人任务协助奖励邮件发送失败 helperId={},taskId={}", helperId, taskId, e);
+                    }
+                }
+            }
+        }
+        log.info("多人任务结算 ownerId={},taskId={},success={},settled={},helpers={}",
+                ownerId, taskId, success, settled, helperIds);
+    }
+
+    /**
+     * 自愈: IN_ROOM 但房间记录已不存在 (节点崩溃/TTL 过期) 时回退待建房态, 避免任务卡死。
+     */
+    private void selfHealRooms(SimPlayerContext ctx, SimCoopTaskData data) {
+        for (SimCoopTaskEntry entry : data.getTasks().values()) {
+            if (entry.getStatus() != CoopTaskConst.TaskStatus.IN_ROOM || entry.getRoomId() <= 0) {
+                continue;
+            }
+            try {
+                if (!roomRecordDao.exists(entry.getRoomId())) {
+                    log.warn("多人任务房间记录丢失,回退待建房 playerId={},taskId={},roomId={}",
+                            data.getPlayerId(), entry.getTaskId(), entry.getRoomId());
+                    entry.setStatus(CoopTaskConst.TaskStatus.CLAIMED);
+                    entry.setRoomId(0);
+                    entry.setGameType(0);
+                    ctx.setLastSaveTime(0);
+                }
+            } catch (Exception e) {
+                //Redis 故障时保持现状, 下次列表再检查
+                log.error("多人任务房间自愈检查失败 playerId={},roomId={}", data.getPlayerId(), entry.getRoomId(), e);
+            }
+        }
+    }
+
+    // =====================================================================
+    // 工具
+    // =====================================================================
+
+    private CoopTaskInfo toInfo(int taskId, SimCoopTaskEntry entry) {
+        CoopTaskInfo info = new CoopTaskInfo();
+        info.taskId = taskId;
+        if (entry != null) {
+            info.status = entry.getStatus();
+            info.roomId = entry.getRoomId();
+            info.gameType = entry.getGameType();
+        }
+        return info;
+    }
+
+    private static List<Item> toItemList(Map<Integer, Long> items) {
+        List<Item> list = new ArrayList<>(items.size());
+        items.forEach((id, count) -> list.add(new Item(id, count)));
+        return list;
+    }
+
+    private Player resolvePlayer(SimPlayerContext ctx) {
+        if (ctx.getPlayerController() != null && ctx.getPlayerController().getPlayer() != null) {
+            return ctx.getPlayerController().getPlayer();
+        }
+        return corePlayerService.get(ctx.playerId());
+    }
+
+    static int todayKey() {
+        LocalDate today = LocalDate.now(ZoneId.systemDefault());
+        return today.getYear() * 10000 + today.getMonthValue() * 100 + today.getDayOfMonth();
+    }
+
+    static long nextMidnightMillis() {
+        return LocalDate.now(ZoneId.systemDefault()).plusDays(1)
+                .atStartOfDay(ZoneId.systemDefault()).toInstant().toEpochMilli();
+    }
+}

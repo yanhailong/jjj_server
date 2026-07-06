@@ -98,6 +98,8 @@ public abstract class AbstractSlotsGameManager<T extends SlotsPlayerGameData, L 
     @Autowired
     protected SlotsRoomManager slotsRoomManager;
     @Autowired
+    protected CoopRoomManager coopRoomManager;
+    @Autowired
     protected ClusterSystem clusterSystem;
     @Autowired
     protected PlayerGameDataDao playerGameDataDao;
@@ -381,6 +383,13 @@ public abstract class AbstractSlotsGameManager<T extends SlotsPlayerGameData, L 
                 return createGameRunInfo(playerController.playerId(), code);
             }
         }
+        //协作任务房间校验: 未开始禁转/血条耗尽禁转 (非协作玩家零成本放行)
+        int coopCode = coopRoomManager.beforeSpin(playerController.playerId(), getGameType());
+        if (coopCode != Code.SUCCESS) {
+            return createGameRunInfo(playerController.playerId(), coopCode);
+        }
+        //协作任务特殊模式触发检测需要旋转前的状态
+        int coopStatusBefore = playerGameData.getStatus();
         CommonResult<VisitTrialSpinPermit> permitResult = slotsRPCLinkManager.prepareVisitTrialSpin(
                 playerGameData, getGameType());
         if (permitResult == null || !permitResult.success()) {
@@ -399,6 +408,8 @@ public abstract class AbstractSlotsGameManager<T extends SlotsPlayerGameData, L 
         if (gameRunInfo != null && gameRunInfo.success()) {
             slotsRPCLinkManager.notifySpin(playerGameData, getGameType(), gameRunInfo.getAllWinTimes(),
                     buildSpinStatInfo(gameRunInfo), trialPermit);
+            //协作任务联动: 扣血/共享事件累计/成败判定 (内部吞异常, 不影响旋转主流程)
+            coopRoomManager.onSpin(playerController.playerId(), getGameType(), coopStatusBefore, gameRunInfo);
         } else {
             slotsRPCLinkManager.cancelVisitTrialSpin(playerGameData, trialPermit);
         }

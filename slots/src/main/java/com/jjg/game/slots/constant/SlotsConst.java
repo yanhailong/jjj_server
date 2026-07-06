@@ -186,6 +186,32 @@ public class SlotsConst {
         public static final int ID_ROOM_PLAYER_ILDE_TIME_MILLS = 112;
     }
 
+    /**
+     * 房间操作码 (ReqCoopRoomOp.op)
+     */
+    public class Op {
+        public static final int READY = 1;
+        public static final int CANCEL_READY = 2;
+        //房主开始游戏
+        public static final int START = 3;
+        //退出房间 (房主执行 = 解散)
+        public static final int EXIT = 4;
+        //房主踢人 (游戏开始前)
+        public static final int KICK = 5;
+    }
+
+    /**
+     * 结算后房间保留时长(ms), 供成员查看结算弹窗, 到期 GC 自动解散
+     */
+    public static final long FINISHED_RETAIN_MS = 60 * 1000L;
+    //等待状态房间最长存活时长(ms), 超时未开始自动解散
+    public static final long WAITING_EXPIRE_MS = 2 * 3600 * 1000L;
+    //进行中房间兜底存活时长(ms): 任务未配时限(durationMinutes=0)时的兜底 deadline,
+    //保证 RUNNING 房间一定有终结路径, 防成员挂机/断线不归导致房间与会话状态永久悬挂
+    public static final long RUNNING_MAX_FALLBACK_MS = 2 * 3600 * 1000L;
+    //房间 GC 扫描周期(秒)
+    public static final int GC_PERIOD_SECONDS = 30;
+
     public class SlotsCommon {
         public static final int BASE_MSG_PREFIX = MessageConst.MessageTypeDef.SLOTS_COMMON << MessageConst.MessageCommon.RIGHT_MOVE;
 
@@ -203,5 +229,30 @@ public class SlotsConst {
         //获取技能
         public static final int REQ_SLOTS_GET_SKILLS = BASE_MSG_PREFIX | 0x6;
         public static final int RES_SLOTS_GET_SKILLS = BASE_MSG_PREFIX | 0x7;
+
+        //进入协作房间 (切节点后附着/断线重连)
+        public static final int REQ_ENTER_COOP_ROOM = BASE_MSG_PREFIX | 0x8;
+        public static final int RES_ENTER_COOP_ROOM = BASE_MSG_PREFIX | 0x9;
+
+        //房间操作 (准备/取消准备/开始/退出|解散/踢人)
+        public static final int REQ_COOP_ROOM_OP = BASE_MSG_PREFIX | 0xA;
+        public static final int RES_COOP_ROOM_OP = BASE_MSG_PREFIX | 0xB;
+
+        //发送频道邀请 (世界/联盟/好友私聊)
+        public static final int REQ_COOP_INVITE = BASE_MSG_PREFIX | 0xC;
+        public static final int RES_COOP_INVITE = BASE_MSG_PREFIX | 0xD;
+
+        //房间内互动道具赠送
+        public static final int REQ_COOP_GIFT = BASE_MSG_PREFIX | 0xE;
+        public static final int RES_COOP_GIFT = BASE_MSG_PREFIX | 0xF;
+
+        //房间快照变更广播 (成员/准备/开始等低频变更, 全量快照)
+        public static final int NOTIFY_COOP_ROOM_UPDATE = BASE_MSG_PREFIX | 0x10;
+        //旋转进度增量广播 (高频轻量: 血条/共享进度)
+        public static final int NOTIFY_COOP_SPIN = BASE_MSG_PREFIX | 0x11;
+        //结算广播 (成功/失败)
+        public static final int NOTIFY_COOP_ROOM_RESULT = BASE_MSG_PREFIX | 0x12;
+        //互动道具动效广播
+        public static final int NOTIFY_COOP_GIFT = BASE_MSG_PREFIX | 0x13;
     }
 }

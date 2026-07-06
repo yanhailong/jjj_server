@@ -11,6 +11,7 @@ import com.jjg.game.sampledata.bean.ItemCfg;
 import com.jjg.game.sampledata.bean.MedalBuffCfg;
 import com.jjg.game.sampledata.bean.MedalListCfg;
 import com.jjg.game.sim.constant.BonusType;
+import com.jjg.game.sim.constant.SimConstant;
 import com.jjg.game.sim.data.SimPlayerContext;
 import com.jjg.game.sim.pb.res.ResMedalPanel;
 import com.jjg.game.sim.pb.struct.MedalQualityInfo;
@@ -133,6 +134,7 @@ public class SimMedalService {
         res.totalMedalCount = total;
         res.qualityInfos = buildQualityInfos(qualityCount);
         res.rankPermil = syncAndGetRankPermil(playerId, activated.size());
+        res.medalShowMax = GameDataManager.getGlobalConfigCfg(SimConstant.Common.MEDAL_SHOW_MAX_ID).getIntValue();
         return res;
     }
 

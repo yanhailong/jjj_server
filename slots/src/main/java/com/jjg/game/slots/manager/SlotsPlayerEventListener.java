@@ -46,6 +46,8 @@ public class SlotsPlayerEventListener implements SessionEnterListener, SessionCl
     @Autowired
     private SlotsRoomManager slotsRoomManager;
     @Autowired
+    private CoopRoomManager coopRoomManager;
+    @Autowired
     private TaskManager taskManager;
     @Autowired
     private RechargeService rechargeService;
@@ -201,6 +203,8 @@ public class SlotsPlayerEventListener implements SessionEnterListener, SessionCl
             return result;
         }
         playerGameData = gameManager.exit(playerController, exitType);
+        //协作房间成员离开节点: 等待中按退出处理(房主=解散), 进行中仅标记离线待重连
+        coopRoomManager.onPlayerExit(playerController.playerId());
         playerSessionService.offline(playerController.getPlayer(), exitType == ExitType.DROPPED);
         //计算玩游戏的时长
         int onlineTimeLen = 0;

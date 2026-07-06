@@ -634,7 +634,7 @@ public class HallService implements ConfigExcelChangeListener, TimerListener {
     public CommonResult<Map<Integer, Long>> useItem(Player player, int girdId, int itemId, long useItemCount, int selectItemId) {
         CommonResult<Map<Integer, Long>> result = new CommonResult<>(Code.SUCCESS);
         try {
-            log.debug("玩家使用道具 playerId = {},girdId = {},itemId = {},useItemCount={}", player.getId(), girdId, itemId, useItemCount);
+            log.debug("玩家使用道具 playerId = {},girdId = {},itemId = {},useItemCount={},selectItemId={}", player.getId(), girdId, itemId, useItemCount, selectItemId);
             ItemCfg itemCfg = GameDataManager.getItemCfg(itemId);
             if (itemCfg == null) {
                 result.code = Code.NOT_FOUND;

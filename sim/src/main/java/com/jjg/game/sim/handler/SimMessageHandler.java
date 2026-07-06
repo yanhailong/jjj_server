@@ -65,6 +65,10 @@ public class SimMessageHandler implements GmListener {
     private SimMedalService medalService;
     @Autowired
     private SimVisitService visitService;
+    @Autowired
+    private SimCoopTaskService coopTaskService;
+    @Autowired
+    private SimCoopRoomRouteService coopRoomRouteService;
 
 
     /**
@@ -408,6 +412,69 @@ public class SimMessageHandler implements GmListener {
 
     //--------------------------任务 (主线/成就) end--------------------------
 
+    //--------------------------多人协作任务 begin--------------------------
+
+    /**
+     * 多人任务今日列表
+     */
+    @Command(SimConstant.MsgBean.REQ_COOP_TASK_LIST)
+    public void reqCoopTaskList(PlayerController playerController, ReqCoopTaskList req) {
+        execute(playerController, ctx -> ctx.send(coopTaskService.buildTaskList(ctx)));
+    }
+
+    /**
+     * 刷新多人任务列表 (每日首免, 之后耗道具)
+     */
+    @Command(SimConstant.MsgBean.REQ_COOP_TASK_REFRESH)
+    public void reqCoopTaskRefresh(PlayerController playerController, ReqCoopTaskRefresh req) {
+        execute(playerController, ctx -> ctx.send(coopTaskService.refresh(ctx)));
+    }
+
+    /**
+     * 领取多人任务
+     */
+    @Command(SimConstant.MsgBean.REQ_COOP_TASK_CLAIM)
+    public void reqCoopTaskClaim(PlayerController playerController, ReqCoopTaskClaim req) {
+        execute(playerController, ctx -> ctx.send(coopTaskService.claim(ctx, req.taskId)));
+    }
+
+    /**
+     * 发起者领取多人任务奖励
+     */
+    @Command(SimConstant.MsgBean.REQ_COOP_TASK_REWARD)
+    public void reqCoopTaskReward(PlayerController playerController, ReqCoopTaskReward req) {
+        execute(playerController, ctx -> ctx.send(coopTaskService.claimReward(ctx, req.taskId)));
+    }
+
+    /**
+     * 创建协作房间 (成功后切到 slots 节点, 服务内已先回包)
+     */
+    @Command(SimConstant.MsgBean.REQ_CREATE_COOP_ROOM)
+    public void reqCreateCoopRoom(PlayerController playerController, ReqCreateCoopRoom req) {
+        execute(playerController, ctx -> {
+            ResCreateCoopRoom res = coopRoomRouteService.createRoom(ctx, req.taskId, req.gameType, req.roomCfgId);
+            //成功路径服务内已回包并切节点; 失败时这里回包
+            if (res != null) {
+                ctx.send(res);
+            }
+        });
+    }
+
+    /**
+     * 加入协作房间 (成功后切到房间所在 slots 节点, 服务内已先回包)
+     */
+    @Command(SimConstant.MsgBean.REQ_JOIN_COOP_ROOM)
+    public void reqJoinCoopRoom(PlayerController playerController, ReqJoinCoopRoom req) {
+        execute(playerController, ctx -> {
+            ResJoinCoopRoom res = coopRoomRouteService.joinRoom(ctx, req.roomId);
+            if (res != null) {
+                ctx.send(res);
+            }
+        });
+    }
+
+    //--------------------------多人协作任务 end--------------------------
+
     //--------------------------拜访相关 begin--------------------------
 
     @Command(SimConstant.MsgBean.REQ_VISIT_CASINO)
@@ -609,6 +676,31 @@ public class SimMessageHandler implements GmListener {
                 ReqSlotStat req = new ReqSlotStat();
                 req.gameType = gmOrders.length > 1 ? Integer.parseInt(gmOrders[1]) : 0;
                 reqSlotStat(playerController, req);
+            } else if ("coopList".equalsIgnoreCase(gmOrders[0])) {
+                reqCoopTaskList(playerController, null);
+            } else if ("coopRefresh".equalsIgnoreCase(gmOrders[0])) {
+                reqCoopTaskRefresh(playerController, null);
+            } else if ("coopClaim".equalsIgnoreCase(gmOrders[0])) {
+                ReqCoopTaskClaim req = new ReqCoopTaskClaim();
+                req.taskId = Integer.parseInt(gmOrders[1]);
+                reqCoopTaskClaim(playerController, req);
+            } else if ("coopReward".equalsIgnoreCase(gmOrders[0])) {
+                ReqCoopTaskReward req = new ReqCoopTaskReward();
+                req.taskId = Integer.parseInt(gmOrders[1]);
+                reqCoopTaskReward(playerController, req);
+            } else if ("coopSettle".equalsIgnoreCase(gmOrders[0])) {
+                //模拟结算回写 (不经房间, 联调任务态/奖励闭环): coopSettle <taskId> <0失败|1成功>
+                int taskId = Integer.parseInt(gmOrders[1]);
+                boolean success = gmOrders.length > 2 && "1".equals(gmOrders[2]);
+                execute(playerController, ctx -> {
+                    //未建房的已领取任务先补 IN_ROOM 态, 满足结算状态机
+                    com.jjg.game.sim.data.SimCoopTaskEntry entry = ctx.getSimCoopTaskData() == null
+                            ? null : ctx.getSimCoopTaskData().getTasks().get(taskId);
+                    if (entry != null && entry.getStatus() == com.jjg.game.sim.constant.CoopTaskConst.TaskStatus.CLAIMED) {
+                        entry.setStatus(com.jjg.game.sim.constant.CoopTaskConst.TaskStatus.IN_ROOM);
+                    }
+                    coopTaskService.onSettle(ctx, ctx.playerId(), taskId, success, java.util.List.of());
+                });
             } else if ("casinoLevelUp".equalsIgnoreCase(gmOrders[0])) {
                 int statsId = Integer.parseInt(gmOrders[1]);
                 CasinoStatsSheetCfg cfg = GameDataManager.getCasinoStatsSheetCfg(statsId);

@@ -34,6 +34,8 @@ public class SimPlayerContext {
 
     //主线/成就任务数据
     private SimTaskData simTaskData;
+    //多人协作任务数据
+    private SimCoopTaskData simCoopTaskData;
     //勋章品质加成缓存 (condition表id -> 千分比加成值; 登录/成就领奖后刷新; 内存态不落库, 供收益计算零IO读取)
     private Map<Integer, Integer> medalBuffMap = new HashMap<>();
 
@@ -141,6 +143,14 @@ public class SimPlayerContext {
 
     public void setSimTaskData(SimTaskData simTaskData) {
         this.simTaskData = simTaskData;
+    }
+
+    public SimCoopTaskData getSimCoopTaskData() {
+        return simCoopTaskData;
+    }
+
+    public void setSimCoopTaskData(SimCoopTaskData simCoopTaskData) {
+        this.simCoopTaskData = simCoopTaskData;
     }
 
     public Map<Integer, Integer> getMedalBuffMap() {

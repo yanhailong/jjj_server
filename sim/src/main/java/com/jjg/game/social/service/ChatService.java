@@ -4,6 +4,7 @@ import com.jjg.game.core.constant.Code;
 import com.jjg.game.core.data.Player;
 import com.jjg.game.core.data.PlayerController;
 import com.jjg.game.core.manager.SnowflakeManager;
+import com.jjg.game.core.service.CorePlayerService;
 import com.jjg.game.social.channel.ChatChannel;
 import com.jjg.game.social.channel.ChatChannelRegistry;
 import com.jjg.game.social.channel.ChatHistory;
@@ -39,6 +40,8 @@ public class ChatService {
     private SocialRateLimiter rateLimiter;
     @Autowired
     private SnowflakeManager snowflakeManager;
+    @Autowired
+    private CorePlayerService corePlayerService;
 
     /**
      * 玩家发送聊天。
@@ -120,6 +123,42 @@ public class ChatService {
             res.code = Code.EXCEPTION;
         }
         return res;
+    }
+
+    /**
+     * 服务端代玩家向频道发消息 (跨节点场景, 玩家会话不在本节点, 如 slots 房间邀请)。
+     * <p>
+     * 保留频道特有校验/个人限频/全局配额; 跳过 clientSendable 与字数检查 (内容由服务端构造, 可信)。
+     *
+     * @return Code
+     */
+    public int sendChatFrom(long senderId, int channelCode, long targetId, String content) {
+        try {
+            ChatChannel channel = registry.get(channelCode);
+            if (channel == null || content == null || content.isBlank()) {
+                return Code.PARAM_ERROR;
+            }
+            Player sender = corePlayerService.get(senderId);
+            if (sender == null) {
+                return Code.NOT_FOUND;
+            }
+            int vcode = channel.validate(sender, targetId, content);
+            if (vcode != Code.SUCCESS) {
+                log.warn("服务端代发聊天失败, 频道校验失败 senderId={},channelCode={},code={}", senderId, channelCode, vcode);
+                return vcode;
+            }
+            if (!rateLimiter.tryAcquire(senderId, channelCode, channel.sendIntervalMs())) {
+                return Code.PARAM_ERROR;
+            }
+            if (!channel.tryAcquireGlobalQuota()) {
+                return Code.PARAM_ERROR;
+            }
+            channel.dispatch(buildMessage(channelCode, sender, targetId, content));
+            return Code.SUCCESS;
+        } catch (Exception e) {
+            log.error("服务端代发聊天异常 senderId={},channelCode={}", senderId, channelCode, e);
+            return Code.EXCEPTION;
+        }
     }
 
     /**

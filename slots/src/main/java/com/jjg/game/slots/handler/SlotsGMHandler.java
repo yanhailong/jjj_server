@@ -6,14 +6,10 @@ import com.jjg.game.core.constant.Code;
 import com.jjg.game.core.data.CommonResult;
 import com.jjg.game.core.data.PlayerController;
 import com.jjg.game.core.listener.GmListener;
-import com.jjg.game.sim.data.SimSkillsData;
 import com.jjg.game.slots.controller.SlotsRoomController;
 import com.jjg.game.slots.dao.SlotsPoolDao;
 import com.jjg.game.slots.data.SlotsPlayerGameData;
-import com.jjg.game.slots.manager.AbstractSlotsGameManager;
-import com.jjg.game.slots.manager.SlotsFactoryManager;
-import com.jjg.game.slots.manager.SlotsRPCLinkManager;
-import com.jjg.game.slots.manager.SlotsRoomManager;
+import com.jjg.game.slots.manager.*;
 import com.jjg.game.slots.service.SlotsSkillService;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -40,6 +36,8 @@ public class SlotsGMHandler implements GmListener {
     private SlotsSkillService slotsSkillService;
     @Autowired
     private SlotsRPCLinkManager slotsRPCLinkManager;
+    @Autowired
+    private CoopRoomManager coopRoomManager;
 
     @Override
     public CommonResult<String> gm(PlayerController playerController, String[] gmOrders) {
@@ -111,6 +109,13 @@ public class SlotsGMHandler implements GmListener {
                 }
 
                 res.code = slotsRPCLinkManager.skillLevelUp(playerGameData,skillId);
+            } else if ("coopProgress".equalsIgnoreCase(gmOrders[0])) {
+                //协作任务: 给所在房间累计共享进度 (联调成功结算路径)
+                int count = gmOrders.length > 1 ? Integer.parseInt(gmOrders[1]) : 1;
+                res.code = coopRoomManager.gmAddProgress(playerController.playerId(), count);
+            } else if ("coopExhaust".equalsIgnoreCase(gmOrders[0])) {
+                //协作任务: 耗尽全员血条 (联调失败结算路径)
+                res.code = coopRoomManager.gmExhaust(playerController.playerId());
             } else {
                 res.code = Code.NOT_FOUND;
             }

@@ -19,7 +19,7 @@ import java.util.List;
 @ProtobufMessage(messageType = MessageConst.MessageTypeDef.SIM_GAME, cmd = SimConstant.MsgBean.RES_MEDAL_PANEL, resp = true)
 @ProtoDesc("成就勋章面板返回")
 public class ResMedalPanel extends AbstractResponse {
-    @ProtoDesc("已激活勋章配置id (已激活在前, 展示中的优先)")
+    @ProtoDesc("已激活勋章配置id")
     public List<Integer> activatedMedalIds;
     @ProtoDesc("勋章总数 (配置中已开启的勋章数量)")
     public int totalMedalCount;
@@ -27,6 +27,8 @@ public class ResMedalPanel extends AbstractResponse {
     public int rankPermil;
     @ProtoDesc("各品质统计与加成档")
     public List<MedalQualityInfo> qualityInfos;
+    @ProtoDesc("勋章最大展示数量")
+    public int medalShowMax;
 
     public ResMedalPanel(int code) {
         super(code);

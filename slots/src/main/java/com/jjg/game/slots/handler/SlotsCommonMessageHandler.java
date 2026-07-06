@@ -8,9 +8,10 @@ import com.jjg.game.core.data.PlayerController;
 import com.jjg.game.core.pb.KVInfo;
 import com.jjg.game.slots.constant.SlotsConst;
 import com.jjg.game.slots.manager.AbstractSlotsGameManager;
+import com.jjg.game.slots.manager.CoopRoomManager;
 import com.jjg.game.slots.manager.SlotsFactoryManager;
-import com.jjg.game.slots.pb.*;
 import com.jjg.game.slots.manager.SlotsRoomManager;
+import com.jjg.game.slots.pb.*;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -28,6 +29,8 @@ public class SlotsCommonMessageHandler {
     private SlotsRoomManager slotsRoomManager;
     @Autowired
     private SlotsFactoryManager slotsFactoryManager;
+    @Autowired
+    private CoopRoomManager coopRoomManager;
 
     @Command(SlotsConst.SlotsCommon.REQ_SLOTS_ROOM_POOL)
     public void reqSlotsRoomPool(PlayerController playerController, ReqSlotsRoomPool req) {
@@ -85,5 +88,63 @@ public class SlotsCommonMessageHandler {
             res.code = Code.EXCEPTION;
         }
         playerController.send(res);
+    }
+
+    /**
+     * 进入房间 (切节点后附着/断线重连/新成员加入)
+     */
+    @Command(SlotsConst.SlotsCommon.REQ_ENTER_COOP_ROOM)
+    public void reqEnterCoopRoom(PlayerController playerController, ReqEnterCoopRoom req) {
+        try {
+            playerController.send(coopRoomManager.enterRoom(playerController, req.roomId));
+        } catch (Exception e) {
+            log.error("进入协作房间异常 playerId={},roomId={}", playerController.playerId(), req.roomId, e);
+            ResEnterCoopRoom res = new ResEnterCoopRoom(Code.EXCEPTION);
+            playerController.send(res);
+        }
+    }
+
+    /**
+     * 房间操作 (准备/取消准备/开始/退出|解散/踢人)
+     */
+    @Command(SlotsConst.SlotsCommon.REQ_COOP_ROOM_OP)
+    public void reqCoopRoomOp(PlayerController playerController, ReqCoopRoomOp req) {
+        try {
+            playerController.send(coopRoomManager.operate(playerController, req.op, req.targetId));
+        } catch (Exception e) {
+            log.error("协作房间操作异常 playerId={},op={}", playerController.playerId(), req.op, e);
+            ResCoopRoomOp res = new ResCoopRoomOp(Code.EXCEPTION);
+            res.op = req.op;
+            playerController.send(res);
+        }
+    }
+
+    /**
+     * 发送频道邀请
+     */
+    @Command(SlotsConst.SlotsCommon.REQ_COOP_INVITE)
+    public void reqCoopInvite(PlayerController playerController, ReqCoopInvite req) {
+        try {
+            playerController.send(coopRoomManager.invite(playerController, req.channelCode, req.targetIds));
+        } catch (Exception e) {
+            log.error("协作房间邀请异常 playerId={},channel={}", playerController.playerId(), req.channelCode, e);
+            ResCoopInvite res = new ResCoopInvite(Code.EXCEPTION);
+            playerController.send(res);
+        }
+    }
+
+    /**
+     * 房间互动道具赠送
+     */
+    @Command(SlotsConst.SlotsCommon.REQ_COOP_GIFT)
+    public void reqCoopGift(PlayerController playerController, ReqCoopGift req) {
+        try {
+            playerController.send(coopRoomManager.gift(playerController, req.targetId, req.giftId));
+        } catch (Exception e) {
+            log.error("协作房间赠礼异常 playerId={},targetId={},giftId={}",
+                    playerController.playerId(), req.targetId, req.giftId, e);
+            ResCoopGift res = new ResCoopGift(Code.EXCEPTION);
+            playerController.send(res);
+        }
     }
 }

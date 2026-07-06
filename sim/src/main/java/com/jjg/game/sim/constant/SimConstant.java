@@ -181,6 +181,31 @@ public interface SimConstant {
         //成就勋章面板 (达成统计/全服排行/品质统计/加成)
         int REQ_MEDAL_PANEL = BASE_MSG_PREFIX | 0x59;
         int RES_MEDAL_PANEL = BASE_MSG_PREFIX | 0x5A;
+
+        //修改展示的勋章
+        int REQ_CHANGE_SHOW_MEDAL = BASE_MSG_PREFIX | 0x5B;
+        int RES_CHANGE_SHOW_MEDAL = BASE_MSG_PREFIX | 0x5C;
+
+        //多人任务-今日任务列表
+        int REQ_COOP_TASK_LIST = BASE_MSG_PREFIX | 0x5D;
+        int RES_COOP_TASK_LIST = BASE_MSG_PREFIX | 0x5E;
+        //多人任务-刷新任务列表 (每日首免, 之后耗道具)
+        int REQ_COOP_TASK_REFRESH = BASE_MSG_PREFIX | 0x5F;
+        int RES_COOP_TASK_REFRESH = BASE_MSG_PREFIX | 0x60;
+        //多人任务-领取任务
+        int REQ_COOP_TASK_CLAIM = BASE_MSG_PREFIX | 0x61;
+        int RES_COOP_TASK_CLAIM = BASE_MSG_PREFIX | 0x62;
+        //多人任务-发起者领取任务奖励
+        int REQ_COOP_TASK_REWARD = BASE_MSG_PREFIX | 0x63;
+        int RES_COOP_TASK_REWARD = BASE_MSG_PREFIX | 0x64;
+        //多人任务-创建协作房间 (校验后切换到 slots 节点)
+        int REQ_CREATE_COOP_ROOM = BASE_MSG_PREFIX | 0x65;
+        int RES_CREATE_COOP_ROOM = BASE_MSG_PREFIX | 0x66;
+        //多人任务-加入协作房间 (按房间记录路由到 slots 节点)
+        int REQ_JOIN_COOP_ROOM = BASE_MSG_PREFIX | 0x67;
+        int RES_JOIN_COOP_ROOM = BASE_MSG_PREFIX | 0x68;
+        //多人任务-任务状态变更通知 (结算/自愈回退)
+        int NOTIFY_COOP_TASK_UPDATE = BASE_MSG_PREFIX | 0x69;
     }
 
     interface Common {
@@ -223,6 +248,18 @@ public interface SimConstant {
         int VISIT_DAILY_COMMISSION_LIMIT_ID = 249;
         int VISIT_TRIAL_SESSION_SECONDS_ID = 250;
         int VISIT_RANK_REWARD_ID = 251;
+
+        //角色信息：勋章展示数量上限
+        int MEDAL_SHOW_MAX_ID = 251;
+
+
+        //多人任务全局配置 (global.xlsx)
+        //每日最多领取任务次数
+        int COOP_DAILY_CLAIM_LIMIT_ID = 238;
+        //每日从任务池抽取任务个数
+        int COOP_DAILY_POOL_COUNT_ID = 239;
+        //刷新任务列表消耗道具 (格式 itemId_count)
+        int COOP_REFRESH_COST_ID = 240;
 
         //slots 每次旋转消耗的能量
         int SPIN_COST_POWER = 1;

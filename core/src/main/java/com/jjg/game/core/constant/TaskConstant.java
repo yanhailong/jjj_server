@@ -26,6 +26,10 @@ public interface TaskConstant {
          */
         int ACHIEVEMENT = 3;
         /**
+         * 多人协作任务 (sim 每日任务池 + slots 协作房间, 不由 core 管理)
+         */
+        int COOP = 4;
+        /**
          * 联盟任务 (alliance 任务池, 不由 core 管理)
          */
         int ALLIANCE = 5;

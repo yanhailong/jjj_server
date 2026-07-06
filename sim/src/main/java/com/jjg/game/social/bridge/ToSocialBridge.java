@@ -40,4 +40,18 @@ public interface ToSocialBridge extends IGameRpc {
      * @param content  内容
      */
     void pushRoomChat(long roomId, long playerId, String content);
+
+    /**
+     * 代玩家向社交频道发送协作房间邀请 (由 slots 节点调用)。
+     * <p>
+     * 频道校验/个人限频/全局配额均在 hall 侧执行; content 为客户端约定的邀请格式
+     * (含 roomId/taskId/gameType), 加入合法性最终由加入流程权威校验, 无伪造风险。
+     *
+     * @param senderId    发送者 (房主)
+     * @param channelCode 频道 (世界/联盟/好友私聊, ChatChannelType.code)
+     * @param targetId    私聊目标 (其他频道为 0)
+     * @param content     邀请内容
+     * @return Code
+     */
+    int sendCoopInvite(long senderId, int channelCode, long targetId, String content);
 }

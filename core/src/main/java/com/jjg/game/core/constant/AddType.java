@@ -299,6 +299,14 @@ public enum AddType {
     SIM_VISIT_COMMISSION(1814),
     //拜访人气榜奖励
     SIM_VISIT_RANK_REWARD(1815),
+    //多人任务刷新列表消耗
+    SIM_COOP_TASK_REFRESH(1816),
+    //多人任务发起者奖励
+    SIM_COOP_TASK_REWARD(1817),
+    //多人任务协助者奖励(邮件)
+    SIM_COOP_ASSIST_REWARD(1818),
+    //多人任务房间互动道具消耗
+    SIM_COOP_ROOM_GIFT(1819),
 
     //创建联盟
     ALLIANCE_CREATE(2001),

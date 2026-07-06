@@ -78,6 +78,9 @@ public class SimAutoSaveService implements SimPlayerTickListener {
         if (ctx.getSimTaskData() != null) {
             enqueued |= enqueueIfChanged(ctx.getSimTaskData());
         }
+        if (ctx.getSimCoopTaskData() != null) {
+            enqueued |= enqueueIfChanged(ctx.getSimCoopTaskData());
+        }
         for (AbstractData employee : ctx.getEmployeeMap().values()) {
             enqueued |= enqueueIfChanged(employee);
         }

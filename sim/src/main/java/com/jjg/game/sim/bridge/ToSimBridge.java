@@ -7,6 +7,7 @@ import com.jjg.game.sim.data.SlotsSpinResult;
 import com.jjg.game.sim.data.SpinStatInfo;
 import com.jjg.game.sim.data.VisitTrialSpinPermit;
 
+import java.util.List;
 import java.util.Map;
 
 /**
@@ -63,4 +64,15 @@ public interface ToSimBridge extends IGameRpc {
      * @return
      */
     CommonResult<Map<Integer, Integer>> skillLevelUp(long playerId, int gameType, int skillId);
+
+    /**
+     * 多人协作任务结算回写 (slots 房间结束时调用发起者所在 sim 节点):
+     * 发起者任务态 -> 待领奖/失败; 协助者奖励经邮件发放。
+     *
+     * @param ownerId   发起者
+     * @param taskId    任务配置id
+     * @param success   任务是否完成
+     * @param helperIds 协助者 (不含发起者)
+     */
+    CommonResult<Boolean> onCoopRoomSettle(long ownerId, int taskId, boolean success, List<Long> helperIds);
 }

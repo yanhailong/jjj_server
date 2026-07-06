@@ -21,7 +21,12 @@ import com.jjg.game.sim.data.SpinStatInfo;
 import com.jjg.game.sim.data.VisitTrialSpinPermit;
 import com.jjg.game.sim.manager.SimManager;
 import com.jjg.game.sim.manager.SimPlayerContextRegistry;
+import com.jjg.game.sim.service.SimCoopTaskService;
 import com.jjg.game.sim.service.SimSkillService;
+import com.jjg.game.social.bridge.ToSocialBridge;
+import com.jjg.game.social.service.ChatService;
+
+import java.util.List;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Component;
 
@@ -32,7 +37,7 @@ import java.util.Map;
  * @date 2026/1/19
  */
 @Component
-public class HallRPCController extends CoreRPCController implements GmToHallBridge, ToSimBridge, ToAllianceBridge {
+public class HallRPCController extends CoreRPCController implements GmToHallBridge, ToSimBridge, ToAllianceBridge, ToSocialBridge {
 
     @Autowired
     private AccountDao accountDao;
@@ -50,6 +55,10 @@ public class HallRPCController extends CoreRPCController implements GmToHallBrid
     private SimPlayerContextRegistry simPlayerContextRegistry;
     @Autowired
     private SimManager simManager;
+    @Autowired
+    private SimCoopTaskService simCoopTaskService;
+    @Autowired
+    private ChatService chatService;
 
     @Override
     public int playerBindPhone(long playerId, String phone, int type, boolean reward) {
@@ -182,6 +191,19 @@ public class HallRPCController extends CoreRPCController implements GmToHallBrid
         return simSkillService.skillLevelUp(ctx, gameType, skillId);
     }
 
+    @Override
+    @RpcCallSetting(processorModKey = "#arg0")
+    public CommonResult<Boolean> onCoopRoomSettle(long ownerId, int taskId, boolean success, List<Long> helperIds) {
+        try {
+            SimPlayerContext ctx = this.simPlayerContextRegistry.getContext(ownerId);
+            simCoopTaskService.onSettle(ctx, ownerId, taskId, success, helperIds);
+            return new CommonResult<>(Code.SUCCESS, true);
+        } catch (Exception e) {
+            log.error("多人任务结算回写异常 ownerId={},taskId={},success={}", ownerId, taskId, success, e);
+            return new CommonResult<>(Code.EXCEPTION, false);
+        }
+    }
+
     // --------------------------- ToAllianceBridge (联盟跨节点入口) ---------------------------
 
     @Override
@@ -199,5 +221,31 @@ public class HallRPCController extends CoreRPCController implements GmToHallBrid
     @Override
     public long getPlayerAllianceId(long playerId) {
         return allianceCacheService.getAllianceId(playerId);
+    }
+
+    // --------------------------- ToSocialBridge (社交跨节点入口) ---------------------------
+
+    @Override
+    public void pushSystemMessage(String content) {
+        chatService.sendSystemMessage(content);
+    }
+
+    @Override
+    public void pushBigWin(long roomId, long playerId, String prizeName, long amount) {
+        //预留: slots 房间频道接入后实现
+        log.info("收到房间大奖播报(暂未接入房间频道) roomId={},playerId={},prize={},amount={}",
+                roomId, playerId, prizeName, amount);
+    }
+
+    @Override
+    public void pushRoomChat(long roomId, long playerId, String content) {
+        //预留: slots 房间频道接入后实现
+        log.info("收到房间聊天(暂未接入房间频道) roomId={},playerId={}", roomId, playerId);
+    }
+
+    @Override
+    @RpcCallSetting(processorModKey = "#arg0")
+    public int sendCoopInvite(long senderId, int channelCode, long targetId, String content) {
+        return chatService.sendChatFrom(senderId, channelCode, targetId, content);
     }
 }

@@ -195,6 +195,8 @@ public interface MessageConst {
         int SOCIAL = 0x56;
         //联盟
         int ALLIANCE = 0x57;
+        //多人协作任务房间 (slots 节点)
+        int COOP_ROOM = 0x58;
         //南方前进-血战
         int TO_SOUTH_BLOOD = 0x5A;
         //南方前进-免费

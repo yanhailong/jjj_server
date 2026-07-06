@@ -27,6 +27,8 @@ public class SlotsFactoryManager {
     @Autowired
     private SlotsRoomManager slotsRoomManager;
     @Autowired
+    private CoopRoomManager coopRoomManager;
+    @Autowired
     private GameStatusService gameStatusService;
 
     //所有的游戏管理器
@@ -43,6 +45,7 @@ public class SlotsFactoryManager {
         //初始化游戏管理器
         initGameManager(context);
         this.slotsRoomManager.init();
+        this.coopRoomManager.init();
         //刷新游戏状态
         refreshGameStatus();
     }
@@ -138,6 +141,8 @@ public class SlotsFactoryManager {
      */
     public void shutdown() {
         closeGameManager();
+        //先结算协作房间 (进行中判负回写任务态), 再关房间管理器
+        this.coopRoomManager.shutdown();
         this.slotsRoomManager.shutDown();
     }
 }
