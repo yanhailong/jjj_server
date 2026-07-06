@@ -766,7 +766,7 @@ public class SimBuildingService implements SimPlayerTickListener {
         Map<BonusType, Integer> withSupervisor = employeeService.manageEmployeeBonus(ctx, areaCfg.getEmployeeProfile());
 
         Integer managerBonus = withSupervisor.get(bonusType);
-        if(!withSupervisor.isEmpty() && managerBonus == null){
+        if(withSupervisor.isEmpty() || managerBonus == null){
             log.warn("获取主管加成错误 playerId={},buildingId={},base={},withSupervisor={},bonusType={}",ctx.playerId(),buildingData.getId(),base,withSupervisor,bonusType);
             managerBonus = 0;
         }
