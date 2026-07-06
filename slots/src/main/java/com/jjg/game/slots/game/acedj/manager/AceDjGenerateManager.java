@@ -330,6 +330,7 @@ public class AceDjGenerateManager extends AbstractSlotsGenerateManager<AceDjAwar
 
             //替换成wild的坐标
             Set<Integer> replaceWildIndexs = new HashSet<>();
+            Set<Integer> expandedSameIconSet = new HashSet<>(info.getSameIconSet());
 
             info.getSameIconSet().forEach(index -> {
                 int columnId = index / baseInitCfg.getRows();
@@ -337,18 +338,22 @@ public class AceDjGenerateManager extends AbstractSlotsGenerateManager<AceDjAwar
                     columnId++;
                 }
                 allSameMap.computeIfAbsent(columnId, k -> new HashSet<>()).add(index);
+                int beginIndex = (columnId - 1) * baseInitCfg.getRows() + 1;
+                int endIndex = beginIndex + baseInitCfg.getRows() - 1;
+                Set<Integer> expandedIndexes = expandRemovedIndexes(Collections.singleton(index), arr, beginIndex, endIndex);
+                expandedSameIconSet.addAll(getRewardIconIndexes(index, arr, beginIndex, endIndex));
+                expandedIndexes.forEach(expandedIndex ->
+                        allSameMap.computeIfAbsent(getColumnId(expandedIndex, baseInitCfg.getRows()), k -> new HashSet<>()).add(expandedIndex));
 
                 int icon = arr[index];
 
                 //判断消除的图标是不是金色图标
-                if (icon >= AceDjConstant.BaseElement.GOLD_MIN && icon <= AceDjConstant.BaseElement.GOLD_MAX) {
-                    Integer replaceIcon = getPostChangeIcon(icon);
-                    if (replaceIcon != null) {
-                        replaceWildIndexs.add(index);
-                    }
+                if (postChangeToWild(icon)) {
+                    replaceWildIndexs.add(index);
                 }
             });
 
+            info.setSameIconSet(expandedSameIconSet);
             info.setReplaceWildIndexs(replaceWildIndexs);
         }
 
@@ -463,11 +468,9 @@ public class AceDjGenerateManager extends AbstractSlotsGenerateManager<AceDjAwar
             int icon = arr[i];
             if (expandedRemovedIndexes.contains(i)) {
                 //判断消除的图标是不是金色图标
-                if (icon >= AceDjConstant.BaseElement.GOLD_MIN && icon <= AceDjConstant.BaseElement.GOLD_MAX) {
-                    Integer replaceIcon = getPostChangeIcon(icon);
-                    if (replaceIcon != null) {
-                        validIndexes.add(replaceIcon);
-                    }
+                Integer replaceIcon = getPostChangeIcon(icon);
+                if (replaceIcon != null) {
+                    addIconWithPlaceholders(validIndexes, replaceIcon);
                 }
             } else {
                 validIndexes.add(icon);
@@ -502,6 +505,10 @@ public class AceDjGenerateManager extends AbstractSlotsGenerateManager<AceDjAwar
             int index = beginIndex + i;
             int oldIcon = arr[index];
             if (oldIcon > 0) {
+                continue;
+            }
+            if (oldIcon == AceDjConstant.BaseElement.ID_NULL
+                    && getMultiGridAnchorIndex(index, arr, beginIndex, endIndex) > 0) {
                 continue;
             }
 
@@ -539,6 +546,30 @@ public class AceDjGenerateManager extends AbstractSlotsGenerateManager<AceDjAwar
         return expandedRemovedIndexes;
     }
 
+    private Set<Integer> getRewardIconIndexes(int index, int[] arr, int beginIndex, int endIndex) {
+        int anchorIndex = getMultiGridAnchorIndex(index, arr, beginIndex, endIndex);
+        if (anchorIndex > 0 && hasPostChangeIcon(arr[anchorIndex])) {
+            return Collections.singleton(anchorIndex);
+        }
+        return expandRemovedIndexes(Collections.singleton(index), arr, beginIndex, endIndex);
+    }
+
+    private boolean hasPostChangeIcon(int icon) {
+        return this.baseElementPostChangeMap != null && this.baseElementPostChangeMap.containsKey(icon);
+    }
+
+    private boolean postChangeToWild(int icon) {
+        if (this.baseElementPostChangeMap == null || this.iconsMap == null) {
+            return false;
+        }
+        PropInfo propInfo = this.baseElementPostChangeMap.get(icon);
+        Set<Integer> wildIconSet = this.iconsMap.get(SlotsConst.BaseElement.TYPE_WILD);
+        if (propInfo == null || propInfo.getPropMap().isEmpty() || wildIconSet == null || wildIconSet.isEmpty()) {
+            return false;
+        }
+        return propInfo.getPropMap().keySet().stream().allMatch(wildIconSet::contains);
+    }
+
     private int getMultiGridAnchorIndex(int index, int[] arr, int beginIndex, int endIndex) {
         int icon = arr[index];
         BaseElementCfg cfg = baseElementCfgMap.get(icon);
@@ -560,6 +591,23 @@ public class AceDjGenerateManager extends AbstractSlotsGenerateManager<AceDjAwar
             }
         }
         return -1;
+    }
+
+    private void addIconWithPlaceholders(List<Integer> validIndexes, int icon) {
+        BaseElementCfg cfg = baseElementCfgMap.get(icon);
+        int space = cfg == null ? 0 : cfg.getSpace();
+        for (int i = 1; i < space; i++) {
+            validIndexes.add(AceDjConstant.BaseElement.ID_NULL);
+        }
+        validIndexes.add(icon);
+    }
+
+    private int getColumnId(int index, int rows) {
+        int columnId = index / rows;
+        if ((index % rows) != 0) {
+            columnId++;
+        }
+        return columnId;
     }
 
 

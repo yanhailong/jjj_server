@@ -1787,18 +1787,28 @@ public abstract class AbstractSlotsGameManager<T extends SlotsPlayerGameData, L 
         }
 
         try {
-            BaseInitCfg baseInitCfg = GameDataManager.getBaseInitCfg(this.gameType);
-            int[] initArr = new int[baseInitCfg.getRows() * baseInitCfg.getCols() + 1];
-
             String[] splitArr = icons.split(";");
             String[] arr2 = splitArr[0].split(",");
+            int[] initArr;
+            if (splitArr.length > 1 && splitArr[1].contains("*")) {
+                String[] rowAndCol = splitArr[1].split("\\*");
+                initArr = new int[Integer.parseInt(rowAndCol[0]) * Integer.parseInt(rowAndCol[1]) + 1];
+            } else {
+                BaseInitCfg baseInitCfg = GameDataManager.getBaseInitCfg(this.gameType);
+                initArr = new int[baseInitCfg.getRows() * baseInitCfg.getCols() + 1];
+            }
+
             for (int i = 1; i < initArr.length; i++) {
                 initArr[i] = Integer.parseInt(arr2[i - 1]);
             }
 
             Constructor<L> constructor = this.libClass.getConstructor();
             L lib = constructor.newInstance();
-            lib.addLibType(1);
+            if (CollectionUtil.isEmpty(playerGameData.getTestLibDataList())) {
+                lib.addLibType(1);
+            } else {
+                lib.addLibType(playerGameData.pollTestLibData().getLibType());
+            }
             lib.setId(RandomUtils.getUUid());
 
 
@@ -1812,6 +1822,13 @@ public abstract class AbstractSlotsGameManager<T extends SlotsPlayerGameData, L 
             log.error("", e);
         }
         return false;
+    }
+
+    public static boolean isInteger(String str) {
+        if (str == null || str.trim().isEmpty()) {
+            return false;
+        }
+        return str.matches("-?\\d+");
     }
 
     /**

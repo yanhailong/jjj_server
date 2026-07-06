@@ -189,6 +189,10 @@ public interface MessageConst {
         int GARA_GEMSTONE_3 = 0x53;
         // 赏金大对决
         int BOUNTY_DUEL_TYPE = 0x55;
+        //连环夺宝
+        int LIAN_HUAN_DUO_BAO_TYPE = 0x56;
+        //超级高尔夫
+        int SUPER_GOLF_TYPE = 0x57;
         //模拟经营游戏
         int SIM_GAME = 0x54;
         //南方前进-血战

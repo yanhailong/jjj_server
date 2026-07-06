@@ -37,14 +37,8 @@ public class ResDraculaStartGame extends AbstractResponse {
     public DraculaIconInfo rewardIconInfo;
     @ProtoDesc("消除后添加图标的信息")
     public List<DraculaCascade> addIconInfoList;
-    @ProtoDesc("本局应用的乘倍值（免费模式从2开始，每次能量满+2）")
+    @ProtoDesc("本局应用的最终乘倍值（主游戏 1/2/3/4/5；免费 3/6/9/12/15；按本局消除轮数查表，无中奖时为1）")
     public int multiplier;
-    @ProtoDesc("本局结束后的能量值（0..maxEnergyAfter）")
-    public int energyAfter;
-    @ProtoDesc("本局结束后的能量满值上限（6/8/10/12/14/16）")
-    public int maxEnergyAfter;
-    @ProtoDesc("本局通过+1符号增加的免费次数（用于客户端 +N 动画）")
-    public int addFreeCount;
 
 
     public ResDraculaStartGame(int code) {

@@ -6,6 +6,7 @@ import com.jjg.game.common.constant.CoreConst;
 import com.jjg.game.common.pb.AbstractMessage;
 import com.jjg.game.common.pb.AbstractResponse;
 import com.jjg.game.common.proto.Pair;
+import com.jjg.game.common.utils.RandomUtils;
 import com.jjg.game.core.constant.AddType;
 import com.jjg.game.core.constant.Code;
 import com.jjg.game.core.constant.GameConstant;
@@ -152,8 +153,15 @@ public class LuckyPokerPloyController extends AbstractSinglePloyController<Lucky
         PoolResultLibCfg poolResultLibCfg = GameDataManager.getPoolResultLibCfg(oddsResult.data.getFirst());
         //根据权重随机获取一种结
         PropInfo propInfo = this.poolResultLibPropMap.get(poolResultLibCfg.getModelId());
-        Integer randKey = propInfo.getRandKey();
+        //生成端拦截：奖池兜不住的高倍率牌型直接从权重池里剔除，避免后续 winFromPool 触发负值回滚
+        long maxAffordableTimes = computeMaxAffordableTimes(playerGameData, betValue);
+        Integer randKey = pickAffordableRank(propInfo, ploygameRoomCfg.getOdds(), maxAffordableTimes);
         PokerRank pokerRank2 = PokerRank.rankOf(randKey);
+        if (pokerRank2 == null) {
+            log.warn("第二手牌型生成失败（无任何可承受档位且兜底也失败）playerId = {},maxAffordableTimes = {}", playerGameData.playerId(), maxAffordableTimes);
+            res.code = Code.FAIL;
+            return res;
+        }
 
         //GM测试用：若设置了强制牌型，则两次手牌都按该牌型生成，方便前端调试
         Integer forceRank = playerGameData.getTestForceRank();
@@ -207,7 +215,9 @@ public class LuckyPokerPloyController extends AbstractSinglePloyController<Lucky
 
         //根据权重随机获取一种结果
         PropInfo propInfo = this.poolResultLibPropMap.get(libCfg.getModelId());
-        Integer randKey = propInfo.getRandKey();
+        //生成端拦截：第一手牌也可能因玩家"全部保留"而最终生效，所以这里同样按奖池承受能力做过滤
+        long maxAffordableTimes = computeMaxAffordableTimes(playerGameData, betValue);
+        Integer randKey = pickAffordableRank(propInfo, gameRoomCfg.getOdds(), maxAffordableTimes);
         if (randKey == null) {
             log.warn("获取结果库配置失败,下注失败 playerId = {},roomCfgId = {},betValue = {},poolValue = {},diff = {}", playerGameData.playerId(), playerGameData.getRoomCfgId(), betValue, ployBetDivideInfo.getPoolAfterValue(), diff);
             poolToPlayer(playerGameData, ployBetDivideInfo.getPoolChangeValue(), betValue, AddType.FAIL_ROLLBACK);
@@ -216,6 +226,105 @@ public class LuckyPokerPloyController extends AbstractSinglePloyController<Lucky
         }
         result.data = new Pair<>(libCfg.getId(), randKey);
         return result;
+    }
+
+    /**
+     * 按 "本次下注后的奖池值 / 本次下注额" 算出本局可以承受的最大倍率上限。
+     * 任何 odds 大于此值的牌型若被抽中，winFromPool 将把奖池减为负数从而触发回滚——
+     * 那种情况下手牌已经发给客户端，体验极差。生成端必须先把这些档位剔除。
+     */
+    private long computeMaxAffordableTimes(LuckyPokerPlayerPloyGameData playerGameData, long betValue) {
+        if (betValue <= 0) {
+            return Long.MAX_VALUE;
+        }
+        PloyBetDivideInfo info = playerGameData.getPloyBetDivideInfo();
+        if (info == null) {
+            return Long.MAX_VALUE;
+        }
+        long poolAfter = info.getPoolAfterValue();
+        if (poolAfter <= 0) {
+            return 0;
+        }
+        return poolAfter / betValue;
+    }
+
+    /**
+     * 在 PropInfo 的权重池里按 odds 上限做过滤，再做加权随机：
+     *   - 只在 odds[key] <= maxAffordableTimes 的 key 之间按原权重比例抽
+     *   - 若一档都过不了（极端情况，玩家把池子打到连最低赔率档都赔不起），
+     *     兜底取 odds 最小的那档，避免抛 null 让下注链路崩掉
+     *   - 上面兜底也找不到，才返回 null（调用方应回滚下注）
+     */
+    private Integer pickAffordableRank(PropInfo propInfo, Map<Integer, Integer> odds, long maxAffordableTimes) {
+        if (propInfo == null || propInfo.getPropMap() == null || propInfo.getPropMap().isEmpty()) {
+            return null;
+        }
+
+        Map<Integer, int[]> propMap = propInfo.getPropMap();
+
+        //先累加可承受档位的权重
+        long filteredSum = 0;
+        for (Map.Entry<Integer, int[]> en : propMap.entrySet()) {
+            if (isRankAffordable(odds, en.getKey(), maxAffordableTimes)) {
+                int[] range = en.getValue();
+                filteredSum += (range[1] - range[0]);
+            }
+        }
+
+        if (filteredSum <= 0) {
+            //池子连最低档都赔不起：兜底降级到 odds 最小的档位
+            log.warn("奖池连最低赔率档都赔不起，降级到 odds 最低档 maxAffordableTimes = {}", maxAffordableTimes);
+            return pickLowestOddsKey(propMap, odds);
+        }
+
+        //标准上限内 → 仍按原权重比例随机
+        long rand = filteredSum <= Integer.MAX_VALUE
+                ? RandomUtils.randomInt((int) filteredSum)
+                : (long) (Math.random() * filteredSum);
+        long acc = 0;
+        for (Map.Entry<Integer, int[]> en : propMap.entrySet()) {
+            if (!isRankAffordable(odds, en.getKey(), maxAffordableTimes)) {
+                continue;
+            }
+            int[] range = en.getValue();
+            int weight = range[1] - range[0];
+            acc += weight;
+            if (rand < acc) {
+                return en.getKey();
+            }
+        }
+        return null;
+    }
+
+    private boolean isRankAffordable(Map<Integer, Integer> odds, Integer rank, long maxAffordableTimes) {
+        if (odds == null) {
+            return true;
+        }
+        Integer multiplier = odds.get(rank);
+        if (multiplier == null || multiplier <= 0) {
+            //没配赔率/赔率<=0：根本不会扣池子，永远可承受
+            return true;
+        }
+        return multiplier.longValue() <= maxAffordableTimes;
+    }
+
+    private Integer pickLowestOddsKey(Map<Integer, int[]> propMap, Map<Integer, Integer> odds) {
+        Integer best = null;
+        int bestOdds = Integer.MAX_VALUE;
+        for (Integer key : propMap.keySet()) {
+            int v = 0;
+            if (odds != null) {
+                Integer m = odds.get(key);
+                if (m != null) {
+                    v = m;
+                }
+            }
+            if (v < bestOdds) {
+                bestOdds = v;
+                best = key;
+            }
+        }
+        return best;
     }
 
     /**

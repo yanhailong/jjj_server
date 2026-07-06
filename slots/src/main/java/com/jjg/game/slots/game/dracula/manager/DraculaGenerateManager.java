@@ -31,6 +31,7 @@ public class DraculaGenerateManager extends AbstractSlotsGenerateManager<Dracula
     }
 
     //连续中奖增加倍数  libType -> count -> times
+    //配表 SpecialPlay.playType=1：主游戏 1,1_1|2_2|3_3|4_4|5_5；免费 2,1_3|2_6|3_9|4_12|5_15
     private Map<Integer, Map<Integer, Integer>> addTimesMap;
     //连续中奖增加倍数时，最大连续中奖次数
     private int maxWinCount;
@@ -40,18 +41,6 @@ public class DraculaGenerateManager extends AbstractSlotsGenerateManager<Dracula
     private DraculaWildBlessingInfo wildBlessingInfo;
 
     private Map<Integer, BaseElementCfg> baseElementCfgMap;
-
-    //免费模式能量值/守门员状态（文档 [37-43]）
-    //state[0]=multiplier 当前乘倍值, state[1]=maxEnergy 当前能量满值, state[2]=energy 当前能量
-    //在 triggerFree 一次会话期内 sticky，跨多个免费 spin 累加
-    private static final ThreadLocal<int[]> energyMeterTL = new ThreadLocal<>();
-
-    //能量值机制常量
-    private static final int ENERGY_INITIAL_MULTIPLIER = 2;
-    private static final int ENERGY_INITIAL_MAX = 6;
-    private static final int ENERGY_MAX_CAP = 16;
-    private static final int ENERGY_STEP = 2;
-    private static final int MULTIPLIER_STEP = 2;
 
     @Override
     public DraculaResultLib checkAward(int[] arr, DraculaResultLib lib, boolean freeModel) throws Exception {
@@ -75,7 +64,7 @@ public class DraculaGenerateManager extends AbstractSlotsGenerateManager<Dracula
             System.arraycopy(arr, 0, newArr, 0, arr.length);
 
             //是否有消除
-            repairIcons(DraculaConstant.SpecialMode.FREE, newArr, lib.getAwardLineInfoList(), addIconInfoList, 0);
+            repairIcons(DraculaConstant.SpecialMode.FREE, newArr, lib.getAwardLineInfoList(), addIconInfoList, 0, lib);
 
             if (!addIconInfoList.isEmpty()) {
                 lib.setAddIconInfos(addIconInfoList);
@@ -105,7 +94,7 @@ public class DraculaGenerateManager extends AbstractSlotsGenerateManager<Dracula
             if(lib.getLibTypeSet() != null && !lib.getLibTypeSet().isEmpty()) {
                 lib.getLibTypeSet().forEach(type -> {
                     //是否有消除
-                    repairIcons(type, newArr, lib.getAwardLineInfoList(), addIconInfoList, 0);
+                    repairIcons(type, newArr, lib.getAwardLineInfoList(), addIconInfoList, 0, lib);
                 });
             }
 
@@ -152,9 +141,6 @@ public class DraculaGenerateManager extends AbstractSlotsGenerateManager<Dracula
         if (isRoot) {
             guard = new int[]{0, 0};
             freeGenTotalGuard.set(guard);
-
-            //免费游戏会话开始：初始化能量值/守门员状态（multiplier=2, maxEnergy=6, energy=0）
-            energyMeterTL.set(new int[]{ENERGY_INITIAL_MULTIPLIER, ENERGY_INITIAL_MAX, 0});
         }
 
         guard[1]++;
@@ -176,14 +162,7 @@ public class DraculaGenerateManager extends AbstractSlotsGenerateManager<Dracula
                 }
 
                 DraculaResultLib lib = generateFreeOne(specialModeType, specialAuxiliaryCfg, specialGroupGirdID);
-
-                //捕获本局结束后的能量值/守门员状态写到 lib 给客户端显示
-                int[] state = energyMeterTL.get();
-                if (state != null && lib != null) {
-                    lib.setMultiplier(state[0]);
-                    lib.setMaxEnergyAfter(state[1]);
-                    lib.setEnergyAfter(state[2]);
-                }
+                //lib.multiplier 已在 generateFreeOne -> checkAward -> repairIcons -> resetLineRewardTimes 内按本局消除轮数写好
 
                 int addCount = checkAddFreeCount(lib);
                 lib.setAddFreeCount(addCount);
@@ -195,7 +174,6 @@ public class DraculaGenerateManager extends AbstractSlotsGenerateManager<Dracula
             guard[1]--;
             if (isRoot) {
                 freeGenTotalGuard.remove();
-                energyMeterTL.remove();
             }
         }
     }
@@ -242,53 +220,24 @@ public class DraculaGenerateManager extends AbstractSlotsGenerateManager<Dracula
 
     /**
      * 修补图标
+     *
+     * 文档 [137-164]：
+     *  主游戏 cascade 轮数 1/2/3/4/≥5 → x1/x2/x3/x4/x5
+     *  免费   cascade 轮数 1/2/3/4/≥5 → x3/x6/x9/x12/x15
+     * 倍率配在 SpecialPlay.playType=1，由 specialPlayConfig 加载到 addTimesMap，
+     * 这里按 libType+winCount 查表，对本轮所有中奖线 baseTimes 乘上对应倍数，
+     * 并把"本局应用的最终乘倍值"写到 lib.multiplier（多轮 cascade 时最后一轮即最高一轮）。
      */
-    public void repairIcons(int libType, int[] arr, List<DraculaAwardLineInfo> list, List<DraculaAddIconInfo> addIconInfoList, int winCount) {
+    public void repairIcons(int libType, int[] arr, List<DraculaAwardLineInfo> list,
+                            List<DraculaAddIconInfo> addIconInfoList, int winCount, DraculaResultLib lib) {
         if (list == null || list.isEmpty()) {
             return;
         }
 
         winCount++;
 
-        //连续中奖后重置中奖倍数（仅普通模式；免费模式由下面能量值机制处理）
-        if (libType != DraculaConstant.SpecialMode.FREE) {
-            resetLineRewardTimes(libType, winCount, list);
-        }
-
-        //免费模式：先按当前 multiplier 倍数应用到这一波 cascade 的中奖
-        //（文档 [37-43] 能量值/守门员：multiplier sticky，每个赢奖符号 +1 能量，满了 +2 multiplier）
-        int energyMultiplierForThisCascade = 0;
-        int energyDeltaForThisCascade = 0;
-        if (libType == DraculaConstant.SpecialMode.FREE) {
-            int[] state = energyMeterTL.get();
-            if (state == null) {
-                state = new int[]{ENERGY_INITIAL_MULTIPLIER, ENERGY_INITIAL_MAX, 0};
-                energyMeterTL.set(state);
-            }
-            energyMultiplierForThisCascade = state[0];
-            //应用 multiplier 到这一波 cascade 所有中奖线的 baseTimes
-            final int m = energyMultiplierForThisCascade;
-            list.forEach(info -> info.setBaseTimes(info.getBaseTimes() * m));
-
-            //数本 cascade 的"赢奖符号"数量（排除占位符、银/金框）
-            for (DraculaAwardLineInfo info : list) {
-                if (info.getSameIconSet() == null) {
-                    continue;
-                }
-                for (Integer idx : info.getSameIconSet()) {
-                    int icon = arr[idx];
-                    //跳过占位符（大格子的 anchor 已经算一次了，占位符不重复算）
-                    if (icon == SlotsConst.Common.PLACEHOLDER_ELEMENTS) {
-                        continue;
-                    }
-                    //跳过银框/金框（有 postChange 配置的就是带框符号，文档明确排除）
-                    if (hasPostChangeIcon(icon)) {
-                        continue;
-                    }
-                    energyDeltaForThisCascade++;
-                }
-            }
-        }
+        //本轮 cascade 应用乘倍：按 libType+轮数查 addTimesMap
+        resetLineRewardTimes(libType, winCount, list, lib);
 
         DraculaAddIconInfo addIconInfo = new DraculaAddIconInfo();
 
@@ -348,45 +297,39 @@ public class DraculaGenerateManager extends AbstractSlotsGenerateManager<Dracula
         addIconInfo.setAwardLineInfoList(newAwardInfoList);
         addIconInfoList.add(addIconInfo);
 
-        //免费模式：本 cascade 处理结束后推进能量值；达到满值则 multiplier+2 并提升 maxEnergy
-        //这样下一个 cascade（递归调用）就会使用更新后的 multiplier
-        if (libType == DraculaConstant.SpecialMode.FREE && energyDeltaForThisCascade > 0) {
-            int[] state = energyMeterTL.get();
-            if (state != null) {
-                state[2] += energyDeltaForThisCascade;
-                while (state[2] >= state[1]) {
-                    state[2] -= state[1];
-                    state[0] += MULTIPLIER_STEP;
-                    if (state[1] < ENERGY_MAX_CAP) {
-                        state[1] = Math.min(state[1] + ENERGY_STEP, ENERGY_MAX_CAP);
-                    }
-                }
-            }
-        }
-
-        repairIcons(libType, arr, newAwardInfoList, addIconInfoList, winCount);
+        repairIcons(libType, arr, newAwardInfoList, addIconInfoList, winCount, lib);
     }
 
-    private void resetLineRewardTimes(int libType, int winCount, List<DraculaAwardLineInfo> list) {
-        Map<Integer, Integer> temMap = this.addTimesMap.get(libType);
-        if (temMap == null || temMap.isEmpty()) {
-            return;
-        }
-
-        Integer times;
-        if (winCount > this.maxWinCount) {
-            times = temMap.get(this.maxWinCount);
-        } else {
-            times = temMap.get(winCount);
-        }
-
+    /**
+     * 按 libType + 当前 cascade 轮数（winCount）从 addTimesMap 查表取倍数，
+     * 对本轮所有中奖线 baseTimes 乘上对应倍数，并把该倍数写到 lib.multiplier（多轮 cascade 时最后一轮覆盖前面）。
+     */
+    private void resetLineRewardTimes(int libType, int winCount, List<DraculaAwardLineInfo> list, DraculaResultLib lib) {
+        Integer times = lookupMultiplier(libType, winCount);
         if (times == null) {
             return;
         }
 
-        list.forEach(info -> {
-            info.setBaseTimes(info.getBaseTimes() * times);
-        });
+        final int m = times;
+        list.forEach(info -> info.setBaseTimes(info.getBaseTimes() * m));
+        //本局最终乘倍值：多轮 cascade 时取最后一轮（最高一轮），客户端 UI 总结展示用
+        lib.setMultiplier(m);
+    }
+
+    /**
+     * 查 addTimesMap 拿指定 libType + 轮数对应的乘倍值。winCount 超过 maxWinCount 时按 maxWinCount 取，
+     * 实现"达到 X5 后再消除多少轮都保持 X5"的语义。配表/轮数缺失时返回 null。
+     */
+    private Integer lookupMultiplier(int libType, int winCount) {
+        if (this.addTimesMap == null) {
+            return null;
+        }
+        Map<Integer, Integer> temMap = this.addTimesMap.get(libType);
+        if (temMap == null || temMap.isEmpty()) {
+            return null;
+        }
+        int round = winCount > this.maxWinCount ? this.maxWinCount : winCount;
+        return temMap.get(round);
     }
 
     /**
@@ -572,10 +515,6 @@ public class DraculaGenerateManager extends AbstractSlotsGenerateManager<Dracula
         //大格子（含 postChange 转换的情况）必须把 anchor + 所有 placeholder 一起返回给客户端
         //否则客户端拿到的 rewardIconInfo.iconIndexs 缺占位符索引，会出现「anchor 消除了但 placeholder 还显示为空格」的视觉残留
         return expandRemovedIndexes(Collections.singleton(index), arr, beginIndex, endIndex);
-    }
-
-    private boolean hasPostChangeIcon(int icon) {
-        return this.baseElementPostChangeMap != null && this.baseElementPostChangeMap.containsKey(icon);
     }
 
     private boolean postChangeToWild(int icon) {

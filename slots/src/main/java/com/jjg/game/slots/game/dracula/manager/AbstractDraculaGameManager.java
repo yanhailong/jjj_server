@@ -165,6 +165,9 @@ public abstract class AbstractDraculaGameManager extends AbstractSlotsGameManage
 
         log.debug("id = {}", resultLib.getId());
 
+        // 检查是否中大奖
+        rewardFromSmallPool(gameRunInfo, playerGameData, resultLib.getJackpotIds());
+
         gameRunInfo.setIconArr(resultLib.getIconArr());
         gameRunInfo.setResultLib(resultLib);
         gameRunInfo.setStake(betValue);
