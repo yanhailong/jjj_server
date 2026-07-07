@@ -36,9 +36,9 @@ public class SimMedalService {
 
     //全服勋章榜 (累计, 不分赛季不重置); 分值=已激活勋章数
     private static final String MEDAL_RANK_KEY = "sim:medal:rank";
-    //勋章品质区间: 1精英 2大亨 3富翁 4神豪
-    private static final int QUALITY_MIN = 1;
-    private static final int QUALITY_MAX = 4;
+    //勋章品质区间: 2精英 3大亨 4富翁 5神豪
+    private static final int QUALITY_MIN = 2;
+    private static final int QUALITY_MAX = 5;
     private static final int PERMIL_BASE = 10000;
 
     //勋章加成指向 condition 表 id (加成属性定义, 单位千分比 ‰; value/1000 = 倍率, 与雇员加成同基数)
