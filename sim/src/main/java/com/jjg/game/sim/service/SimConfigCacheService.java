@@ -56,8 +56,6 @@ public class SimConfigCacheService implements ConfigExcelChangeListener {
     //employeePool 的drop item的权重
     private Map<Integer, WeightRandom<List<Integer>>> employeePoolRandomMap;
 
-    //建筑解锁链 casinoId -> type -> sequenceId升序的建筑ID列表
-    private Map<Integer, Map<Integer, List<Integer>>> buildingChainMap;
     //建筑等级配置 buildingId -> level -> cfg
     private Map<Integer, Map<Integer, BuildingUpgradeTableCfg>> buildingUpgradeCfgMap;
     //建筑设备列表 buildingId -> 该建筑下所有设备 (EquipmentTable type==设备)
@@ -92,7 +90,6 @@ public class SimConfigCacheService implements ConfigExcelChangeListener {
         loadCasinoStatsSheetCfg();
         loadResearchInstituteCfg();
 
-        loadBuildingChain();
         loadBuildingDeviceConfig();
         loadBuildingUpgradeConfig();
 
@@ -268,33 +265,6 @@ public class SimConfigCacheService implements ConfigExcelChangeListener {
     }
 
     /**
-     * 加载建筑解锁链
-     * casinoId -> type -> 按 SequenceID 升序的 buildingId 列表
-     */
-    private void loadBuildingChain() {
-        Map<Integer, Map<Integer, List<int[]>>> raw = new HashMap<>();
-        for (BuildingAreaTableCfg cfg : GameDataManager.getBuildingAreaTableCfgList()) {
-            raw.computeIfAbsent(cfg.getRegionID(), k -> new HashMap<>())
-                    .computeIfAbsent(cfg.getType(), k -> new ArrayList<>())
-                    .add(new int[]{cfg.getSequenceID(), cfg.getId()});
-        }
-        Map<Integer, Map<Integer, List<Integer>>> tmp = new HashMap<>();
-        for (Map.Entry<Integer, Map<Integer, List<int[]>>> e1 : raw.entrySet()) {
-            Map<Integer, List<Integer>> typeMap = new HashMap<>();
-            for (Map.Entry<Integer, List<int[]>> e2 : e1.getValue().entrySet()) {
-                e2.getValue().sort((a, b) -> Integer.compare(a[0], b[0]));
-                List<Integer> ordered = new ArrayList<>(e2.getValue().size());
-                for (int[] pair : e2.getValue()) {
-                    ordered.add(pair[1]);
-                }
-                typeMap.put(e2.getKey(), Collections.unmodifiableList(ordered));
-            }
-            tmp.put(e1.getKey(), typeMap);
-        }
-        this.buildingChainMap = tmp;
-    }
-
-    /**
      * 加载建筑等级配置
      */
     private void loadBuildingUpgradeConfig() {
@@ -447,7 +417,6 @@ public class SimConfigCacheService implements ConfigExcelChangeListener {
         addInitSampleFileObserveWithCallBack(EmployeeProfileCfg.EXCEL_NAME, this::loadEmployeeProfileConfig);
         addInitSampleFileObserveWithCallBack(EmployeePoolCfg.EXCEL_NAME, this::loadEmployeePoolConfig);
 
-        addInitSampleFileObserveWithCallBack(BuildingAreaTableCfg.EXCEL_NAME, this::loadBuildingChain);
         addInitSampleFileObserveWithCallBack(BuildingUpgradeTableCfg.EXCEL_NAME, this::loadBuildingUpgradeConfig);
         addInitSampleFileObserveWithCallBack(BuildingEquipmentTableCfg.EXCEL_NAME, this::loadBuildingDeviceConfig);
         addInitSampleFileObserveWithCallBack(GlobalConfigCfg.EXCEL_NAME, this::loadGlobalConfig);
@@ -507,29 +476,6 @@ public class SimConfigCacheService implements ConfigExcelChangeListener {
             }
         }
         return max;
-    }
-
-    /**
-     * 获取建筑解锁链中下一个待解锁的 buildingId
-     */
-    public Integer getNextUnlockBuilding(int casinoId, int type, java.util.Set<Integer> unlocked) {
-        if (buildingChainMap == null) {
-            return null;
-        }
-        Map<Integer, List<Integer>> typeMap = buildingChainMap.get(casinoId);
-        if (typeMap == null) {
-            return null;
-        }
-        List<Integer> chain = typeMap.get(type);
-        if (chain == null) {
-            return null;
-        }
-        for (Integer id : chain) {
-            if (!unlocked.contains(id)) {
-                return id;
-            }
-        }
-        return null;
     }
 
     /**

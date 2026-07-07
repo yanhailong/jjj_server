@@ -98,6 +98,8 @@ public class SimManager {
     @Autowired
     private SimVisitService simVisitService;
     @Autowired
+    private SimMedalService simMedalService;
+    @Autowired
     private SimPlayerContextRegistry simPlayerContextRegistry;
 
 
@@ -317,6 +319,7 @@ public class SimManager {
             baseData.setPower(10000);
         }
         ctx.setSimBaseData(baseData);
+        simMedalService.refreshMedalBonusCache(ctx);
         //加载场景数据
         simCasinoService.loadCasinoData(ctx, baseData);
         migrateLegacyOperationStats(ctx);

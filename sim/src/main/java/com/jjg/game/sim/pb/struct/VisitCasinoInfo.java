@@ -36,6 +36,4 @@ public class VisitCasinoInfo {
     public List<VisitBuildingInfo> buildings;
     @ProtoDesc("可试玩游戏")
     public List<VisitGameInfo> games;
-    @ProtoDesc("礼物配置")
-    public List<VisitGiftInfo> gifts;
 }

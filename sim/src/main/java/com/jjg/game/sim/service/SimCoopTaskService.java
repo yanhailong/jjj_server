@@ -3,6 +3,7 @@ package com.jjg.game.sim.service;
 import com.jjg.game.common.curator.MarsCurator;
 import com.jjg.game.core.constant.AddType;
 import com.jjg.game.core.constant.Code;
+import com.jjg.game.core.data.CommonResult;
 import com.jjg.game.core.data.Item;
 import com.jjg.game.core.data.Player;
 import com.jjg.game.core.service.CorePlayerService;
@@ -14,6 +15,7 @@ import com.jjg.game.sim.constant.CoopTaskConst;
 import com.jjg.game.sim.dao.CoopRoomRecordDao;
 import com.jjg.game.sim.dao.SimCoopTaskDao;
 import com.jjg.game.sim.data.CoopRoomRecord;
+import com.jjg.game.sim.data.CoopSettlementReceipt;
 import com.jjg.game.sim.data.SimCoopTaskData;
 import com.jjg.game.sim.data.SimCoopTaskEntry;
 import com.jjg.game.sim.data.SimPlayerContext;
@@ -50,6 +52,7 @@ import java.util.concurrent.ThreadLocalRandom;
 @Service
 public class SimCoopTaskService {
     private static final Logger log = LoggerFactory.getLogger(SimCoopTaskService.class);
+    private static final long SETTLEMENT_RECEIPT_RETENTION_MS = 2L * 24 * 3600 * 1000;
 
     @Autowired
     private CoopTaskConfigService configService;
@@ -96,6 +99,8 @@ public class SimCoopTaskService {
         data.setClaimedCount(0);
         //失败为终态, 不跨天保留: 清理避免 tasks 无限膨胀(文档/落库脏哈希/池抽取排除放大); 待领奖(REWARDABLE)跨天保留
         data.getTasks().values().removeIf(entry -> entry.getStatus() == CoopTaskConst.TaskStatus.FAILED);
+        long receiptExpireBefore = System.currentTimeMillis() - SETTLEMENT_RECEIPT_RETENTION_MS;
+        data.getSettlementReceipts().values().removeIf(receipt -> receipt.getFinishTime() < receiptExpireBefore);
         data.setPoolTaskIds(drawTasks(configService.getDailyPoolCount(), data.getTasks().keySet()));
         log.info("多人任务每日重置 playerId={},pool={}", data.getPlayerId(), data.getPoolTaskIds());
     }
@@ -150,6 +155,7 @@ public class SimCoopTaskService {
         res.refreshItemId = configService.getRefreshCostItemId();
         res.refreshItemCount = configService.getRefreshCostCount();
         res.nextRefreshTime = nextMidnightMillis();
+        res.dailyClaimLimit = configService.getDailyClaimLimit();
         return res;
     }
 
@@ -280,7 +286,13 @@ public class SimCoopTaskService {
             return res;
         }
         if (cfg.getGetItem() != null && !cfg.getGetItem().isEmpty()) {
-            playerPackService.addItems(ctx.playerId(), cfg.getGetItem(), AddType.SIM_COOP_TASK_REWARD);
+            CommonResult<?> addResult = playerPackService.addItems(ctx.playerId(), cfg.getGetItem(),
+                    AddType.SIM_COOP_TASK_REWARD);
+            if (addResult == null || !addResult.success()) {
+                log.error("多人任务领奖失败,道具发放失败 playerId={},taskId={},result={}",
+                        ctx.playerId(), taskId, addResult);
+                return res;
+            }
         }
         //领取后任务直接移除列表 (含今日池位)
         data.getTasks().remove(taskId);
@@ -306,9 +318,20 @@ public class SimCoopTaskService {
         if (entry == null) {
             return;
         }
+        int oldStatus = entry.getStatus();
+        long oldRoomId = entry.getRoomId();
+        int oldGameType = entry.getGameType();
         entry.setStatus(CoopTaskConst.TaskStatus.IN_ROOM);
         entry.setRoomId(roomId);
         entry.setGameType(gameType);
+        try {
+            coopTaskDao.save(data);
+        } catch (RuntimeException e) {
+            entry.setStatus(oldStatus);
+            entry.setRoomId(oldRoomId);
+            entry.setGameType(oldGameType);
+            throw e;
+        }
         ctx.setLastSaveTime(0);
     }
 
@@ -321,52 +344,66 @@ public class SimCoopTaskService {
      * @param ctx       发起者在线时的上下文 (离线为 null, 直接读写 DB)
      * @param ownerId   发起者
      * @param taskId    任务配置id
+     * @param roomId    结算所属房间id，用于拒绝迟到的旧房间回写
      * @param success   任务是否完成
      * @param helperIds 协助者 (不含发起者)
      */
-    public void onSettle(SimPlayerContext ctx, long ownerId, int taskId, boolean success, List<Long> helperIds) {
+    public boolean onSettle(SimPlayerContext ctx, long ownerId, int taskId, long roomId,
+                            boolean success, List<Long> helperIds) {
         int status = success ? CoopTaskConst.TaskStatus.REWARDABLE : CoopTaskConst.TaskStatus.FAILED;
-        //本次是否真正完成 IN_ROOM->终态: 作为幂等锚点, 防结算回写重试/重复投递导致协助者奖励翻倍发放
-        boolean settled = false;
+        long finishTime = System.currentTimeMillis();
+        boolean firstSettle = coopTaskDao.settleEntryIfInRoom(ownerId, taskId, roomId, status, finishTime);
+        if (!firstSettle && !coopTaskDao.isEntrySettled(ownerId, taskId, roomId, status)) {
+            log.warn("多人任务结算拒绝,任务状态或房间不匹配 ownerId={},taskId={},roomId={},success={}",
+                    ownerId, taskId, roomId, success);
+            return false;
+        }
         if (ctx != null && ctx.getSimCoopTaskData() != null) {
-            SimCoopTaskEntry entry = ctx.getSimCoopTaskData().getTasks().get(taskId);
-            if (entry != null && entry.getStatus() == CoopTaskConst.TaskStatus.IN_ROOM) {
+            SimCoopTaskData data = ctx.getSimCoopTaskData();
+            data.getSettlementReceipts().putIfAbsent(roomId,
+                    new CoopSettlementReceipt(taskId, status, finishTime));
+            SimCoopTaskEntry entry = data.getTasks().get(taskId);
+            if (entry != null && entry.getRoomId() == roomId
+                    && (entry.getStatus() == CoopTaskConst.TaskStatus.IN_ROOM || entry.getStatus() == status)) {
                 entry.setStatus(status);
-                entry.setFinishTime(System.currentTimeMillis());
+                entry.setFinishTime(finishTime);
                 ctx.setLastSaveTime(0);
-                settled = true;
-                if (ctx.getPlayerController() != null) {
+                if (firstSettle && ctx.getPlayerController() != null) {
                     NotifyCoopTaskUpdate notify = new NotifyCoopTaskUpdate(Code.SUCCESS);
                     notify.task = toInfo(taskId, entry);
                     ctx.send(notify);
                 }
             }
-        } else {
-            //发起者离线: 条件原子更新 (仅 IN_ROOM 时置终态), 防与退出登录的全量保存竞态互相覆盖
-            settled = coopTaskDao.settleEntryIfInRoom(ownerId, taskId, status, System.currentTimeMillis());
         }
 
-        //协助者奖励: 仅本次真正结算才发放, 借发起者状态机幂等避免重复发奖 (完整协助奖励经邮件, 无贡献门槛)
+        //协助者奖励按 roomId+helperId 幂等；即使 DB 已先成功而进程随后崩溃，重试也能补齐未发送邮件。
         //TODO 待策划提供独立协助奖励字段/邮件模板, 当前同任务奖励
-        if (settled && success && helperIds != null && !helperIds.isEmpty()) {
+        if (success && helperIds != null && !helperIds.isEmpty()) {
             TaskCfg cfg = GameDataManager.getTaskCfg(taskId);
-            if (cfg != null && cfg.getGetItem() != null && !cfg.getGetItem().isEmpty()) {
+            if (cfg == null || cfg.getGetItem() == null || cfg.getGetItem().isEmpty()) {
+                log.error("多人任务协助奖励配置缺失 taskId={},roomId={}", taskId, roomId);
+                return false;
+            } else {
                 List<Item> items = toItemList(cfg.getGetItem());
                 for (Long helperId : helperIds) {
                     if (helperId == null || helperId == ownerId) {
                         continue;
                     }
                     try {
-                        mailService.addMail(helperId, "多人任务协助奖励", "感谢协助完成多人任务，奖励已发放，请查收。",
-                                items, AddType.SIM_COOP_ASSIST_REWARD);
+                        String bizKey = "coopAssist:" + roomId + ":" + helperId;
+                        mailService.addMailIfAbsent(helperId, "多人任务协助奖励",
+                                "感谢协助完成多人任务，奖励已发放，请查收。",
+                                items, AddType.SIM_COOP_ASSIST_REWARD, bizKey);
                     } catch (Exception e) {
                         log.error("多人任务协助奖励邮件发送失败 helperId={},taskId={}", helperId, taskId, e);
+                        return false;
                     }
                 }
             }
         }
-        log.info("多人任务结算 ownerId={},taskId={},success={},settled={},helpers={}",
-                ownerId, taskId, success, settled, helperIds);
+        log.info("多人任务结算 ownerId={},taskId={},roomId={},success={},firstSettle={},helpers={}",
+                ownerId, taskId, roomId, success, firstSettle, helperIds);
+        return true;
     }
 
     /**
@@ -384,6 +421,16 @@ public class SimCoopTaskService {
                     log.warn("多人任务房间不可达,回退待建房 playerId={},taskId={},roomId={},node={}",
                             data.getPlayerId(), entry.getTaskId(), entry.getRoomId(),
                             record == null ? null : record.getNodePath());
+                    if (record != null) {
+                        for (Long memberId : record.getMemberIds()) {
+                            if (memberId != null) {
+                                roomRecordDao.releasePlayerRoom(memberId, record.getRoomId());
+                            }
+                        }
+                        roomRecordDao.delete(record.getRoomId());
+                    } else {
+                        roomRecordDao.releasePlayerRoom(data.getPlayerId(), entry.getRoomId());
+                    }
                     entry.setStatus(CoopTaskConst.TaskStatus.CLAIMED);
                     entry.setRoomId(0);
                     entry.setGameType(0);

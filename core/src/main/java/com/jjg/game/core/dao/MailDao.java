@@ -11,6 +11,8 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.data.domain.Sort;
 import org.springframework.data.mongodb.core.BulkOperations;
 import org.springframework.data.mongodb.core.MongoTemplate;
+import org.springframework.data.mongodb.core.index.Index;
+import org.springframework.data.mongodb.core.index.PartialIndexFilter;
 import org.springframework.data.mongodb.core.query.Criteria;
 import org.springframework.data.mongodb.core.query.Query;
 import org.springframework.data.mongodb.core.query.Update;
@@ -29,6 +31,9 @@ public class MailDao extends MongoBaseDao<Mail, Long> {
 
     public MailDao(@Autowired MongoTemplate mongoTemplate) {
         super(Mail.class, mongoTemplate);
+        mongoTemplate.indexOps(Mail.class).ensureIndex(
+                new Index().on("bizKey", Sort.Direction.ASC).named("idx_mail_biz_key").unique()
+                        .partial(PartialIndexFilter.of(Criteria.where("bizKey").type(2))));
     }
 
     private final String serverMailTableName = "serverMail";
@@ -208,6 +213,11 @@ public class MailDao extends MongoBaseDao<Mail, Long> {
      */
     public void addMail(Mail mail) {
         mongoTemplate.save(mail);
+    }
+
+    public boolean existsByPlayerIdAndDesc(long playerId, String desc) {
+        Query query = new Query(Criteria.where("playerId").is(playerId).and("desc").is(desc));
+        return mongoTemplate.exists(query, Mail.class);
     }
 
     /**

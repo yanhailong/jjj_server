@@ -102,6 +102,11 @@ public class SimCoopRoomRouteService {
         }
 
         long roomId = snowflakeManager.nextId();
+        if (!roomRecordDao.acquirePlayerRoom(playerId, roomId)) {
+            log.warn("创建协作房间失败,玩家已在其他房间 playerId={},roomId={}", playerId,
+                    roomRecordDao.getPlayerRoom(playerId));
+            return res;
+        }
         CoopRoomRecord record = new CoopRoomRecord();
         record.setRoomId(roomId);
         record.setTaskId(taskId);
@@ -115,9 +120,15 @@ public class SimCoopRoomRouteService {
         record.setMemberIds(members);
         record.setMaxMembers(rule.maxMembers());
         record.setCreateTime(System.currentTimeMillis());
-        roomRecordDao.save(record);
-
-        coopTaskService.markRoomCreated(ctx, taskId, roomId, gameType);
+        try {
+            roomRecordDao.save(record);
+            coopTaskService.markRoomCreated(ctx, taskId, roomId, gameType);
+        } catch (Exception e) {
+            roomRecordDao.delete(roomId);
+            roomRecordDao.releasePlayerRoom(playerId, roomId);
+            log.error("创建协作房间落库失败 playerId={},taskId={},roomId={}", playerId, taskId, roomId, e);
+            return res;
+        }
 
         res.code = Code.SUCCESS;
         res.roomId = roomId;
@@ -136,6 +147,17 @@ public class SimCoopRoomRouteService {
         ResJoinCoopRoom res = new ResJoinCoopRoom(Code.FAIL);
         res.roomId = roomId;
         long playerId = ctx.playerId();
+
+        long occupiedRoomId = roomRecordDao.getPlayerRoom(playerId);
+        if (occupiedRoomId != 0 && occupiedRoomId != roomId) {
+            CoopRoomRecord occupied = roomRecordDao.get(occupiedRoomId);
+            if (occupied != null && marsCurator.getMarsNode(occupied.getNodePath()) != null) {
+                log.info("加入协作房间失败,玩家已在其他房间 playerId={},roomId={},occupiedRoomId={}",
+                        playerId, roomId, occupiedRoomId);
+                return res;
+            }
+            roomRecordDao.releasePlayerRoom(playerId, occupiedRoomId);
+        }
 
         CoopRoomRecord record = roomRecordDao.get(roomId);
         if (record == null) {

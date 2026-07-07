@@ -12,7 +12,7 @@ import com.jjg.game.slots.constant.SlotsConst;
  * @author 11
  * @date 2026/7/6
  */
-@ProtobufMessage(messageType = MessageConst.MessageTypeDef.COOP_ROOM, cmd = SlotsConst.SlotsCommon.REQ_COOP_GIFT)
+@ProtobufMessage(messageType = MessageConst.MessageTypeDef.SLOTS_COMMON, cmd = SlotsConst.SlotsCommon.REQ_COOP_GIFT)
 @ProtoDesc("请求赠送房间互动道具")
 public class ReqCoopGift extends AbstractMessage {
     @ProtoDesc("受赠玩家id")

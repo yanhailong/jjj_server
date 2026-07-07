@@ -10,7 +10,6 @@ import com.jjg.game.sim.pb.struct.VisitCasinoInfo;
 @ProtobufMessage(messageType = MessageConst.MessageTypeDef.SIM_GAME, cmd = SimConstant.MsgBean.RES_VISIT_CASINO, resp = true)
 @ProtoDesc("拜访赌场返回")
 public class ResVisitCasino extends AbstractResponse {
-    public int reason;
     public VisitCasinoInfo info;
     public int remainingLikes;
     public int dailyLikeLimit;

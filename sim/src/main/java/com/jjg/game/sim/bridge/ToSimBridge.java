@@ -71,8 +71,9 @@ public interface ToSimBridge extends IGameRpc {
      *
      * @param ownerId   发起者
      * @param taskId    任务配置id
+     * @param roomId    结算所属房间id
      * @param success   任务是否完成
      * @param helperIds 协助者 (不含发起者)
      */
-    CommonResult<Boolean> onCoopRoomSettle(long ownerId, int taskId, boolean success, List<Long> helperIds);
+    CommonResult<Boolean> onCoopRoomSettle(long ownerId, int taskId, long roomId, boolean success, List<Long> helperIds);
 }

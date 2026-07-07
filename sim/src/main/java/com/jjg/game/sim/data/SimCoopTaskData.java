@@ -37,6 +37,9 @@ public class SimCoopTaskData extends AbstractData {
     //已领取任务 taskId -> entry (领奖/失败清理后移除)
     private Map<Integer, SimCoopTaskEntry> tasks = new HashMap<>();
 
+    //已处理结算 roomId -> 回执；独立于领奖后会删除的任务条目
+    private Map<Long, CoopSettlementReceipt> settlementReceipts = new HashMap<>();
+
     public long getPlayerId() {
         return playerId;
     }
@@ -89,5 +92,16 @@ public class SimCoopTaskData extends AbstractData {
 
     public void setTasks(Map<Integer, SimCoopTaskEntry> tasks) {
         this.tasks = tasks == null ? new HashMap<>() : tasks;
+    }
+
+    public Map<Long, CoopSettlementReceipt> getSettlementReceipts() {
+        if (settlementReceipts == null) {
+            settlementReceipts = new HashMap<>();
+        }
+        return settlementReceipts;
+    }
+
+    public void setSettlementReceipts(Map<Long, CoopSettlementReceipt> settlementReceipts) {
+        this.settlementReceipts = settlementReceipts == null ? new HashMap<>() : settlementReceipts;
     }
 }

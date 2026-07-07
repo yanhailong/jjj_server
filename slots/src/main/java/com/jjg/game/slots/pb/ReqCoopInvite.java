@@ -14,7 +14,7 @@ import java.util.List;
  * @author 11
  * @date 2026/7/6
  */
-@ProtobufMessage(messageType = MessageConst.MessageTypeDef.COOP_ROOM, cmd = SlotsConst.SlotsCommon.REQ_COOP_INVITE)
+@ProtobufMessage(messageType = MessageConst.MessageTypeDef.SLOTS_COMMON, cmd = SlotsConst.SlotsCommon.REQ_COOP_INVITE)
 @ProtoDesc("请求发送协作房间邀请")
 public class ReqCoopInvite extends AbstractMessage {
     @ProtoDesc("频道 1世界 3好友私聊 4联盟 (ChatChannelType.code)")

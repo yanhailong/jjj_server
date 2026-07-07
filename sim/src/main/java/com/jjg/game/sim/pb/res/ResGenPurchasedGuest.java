@@ -7,6 +7,8 @@ import com.jjg.game.common.proto.ProtobufMessage;
 import com.jjg.game.sim.constant.SimConstant;
 import com.jjg.game.sim.pb.struct.GuestInfo;
 
+import java.util.List;
+
 /**
  * @author 11
  * @date 2026/6/15
@@ -15,7 +17,7 @@ import com.jjg.game.sim.pb.struct.GuestInfo;
 @ProtoDesc("生成购买游客返回")
 public class ResGenPurchasedGuest extends AbstractResponse {
     @ProtoDesc("购买游客信息 (uid + 目的地及预生成奖励, 奖励需另发领奖请求才添加到玩家身上)")
-    public GuestInfo guest;
+    public List<GuestInfo> guests;
 
     public ResGenPurchasedGuest(int code) {
         super(code);

@@ -23,6 +23,7 @@ import com.jjg.game.sampledata.bean.ItemCfg;
 import com.jjg.game.sampledata.bean.LoginConfigCfg;
 import com.jjg.game.sampledata.bean.MailCfg;
 import org.apache.commons.lang3.StringUtils;
+import org.springframework.dao.DuplicateKeyException;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -246,6 +247,27 @@ public class MailService implements IRedDotService, IPlayerLoginSuccess, IPlayer
         return addLangMail(playerId, titleData, contentData, items, addType, null);
     }
 
+    /**
+     * 按业务键幂等投递邮件。调用方必须提供全局唯一且稳定的业务键。
+     */
+    public boolean addMailIfAbsent(long playerId, String title, String content, List<Item> items,
+                                   AddType addType, String bizKey) {
+        if (StringUtils.isBlank(bizKey)) {
+            throw new IllegalArgumentException("bizKey不能为空");
+        }
+        LanguageData titleData = new LanguageData(GameConstant.Language.TYPE_ORIGINAL, title);
+        LanguageData contentData = new LanguageData(GameConstant.Language.TYPE_ORIGINAL, content);
+        try {
+            addLangMail(playerId, titleData, contentData, items, addType, bizKey, null, bizKey);
+            return true;
+        } catch (DuplicateKeyException e) {
+            if (mailDao.existsByPlayerIdAndDesc(playerId, bizKey)) {
+                return true;
+            }
+            throw e;
+        }
+    }
+
 
     /**
      * 添加系统配置邮件
@@ -303,12 +325,18 @@ public class MailService implements IRedDotService, IPlayerLoginSuccess, IPlayer
     }
 
     public Mail addLangMail(long playerId, LanguageData title, LanguageData content, List<Item> items, AddType addType, String desc, String operator) {
+        return addLangMail(playerId, title, content, items, addType, desc, operator, null);
+    }
+
+    private Mail addLangMail(long playerId, LanguageData title, LanguageData content, List<Item> items,
+                             AddType addType, String desc, String operator, String bizKey) {
         Mail mail = createMail(title, content, items, false);
         mail.setId(IdUtil.getSnowflakeNextId());
         mail.setPlayerId(playerId);
         mail.setAddType(addType);
         mail.setDesc(desc);
         mail.setOperator(operator);
+        mail.setBizKey(bizKey);
         addMail(mail);
         return mail;
     }

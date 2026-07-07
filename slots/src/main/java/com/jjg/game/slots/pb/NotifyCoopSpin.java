@@ -12,7 +12,7 @@ import com.jjg.game.slots.constant.SlotsConst;
  * @author 11
  * @date 2026/7/6
  */
-@ProtobufMessage(messageType = MessageConst.MessageTypeDef.COOP_ROOM, cmd = SlotsConst.SlotsCommon.NOTIFY_COOP_SPIN, resp = true)
+@ProtobufMessage(messageType = MessageConst.MessageTypeDef.SLOTS_COMMON, cmd = SlotsConst.SlotsCommon.NOTIFY_COOP_SPIN, resp = true)
 @ProtoDesc("协作房间旋转进度广播")
 public class NotifyCoopSpin extends AbstractResponse {
     @ProtoDesc("本次旋转的玩家id")
@@ -20,9 +20,9 @@ public class NotifyCoopSpin extends AbstractResponse {
     @ProtoDesc("该玩家剩余血量")
     public int hpLeft;
     @ProtoDesc("共享特殊事件累计")
-    public int sharedProgress;
+    public long sharedProgress;
     @ProtoDesc("共享特殊事件目标")
-    public int sharedTarget;
+    public long sharedTarget;
 
     public NotifyCoopSpin(int code) {
         super(code);

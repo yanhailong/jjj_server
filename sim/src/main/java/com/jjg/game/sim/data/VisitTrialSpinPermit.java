@@ -14,7 +14,6 @@ public class VisitTrialSpinPermit {
     private int casinoId;
     private int remainingCount;
     private int power;
-    private int reason;
 
     public boolean isTrial() { return trial; }
     public void setTrial(boolean trial) { this.trial = trial; }
@@ -30,6 +29,4 @@ public class VisitTrialSpinPermit {
     public void setRemainingCount(int remainingCount) { this.remainingCount = remainingCount; }
     public int getPower() { return power; }
     public void setPower(int power) { this.power = power; }
-    public int getReason() { return reason; }
-    public void setReason(int reason) { this.reason = reason; }
 }

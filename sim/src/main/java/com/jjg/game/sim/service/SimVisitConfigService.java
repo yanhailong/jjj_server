@@ -4,16 +4,11 @@ import com.jjg.game.core.listener.ConfigExcelChangeListener;
 import com.jjg.game.sampledata.GameDataManager;
 import com.jjg.game.sampledata.bean.GlobalConfigCfg;
 import com.jjg.game.sim.constant.SimConstant;
-import com.jjg.game.sim.data.SimVisitGiftConfig;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Service;
 
 import java.math.BigDecimal;
-import java.util.Collections;
-import java.util.LinkedHashMap;
-import java.util.List;
-import java.util.Map;
 
 /**
  * 拜访系统全局配置缓存，初始化和 global.xlsx 热更共用同一加载入口。
@@ -24,11 +19,8 @@ import java.util.Map;
 @Service
 public class SimVisitConfigService implements ConfigExcelChangeListener {
     private static final Logger log = LoggerFactory.getLogger(SimVisitConfigService.class);
-    private static final List<SimVisitGiftConfig> DEFAULT_GIFTS =
-            List.of(new SimVisitGiftConfig(1, 10, 5));
     private static final int MAX_COMMENT_LENGTH = 30;
     private static final int MAX_RECORD_LIMIT = 100;
-    private static final int MAX_GIFT_COUNT = 100;
 
     private volatile int likePopularity = 2;
     private volatile int commentPopularity = 2;
@@ -41,10 +33,8 @@ public class SimVisitConfigService implements ConfigExcelChangeListener {
     private volatile BigDecimal commentRechargeAmount = BigDecimal.ONE;
     private volatile int commentMaxLength = 30;
     private volatile int recordLimit = 100;
-    private volatile List<SimVisitGiftConfig> gifts = DEFAULT_GIFTS;
     private volatile long dailyCommissionLimit = 1_000_000;
     private volatile int trialSessionSeconds = 1800;
-    private volatile String rankRewardConfig = "";
 
     @Override
     public void initSampleCallbackCollector() {
@@ -69,16 +59,9 @@ public class SimVisitConfigService implements ConfigExcelChangeListener {
                 SimConstant.Common.VISIT_COMMENT_RECHARGE_ID, BigDecimal.ONE);
         commentMaxLength = Math.min(MAX_COMMENT_LENGTH,
                 positiveInt(SimConstant.Common.VISIT_COMMENT_MAX_LENGTH_ID, MAX_COMMENT_LENGTH));
-        recordLimit = Math.min(MAX_RECORD_LIMIT,
-                positiveInt(SimConstant.Common.VISIT_RECORD_LIMIT_ID, MAX_RECORD_LIMIT));
+        recordLimit = MAX_RECORD_LIMIT;
         dailyCommissionLimit = positiveLong(SimConstant.Common.VISIT_DAILY_COMMISSION_LIMIT_ID, 1_000_000);
         trialSessionSeconds = positiveInt(SimConstant.Common.VISIT_TRIAL_SESSION_SECONDS_ID, 1800);
-
-        GlobalConfigCfg giftCfg = GameDataManager.getGlobalConfigCfg(SimConstant.Common.VISIT_GIFT_LIST_ID);
-        List<SimVisitGiftConfig> parsed = parseGiftConfigs(giftCfg == null ? null : giftCfg.getValue());
-        gifts = parsed.isEmpty() ? DEFAULT_GIFTS : parsed;
-        GlobalConfigCfg rewardCfg = GameDataManager.getGlobalConfigCfg(SimConstant.Common.VISIT_RANK_REWARD_ID);
-        rankRewardConfig = rewardCfg == null || rewardCfg.getValue() == null ? "" : rewardCfg.getValue().trim();
     }
 
     private int positiveInt(int id, int defaultValue) {
@@ -115,33 +98,6 @@ public class SimVisitConfigService implements ConfigExcelChangeListener {
         return defaultValue;
     }
 
-    static List<SimVisitGiftConfig> parseGiftConfigs(String value) {
-        if (value == null || value.isBlank()) {
-            return Collections.emptyList();
-        }
-        Map<Integer, SimVisitGiftConfig> result = new LinkedHashMap<>();
-        for (String segment : value.split("\\|")) {
-            String[] fields = segment.split("_");
-            if (fields.length != 3) {
-                continue;
-            }
-            try {
-                int id = Integer.parseInt(fields[0].trim());
-                long cost = Long.parseLong(fields[1].trim());
-                int popularity = Integer.parseInt(fields[2].trim());
-                if (id > 0 && cost > 0 && popularity > 0) {
-                    result.putIfAbsent(id, new SimVisitGiftConfig(id, cost, popularity));
-                    if (result.size() >= MAX_GIFT_COUNT) {
-                        break;
-                    }
-                }
-            } catch (NumberFormatException ignored) {
-                //单条配置错误不影响其它礼物
-            }
-        }
-        return List.copyOf(result.values());
-    }
-
     static boolean isValidComment(String content, int maxLength) {
         if (content == null || content.isBlank() || maxLength <= 0) {
             return false;
@@ -159,15 +115,6 @@ public class SimVisitConfigService implements ConfigExcelChangeListener {
         return Math.min(commission, remainingLimit);
     }
 
-    public SimVisitGiftConfig findGift(int giftId) {
-        for (SimVisitGiftConfig gift : gifts) {
-            if (gift.id() == giftId) {
-                return gift;
-            }
-        }
-        return null;
-    }
-
     public int getLikePopularity() { return likePopularity; }
     public int getCommentPopularity() { return commentPopularity; }
     public int getTrialPopularity() { return trialPopularity; }
@@ -179,8 +126,6 @@ public class SimVisitConfigService implements ConfigExcelChangeListener {
     public BigDecimal getCommentRechargeAmount() { return commentRechargeAmount; }
     public int getCommentMaxLength() { return commentMaxLength; }
     public int getRecordLimit() { return recordLimit; }
-    public List<SimVisitGiftConfig> getGifts() { return gifts; }
     public long getDailyCommissionLimit() { return dailyCommissionLimit; }
     public int getTrialSessionSeconds() { return trialSessionSeconds; }
-    public String getRankRewardConfig() { return rankRewardConfig; }
 }

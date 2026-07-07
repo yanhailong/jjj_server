@@ -193,11 +193,11 @@ public class HallRPCController extends CoreRPCController implements GmToHallBrid
 
     @Override
     @RpcCallSetting(processorModKey = "#arg0")
-    public CommonResult<Boolean> onCoopRoomSettle(long ownerId, int taskId, boolean success, List<Long> helperIds) {
+    public CommonResult<Boolean> onCoopRoomSettle(long ownerId, int taskId, long roomId, boolean success, List<Long> helperIds) {
         try {
             SimPlayerContext ctx = this.simPlayerContextRegistry.getContext(ownerId);
-            simCoopTaskService.onSettle(ctx, ownerId, taskId, success, helperIds);
-            return new CommonResult<>(Code.SUCCESS, true);
+            boolean settled = simCoopTaskService.onSettle(ctx, ownerId, taskId, roomId, success, helperIds);
+            return new CommonResult<>(settled ? Code.SUCCESS : Code.FAIL, settled);
         } catch (Exception e) {
             log.error("多人任务结算回写异常 ownerId={},taskId={},success={}", ownerId, taskId, success, e);
             return new CommonResult<>(Code.EXCEPTION, false);

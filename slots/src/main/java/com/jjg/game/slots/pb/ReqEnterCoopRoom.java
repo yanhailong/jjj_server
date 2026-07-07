@@ -12,7 +12,7 @@ import com.jjg.game.slots.constant.SlotsConst;
  * @author 11
  * @date 2026/7/6
  */
-@ProtobufMessage(messageType = MessageConst.MessageTypeDef.COOP_ROOM, cmd = SlotsConst.SlotsCommon.REQ_ENTER_COOP_ROOM)
+@ProtobufMessage(messageType = MessageConst.MessageTypeDef.SLOTS_COMMON, cmd = SlotsConst.SlotsCommon.REQ_ENTER_COOP_ROOM)
 @ProtoDesc("请求进入协作房间")
 public class ReqEnterCoopRoom extends AbstractMessage {
     @ProtoDesc("房间id")

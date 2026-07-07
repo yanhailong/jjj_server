@@ -246,23 +246,17 @@ public interface SimConstant {
         //拜访：用户在试玩slot游戏中，获胜时被抽取的比例（百分比）
         int VISIT_COMMISSION_RATE_ID = 237;
         //访客每日点赞次数上限
-        int VISIT_DAILY_LIKE_LIMIT_ID = 243;
+        int VISIT_DAILY_LIKE_LIMIT_ID = 244;
         //访客每日留言次数上限
-        int VISIT_DAILY_COMMENT_LIMIT_ID = 244;
+        int VISIT_DAILY_COMMENT_LIMIT_ID = 245;
         //留言功能解锁的累计充值门槛
-        int VISIT_COMMENT_RECHARGE_ID = 245;
+        int VISIT_COMMENT_RECHARGE_ID = 246;
         //留言最大字符数
-        int VISIT_COMMENT_MAX_LENGTH_ID = 246;
-        //拜访记录/留言板单页查询与持久化条数上限
-        int VISIT_RECORD_LIMIT_ID = 247;
-        //礼物列表配置
-        int VISIT_GIFT_LIST_ID = 248;
+        int VISIT_COMMENT_MAX_LENGTH_ID = 247;
         //房主每日试玩抽成金币上限
-        int VISIT_DAILY_COMMISSION_LIMIT_ID = 249;
+        int VISIT_DAILY_COMMISSION_LIMIT_ID = 248;
         //试玩会话有效期（秒）
         int VISIT_TRIAL_SESSION_SECONDS_ID = 250;
-        //人气赛季榜排名奖励配置
-        int VISIT_RANK_REWARD_ID = 251;
 
         //角色信息：勋章展示数量上限
         int MEDAL_SHOW_MAX_ID = 251;

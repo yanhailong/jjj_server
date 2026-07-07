@@ -15,4 +15,6 @@ import com.jjg.game.sim.constant.SimConstant;
 public class ReqGenPurchasedGuest extends AbstractMessage {
     @ProtoDesc("游客id")
     public int guestId;
+    @ProtoDesc("数量")
+    public int count;
 }

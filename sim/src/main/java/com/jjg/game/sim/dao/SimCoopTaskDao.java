@@ -2,6 +2,7 @@ package com.jjg.game.sim.dao;
 
 import com.jjg.game.core.dao.MongoBaseDao;
 import com.jjg.game.sim.constant.CoopTaskConst;
+import com.jjg.game.sim.data.CoopSettlementReceipt;
 import com.jjg.game.sim.data.SimCoopTaskData;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.data.mongodb.core.BulkOperations;
@@ -32,13 +33,28 @@ public class SimCoopTaskDao extends MongoBaseDao<SimCoopTaskData, Long> {
      *
      * @return 是否有文档被更新 (false = 数据不存在或状态不符, 视为未结算)
      */
-    public boolean settleEntryIfInRoom(long playerId, int taskId, int status, long finishTime) {
-        Query query = new Query(Criteria.where("_id").is(playerId)
-                .and("tasks." + taskId + ".status").is(CoopTaskConst.TaskStatus.IN_ROOM));
+    public boolean settleEntryIfInRoom(long playerId, int taskId, long roomId, int status, long finishTime) {
+        Query query = settleQuery(playerId, taskId, roomId);
+        CoopSettlementReceipt receipt = new CoopSettlementReceipt(taskId, status, finishTime);
         Update update = new Update()
                 .set("tasks." + taskId + ".status", status)
-                .set("tasks." + taskId + ".finishTime", finishTime);
+                .set("tasks." + taskId + ".finishTime", finishTime)
+                .set("settlementReceipts." + roomId, receipt);
         return mongoTemplate.updateFirst(query, update, SimCoopTaskData.class).getModifiedCount() > 0;
+    }
+
+    static Query settleQuery(long playerId, int taskId, long roomId) {
+        return new Query(Criteria.where("_id").is(playerId)
+                .and("tasks." + taskId + ".status").is(CoopTaskConst.TaskStatus.IN_ROOM)
+                .and("tasks." + taskId + ".roomId").is(roomId)
+                .and("settlementReceipts." + roomId).exists(false));
+    }
+
+    public boolean isEntrySettled(long playerId, int taskId, long roomId, int status) {
+        Query query = new Query(Criteria.where("_id").is(playerId)
+                .and("settlementReceipts." + roomId + ".taskId").is(taskId)
+                .and("settlementReceipts." + roomId + ".status").is(status));
+        return mongoTemplate.exists(query, SimCoopTaskData.class);
     }
 
     public void saveAll(Collection<SimCoopTaskData> list) {

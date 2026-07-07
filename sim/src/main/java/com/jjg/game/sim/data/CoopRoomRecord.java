@@ -30,6 +30,11 @@ public class CoopRoomRecord {
     //总人数上限 (含房主)
     private int maxMembers;
     private long createTime;
+    //FINISHED 结算重投载荷
+    private boolean success;
+    private long finishTime;
+    private long sharedProgress;
+    private List<Long> settlementHelperIds = new ArrayList<>();
 
     public long getRoomId() {
         return roomId;
@@ -112,5 +117,40 @@ public class CoopRoomRecord {
 
     public void setCreateTime(long createTime) {
         this.createTime = createTime;
+    }
+
+    public boolean isSuccess() {
+        return success;
+    }
+
+    public void setSuccess(boolean success) {
+        this.success = success;
+    }
+
+    public long getFinishTime() {
+        return finishTime;
+    }
+
+    public void setFinishTime(long finishTime) {
+        this.finishTime = finishTime;
+    }
+
+    public long getSharedProgress() {
+        return sharedProgress;
+    }
+
+    public void setSharedProgress(long sharedProgress) {
+        this.sharedProgress = sharedProgress;
+    }
+
+    public List<Long> getSettlementHelperIds() {
+        if (settlementHelperIds == null) {
+            settlementHelperIds = new ArrayList<>();
+        }
+        return settlementHelperIds;
+    }
+
+    public void setSettlementHelperIds(List<Long> settlementHelperIds) {
+        this.settlementHelperIds = settlementHelperIds == null ? new ArrayList<>() : settlementHelperIds;
     }
 }

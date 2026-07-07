@@ -12,7 +12,7 @@ import com.jjg.game.slots.constant.SlotsConst;
  * @author 11
  * @date 2026/7/6
  */
-@ProtobufMessage(messageType = MessageConst.MessageTypeDef.COOP_ROOM, cmd = SlotsConst.SlotsCommon.NOTIFY_COOP_ROOM_UPDATE, resp = true)
+@ProtobufMessage(messageType = MessageConst.MessageTypeDef.SLOTS_COMMON, cmd = SlotsConst.SlotsCommon.NOTIFY_COOP_ROOM_UPDATE, resp = true)
 @ProtoDesc("协作房间快照变更广播")
 public class NotifyCoopRoomUpdate extends AbstractResponse {
     @ProtoDesc("房间快照")

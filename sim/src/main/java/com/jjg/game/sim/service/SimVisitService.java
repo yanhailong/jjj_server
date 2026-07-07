@@ -5,12 +5,16 @@ import com.jjg.game.alliance.service.AllianceCacheService;
 import com.jjg.game.core.constant.AddType;
 import com.jjg.game.core.constant.Code;
 import com.jjg.game.core.data.CommonResult;
+import com.jjg.game.core.data.ItemOperationResult;
 import com.jjg.game.core.data.Player;
 import com.jjg.game.core.dao.CountDao;
 import com.jjg.game.core.manager.SnowflakeManager;
 import com.jjg.game.core.pb.KVInfo;
 import com.jjg.game.core.service.CorePlayerService;
+import com.jjg.game.core.service.PlayerPackService;
+import com.jjg.game.sampledata.GameDataManager;
 import com.jjg.game.sampledata.bean.CasinoStatsSheetCfg;
+import com.jjg.game.sampledata.bean.GiftListCfg;
 import com.jjg.game.sim.constant.SimVisitConstant;
 import com.jjg.game.sim.dao.SimCasinoDao;
 import com.jjg.game.sim.dao.SimPlayerGameDao;
@@ -24,7 +28,6 @@ import com.jjg.game.sim.data.SimPlayerContext;
 import com.jjg.game.sim.data.SimSkillsData;
 import com.jjg.game.sim.data.SimTaskData;
 import com.jjg.game.sim.data.SimVisitCommentData;
-import com.jjg.game.sim.data.SimVisitGiftConfig;
 import com.jjg.game.sim.data.SimVisitProfileData;
 import com.jjg.game.sim.data.SimVisitRecordData;
 import com.jjg.game.sim.data.SimVisitTrialSession;
@@ -43,7 +46,6 @@ import com.jjg.game.sim.pb.struct.VisitBuildingInfo;
 import com.jjg.game.sim.pb.struct.VisitCasinoInfo;
 import com.jjg.game.sim.pb.struct.VisitCommentInfo;
 import com.jjg.game.sim.pb.struct.VisitGameInfo;
-import com.jjg.game.sim.pb.struct.VisitGiftInfo;
 import com.jjg.game.sim.pb.struct.VisitRecordInfo;
 import com.jjg.game.social.dao.FriendDao;
 import org.slf4j.Logger;
@@ -102,14 +104,15 @@ public class SimVisitService {
     private SnowflakeManager snowflakeManager;
     @Autowired
     private CountDao countDao;
+    @Autowired
+    private PlayerPackService playerPackService;
 
     public ResVisitCasino visit(SimPlayerContext ctx, long playerId, int casinoId) {
         ResVisitCasino res = new ResVisitCasino(Code.SUCCESS);
         try {
             TargetResult target = findTarget(ctx.playerId(), playerId, casinoId);
             if (!target.success()) {
-                res.code = Code.FAIL;
-                res.reason = target.reason();
+                res.code = target.code();
                 return res;
             }
             Map<Long, SimVisitProfileData> profiles = new HashMap<>();
@@ -139,7 +142,6 @@ public class SimVisitService {
         } catch (Exception e) {
             log.error("拜访赌场失败 visitorId={},ownerId={},casinoId={}", ctx.playerId(), playerId, casinoId, e);
             res.code = Code.EXCEPTION;
-            res.reason = SimVisitConstant.Reason.INTERNAL_ERROR;
         }
         return res;
     }
@@ -164,7 +166,7 @@ public class SimVisitService {
         }
         ids.removeAll(excludes);
         if (ids.isEmpty()) {
-            return visitFailure(SimVisitConstant.Reason.PLAYER_NOT_FOUND);
+            return visitFailure(Code.NOT_FOUND);
         }
 
         Map<Long, SimBaseData> bases = new HashMap<>();
@@ -203,32 +205,32 @@ public class SimVisitService {
                 return result;
             }
         }
-        return visitFailure(SimVisitConstant.Reason.PLAYER_NOT_FOUND);
+        return visitFailure(Code.NOT_FOUND);
     }
 
     public ResVisitAction like(SimPlayerContext ctx, long playerId, int casinoId) {
         TargetResult target = findTarget(ctx.playerId(), playerId, casinoId);
         if (!target.success()) {
-            return actionFailure(target.reason());
+            return actionFailure(target.code());
         }
         int sourceRemaining = quotaService.consume(SimVisitConstant.QuotaType.LIKE,
                 ctx.playerId(), 1, configService.getDailyLikeLimit());
         if (sourceRemaining < 0) {
-            return actionFailure(SimVisitConstant.Reason.DAILY_LIMIT);
+            return actionFailure(Code.FORBID);
         }
         int points = configService.getLikePopularity();
         int ownerRemaining = quotaService.consume(SimVisitConstant.QuotaType.POPULARITY,
                 playerId, points, configService.getDailyPopularityLimit());
         if (ownerRemaining < 0) {
             quotaService.rollback(SimVisitConstant.QuotaType.LIKE, ctx.playerId(), 1);
-            return actionFailure(SimVisitConstant.Reason.POPULARITY_LIMIT);
+            return actionFailure(Code.FORBID);
         }
         SimVisitProfileData profile = persistInteraction(ctx, playerId, casinoId,
                 SimVisitConstant.RecordType.LIKE, 0, 0, points, 0, null);
         if (profile == null) {
             quotaService.rollback(SimVisitConstant.QuotaType.LIKE, ctx.playerId(), 1);
             quotaService.rollback(SimVisitConstant.QuotaType.POPULARITY, playerId, points);
-            return actionFailure(SimVisitConstant.Reason.INTERNAL_ERROR);
+            return actionFailure(Code.EXCEPTION);
         }
         addRankPopularity(playerId, points);
         return actionSuccess(profile, points, sourceRemaining, ownerRemaining, 0);
@@ -236,34 +238,34 @@ public class SimVisitService {
 
     public ResVisitAction comment(SimPlayerContext ctx, long playerId, int casinoId, String content) {
         if (!canComment(ctx.playerId())) {
-            return actionFailure(SimVisitConstant.Reason.COMMENT_LOCKED);
+            return actionFailure(Code.FORBID);
         }
         content = content == null ? null : content.trim();
         if (!SimVisitConfigService.isValidComment(content, configService.getCommentMaxLength())) {
-            return actionFailure(SimVisitConstant.Reason.COMMENT_INVALID);
+            return actionFailure(Code.PARAM_ERROR);
         }
         TargetResult target = findTarget(ctx.playerId(), playerId, casinoId);
         if (!target.success()) {
-            return actionFailure(target.reason());
+            return actionFailure(target.code());
         }
         int sourceRemaining = quotaService.consume(SimVisitConstant.QuotaType.COMMENT,
                 ctx.playerId(), 1, configService.getDailyCommentLimit());
         if (sourceRemaining < 0) {
-            return actionFailure(SimVisitConstant.Reason.DAILY_LIMIT);
+            return actionFailure(Code.FORBID);
         }
         int points = configService.getCommentPopularity();
         int ownerRemaining = quotaService.consume(SimVisitConstant.QuotaType.POPULARITY,
                 playerId, points, configService.getDailyPopularityLimit());
         if (ownerRemaining < 0) {
             quotaService.rollback(SimVisitConstant.QuotaType.COMMENT, ctx.playerId(), 1);
-            return actionFailure(SimVisitConstant.Reason.POPULARITY_LIMIT);
+            return actionFailure(Code.FORBID);
         }
         SimVisitProfileData profile = persistInteraction(ctx, playerId, casinoId,
                 SimVisitConstant.RecordType.COMMENT, 0, 0, points, 0, content);
         if (profile == null) {
             quotaService.rollback(SimVisitConstant.QuotaType.COMMENT, ctx.playerId(), 1);
             quotaService.rollback(SimVisitConstant.QuotaType.POPULARITY, playerId, points);
-            return actionFailure(SimVisitConstant.Reason.INTERNAL_ERROR);
+            return actionFailure(Code.EXCEPTION);
         }
         addRankPopularity(playerId, points);
         return actionSuccess(profile, points, sourceRemaining, ownerRemaining, 0);
@@ -272,34 +274,39 @@ public class SimVisitService {
     public ResVisitAction gift(SimPlayerContext ctx, long playerId, int casinoId, int giftId) {
         TargetResult target = findTarget(ctx.playerId(), playerId, casinoId);
         if (!target.success()) {
-            return actionFailure(target.reason());
+            return actionFailure(target.code());
         }
-        SimVisitGiftConfig gift = configService.findGift(giftId);
+        GiftListCfg gift = GameDataManager.getGiftListCfg(giftId);
         if (gift == null) {
-            return actionFailure(SimVisitConstant.Reason.GIFT_NOT_FOUND);
+            return actionFailure(Code.NOT_FOUND);
         }
+        Player buyer = sourcePlayer(ctx);
+        if (buyer == null) {
+            return actionFailure(Code.EXCEPTION);
+        }
+        int popularity = gift.getPopularity();
         int ownerRemaining = quotaService.consume(SimVisitConstant.QuotaType.POPULARITY,
-                playerId, gift.popularity(), configService.getDailyPopularityLimit());
+                playerId, popularity, configService.getDailyPopularityLimit());
         if (ownerRemaining < 0) {
-            return actionFailure(SimVisitConstant.Reason.POPULARITY_LIMIT);
+            return actionFailure(Code.FORBID);
         }
-        CommonResult<Player> deduct = corePlayerService.deductDiamond(ctx.playerId(), gift.diamondCost(),
-                AddType.SIM_VISIT_GIFT, "giftId=" + giftId, true);
+        CommonResult<ItemOperationResult> deduct = playerPackService.removeItems(buyer, gift.getCost(),
+                AddType.SIM_VISIT_GIFT, "giftId=" + giftId);
         if (!deduct.success()) {
-            quotaService.rollback(SimVisitConstant.QuotaType.POPULARITY, playerId, gift.popularity());
-            return actionFailure(SimVisitConstant.Reason.DIAMOND_NOT_ENOUGH);
+            quotaService.rollback(SimVisitConstant.QuotaType.POPULARITY, playerId, popularity);
+            return actionFailure(Code.NOT_ENOUGH);
         }
         SimVisitProfileData profile = persistInteraction(ctx, playerId, casinoId,
-                SimVisitConstant.RecordType.GIFT, 0, giftId, gift.popularity(), 0, null);
+                SimVisitConstant.RecordType.GIFT, 0, giftId, popularity, 0, null);
         if (profile == null) {
-            quotaService.rollback(SimVisitConstant.QuotaType.POPULARITY, playerId, gift.popularity());
-            corePlayerService.addDiamond(ctx.playerId(), gift.diamondCost(),
-                    AddType.SIM_VISIT_GIFT_REFUND, "giftId=" + giftId, true);
-            return actionFailure(SimVisitConstant.Reason.INTERNAL_ERROR);
+            quotaService.rollback(SimVisitConstant.QuotaType.POPULARITY, playerId, popularity);
+            playerPackService.addItems(ctx.playerId(), gift.getCost(),
+                    AddType.SIM_VISIT_GIFT_REFUND, "giftId=" + giftId);
+            return actionFailure(Code.EXCEPTION);
         }
-        addRankPopularity(playerId, gift.popularity());
+        addRankPopularity(playerId, popularity);
         long diamond = deduct.data == null ? 0 : deduct.data.getDiamond();
-        return actionSuccess(profile, gift.popularity(), 0, ownerRemaining, diamond);
+        return actionSuccess(profile, popularity, 0, ownerRemaining, diamond);
     }
 
     public ResVisitRecords records(long playerId, int offset, int limit) {
@@ -358,22 +365,19 @@ public class SimVisitService {
         ResVisitTrial res = new ResVisitTrial(Code.SUCCESS);
         TargetResult target = findTarget(ctx.playerId(), playerId, casinoId);
         if (!target.success()) {
-            res.code = Code.FAIL;
-            res.reason = target.reason();
+            res.code = target.code();
             return res;
         }
         Set<Integer> games = configCacheService.getUnlockGameByRegionId(casinoId);
         if (games == null || !games.contains(gameType)
                 || simSkillsDao.findByGameType(playerId, gameType) == null) {
-            res.code = Code.FAIL;
-            res.reason = SimVisitConstant.Reason.GAME_NOT_UNLOCKED;
+            res.code = Code.NOT_UNLOCKED;
             return res;
         }
         int remaining = quotaService.remaining(SimVisitConstant.QuotaType.TRIAL,
                 ctx.playerId(), configService.getDailyTrialLimit());
         if (remaining <= 0) {
-            res.code = Code.FAIL;
-            res.reason = SimVisitConstant.Reason.DAILY_LIMIT;
+            res.code = Code.FORBID;
             return res;
         }
         long expireTime = System.currentTimeMillis() + configService.getTrialSessionSeconds() * 1000L;
@@ -406,19 +410,16 @@ public class SimVisitService {
             return new CommonResult<>(Code.SUCCESS, permit);
         }
         if (!session.activeFor(ctx.playerId(), gameType, System.currentTimeMillis())) {
-            permit.setReason(SimVisitConstant.Reason.TRIAL_INVALID);
-            return new CommonResult<>(Code.FAIL, permit);
+            return new CommonResult<>(Code.EXPIRE, permit);
         }
         SimBaseData base = ctx.getSimBaseData();
         if (base == null || base.getPower() <= 0) {
-            permit.setReason(SimVisitConstant.Reason.POWER_NOT_ENOUGH);
             return new CommonResult<>(Code.NOT_ENOUGH, permit);
         }
         int remaining = quotaService.consume(SimVisitConstant.QuotaType.TRIAL,
                 ctx.playerId(), 1, configService.getDailyTrialLimit());
         if (remaining < 0) {
-            permit.setReason(SimVisitConstant.Reason.DAILY_LIMIT);
-            return new CommonResult<>(Code.FAIL, permit);
+            return new CommonResult<>(Code.FORBID, permit);
         }
         base.setPower(base.getPower() - 1);
         String permitId = String.valueOf(snowflakeManager.nextId());
@@ -429,7 +430,6 @@ public class SimVisitService {
             base.setPower(base.getPower() + 1);
             quotaService.rollback(SimVisitConstant.QuotaType.TRIAL, ctx.playerId(), 1);
             log.error("保存试玩旋转许可失败 playerId={}", ctx.playerId(), e);
-            permit.setReason(SimVisitConstant.Reason.INTERNAL_ERROR);
             return new CommonResult<>(Code.EXCEPTION, permit);
         }
         permit.setTrial(true);
@@ -577,13 +577,6 @@ public class SimVisitService {
             }
             return pb;
         }).toList();
-        info.gifts = configService.getGifts().stream().map(gift -> {
-            VisitGiftInfo pb = new VisitGiftInfo();
-            pb.id = gift.id();
-            pb.diamondCost = gift.diamondCost();
-            pb.popularity = gift.popularity();
-            return pb;
-        }).toList();
         return info;
     }
 
@@ -635,17 +628,17 @@ public class SimVisitService {
 
     private TargetResult findTarget(long visitorId, long playerId, int casinoId) {
         if (visitorId == playerId) {
-            return new TargetResult(null, null, SimVisitConstant.Reason.SELF_VISIT);
+            return new TargetResult(null, null, Code.FORBID);
         }
         Player player = corePlayerService.get(playerId);
         if (player == null) {
-            return new TargetResult(null, null, SimVisitConstant.Reason.PLAYER_NOT_FOUND);
+            return new TargetResult(null, null, Code.NOT_FOUND);
         }
         SimCasinoData casino = simCasinoDao.findOne(playerId, casinoId);
         if (casino == null) {
-            return new TargetResult(null, null, SimVisitConstant.Reason.CASINO_NOT_FOUND);
+            return new TargetResult(null, null, Code.NOT_FOUND);
         }
-        return new TargetResult(player, casino, SimVisitConstant.Reason.NONE);
+        return new TargetResult(player, casino, Code.SUCCESS);
     }
 
     private Player sourcePlayer(SimPlayerContext ctx) {
@@ -686,16 +679,12 @@ public class SimVisitService {
         }
     }
 
-    private ResVisitAction actionFailure(int reason) {
-        ResVisitAction res = new ResVisitAction(Code.FAIL);
-        res.reason = reason;
-        return res;
+    private ResVisitAction actionFailure(int code) {
+        return new ResVisitAction(code);
     }
 
-    private ResVisitCasino visitFailure(int reason) {
-        ResVisitCasino res = new ResVisitCasino(Code.FAIL);
-        res.reason = reason;
-        return res;
+    private ResVisitCasino visitFailure(int code) {
+        return new ResVisitCasino(code);
     }
 
     private Set<Long> allianceMembers(long playerId) {
@@ -788,9 +777,9 @@ public class SimVisitService {
         return info;
     }
 
-    private record TargetResult(Player player, SimCasinoData casino, int reason) {
+    private record TargetResult(Player player, SimCasinoData casino, int code) {
         boolean success() {
-            return reason == SimVisitConstant.Reason.NONE;
+            return code == Code.SUCCESS;
         }
     }
 }

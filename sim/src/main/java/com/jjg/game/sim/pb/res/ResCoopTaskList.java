@@ -30,6 +30,8 @@ public class ResCoopTaskList extends AbstractResponse {
     public long refreshItemCount;
     @ProtoDesc("下次任务列表刷新时间 (次日0点, ms)")
     public long nextRefreshTime;
+    @ProtoDesc("每日最多领取任务次数")
+    public int dailyClaimLimit;
 
     public ResCoopTaskList(int code) {
         super(code);

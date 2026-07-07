@@ -6,6 +6,7 @@ import com.jjg.game.core.data.CommonResult;
 import com.jjg.game.core.data.ItemOperationResult;
 import com.jjg.game.core.service.PlayerPackService;
 import com.jjg.game.core.utils.ItemUtils;
+import com.jjg.game.sampledata.GameDataManager;
 import com.jjg.game.sim.constant.BuildingOutputType;
 import com.jjg.game.sim.constant.SimConstant;
 import com.jjg.game.sim.dao.SimCasinoDao;
@@ -70,6 +71,29 @@ public class SimPackService {
 
         Map<Integer, Long> packItems = new HashMap<>(items.size());
         for (Map.Entry<Integer, Long> en : items.entrySet()) {
+            if (en.getValue() != null && en.getValue() > 0 && !isSimResource(en.getKey())) {
+                packItems.merge(en.getKey(), en.getValue(), Long::sum);
+            }
+        }
+
+        SimItemOperationResult data = new SimItemOperationResult();
+        if (!packItems.isEmpty()) {
+            CommonResult<ItemOperationResult> itemResult = playerPackService.addItems(
+                    ctx.playerId(), packItems, addType, desc, notify);
+            if (itemResult == null || !itemResult.success()) {
+                result.code = itemResult == null ? Code.EXCEPTION : itemResult.code;
+                if (itemResult != null && itemResult.data != null) {
+                    data = SimItemOperationResult.createFromItemResult(itemResult.data);
+                }
+                result.data = data;
+                return result;
+            }
+            if (itemResult.data != null) {
+                data = SimItemOperationResult.createFromItemResult(itemResult.data);
+            }
+        }
+
+        for (Map.Entry<Integer, Long> en : items.entrySet()) {
             int itemId = en.getKey();
             long count = en.getValue();
             if (count <= 0) {
@@ -91,19 +115,12 @@ public class SimPackService {
             } else if (itemId == SimConstant.Item.ID_RARE_RESEARCH_POINT) {  //稀有研究点
                 SimBaseData base = ctx.getSimBaseData();
                 base.addResearchPoint(SimConstant.ResearchPoint.RARE_TPYE, (int) count);
-            } else {
-                packItems.merge(itemId, count, Long::sum);
+            } else if (GameDataManager.getMedalListCfg(itemId) != null) {
+                SimBaseData base = ctx.getSimBaseData();
+                base.activeMedalId(itemId);
             }
         }
 
-        SimItemOperationResult data = new SimItemOperationResult();
-        if (!packItems.isEmpty()) {
-            CommonResult<ItemOperationResult> itemResult = playerPackService.addItems(ctx.playerId(), packItems, addType, desc, notify);
-            if (itemResult.success() && itemResult.data != null) {
-                data = SimItemOperationResult.createFromItemResult(itemResult.data);
-            }
-//            log.info("添加道具 playerId={},items={},gold={}", ctx.playerId(), packItems, itemResult.data.getGoldNum());
-        }
         //回填 sim 特殊资源最新值, 供下发客户端
         data.setPower(ctx.getSimBaseData().getPower());
         SimCasinoData casino = ctx.getCurrentCasino();
@@ -114,6 +131,15 @@ public class SimPackService {
         data.setRareResearchPoint(ctx.getSimBaseData().findResearchPoint(SimConstant.ResearchPoint.RARE_TPYE));
         result.data = data;
         return result;
+    }
+
+    private boolean isSimResource(int itemId) {
+        return itemId == SimConstant.Item.ID_POWER
+                || itemId == SimConstant.Item.ID_AWARENESS
+                || itemId == SimConstant.Item.ID_EXPOD
+                || itemId == SimConstant.Item.ID_RESEARCH_POINT
+                || itemId == SimConstant.Item.ID_RARE_RESEARCH_POINT
+                || GameDataManager.getMedalListCfg(itemId) != null;
     }
 
     /**

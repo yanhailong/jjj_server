@@ -38,6 +38,10 @@ public class Mail implements Cloneable {
     private AddType addType;
     //备注
     private String desc;
+    //幂等业务键；仅幂等邮件设置，稀疏唯一索引允许普通邮件不携带该字段
+    @Indexed(name = "idx_mail_biz_key", unique = true,
+            partialFilter = "{ 'bizKey': { '$type': 'string' } }")
+    private String bizKey;
     //操作人
     private String operator;
 
@@ -130,6 +134,14 @@ public class Mail implements Cloneable {
 
     public void setDesc(String desc) {
         this.desc = desc;
+    }
+
+    public String getBizKey() {
+        return bizKey;
+    }
+
+    public void setBizKey(String bizKey) {
+        this.bizKey = bizKey;
     }
 
     public String getOperator() {

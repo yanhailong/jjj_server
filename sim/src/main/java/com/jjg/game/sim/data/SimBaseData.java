@@ -3,10 +3,7 @@ package com.jjg.game.sim.data;
 import org.springframework.data.annotation.Id;
 import org.springframework.data.mongodb.core.mapping.Document;
 
-import java.util.ArrayList;
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
+import java.util.*;
 
 /**
  * 玩家 sim 基础数据
@@ -48,6 +45,10 @@ public class SimBaseData extends AbstractData {
     private Map<Integer, SlotGameStatsData> slotStatsMap;
     //旧版按娱乐城保存的统计是否已迁移到玩家数据
     private boolean operationStatsMigrated;
+    //所有的激活的勋章
+    private Set<Integer> allMedalIds;
+    //旧背包勋章是否已迁移到 allMedalIds
+    private boolean medalDataMigrated;
     //展示的勋章
     private List<Integer> showMedalIds;
 
@@ -286,6 +287,22 @@ public class SimBaseData extends AbstractData {
         this.allLevel += level;
     }
 
+    public Set<Integer> getAllMedalIds() {
+        return allMedalIds;
+    }
+
+    public void setAllMedalIds(Set<Integer> allMedalIds) {
+        this.allMedalIds = allMedalIds == null ? null : new HashSet<>(allMedalIds);
+    }
+
+    public boolean isMedalDataMigrated() {
+        return medalDataMigrated;
+    }
+
+    public void setMedalDataMigrated(boolean medalDataMigrated) {
+        this.medalDataMigrated = medalDataMigrated;
+    }
+
     public List<Integer> getShowMedalIds() {
         return showMedalIds;
     }
@@ -294,35 +311,10 @@ public class SimBaseData extends AbstractData {
         this.showMedalIds = showMedalIds;
     }
 
-    public boolean hasShowMedalId(int id) {
-        if (this.showMedalIds == null || this.showMedalIds.isEmpty()) {
-            return false;
+    public void activeMedalId(int id) {
+        if (this.allMedalIds == null) {
+            this.allMedalIds = new HashSet<>();
         }
-        return this.showMedalIds.contains(id);
-    }
-
-    public void replaceMedalId(int oldMedalId, int newMedalId) {
-        if (this.showMedalIds == null || this.showMedalIds.isEmpty()) {
-            return;
-        }
-
-        int oldIndex = this.showMedalIds.indexOf(oldMedalId);
-        List<Integer> tmpShowMedalIds = new ArrayList<>();
-
-        for (int i = 0; i < this.showMedalIds.size(); i++) {
-            if (i == oldIndex) {
-                tmpShowMedalIds.add(newMedalId);
-            } else {
-                tmpShowMedalIds.add(this.showMedalIds.get(i));
-            }
-        }
-        this.showMedalIds = tmpShowMedalIds;
-    }
-
-    public void addMedalId(int id) {
-        if (this.showMedalIds == null) {
-            this.showMedalIds = new ArrayList<>();
-        }
-        this.showMedalIds.add(id);
+        this.allMedalIds.add(id);
     }
 }

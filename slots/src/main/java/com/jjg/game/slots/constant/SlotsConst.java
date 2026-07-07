@@ -211,6 +211,9 @@ public class SlotsConst {
     public static final long RUNNING_MAX_FALLBACK_MS = 2 * 3600 * 1000L;
     //房间 GC 扫描周期(秒)
     public static final int GC_PERIOD_SECONDS = 30;
+    //结算回写失败后的最小重试间隔(ms)
+    public static final long COOP_SETTLE_RETRY_MS = 5 * 1000L;
+    public static final long COOP_SETTLE_IN_FLIGHT_TIMEOUT_MS = 30 * 1000L;
     //同一房间两次频道邀请的最小间隔(ms): 私聊频道无个人限频, 防连点放大跨节点 RPC 与聊天写入
     public static final long COOP_INVITE_INTERVAL_MS = 3 * 1000L;
 

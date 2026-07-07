@@ -6,21 +6,24 @@ import com.jjg.game.common.curator.MarsCurator;
 import com.jjg.game.common.rpc.ClusterRpcReference;
 import com.jjg.game.common.rpc.GameRpcContext;
 import com.jjg.game.common.rpc.RpcReqParameterBuilder;
+import com.jjg.game.common.protostuff.MessageUtil;
+import com.jjg.game.common.protostuff.PFMessage;
 import com.jjg.game.core.constant.AddType;
 import com.jjg.game.core.constant.Code;
 import com.jjg.game.core.data.CommonResult;
+import com.jjg.game.core.data.ItemOperationResult;
 import com.jjg.game.core.data.Player;
 import com.jjg.game.core.data.PlayerController;
-import com.jjg.game.core.service.CorePlayerService;
+import com.jjg.game.core.service.PlayerPackService;
+import com.jjg.game.sampledata.GameDataManager;
+import com.jjg.game.sampledata.bean.GiftListCfg;
 import com.jjg.game.sim.bridge.ToSimBridge;
 import com.jjg.game.sim.constant.CoopTaskConst;
 import com.jjg.game.sim.dao.CoopRoomRecordDao;
 import com.jjg.game.sim.data.CoopRoomRecord;
 import com.jjg.game.sim.data.CoopTaskRule;
-import com.jjg.game.sim.data.SimVisitGiftConfig;
 import com.jjg.game.sim.service.CoopTaskConfigService;
 import com.jjg.game.sim.service.SimNodeService;
-import com.jjg.game.sim.service.SimVisitConfigService;
 import com.jjg.game.slots.constant.SlotsConst;
 import com.jjg.game.slots.data.CoopMember;
 import com.jjg.game.slots.data.CoopRoom;
@@ -79,10 +82,7 @@ public class CoopRoomManager {
     @Autowired
     private MarsCurator marsCurator;
     @Autowired
-    private CorePlayerService corePlayerService;
-    //房间互动道具复用拜访礼物全局配置 (TODO 待策划提供房间专属道具表后替换)
-    @Autowired
-    private SimVisitConfigService visitConfigService;
+    private PlayerPackService playerPackService;
 
     //本节点协作房间 roomId -> room
     private final Map<Long, CoopRoom> rooms = new ConcurrentHashMap<>();
@@ -97,6 +97,7 @@ public class CoopRoomManager {
             t.setDaemon(true);
             return t;
         });
+        recoverRooms();
         //fixedDelay: 上一轮跑完才计时, Redis 抖动时天然防任务堆积
         gcExecutor.scheduleWithFixedDelay(this::gcRooms,
                 SlotsConst.GC_PERIOD_SECONDS, SlotsConst.GC_PERIOD_SECONDS, TimeUnit.SECONDS);
@@ -133,6 +134,11 @@ public class CoopRoomManager {
                 if (room.getMembers().size() >= room.getRule().maxMembers()) {
                     log.info("进入房间失败,房间已满员 playerId={},roomId={},members={},max={}",
                             playerId, roomId, room.getMembers().size(), room.getRule().maxMembers());
+                    return res;
+                }
+                if (!roomRecordDao.acquirePlayerRoom(playerId, roomId)) {
+                    log.info("进入协作房间失败,玩家已在其他房间 playerId={},roomId={},occupiedRoomId={}",
+                            playerId, roomId, roomRecordDao.getPlayerRoom(playerId));
                     return res;
                 }
                 member = room.addMember(playerId);
@@ -218,6 +224,7 @@ public class CoopRoomManager {
                         return res;
                     }
                     memberRoomIndex.remove(targetId, room.getRoomId());
+                    roomRecordDao.releasePlayerRoom(targetId, room.getRoomId());
                     notifyRemoved(room, target);
                     updateRecord(room);
                     broadcastUpdate(room, 0);
@@ -292,6 +299,7 @@ public class CoopRoomManager {
         CoopMember member = room.getMembers().remove(playerId);
         if (member != null) {
             memberRoomIndex.remove(playerId, room.getRoomId());
+            roomRecordDao.releasePlayerRoom(playerId, room.getRoomId());
         }
         if (room.getMembers().isEmpty()) {
             removeRoom(room);
@@ -309,6 +317,7 @@ public class CoopRoomManager {
     private void dissolve(CoopRoom room) {
         for (CoopMember member : room.getMembers().values()) {
             memberRoomIndex.remove(member.getPlayerId(), room.getRoomId());
+            roomRecordDao.releasePlayerRoom(member.getPlayerId(), room.getRoomId());
             notifyRemoved(room, member);
         }
         room.getMembers().clear();
@@ -398,7 +407,7 @@ public class CoopRoomManager {
     }
 
     /**
-     * 房间互动道具赠送: 扣钻石 + 全房动效广播。
+     * 房间互动道具赠送: 按 GiftList 配置扣费 + 全房动效广播。
      */
     public ResCoopGift gift(PlayerController pc, long targetId, int giftId) {
         ResCoopGift res = new ResCoopGift(Code.FAIL);
@@ -409,30 +418,41 @@ public class CoopRoomManager {
                     playerId, targetId, room == null ? 0 : room.getRoomId());
             return res;
         }
-        SimVisitGiftConfig giftCfg = visitConfigService.findGift(giftId);
+        GiftListCfg giftCfg = GameDataManager.getGiftListCfg(giftId);
         if (giftCfg == null) {
             log.info("协作房间赠送失败,礼物配置缺失 playerId={},giftId={}", playerId, giftId);
             return res;
         }
-        CommonResult<Player> deduct = corePlayerService.deductDiamond(playerId, giftCfg.diamondCost(),
-                AddType.SIM_COOP_ROOM_GIFT, "coopGiftId=" + giftId, true);
+        CommonResult<ItemOperationResult> deduct = playerPackService.removeItems(pc.getPlayer(),
+                giftCfg.getCost(), AddType.SIM_COOP_ROOM_GIFT, "coopGiftId=" + giftId);
         if (!deduct.success()) {
             //需求: 携带金币或钻石不足时直接提示
             res.code = Code.NOT_ENOUGH;
-            log.info("协作房间赠送失败,钻石不足 playerId={},giftId={},cost={}", playerId, giftId, giftCfg.diamondCost());
+            log.info("协作房间赠送失败,货币不足 playerId={},giftId={},cost={}", playerId, giftId, giftCfg.getCost());
             return res;
         }
-        res.code = Code.SUCCESS;
-        res.diamond = deduct.data == null ? 0 : deduct.data.getDiamond();
-
         NotifyCoopGift notify = new NotifyCoopGift(Code.SUCCESS);
         notify.fromId = playerId;
         notify.toId = targetId;
         notify.giftId = giftId;
         List<PlayerController> receivers;
+        boolean stillValid;
         synchronized (room) {
-            receivers = receivers(room);
+            stillValid = rooms.get(room.getRoomId()) == room && room.getMembers().containsKey(playerId)
+                    && room.getMembers().containsKey(targetId) && playerId != targetId;
+            receivers = stillValid ? receivers(room) : List.of();
         }
+        if (!stillValid) {
+            CommonResult<ItemOperationResult> refund = playerPackService.addItems(playerId, giftCfg.getCost(),
+                    AddType.SIM_COOP_ROOM_GIFT_REFUND, "coopGiftId=" + giftId);
+            res.diamond = refund != null && refund.data != null
+                    ? refund.data.getDiamond() : (deduct.data == null ? 0 : deduct.data.getDiamond());
+            log.warn("协作房间赠送失败并返还扣费,扣费后成员状态变化 playerId={},targetId={},roomId={},refund={}",
+                    playerId, targetId, room.getRoomId(), refund != null && refund.success());
+            return res;
+        }
+        res.code = Code.SUCCESS;
+        res.diamond = deduct.data == null ? 0 : deduct.data.getDiamond();
         sendAll(receivers, notify);
         return res;
     }
@@ -499,18 +519,14 @@ public class CoopRoomManager {
                 member.setSpinUsed(member.getSpinUsed() + 1);
 
                 CoopTaskRule rule = room.getRule();
-                boolean triggered = statusBefore == SlotsConst.Status.NORMAL
-                        && gameRunInfo.getResultLib() != null
-                        && gameRunInfo.getResultLib().getLibTypeSet() != null
-                        && gameRunInfo.getResultLib().getLibTypeSet().contains(rule.modeId());
-                if (triggered) {
-                    room.setSharedProgress(room.getSharedProgress() + 1);
-                }
+                long progressDelta = CoopTaskProgressPolicy.delta(rule, statusBefore, gameRunInfo);
+                room.setSharedProgress(CoopTaskProgressPolicy.addSaturated(room.getSharedProgress(), progressDelta));
 
-                if (room.getSharedProgress() >= rule.modeCount()) {
+                boolean quotaExhausted = allQuotaExhausted(room);
+                if (quotaExhausted && room.getSharedProgress() >= rule.modeCount()) {
                     //触发结算: 结果广播(低频)在 settle 内锁内完成, 不再单独发本次 spin (结果已含最终进度)
                     settle(room, true);
-                } else if (allQuotaExhausted(room)) {
+                } else if (quotaExhausted) {
                     settle(room, false);
                 } else {
                     //未结算: 高频 spin 增量广播移出锁, 锁内仅快照接收方 (保证接收集与本次进度原子一致)
@@ -594,28 +610,25 @@ public class CoopRoomManager {
     // =====================================================================
 
     /**
-     * 结算 (房间锁内调用): FINISHED -> 删路由记录 -> RPC 回写 sim 任务态 -> 广播结果。
-     * 结算后房间保留一段时间供查看弹窗, 到期 GC 清理; 保留期内成员旋转按普通旋转放行。
+     * 结算 (房间锁内调用): 先持久化 FINISHED，再异步回写 sim；只有收到确认后才删除路由记录。
      */
     private void settle(CoopRoom room, boolean success) {
         long now = System.currentTimeMillis();
         room.setStatus(CoopTaskConst.RoomStatus.FINISHED);
         room.setFinishTime(now);
         room.setSuccess(success);
-        //记录即刻删除: 任务层此后依结算回写的状态行事, 不再依赖房间记录
-        try {
-            roomRecordDao.delete(room.getRoomId());
-        } catch (Exception e) {
-            log.error("删除协作房间记录失败 roomId={}", room.getRoomId(), e);
-        }
 
         List<Long> helperIds = new ArrayList<>();
         for (CoopMember member : room.getMembers().values()) {
             if (member.getPlayerId() != room.getOwnerId()) {
                 helperIds.add(member.getPlayerId());
             }
+            memberRoomIndex.remove(member.getPlayerId(), room.getRoomId());
+            roomRecordDao.releasePlayerRoom(member.getPlayerId(), room.getRoomId());
         }
-        settleRpc(room, success, helperIds, 0);
+        room.setSettlementHelperIds(helperIds);
+        updateRecord(room);
+        requestSettlement(room);
 
         NotifyCoopRoomResult notify = new NotifyCoopRoomResult(Code.SUCCESS);
         notify.taskId = room.getTaskId();
@@ -630,9 +643,24 @@ public class CoopRoomManager {
     }
 
     /**
-     * 结算回写 RPC (异步, 失败重试一次; sim 侧按状态机幂等, 重复回写无副作用)。
+     * 结算回写由 GC 持续重试，直到 sim 明确确认。in-flight 标记避免并发请求放大。
      */
-    private void settleRpc(CoopRoom room, boolean success, List<Long> helperIds, int retryCount) {
+    private void requestSettlement(CoopRoom room) {
+        long now = System.currentTimeMillis();
+        if (room.isSettlementAcked()) {
+            return;
+        }
+        if (room.isSettlementInFlight()) {
+            if (now - room.getLastSettlementAttempt() < SlotsConst.COOP_SETTLE_IN_FLIGHT_TIMEOUT_MS) {
+                return;
+            }
+            log.warn("协作任务结算RPC超时,重新投递 roomId={},ownerId={}", room.getRoomId(), room.getOwnerId());
+            room.setSettlementInFlight(false);
+        } else if (now - room.getLastSettlementAttempt() < SlotsConst.COOP_SETTLE_RETRY_MS) {
+            return;
+        }
+        room.setSettlementInFlight(true);
+        room.setLastSettlementAttempt(now);
         try {
             CoopMember owner = room.getMembers().get(room.getOwnerId());
             String ip = owner != null && owner.getPlayerController() != null
@@ -640,6 +668,7 @@ public class CoopRoomManager {
             ClusterClient client = simNodeService.getSimClusterClient(room.getOwnerId(), ip);
             if (client == null) {
                 log.error("协作任务结算回写失败, 无可用sim节点 roomId={},ownerId={}", room.getRoomId(), room.getOwnerId());
+                room.setSettlementInFlight(false);
                 return;
             }
             GameRpcContext rpcContext = GameRpcContext.getContext();
@@ -648,13 +677,22 @@ public class CoopRoomManager {
                 rpcContext.withReqParameterBuilder(RpcReqParameterBuilder.create()
                         .addClusterClient(client).setTryMillisPerClient(1000));
                 rpcContext.asyncCall(() -> toSimBridge.onCoopRoomSettle(
-                                room.getOwnerId(), room.getTaskId(), success, helperIds))
+                                room.getOwnerId(), room.getTaskId(), room.getRoomId(),
+                                room.isSuccess(), room.getSettlementHelperIds()))
                         .whenComplete((result, throwable) -> {
-                            if (throwable != null || result == null || !result.success()) {
-                                log.warn("协作任务结算回写失败 roomId={},ownerId={},retry={}",
-                                        room.getRoomId(), room.getOwnerId(), retryCount, throwable);
-                                if (retryCount == 0) {
-                                    settleRpc(room, success, helperIds, 1);
+                            synchronized (room) {
+                                room.setSettlementInFlight(false);
+                                if (throwable == null && result != null && result.success()
+                                        && Boolean.TRUE.equals(result.data)) {
+                                    room.setSettlementAcked(true);
+                                    try {
+                                        roomRecordDao.delete(room.getRoomId());
+                                    } catch (Exception e) {
+                                        log.error("删除已确认协作房间记录失败 roomId={}", room.getRoomId(), e);
+                                    }
+                                } else {
+                                    log.warn("协作任务结算回写失败,等待GC重试 roomId={},ownerId={}",
+                                            room.getRoomId(), room.getOwnerId(), throwable);
                                 }
                             }
                         });
@@ -662,10 +700,8 @@ public class CoopRoomManager {
                 rpcContext.setReqParameterBuilder(previousBuilder);
             }
         } catch (Exception e) {
+            room.setSettlementInFlight(false);
             log.error("协作任务结算回写异常 roomId={},ownerId={}", room.getRoomId(), room.getOwnerId(), e);
-            if (retryCount == 0) {
-                settleRpc(room, success, helperIds, 1);
-            }
         }
     }
 
@@ -696,24 +732,19 @@ public class CoopRoomManager {
     }
 
     /**
-     * 关服: 全部房间按失败解散不合理, 未开始房间直接解散; 进行中房间判定失败结算 (保证任务态闭环)。
+     * 关服仅允许在节点摘流且所有房间自然结束、回收后执行，禁止人为判负或迁移房间。
      */
     public void shutdown() {
+        if (!rooms.isEmpty()) {
+            throw new IllegalStateException("协作房间尚未清空，拒绝关闭slots节点 activeRooms=" + rooms.size());
+        }
         if (gcExecutor != null) {
             gcExecutor.shutdownNow();
         }
-        for (CoopRoom room : rooms.values()) {
-            try {
-                synchronized (room) {
-                    if (room.getStatus() == CoopTaskConst.RoomStatus.RUNNING) {
-                        settle(room, false);
-                    }
-                    dissolve(room);
-                }
-            } catch (Exception e) {
-                log.error("关服清理协作房间异常 roomId={}", room.getRoomId(), e);
-            }
-        }
+    }
+
+    public int activeRoomCount() {
+        return rooms.size();
     }
 
     /**
@@ -738,7 +769,9 @@ public class CoopRoomManager {
                             }
                         }
                         case CoopTaskConst.RoomStatus.FINISHED -> {
-                            if (now - room.getFinishTime() > SlotsConst.FINISHED_RETAIN_MS) {
+                            if (!room.isSettlementAcked()) {
+                                requestSettlement(room);
+                            } else if (now - room.getFinishTime() > SlotsConst.FINISHED_RETAIN_MS) {
                                 dissolve(room);
                             }
                         }
@@ -748,6 +781,76 @@ public class CoopRoomManager {
                 }
             } catch (Exception e) {
                 log.error("协作房间GC异常 roomId={}", room.getRoomId(), e);
+            }
+        }
+    }
+
+    /**
+     * 恢复当前节点在 Redis 中尚未回收的房间。等待房间可继续加入；运行中房间因进度仅在内存，
+     * 节点重启后按失败结算；已完成但未收到 sim ACK 的房间恢复结算载荷并继续重投。
+     */
+    private void recoverRooms() {
+        List<CoopRoomRecord> records;
+        try {
+            records = roomRecordDao.findByNodePath(marsCurator.nodePath);
+        } catch (Exception e) {
+            log.error("扫描待恢复协作房间失败 nodePath={}", marsCurator.nodePath, e);
+            return;
+        }
+        if (records == null || records.isEmpty()) {
+            return;
+        }
+        for (CoopRoomRecord record : records) {
+            try {
+                CoopTaskRule rule = coopTaskConfigService.ruleOf(record.getTaskId());
+                if (rule == null) {
+                    log.error("恢复协作房间失败,任务规则缺失 roomId={},taskId={}",
+                            record.getRoomId(), record.getTaskId());
+                    continue;
+                }
+                CoopRoom room = new CoopRoom(record.getRoomId(), record.getTaskId(), record.getOwnerId(),
+                        record.getGameType(), record.getRoomCfgId(), rule, record.getCreateTime());
+                for (Long memberId : record.getMemberIds()) {
+                    if (memberId != null) {
+                        room.addMember(memberId);
+                    }
+                }
+                if (record.getStatus() == CoopTaskConst.RoomStatus.WAITING) {
+                    room.setStatus(CoopTaskConst.RoomStatus.WAITING);
+                    for (CoopMember member : room.getMembers().values()) {
+                        if (roomRecordDao.acquirePlayerRoom(member.getPlayerId(), room.getRoomId())) {
+                            memberRoomIndex.put(member.getPlayerId(), room.getRoomId());
+                        }
+                    }
+                    rooms.putIfAbsent(room.getRoomId(), room);
+                    continue;
+                }
+
+                long finishTime = record.getStatus() == CoopTaskConst.RoomStatus.FINISHED
+                        && record.getFinishTime() > 0 ? record.getFinishTime() : System.currentTimeMillis();
+                boolean success = record.getStatus() == CoopTaskConst.RoomStatus.FINISHED && record.isSuccess();
+                List<Long> helperIds = record.getSettlementHelperIds().isEmpty()
+                        ? record.getMemberIds().stream().filter(id -> id != null && id != record.getOwnerId()).toList()
+                        : record.getSettlementHelperIds();
+                room.setStatus(CoopTaskConst.RoomStatus.FINISHED);
+                room.setFinishTime(finishTime);
+                room.setSuccess(success);
+                room.setSharedProgress(record.getSharedProgress());
+                room.setSettlementHelperIds(helperIds);
+                for (CoopMember member : room.getMembers().values()) {
+                    roomRecordDao.releasePlayerRoom(member.getPlayerId(), room.getRoomId());
+                }
+                rooms.putIfAbsent(room.getRoomId(), room);
+                if (record.getStatus() == CoopTaskConst.RoomStatus.RUNNING) {
+                    updateRecord(room);
+                }
+                synchronized (room) {
+                    requestSettlement(room);
+                }
+                log.info("恢复未确认协作房间 roomId={},originalStatus={},success={}",
+                        room.getRoomId(), record.getStatus(), success);
+            } catch (Exception e) {
+                log.error("恢复协作房间异常 roomId={}", record.getRoomId(), e);
             }
         }
     }
@@ -765,7 +868,8 @@ public class CoopRoomManager {
             return room;
         }
         CoopRoomRecord record = roomRecordDao.get(roomId);
-        if (record == null || !marsCurator.nodePath.equals(record.getNodePath())) {
+        if (record == null || !marsCurator.nodePath.equals(record.getNodePath())
+                || record.getStatus() != CoopTaskConst.RoomStatus.WAITING) {
             return null;
         }
         CoopTaskRule rule = coopTaskConfigService.ruleOf(record.getTaskId());
@@ -773,8 +877,17 @@ public class CoopRoomManager {
             log.error("协作房间任务规则解析失败 roomId={},taskId={}", roomId, record.getTaskId());
             return null;
         }
-        return rooms.computeIfAbsent(roomId, k -> new CoopRoom(record.getRoomId(), record.getTaskId(),
-                record.getOwnerId(), record.getGameType(), record.getRoomCfgId(), rule));
+        return rooms.computeIfAbsent(roomId, k -> {
+            CoopRoom created = new CoopRoom(record.getRoomId(), record.getTaskId(),
+                    record.getOwnerId(), record.getGameType(), record.getRoomCfgId(), rule);
+            for (Long memberId : record.getMemberIds()) {
+                if (memberId != null && roomRecordDao.acquirePlayerRoom(memberId, roomId)) {
+                    created.addMember(memberId);
+                    memberRoomIndex.put(memberId, roomId);
+                }
+            }
+            return created;
+        });
     }
 
     private CoopRoom roomOf(long playerId) {
@@ -784,6 +897,10 @@ public class CoopRoomManager {
 
     private void removeRoom(CoopRoom room) {
         rooms.remove(room.getRoomId());
+        for (CoopMember member : room.getMembers().values()) {
+            memberRoomIndex.remove(member.getPlayerId(), room.getRoomId());
+            roomRecordDao.releasePlayerRoom(member.getPlayerId(), room.getRoomId());
+        }
         try {
             roomRecordDao.delete(room.getRoomId());
         } catch (Exception e) {
@@ -796,6 +913,14 @@ public class CoopRoomManager {
      */
     private void updateRecord(CoopRoom room) {
         try {
+            if (room.getStatus() != CoopTaskConst.RoomStatus.FINISHED) {
+                for (CoopMember member : room.getMembers().values()) {
+                    if (!roomRecordDao.acquirePlayerRoom(member.getPlayerId(), room.getRoomId())) {
+                        log.error("刷新协作房间成员租约失败 playerId={},roomId={}",
+                                member.getPlayerId(), room.getRoomId());
+                    }
+                }
+            }
             CoopRoomRecord record = new CoopRoomRecord();
             record.setRoomId(room.getRoomId());
             record.setTaskId(room.getTaskId());
@@ -807,6 +932,10 @@ public class CoopRoomManager {
             record.setMemberIds(new ArrayList<>(room.getMembers().keySet()));
             record.setMaxMembers(room.getRule().maxMembers());
             record.setCreateTime(room.getCreateTime());
+            record.setSuccess(room.isSuccess());
+            record.setFinishTime(room.getFinishTime());
+            record.setSharedProgress(room.getSharedProgress());
+            record.setSettlementHelperIds(room.getSettlementHelperIds());
             roomRecordDao.save(record);
         } catch (Exception e) {
             //记录仅影响 hall 预检查, 失败不阻断房间流程
@@ -901,9 +1030,19 @@ public class CoopRoomManager {
      * 锁外批量下发 (把高频广播的实际网络 IO 移出房间锁)。
      */
     private void sendAll(List<PlayerController> receivers, Object msg) {
+        if (receivers == null || receivers.isEmpty()) {
+            return;
+        }
+        PFMessage pfMessage;
+        try {
+            pfMessage = MessageUtil.getPFMessage(msg);
+        } catch (Exception e) {
+            log.warn("协作房间批量消息序列化失败 receivers={}", receivers.size(), e);
+            return;
+        }
         for (PlayerController pc : receivers) {
             try {
-                pc.send(msg);
+                pc.send(pfMessage);
             } catch (Exception e) {
                 log.warn("协作房间消息下发失败 playerId={}", pc.playerId(), e);
             }

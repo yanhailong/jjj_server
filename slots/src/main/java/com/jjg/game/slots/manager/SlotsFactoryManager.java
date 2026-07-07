@@ -140,9 +140,9 @@ public class SlotsFactoryManager {
      * 关闭工厂
      */
     public void shutdown() {
-        closeGameManager();
-        //先结算协作房间 (进行中判负回写任务态), 再关房间管理器
+        //摘流后必须先确认协作房间已全部自然结束；有房间时拒绝关闭且不修改任何游戏管理器状态
         this.coopRoomManager.shutdown();
+        closeGameManager();
         this.slotsRoomManager.shutDown();
     }
 }

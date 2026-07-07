@@ -27,8 +27,6 @@ public class BuildingAreaTableCfg extends BaseCfgBean {
   protected int MaxLevel;
   /** 场景ID */
   protected int RegionID;
-  /** 序列ID */
-  protected int SequenceID;
   /** 解锁消耗 */
   protected Map<Integer,Long> UnlockCost;
   /** 解锁方式 */
@@ -56,11 +54,6 @@ public class BuildingAreaTableCfg extends BaseCfgBean {
   /** 返回场景ID */
   public int getRegionID() {
     return RegionID;
-  }
-
-  /** 返回序列ID */
-  public int getSequenceID() {
-    return SequenceID;
   }
 
   /** 返回解锁消耗 */

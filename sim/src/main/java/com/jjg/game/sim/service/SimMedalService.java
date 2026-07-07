@@ -1,10 +1,8 @@
 package com.jjg.game.sim.service;
 
 import com.jjg.game.core.constant.Code;
-import com.jjg.game.core.data.PlayerPack;
 import com.jjg.game.core.data.RankChange;
 import com.jjg.game.core.data.RankEntry;
-import com.jjg.game.core.service.PlayerPackService;
 import com.jjg.game.core.service.RankService;
 import com.jjg.game.sampledata.GameDataManager;
 import com.jjg.game.sampledata.bean.ItemCfg;
@@ -21,16 +19,11 @@ import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 
-import java.util.ArrayList;
-import java.util.Collections;
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
+import java.util.*;
 
 /**
  * 成就勋章服务: 勋章激活判定、品质统计、全服排行、品质加成 (MedalBuff)。
  * <p>
- * 勋章"激活"= 玩家背包持有 {@link MedalListCfg#getNeedItemId()} 勋章道具 (成就任务链末节点奖励);
  * 勋章"品质"取自勋章道具 {@link ItemCfg#getQuality()} (1精英/2大亨/3富翁/4神豪)。
  * 全服排行以"已激活勋章数"为分值, 惰性写入 (仅打开面板/领奖后且分值变化时更新), 避免登录全量写 Redis。
  *
@@ -55,8 +48,6 @@ public class SimMedalService {
     private static final int COND_AD_GOLD = 12408;        //广告金币收益增加
 
     @Autowired
-    private PlayerPackService playerPackService;
-    @Autowired
     private RankService rankService;
 
     // =====================================================================
@@ -64,38 +55,36 @@ public class SimMedalService {
     // =====================================================================
 
     /**
-     * 玩家已激活勋章配置id列表 (按配置顺序)。激活 = 背包持有该勋章的 NeedItemId 道具。
+     * 玩家已激活勋章配置id列表 (按配置顺序)
      */
-    public List<Integer> getActivatedMedalIds(long playerId) {
+    public List<Integer> getActivatedMedalIds(SimPlayerContext ctx) {
+        if (ctx.getSimBaseData().getAllMedalIds() == null) {
+            return Collections.emptyList();
+        }
+
         List<MedalListCfg> configs = GameDataManager.getMedalListCfgList();
         if (configs == null || configs.isEmpty()) {
             return Collections.emptyList();
         }
-        PlayerPack pack = playerPackService.getFromAllDB(playerId);
-        if (pack == null) {
-            return Collections.emptyList();
-        }
+        Set<Integer> activated = ctx.getSimBaseData().getAllMedalIds();
         List<Integer> result = new ArrayList<>();
         for (MedalListCfg cfg : configs) {
-            if (isActivated(cfg, pack)) {
-                result.add(cfg.getId());
+            if (cfg == null || !cfg.getIsOpen() || !activated.contains(cfg.getId())) {
+                continue;
             }
+            result.add(cfg.getId());
         }
         return result;
-    }
-
-    private boolean isActivated(MedalListCfg cfg, PlayerPack pack) {
-        return cfg != null && cfg.getIsOpen() && cfg.getNeedItemId() > 0 && pack.getItemCount(cfg.getNeedItemId()) > 0;
     }
 
     /**
      * 勋章品质 (取自勋章道具品质); 配置缺失返回 0。
      */
     private int qualityOf(MedalListCfg cfg) {
-        if (cfg == null || cfg.getNeedItemId() <= 0) {
+        if (cfg == null) {
             return 0;
         }
-        ItemCfg item = GameDataManager.getItemCfg(cfg.getNeedItemId());
+        ItemCfg item = GameDataManager.getItemCfg(cfg.getId());
         return item == null ? 0 : item.getQuality();
     }
 
@@ -110,26 +99,23 @@ public class SimMedalService {
     public ResMedalPanel buildMedalPanel(SimPlayerContext ctx) {
         ResMedalPanel res = new ResMedalPanel(Code.SUCCESS);
         long playerId = ctx.playerId();
-        List<MedalListCfg> configs = GameDataManager.getMedalListCfgList();
         List<Integer> activated = new ArrayList<>();
         int[] qualityCount = new int[QUALITY_MAX + 1];
         int total = 0;
-        if (configs != null && !configs.isEmpty()) {
-            PlayerPack pack = playerPackService.getFromAllDB(playerId);
-            for (MedalListCfg cfg : configs) {
-                if (cfg == null || !cfg.getIsOpen()) {
-                    continue;
-                }
-                total++;
-                if (pack != null && isActivated(cfg, pack)) {
-                    activated.add(cfg.getId());
-                    int q = qualityOf(cfg);
-                    if (q >= QUALITY_MIN && q <= QUALITY_MAX) {
-                        qualityCount[q]++;
-                    }
-                }
+
+        for (MedalListCfg cfg : GameDataManager.getMedalListCfgList()) {
+            if (cfg == null || !cfg.getIsOpen()) {
+                continue;
+            }
+            total++;
+
+            if (ctx.getSimBaseData().getAllMedalIds() != null && ctx.getSimBaseData().getAllMedalIds().contains(cfg.getId())) {
+                activated.add(cfg.getId());
+                int q = qualityOf(cfg);
+                qualityCount[q]++;
             }
         }
+
         res.activatedMedalIds = activated;
         res.totalMedalCount = total;
         res.qualityInfos = buildQualityInfos(qualityCount);
@@ -145,7 +131,7 @@ public class SimMedalService {
      * @param ctx
      * @return
      */
-    public ResChangeShowMedal changeShowMwdal(SimPlayerContext ctx, List<Integer> newMedalIds) {
+    public ResChangeShowMedal changeShowMedal(SimPlayerContext ctx, List<Integer> newMedalIds) {
         ResChangeShowMedal res = new ResChangeShowMedal(Code.SUCCESS);
 
         if (newMedalIds == null || newMedalIds.isEmpty()) {
@@ -162,12 +148,16 @@ public class SimMedalService {
             return res;
         }
 
-        PlayerPack pack = playerPackService.getFromAllDB(ctx.playerId());
         for (int newMedalId : newMedalIds) {
-            MedalListCfg medalListCfg = GameDataManager.getMedalListCfg(newMedalId);
-            if (isActivated(medalListCfg, pack)) {
+            if (ctx.getSimBaseData().getAllMedalIds() == null || !ctx.getSimBaseData().getAllMedalIds().contains(newMedalId)) {
                 res.code = Code.PARAM_ERROR;
                 log.warn("新增展示勋章时，该勋章未激活 playerId={},newMedalIds={},newMedalId={}", ctx.playerId(), newMedalIds, newMedalId);
+                return res;
+            }
+            MedalListCfg medalListCfg = GameDataManager.getMedalListCfg(newMedalId);
+            if (medalListCfg == null || !medalListCfg.getIsOpen()) {
+                res.code = Code.SAMPLE_ERROR;
+                log.warn("新增展示勋章时，该勋章配置错误 playerId={},newMedalIds={},newMedalId={}", ctx.playerId(), newMedalIds, newMedalId);
                 return res;
             }
         }
@@ -223,11 +213,11 @@ public class SimMedalService {
     /**
      * 领奖后勋章数可能变化时惰性刷新榜单分值 (仅在与现有分值不一致时写入)。
      */
-    public void refreshRankScore(long playerId) {
+    public void refreshRankScore(SimPlayerContext ctx) {
         try {
-            syncRankScore(playerId, getActivatedMedalIds(playerId).size());
+            syncRankScore(ctx.playerId(), getActivatedMedalIds(ctx).size());
         } catch (Exception e) {
-            log.warn("刷新勋章榜分值失败 playerId={}", playerId, e);
+            log.warn("刷新勋章榜分值失败 playerId={}", ctx.playerId(), e);
         }
     }
 
@@ -274,25 +264,23 @@ public class SimMedalService {
      * 每品质取"达标最高档", 合并其 {@code MedalBuff.BuffId} (key 指向 condition 表的加成属性定义)。
      * 例: 精英收集5→12405(产金币建筑收益+1000‰), 神豪收集8→12408(广告金币收益+2000‰)。
      */
-    public Map<Integer, Integer> calcActiveMedalBuffs(long playerId) {
+    public Map<Integer, Integer> calcActiveMedalBuffs(SimPlayerContext ctx) {
         Map<Integer, Integer> merged = new HashMap<>();
-        List<MedalListCfg> configs = GameDataManager.getMedalListCfgList();
-        if (configs == null || configs.isEmpty()) {
-            return merged;
-        }
-        PlayerPack pack = playerPackService.getFromAllDB(playerId);
-        if (pack == null) {
-            return merged;
-        }
         int[] qualityCount = new int[QUALITY_MAX + 1];
-        for (MedalListCfg cfg : configs) {
-            if (isActivated(cfg, pack)) {
-                int q = qualityOf(cfg);
+
+        if (ctx.getSimBaseData().getAllMedalIds() != null) {
+            for (int id : ctx.getSimBaseData().getAllMedalIds()) {
+                MedalListCfg medalListCfg = GameDataManager.getMedalListCfg(id);
+                if (medalListCfg == null || !medalListCfg.getIsOpen()) {
+                    continue;
+                }
+                int q = qualityOf(medalListCfg);
                 if (q >= QUALITY_MIN && q <= QUALITY_MAX) {
                     qualityCount[q]++;
                 }
             }
         }
+
         for (int q = QUALITY_MIN; q <= QUALITY_MAX; q++) {
             int cfgId = activatedBuffCfg(q, qualityCount[q]);
             if (cfgId <= 0) {
@@ -314,7 +302,7 @@ public class SimMedalService {
             return;
         }
         try {
-            ctx.setMedalBuffMap(calcActiveMedalBuffs(ctx.playerId()));
+            ctx.setMedalBuffMap(calcActiveMedalBuffs(ctx));
         } catch (Exception e) {
             log.warn("刷新勋章加成缓存失败 playerId={}", ctx.playerId(), e);
         }

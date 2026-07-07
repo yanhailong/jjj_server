@@ -170,6 +170,7 @@ public class GameDataManager {
     containerMap.put(FreespinCfg.class, new FreespinCfgContainer());
     containerMap.put(GameFunctionCfg.class, new GameFunctionCfgContainer());
     containerMap.put(GameListCfg.class, new GameListCfgContainer());
+    containerMap.put(GiftListCfg.class, new GiftListCfgContainer());
     containerMap.put(GiftPackCfg.class, new GiftPackCfgContainer());
     containerMap.put(GlobalConfigCfg.class, new GlobalConfigCfgContainer());
     containerMap.put(GrowthFundCfg.class, new GrowthFundCfgContainer());
@@ -197,6 +198,7 @@ public class GameDataManager {
     containerMap.put(PoolListCfg.class, new PoolListCfgContainer());
     containerMap.put(PoolResultLibCfg.class, new PoolResultLibCfgContainer());
     containerMap.put(PoolResultsCfg.class, new PoolResultsCfgContainer());
+    containerMap.put(PopularityRankingCfg.class, new PopularityRankingCfgContainer());
     containerMap.put(PrivilegeCardCfg.class, new PrivilegeCardCfgContainer());
     containerMap.put(PropCfg.class, new PropCfgContainer());
     containerMap.put(ResearchInstituteCfg.class, new ResearchInstituteCfgContainer());
@@ -1257,6 +1259,18 @@ public class GameDataManager {
     return getInstance().getCfgContainer(GameListCfg.class).getCfgBeanList();
   }
 
+  public static GiftListCfg getGiftListCfg(int key) {
+    return getInstance().getCfgContainer(GiftListCfg.class).getCfgBeanMap().get(key);
+  }
+
+  public static Map<Integer, GiftListCfg> getGiftListCfgMap() {
+    return getInstance().getCfgContainer(GiftListCfg.class).getCfgBeanMap();
+  }
+
+  public static List<GiftListCfg> getGiftListCfgList() {
+    return getInstance().getCfgContainer(GiftListCfg.class).getCfgBeanList();
+  }
+
   public static GiftPackCfg getGiftPackCfg(int key) {
     return getInstance().getCfgContainer(GiftPackCfg.class).getCfgBeanMap().get(key);
   }
@@ -1579,6 +1593,18 @@ public class GameDataManager {
 
   public static List<PoolResultsCfg> getPoolResultsCfgList() {
     return getInstance().getCfgContainer(PoolResultsCfg.class).getCfgBeanList();
+  }
+
+  public static PopularityRankingCfg getPopularityRankingCfg(int key) {
+    return getInstance().getCfgContainer(PopularityRankingCfg.class).getCfgBeanMap().get(key);
+  }
+
+  public static Map<Integer, PopularityRankingCfg> getPopularityRankingCfgMap() {
+    return getInstance().getCfgContainer(PopularityRankingCfg.class).getCfgBeanMap();
+  }
+
+  public static List<PopularityRankingCfg> getPopularityRankingCfgList() {
+    return getInstance().getCfgContainer(PopularityRankingCfg.class).getCfgBeanList();
   }
 
   public static PrivilegeCardCfg getPrivilegeCardCfg(int key) {

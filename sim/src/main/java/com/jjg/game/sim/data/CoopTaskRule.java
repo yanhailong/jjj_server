@@ -19,6 +19,6 @@ package com.jjg.game.sim.data;
  * @date 2026/7/6
  */
 public record CoopTaskRule(int taskId, int conditionId, int gameType, int spinBudget,
-                           int modeId, int modeCount, int minMembers, int maxMembers,
+                           int modeId, long modeCount, int minMembers, int maxMembers,
                            int durationMinutes) {
 }

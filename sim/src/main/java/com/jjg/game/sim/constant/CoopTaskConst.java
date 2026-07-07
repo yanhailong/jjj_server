@@ -11,6 +11,21 @@ public interface CoopTaskConst {
     //房主单次频道邀请的最大目标数 (防客户端构造超大列表放大跨节点 RPC/聊天)
     int MAX_INVITE_TARGETS = 30;
 
+    interface Limits {
+        int MAX_MEMBERS = 8;
+        int MAX_DURATION_MINUTES = 120;
+        int MAX_SPIN_BUDGET = 1_000_000;
+        int MAX_DAILY_POOL_COUNT = 50;
+        int MAX_DAILY_CLAIM_COUNT = 10;
+    }
+
+    interface Condition {
+        int SPECIAL_MODE_COUNT = 12501;
+        int TOTAL_WIN = 12502;
+        int BIG_WIN_COUNT = 12503;
+        int TOTAL_BET = 12504;
+    }
+
     /**
      * 玩家已领取任务的状态机
      */
@@ -40,7 +55,8 @@ public interface CoopTaskConst {
     interface Redis {
         //协作房间路由记录 key 前缀 (value = CoopRoomRecord JSON)
         String ROOM_KEY_PREFIX = "coopRoom:";
+        String PLAYER_ROOM_KEY_PREFIX = "coopPlayerRoom:";
         //房间记录兜底 TTL(秒): 覆盖最长任务时限, 节点崩溃后记录自动过期, 任务层自愈回退
-        long ROOM_TTL_SECONDS = 24 * 3600;
+        long ROOM_TTL_SECONDS = 4 * 3600;
     }
 }

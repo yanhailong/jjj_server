@@ -12,7 +12,7 @@ import com.jjg.game.slots.constant.SlotsConst;
  * @author 11
  * @date 2026/7/6
  */
-@ProtobufMessage(messageType = MessageConst.MessageTypeDef.COOP_ROOM, cmd = SlotsConst.SlotsCommon.NOTIFY_COOP_ROOM_RESULT, resp = true)
+@ProtobufMessage(messageType = MessageConst.MessageTypeDef.SLOTS_COMMON, cmd = SlotsConst.SlotsCommon.NOTIFY_COOP_ROOM_RESULT, resp = true)
 @ProtoDesc("协作任务结算广播")
 public class NotifyCoopRoomResult extends AbstractResponse {
     @ProtoDesc("任务配置id")
@@ -20,9 +20,9 @@ public class NotifyCoopRoomResult extends AbstractResponse {
     @ProtoDesc("是否完成")
     public boolean success;
     @ProtoDesc("共享特殊事件最终累计")
-    public int sharedProgress;
+    public long sharedProgress;
     @ProtoDesc("共享特殊事件目标")
-    public int sharedTarget;
+    public long sharedTarget;
     @ProtoDesc("房间自动解散时间 (倒计时用, ms)")
     public long dissolveTime;
 

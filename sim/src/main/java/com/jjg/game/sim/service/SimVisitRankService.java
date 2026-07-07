@@ -9,6 +9,8 @@ import com.jjg.game.core.service.CorePlayerService;
 import com.jjg.game.core.service.MailService;
 import com.jjg.game.core.service.RankService;
 import com.jjg.game.core.utils.ItemUtils;
+import com.jjg.game.sampledata.GameDataManager;
+import com.jjg.game.sampledata.bean.PopularityRankingCfg;
 import com.jjg.game.sim.dao.SimCasinoDao;
 import com.jjg.game.sim.pb.res.ResVisitRank;
 import com.jjg.game.sim.pb.struct.VisitRankInfo;
@@ -44,20 +46,17 @@ public class SimVisitRankService {
     private final RankService rankService;
     private final CorePlayerService corePlayerService;
     private final SimCasinoDao simCasinoDao;
-    private final SimVisitConfigService configService;
     private final MailService mailService;
     private final RedissonClient redissonClient;
 
     public SimVisitRankService(RankService rankService,
                                CorePlayerService corePlayerService,
                                SimCasinoDao simCasinoDao,
-                               SimVisitConfigService configService,
                                MailService mailService,
                                RedissonClient redissonClient) {
         this.rankService = rankService;
         this.corePlayerService = corePlayerService;
         this.simCasinoDao = simCasinoDao;
-        this.configService = configService;
         this.mailService = mailService;
         this.redissonClient = redissonClient;
     }
@@ -115,7 +114,7 @@ public class SimVisitRankService {
         info.headFrameId = player.getHeadFrameId();
         info.casinoLevel = casinoLevels.getOrDefault(entry.getPlayerId(), 0);
         info.popularity = entry.getPoints();
-        Map<Integer, Long> rewards = rewardForRank(configService.getRankRewardConfig(), info.rank);
+        Map<Integer, Long> rewards = rewardForRank(info.rank);
         info.rewards = rewards.isEmpty() ? Collections.emptyList() : ItemUtils.buildItemInfo(rewards);
         return info;
     }
@@ -141,7 +140,7 @@ public class SimVisitRankService {
             }
             List<RankEntry> entries = rankService.topN(oldKey, SHOW_COUNT);
             for (RankEntry entry : entries) {
-                Map<Integer, Long> rewards = rewardForRank(configService.getRankRewardConfig(), (int) entry.getRank());
+                Map<Integer, Long> rewards = rewardForRank((int) entry.getRank());
                 if (rewards.isEmpty()) {
                     continue;
                 }
@@ -169,40 +168,23 @@ public class SimVisitRankService {
         return rankKey(day.minusMonths(1));
     }
 
-    static Map<Integer, Long> rewardForRank(String config, int rank) {
-        if (config == null || config.isBlank() || rank <= 0) {
+    /**
+     * PopularityRanking 表 ranking 列: 单值为精确名次, 两值为名次区间 [from, to]。
+     */
+    static Map<Integer, Long> rewardForRank(int rank) {
+        if (rank <= 0) {
             return Collections.emptyMap();
         }
-        for (String tier : config.split("\\|")) {
-            String[] parts = tier.split(":", 2);
-            if (parts.length != 2) {
+        for (PopularityRankingCfg cfg : GameDataManager.getPopularityRankingCfgList()) {
+            List<Integer> ranking = cfg.getRanking();
+            if (ranking == null || ranking.isEmpty()) {
                 continue;
             }
-            String[] range = parts[0].split("-");
-            if (range.length != 2) {
-                continue;
-            }
-            try {
-                int from = Integer.parseInt(range[0].trim());
-                int to = Integer.parseInt(range[1].trim());
-                if (rank < from || rank > to) {
-                    continue;
-                }
-                Map<Integer, Long> rewards = new HashMap<>();
-                for (String item : parts[1].split(",")) {
-                    String[] pair = item.split("_");
-                    if (pair.length != 2) {
-                        continue;
-                    }
-                    int itemId = Integer.parseInt(pair[0].trim());
-                    long count = Long.parseLong(pair[1].trim());
-                    if (itemId > 0 && count > 0) {
-                        rewards.merge(itemId, count, Long::sum);
-                    }
-                }
-                return rewards;
-            } catch (NumberFormatException ignored) {
-                //跳过损坏档位
+            int from = ranking.get(0);
+            int to = ranking.size() > 1 ? ranking.get(1) : from;
+            if (rank >= from && rank <= to) {
+                Map<Integer, Long> rewards = cfg.getGetItem();
+                return rewards == null ? Collections.emptyMap() : rewards;
             }
         }
         return Collections.emptyMap();

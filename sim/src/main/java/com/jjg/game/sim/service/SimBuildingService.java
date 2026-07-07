@@ -58,6 +58,33 @@ public class SimBuildingService implements SimPlayerTickListener {
     @Override
     public void onTick(SimPlayerContext ctx, long now) {
         output(ctx, now);
+        checkBuildingUpgradeComplete(ctx, now);
+    }
+
+    /**
+     * 检测建筑升级 CD 是否到时: 到时由服务器完成升级并主动下发 ResCompleteBuildingUpgrade。
+     * 取代客户端 CD 结束后主动请求完成的旧逻辑 (请求路径保留为幂等兜底)。
+     */
+    private void checkBuildingUpgradeComplete(SimPlayerContext ctx, long now) {
+        try {
+            SimCasinoData casino = ctx.getCurrentCasino();
+            if (casino == null || casino.getBuildingData() == null || casino.getBuildingData().isEmpty()) {
+                return;
+            }
+            for (BuildingData data : casino.getBuildingData().values()) {
+                //未处于升级 CD 的跳过
+                if (data.getCdEndTime() <= 0) {
+                    continue;
+                }
+                //应用联盟加速 (可能使 CD 提前到时)
+                applyAllianceSpeedup(ctx.playerId(), data, now);
+                if (data.isUpgradeReady(now)) {
+                    onCompleteBuildingUpgrade(ctx, data.getId());
+                }
+            }
+        } catch (Exception e) {
+            log.error("检测建筑升级完成异常 playerId={}", ctx.playerId(), e);
+        }
     }
 
     @Override
@@ -287,7 +314,6 @@ public class SimBuildingService implements SimPlayerTickListener {
                     data.setProgress(data.getProgress() + 1);
                     res.buildingInfo = SimPbConverter.toBuildingInfo(data);
                     ctx.send(res);
-
                     log.info("建筑增加进度条 playerId={},buildingInfo={}", ctx.playerId(), JSON.toJSONString(res.buildingInfo));
                     return;
                 }
@@ -434,7 +460,6 @@ public class SimBuildingService implements SimPlayerTickListener {
                 long reduceMs = (long) costCount * TimeHelper.ONE_MINUTE_OF_MILLIS;
                 data.setCdEndTime(data.getCdEndTime() - reduceMs);
             }
-
             res.buildingInfo = SimPbConverter.toBuildingInfo(data);
             log.info("清除建筑升级CD playerId={},buildingId={},watchAd={},costCount={},level={},cdEndTime={}", ctx.playerId(), buildingId, watchAd, costCount, data.getLevel(), data.getCdEndTime());
         } catch (Exception e) {
@@ -598,7 +623,7 @@ public class SimBuildingService implements SimPlayerTickListener {
                 //能量房间: 休息区 POWER 产量
                 result.merge(SimStatKey.Operation.ENERGY_ROOM, actual.getOrDefault(BuildingOutputType.POWER, 0L), Long::sum);
             } else {
-                //BuildingAreaTable.SequenceID: 1~6 SLOT, 7~9 扑克, 10~12 捕鱼
+                //按建筑ID末两位区分: 1~6 SLOT, 7~9 扑克, 10~12 捕鱼
                 long gold = actual.getOrDefault(BuildingOutputType.GOLD, 0L);
                 result.merge(SimStatKey.Operation.GOLD_INCOME, gold, Long::sum);
                 int statKey = resolveGameRoomStatKey(areaCfg);
@@ -614,7 +639,8 @@ public class SimBuildingService implements SimPlayerTickListener {
         if (areaCfg == null) {
             return 0;
         }
-        int sequenceId = areaCfg.getSequenceID();
+        //游戏区建筑ID末两位即原 SequenceID: 1~6 SLOT, 7~9 扑克, 10~12 捕鱼
+        int sequenceId = areaCfg.getId() % 100;
         if (sequenceId >= 1 && sequenceId <= 6) {
             return SimStatKey.Operation.GOLD_INCOME;
         }

@@ -29,9 +29,9 @@ public class CoopRoomSnapshot {
     @ProtoDesc("总人数上限")
     public int maxMembers;
     @ProtoDesc("共享特殊事件目标")
-    public int sharedTarget;
+    public long sharedTarget;
     @ProtoDesc("共享特殊事件累计")
-    public int sharedProgress;
+    public long sharedProgress;
     @ProtoDesc("任务截止时间 (开始后有效, 0=不限, ms)")
     public long deadline;
 }

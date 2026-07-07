@@ -307,6 +307,8 @@ public enum AddType {
     SIM_COOP_ASSIST_REWARD(1818),
     //多人任务房间互动道具消耗
     SIM_COOP_ROOM_GIFT(1819),
+    //多人任务房间互动道具失败返还
+    SIM_COOP_ROOM_GIFT_REFUND(1820),
 
     //创建联盟
     ALLIANCE_CREATE(2001),

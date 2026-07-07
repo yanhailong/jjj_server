@@ -39,21 +39,31 @@ public class CoopRoom {
     private volatile long lastInviteTime;
 
     //全队共享特殊事件累计
-    private int sharedProgress;
+    private long sharedProgress;
     private long startTime;
     //失败兜底时限 (start + rule.durationMinutes; 0=不限)
     private long deadline;
     private long finishTime;
     private boolean success;
+    //结算必须由 sim 明确确认后才能删除 Redis 路由记录和回收房间
+    private boolean settlementAcked;
+    private boolean settlementInFlight;
+    private long lastSettlementAttempt;
+    private List<Long> settlementHelperIds = List.of();
 
     public CoopRoom(long roomId, int taskId, long ownerId, int gameType, int roomCfgId, CoopTaskRule rule) {
+        this(roomId, taskId, ownerId, gameType, roomCfgId, rule, System.currentTimeMillis());
+    }
+
+    public CoopRoom(long roomId, int taskId, long ownerId, int gameType, int roomCfgId,
+                    CoopTaskRule rule, long createTime) {
         this.roomId = roomId;
         this.taskId = taskId;
         this.ownerId = ownerId;
         this.gameType = gameType;
         this.roomCfgId = roomCfgId;
         this.rule = rule;
-        this.createTime = System.currentTimeMillis();
+        this.createTime = createTime;
     }
 
     public CoopMember addMember(long playerId) {
@@ -119,11 +129,11 @@ public class CoopRoom {
         this.lastInviteTime = lastInviteTime;
     }
 
-    public int getSharedProgress() {
+    public long getSharedProgress() {
         return sharedProgress;
     }
 
-    public void setSharedProgress(int sharedProgress) {
+    public void setSharedProgress(long sharedProgress) {
         this.sharedProgress = sharedProgress;
     }
 
@@ -157,5 +167,37 @@ public class CoopRoom {
 
     public void setSuccess(boolean success) {
         this.success = success;
+    }
+
+    public boolean isSettlementAcked() {
+        return settlementAcked;
+    }
+
+    public void setSettlementAcked(boolean settlementAcked) {
+        this.settlementAcked = settlementAcked;
+    }
+
+    public boolean isSettlementInFlight() {
+        return settlementInFlight;
+    }
+
+    public void setSettlementInFlight(boolean settlementInFlight) {
+        this.settlementInFlight = settlementInFlight;
+    }
+
+    public long getLastSettlementAttempt() {
+        return lastSettlementAttempt;
+    }
+
+    public void setLastSettlementAttempt(long lastSettlementAttempt) {
+        this.lastSettlementAttempt = lastSettlementAttempt;
+    }
+
+    public List<Long> getSettlementHelperIds() {
+        return settlementHelperIds;
+    }
+
+    public void setSettlementHelperIds(List<Long> settlementHelperIds) {
+        this.settlementHelperIds = List.copyOf(settlementHelperIds);
     }
 }

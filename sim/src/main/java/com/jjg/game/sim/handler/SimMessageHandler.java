@@ -4,6 +4,7 @@ import com.jjg.game.common.constant.MessageConst;
 import com.jjg.game.common.pb.AbstractResponse;
 import com.jjg.game.common.protostuff.Command;
 import com.jjg.game.common.protostuff.MessageType;
+import com.jjg.game.core.constant.AddType;
 import com.jjg.game.core.constant.Code;
 import com.jjg.game.core.data.CommonResult;
 import com.jjg.game.core.data.PlayerController;
@@ -17,14 +18,13 @@ import com.jjg.game.sim.manager.SimPlayerContextRegistry;
 import com.jjg.game.sim.pb.req.*;
 import com.jjg.game.sim.pb.res.*;
 import com.jjg.game.sim.service.*;
-import com.jjg.game.sim.pb.req.ReqSimTaskList;
-import com.jjg.game.sim.pb.req.ReqSimTaskReward;
-import com.jjg.game.sim.service.SimTaskService;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Component;
 
+import java.util.HashMap;
+import java.util.Map;
 import java.util.function.Consumer;
 import java.util.function.Function;
 import java.util.function.IntFunction;
@@ -69,6 +69,8 @@ public class SimMessageHandler implements GmListener {
     private SimCoopTaskService coopTaskService;
     @Autowired
     private SimCoopRoomRouteService coopRoomRouteService;
+    @Autowired
+    private SimPackService simPackService;
 
 
     /**
@@ -279,7 +281,7 @@ public class SimMessageHandler implements GmListener {
     @Command(SimConstant.MsgBean.REQ_GEN_PURCHASED_GUEST)
     public void reqGenPurchasedGuest(PlayerController playerController, ReqGenPurchasedGuest req) {
         execute(playerController, ctx -> {
-            guestService.generatePurchasedGuest(ctx, req.guestId);
+            guestService.generatePurchasedGuest(ctx, req.guestId, req.count);
         });
     }
 
@@ -415,7 +417,7 @@ public class SimMessageHandler implements GmListener {
      */
     @Command(SimConstant.MsgBean.REQ_CHANGE_SHOW_MEDAL)
     public void reqChangeShowMwdal(PlayerController playerController, ReqChangeShowMedal req) {
-        execute(playerController, ctx -> ctx.send(medalService.changeShowMwdal(ctx, req.newMedalId)));
+        execute(playerController, ctx -> ctx.send(medalService.changeShowMedal(ctx, req.newMedalId)));
     }
 
     //--------------------------任务 (主线/成就) end--------------------------
@@ -671,7 +673,7 @@ public class SimMessageHandler implements GmListener {
             } else if ("genPurchasedGuest".equalsIgnoreCase(gmOrders[0])) {
                 int guestId = Integer.parseInt(gmOrders[1]);
                 execute(playerController, ctx -> {
-                    guestService.generatePurchasedGuest(ctx, guestId);
+                    guestService.generatePurchasedGuest(ctx, guestId, 1);
                 });
             } else if ("claimPurchasedGuest".equalsIgnoreCase(gmOrders[0])) {
                 int index = Integer.parseInt(gmOrders[2]);
@@ -705,9 +707,10 @@ public class SimMessageHandler implements GmListener {
                     com.jjg.game.sim.data.SimCoopTaskEntry entry = ctx.getSimCoopTaskData() == null
                             ? null : ctx.getSimCoopTaskData().getTasks().get(taskId);
                     if (entry != null && entry.getStatus() == com.jjg.game.sim.constant.CoopTaskConst.TaskStatus.CLAIMED) {
-                        entry.setStatus(com.jjg.game.sim.constant.CoopTaskConst.TaskStatus.IN_ROOM);
+                        coopTaskService.markRoomCreated(ctx, taskId, -1L, 0);
                     }
-                    coopTaskService.onSettle(ctx, ctx.playerId(), taskId, success, java.util.List.of());
+                    long roomId = entry == null ? 0L : entry.getRoomId();
+                    coopTaskService.onSettle(ctx, ctx.playerId(), taskId, roomId, success, java.util.List.of());
                 });
             } else if ("casinoLevelUp".equalsIgnoreCase(gmOrders[0])) {
                 int statsId = Integer.parseInt(gmOrders[1]);
@@ -719,6 +722,15 @@ public class SimMessageHandler implements GmListener {
                 }
                 SimPlayerContext ctx = this.simPlayerContextRegistry.getContext(playerController.playerId());
                 ctx.getCurrentCasino().setCasinoLevel(cfg.getLevel());
+            } else if ("simAddItem".equalsIgnoreCase(gmOrders[0])) {
+                int itemId = Integer.parseInt(gmOrders[1]);
+                long count = Long.parseLong(gmOrders[2]);
+
+                SimPlayerContext ctx = this.simPlayerContextRegistry.getContext(playerController.playerId());
+
+                Map<Integer, Long> map = new HashMap<>();
+                map.put(itemId, count);
+                simPackService.addItems(ctx, map, AddType.GM_OPERATOR, null, true);
             } else {
                 res.code = Code.NOT_FOUND;
             }

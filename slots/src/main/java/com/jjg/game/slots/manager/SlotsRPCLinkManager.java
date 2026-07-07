@@ -11,7 +11,6 @@ import com.jjg.game.core.data.CommonResult;
 import com.jjg.game.core.data.PlayerController;
 import com.jjg.game.core.utils.ItemUtils;
 import com.jjg.game.sim.bridge.ToSimBridge;
-import com.jjg.game.sim.constant.SimVisitConstant;
 import com.jjg.game.sim.data.SlotsSpinResult;
 import com.jjg.game.sim.data.SpinStatInfo;
 import com.jjg.game.sim.data.VisitTrialSpinPermit;
@@ -164,12 +163,10 @@ public class SlotsRPCLinkManager {
     }
 
     /**
-     * 本地绑定了客座会话但 sim 侧已失效: 用拜访侧 TRIAL_INVALID 标记上抛,
-     * 供上层识别并清理本地客座绑定, 避免新增通用 Code。
+     * 本地绑定了客座会话但 sim 侧已失效: 用 EXPIRE 标记上抛, 供上层识别并清理本地客座绑定。
      */
     private CommonResult<VisitTrialSpinPermit> trialEnded(VisitTrialSpinPermit normal) {
-        normal.setReason(SimVisitConstant.Reason.TRIAL_INVALID);
-        return new CommonResult<>(Code.FAIL, normal);
+        return new CommonResult<>(Code.EXPIRE, normal);
     }
 
     public void cancelVisitTrialSpin(SlotsPlayerGameData playerGameData, VisitTrialSpinPermit permit) {
