@@ -6,7 +6,6 @@ import com.jjg.game.common.curator.MarsCurator;
 import com.jjg.game.common.rpc.ClusterRpcReference;
 import com.jjg.game.common.rpc.GameRpcContext;
 import com.jjg.game.common.rpc.RpcReqParameterBuilder;
-import com.jjg.game.common.utils.WheelTimerUtil;
 import com.jjg.game.core.constant.AddType;
 import com.jjg.game.core.constant.Code;
 import com.jjg.game.core.data.CommonResult;
@@ -47,6 +46,8 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.Executors;
+import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.TimeUnit;
 
 /**
@@ -87,9 +88,17 @@ public class CoopRoomManager {
     private final Map<Long, CoopRoom> rooms = new ConcurrentHashMap<>();
     //成员索引 playerId -> roomId (旋转钩子 O(1) 判定, 非协作玩家 get==null 直接跳过)
     private final Map<Long, Long> memberRoomIndex = new ConcurrentHashMap<>();
+    //GC 专用单线程: 解散/结算含同步 Redis 删除与 RPC, 不占用全进程共享的 wheel-timer 线程
+    private ScheduledExecutorService gcExecutor;
 
     public void init() {
-        WheelTimerUtil.scheduleAtFixedRate(this::gcRooms,
+        gcExecutor = Executors.newSingleThreadScheduledExecutor(r -> {
+            Thread t = new Thread(r, "coop-room-gc");
+            t.setDaemon(true);
+            return t;
+        });
+        //fixedDelay: 上一轮跑完才计时, Redis 抖动时天然防任务堆积
+        gcExecutor.scheduleWithFixedDelay(this::gcRooms,
                 SlotsConst.GC_PERIOD_SECONDS, SlotsConst.GC_PERIOD_SECONDS, TimeUnit.SECONDS);
     }
 
@@ -247,7 +256,7 @@ public class CoopRoomManager {
         int quota = rule.spinBudget() / n;
         int remainder = rule.spinBudget() % n;
         int index = 0;
-        for (CoopMember m : room.getMembers().values()) {
+        for (CoopMember m : room.membersBySeat()) {
             m.setSpinQuota(quota + (index < remainder ? 1 : 0));
             m.setSpinUsed(0);
             index++;
@@ -278,7 +287,7 @@ public class CoopRoomManager {
         }
         if (status == CoopTaskConst.RoomStatus.WAITING && playerId == room.getOwnerId()) {
             dissolve(room);
-            return Code.PARAM_ERROR;
+            return Code.SUCCESS;
         }
         CoopMember member = room.getMembers().remove(playerId);
         if (member != null) {
@@ -331,6 +340,13 @@ public class CoopRoomManager {
                     playerId, room.getRoomId(), channelCode);
             return res;
         }
+        //房间级限频 (私聊频道无个人限频, 防连点放大); 房主请求单线程串行, 无并发写
+        long now = System.currentTimeMillis();
+        if (now - room.getLastInviteTime() < SlotsConst.COOP_INVITE_INTERVAL_MS) {
+            log.info("协作房间邀请失败,发送过于频繁 playerId={},roomId={}", playerId, room.getRoomId());
+            return res;
+        }
+        room.setLastInviteTime(now);
 
         //邀请内容为客户端约定格式; 加入合法性由加入流程权威校验, 无伪造风险
         JSONObject content = new JSONObject();
@@ -497,7 +513,7 @@ public class CoopRoomManager {
                 } else if (allQuotaExhausted(room)) {
                     settle(room, false);
                 } else {
-                    //未结算: 高频 spin 增量广播移出锁, 锁内仅快照接收方 (members 为非线程安全 LinkedHashMap)
+                    //未结算: 高频 spin 增量广播移出锁, 锁内仅快照接收方 (保证接收集与本次进度原子一致)
                     NotifyCoopSpin notify = new NotifyCoopSpin(Code.SUCCESS);
                     notify.playerId = playerId;
                     notify.hpLeft = member.hpLeft();
@@ -683,6 +699,9 @@ public class CoopRoomManager {
      * 关服: 全部房间按失败解散不合理, 未开始房间直接解散; 进行中房间判定失败结算 (保证任务态闭环)。
      */
     public void shutdown() {
+        if (gcExecutor != null) {
+            gcExecutor.shutdownNow();
+        }
         for (CoopRoom room : rooms.values()) {
             try {
                 synchronized (room) {
@@ -807,7 +826,7 @@ public class CoopRoomManager {
         snapshot.sharedProgress = room.getSharedProgress();
         snapshot.deadline = room.getDeadline();
         List<CoopMemberInfo> members = new ArrayList<>(room.getMembers().size());
-        for (CoopMember member : room.getMembers().values()) {
+        for (CoopMember member : room.membersBySeat()) {
             CoopMemberInfo info = new CoopMemberInfo();
             info.playerId = member.getPlayerId();
             info.seat = member.getSeat();
@@ -865,7 +884,7 @@ public class CoopRoomManager {
     }
 
     /**
-     * 锁内快照当前在线成员的会话引用 (members 为非线程安全 LinkedHashMap, 遍历须在房间锁内完成)。
+     * 锁内快照当前在线成员的会话引用 (锁内快照保证接收集与本次状态变更原子一致)。
      */
     private List<PlayerController> receivers(CoopRoom room) {
         List<PlayerController> list = new ArrayList<>(room.getMembers().size());

@@ -143,12 +143,13 @@ public class SimCoopRoomRouteService {
             return res;
         }
         res.gameType = record.getGameType();
-        if (record.getStatus() != CoopTaskConst.RoomStatus.WAITING) {
+        //老成员不受状态/满员限制 (RUNNING 中断线重登回房、节点重启后恢复), 权威判定在 slots 进房
+        boolean member = record.getMemberIds().contains(playerId);
+        if (!member && record.getStatus() != CoopTaskConst.RoomStatus.WAITING) {
             log.info("加入协作房间失败,游戏已开始 playerId={},roomId={},status={}",
                     playerId, roomId, record.getStatus());
             return res;
         }
-        boolean member = record.getMemberIds().contains(playerId);
         if (!member && record.getMemberIds().size() >= record.getMaxMembers()) {
             log.info("加入协作房间失败,房间已满员 playerId={},roomId={},members={},max={}",
                     playerId, roomId, record.getMemberIds().size(), record.getMaxMembers());

@@ -1,5 +1,6 @@
 package com.jjg.game.sim.service;
 
+import com.jjg.game.common.curator.MarsCurator;
 import com.jjg.game.core.constant.AddType;
 import com.jjg.game.core.constant.Code;
 import com.jjg.game.core.data.Item;
@@ -12,6 +13,7 @@ import com.jjg.game.sampledata.bean.TaskCfg;
 import com.jjg.game.sim.constant.CoopTaskConst;
 import com.jjg.game.sim.dao.CoopRoomRecordDao;
 import com.jjg.game.sim.dao.SimCoopTaskDao;
+import com.jjg.game.sim.data.CoopRoomRecord;
 import com.jjg.game.sim.data.SimCoopTaskData;
 import com.jjg.game.sim.data.SimCoopTaskEntry;
 import com.jjg.game.sim.data.SimPlayerContext;
@@ -55,6 +57,8 @@ public class SimCoopTaskService {
     private SimCoopTaskDao coopTaskDao;
     @Autowired
     private CoopRoomRecordDao roomRecordDao;
+    @Autowired
+    private MarsCurator marsCurator;
     @Autowired
     private PlayerPackService playerPackService;
     @Autowired
@@ -105,6 +109,10 @@ public class SimCoopTaskService {
             pool.removeAll(exclude);
         }
         int n = Math.min(count, pool.size());
+        //count<=0 兜底 (如 dailyPoolCount 热更调小后 kept 超额), 防 subList 负下标
+        if (n <= 0) {
+            return new ArrayList<>();
+        }
         ThreadLocalRandom random = ThreadLocalRandom.current();
         for (int i = 0; i < n; i++) {
             int j = i + random.nextInt(pool.size() - i);
@@ -334,15 +342,8 @@ public class SimCoopTaskService {
                 }
             }
         } else {
-            //发起者离线: 直接读改写 DB (玩家离线无并发写者)
-            SimCoopTaskData data = coopTaskDao.findById(ownerId).orElse(null);
-            SimCoopTaskEntry entry = data == null ? null : data.getTasks().get(taskId);
-            if (entry != null && entry.getStatus() == CoopTaskConst.TaskStatus.IN_ROOM) {
-                entry.setStatus(status);
-                entry.setFinishTime(System.currentTimeMillis());
-                coopTaskDao.save(data);
-                settled = true;
-            }
+            //发起者离线: 条件原子更新 (仅 IN_ROOM 时置终态), 防与退出登录的全量保存竞态互相覆盖
+            settled = coopTaskDao.settleEntryIfInRoom(ownerId, taskId, status, System.currentTimeMillis());
         }
 
         //协助者奖励: 仅本次真正结算才发放, 借发起者状态机幂等避免重复发奖 (完整协助奖励经邮件, 无贡献门槛)
@@ -369,7 +370,8 @@ public class SimCoopTaskService {
     }
 
     /**
-     * 自愈: IN_ROOM 但房间记录已不存在 (节点崩溃/TTL 过期) 时回退待建房态, 避免任务卡死。
+     * 自愈: IN_ROOM 但房间不可达时回退待建房态, 避免任务卡死。
+     * 不可达 = 记录不存在 (正常结算已删/TTL 过期) 或记录所指 slots 节点已下线 (节点崩溃未恢复)。
      */
     private void selfHealRooms(SimPlayerContext ctx, SimCoopTaskData data) {
         for (SimCoopTaskEntry entry : data.getTasks().values()) {
@@ -377,9 +379,11 @@ public class SimCoopTaskService {
                 continue;
             }
             try {
-                if (!roomRecordDao.exists(entry.getRoomId())) {
-                    log.warn("多人任务房间记录丢失,回退待建房 playerId={},taskId={},roomId={}",
-                            data.getPlayerId(), entry.getTaskId(), entry.getRoomId());
+                CoopRoomRecord record = roomRecordDao.get(entry.getRoomId());
+                if (record == null || marsCurator.getMarsNode(record.getNodePath()) == null) {
+                    log.warn("多人任务房间不可达,回退待建房 playerId={},taskId={},roomId={},node={}",
+                            data.getPlayerId(), entry.getTaskId(), entry.getRoomId(),
+                            record == null ? null : record.getNodePath());
                     entry.setStatus(CoopTaskConst.TaskStatus.CLAIMED);
                     entry.setRoomId(0);
                     entry.setGameType(0);

@@ -233,20 +233,35 @@ public interface SimConstant {
         int ALLIANCE_CREATE_ALLIANCE_CFG_ID = 222;
 
         //拜访系统全局配置
+        //拜访：点赞一次可以获得的人气值（被点赞的玩家）
         int VISIT_LIKE_POPULARITY_ID = 232;
+        //拜访：留言一条可以获得的人气值（被留言的玩家）
         int VISIT_COMMENT_POPULARITY_ID = 233;
+        //拜访：试玩一次slot游戏可以获得人气值（房主）
         int VISIT_TRIAL_POPULARITY_ID = 234;
+        //拜访：每天可以获得的人气值上限
         int VISIT_DAILY_POPULARITY_LIMIT_ID = 235;
+        //拜访：每日可以试玩slot的次数
         int VISIT_DAILY_TRIAL_LIMIT_ID = 236;
+        //拜访：用户在试玩slot游戏中，获胜时被抽取的比例（百分比）
         int VISIT_COMMISSION_RATE_ID = 237;
+        //访客每日点赞次数上限
         int VISIT_DAILY_LIKE_LIMIT_ID = 243;
+        //访客每日留言次数上限
         int VISIT_DAILY_COMMENT_LIMIT_ID = 244;
+        //留言功能解锁的累计充值门槛
         int VISIT_COMMENT_RECHARGE_ID = 245;
+        //留言最大字符数
         int VISIT_COMMENT_MAX_LENGTH_ID = 246;
+        //拜访记录/留言板单页查询与持久化条数上限
         int VISIT_RECORD_LIMIT_ID = 247;
+        //礼物列表配置
         int VISIT_GIFT_LIST_ID = 248;
+        //房主每日试玩抽成金币上限
         int VISIT_DAILY_COMMISSION_LIMIT_ID = 249;
+        //试玩会话有效期（秒）
         int VISIT_TRIAL_SESSION_SECONDS_ID = 250;
+        //人气赛季榜排名奖励配置
         int VISIT_RANK_REWARD_ID = 251;
 
         //角色信息：勋章展示数量上限

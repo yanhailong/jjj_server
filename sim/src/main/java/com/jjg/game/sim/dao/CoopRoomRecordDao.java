@@ -45,13 +45,6 @@ public class CoopRoomRecordDao {
         }
     }
 
-    /**
-     * 仅判存在性 (自愈检查用, 避免把整个 JSON 读回并反序列化)。
-     */
-    public boolean exists(long roomId) {
-        return Boolean.TRUE.equals(stringRedisTemplate.hasKey(key(roomId)));
-    }
-
     public void delete(long roomId) {
         stringRedisTemplate.delete(key(roomId));
     }

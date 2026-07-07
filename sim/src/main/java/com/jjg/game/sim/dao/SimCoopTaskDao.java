@@ -1,6 +1,7 @@
 package com.jjg.game.sim.dao;
 
 import com.jjg.game.core.dao.MongoBaseDao;
+import com.jjg.game.sim.constant.CoopTaskConst;
 import com.jjg.game.sim.data.SimCoopTaskData;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.data.mongodb.core.BulkOperations;
@@ -8,6 +9,7 @@ import org.springframework.data.mongodb.core.FindAndReplaceOptions;
 import org.springframework.data.mongodb.core.MongoTemplate;
 import org.springframework.data.mongodb.core.query.Criteria;
 import org.springframework.data.mongodb.core.query.Query;
+import org.springframework.data.mongodb.core.query.Update;
 import org.springframework.stereotype.Repository;
 
 import java.util.Collection;
@@ -22,6 +24,21 @@ import java.util.Collection;
 public class SimCoopTaskDao extends MongoBaseDao<SimCoopTaskData, Long> {
     public SimCoopTaskDao(@Autowired MongoTemplate mongoTemplate) {
         super(SimCoopTaskData.class, mongoTemplate);
+    }
+
+    /**
+     * 条件原子更新: 仅当任务处于 IN_ROOM 态时置为终态 (发起者离线的结算直写路径)。
+     * 相比读改写全文档, 避免与退出登录时的全量保存竞态互相覆盖。
+     *
+     * @return 是否有文档被更新 (false = 数据不存在或状态不符, 视为未结算)
+     */
+    public boolean settleEntryIfInRoom(long playerId, int taskId, int status, long finishTime) {
+        Query query = new Query(Criteria.where("_id").is(playerId)
+                .and("tasks." + taskId + ".status").is(CoopTaskConst.TaskStatus.IN_ROOM));
+        Update update = new Update()
+                .set("tasks." + taskId + ".status", status)
+                .set("tasks." + taskId + ".finishTime", finishTime);
+        return mongoTemplate.updateFirst(query, update, SimCoopTaskData.class).getModifiedCount() > 0;
     }
 
     public void saveAll(Collection<SimCoopTaskData> list) {

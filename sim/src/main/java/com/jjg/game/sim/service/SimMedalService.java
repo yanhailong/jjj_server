@@ -85,8 +85,7 @@ public class SimMedalService {
     }
 
     private boolean isActivated(MedalListCfg cfg, PlayerPack pack) {
-        return cfg != null && cfg.getIsOpen() && cfg.getNeedItemId() > 0
-                && pack.getItemCount(cfg.getNeedItemId()) > 0;
+        return cfg != null && cfg.getIsOpen() && cfg.getNeedItemId() > 0 && pack.getItemCount(cfg.getNeedItemId()) > 0;
     }
 
     /**
@@ -146,56 +145,34 @@ public class SimMedalService {
      * @param ctx
      * @return
      */
-    public ResChangeShowMedal changeShowMwdal(SimPlayerContext ctx, int oldMedalId, int newMedalId) {
+    public ResChangeShowMedal changeShowMwdal(SimPlayerContext ctx, List<Integer> newMedalIds) {
         ResChangeShowMedal res = new ResChangeShowMedal(Code.SUCCESS);
 
-        if (newMedalId < 1) {
-            res.code = Code.PARAM_ERROR;
-            log.warn("修改勋章时，新勋章id不能小于1 playerId={},oldMedalId={},newMedalId={}", ctx.playerId(), oldMedalId, newMedalId);
-            return res;
-        }
-
-        MedalListCfg medalListCfg = GameDataManager.getMedalListCfg(newMedalId);
-        if (medalListCfg == null) {
-            res.code = Code.PARAM_ERROR;
-            log.warn("修改勋章时，未找到新勋章的配置 playerId={},oldMedalId={},newMedalId={}", ctx.playerId(), oldMedalId, newMedalId);
+        if (newMedalIds == null || newMedalIds.isEmpty()) {
+            ctx.getSimBaseData().setShowMedalIds(null);
+            log.warn("玩家卸载所有勋章 playerId={},newMedalId={}", ctx.playerId(), newMedalIds);
             return res;
         }
 
         //检查是否超过限制
         int showMax = GameDataManager.getGlobalConfigCfg(SimConstant.Common.MEDAL_SHOW_MAX_ID).getIntValue();
-        if (oldMedalId < 1) {
-            if (ctx.getSimBaseData().getShowMedalIds() != null && ctx.getSimBaseData().getShowMedalIds().size() >= showMax) {
-                res.code = Code.FORBID;
-                log.warn("展示的勋章已经达到上限，无法再新增 playerId={},oldMedalId={},newMedalId={}", ctx.playerId(), oldMedalId, newMedalId);
-                return res;
-            }
-
-            PlayerPack pack = playerPackService.getFromAllDB(ctx.playerId());
-            if (isActivated(medalListCfg, pack)) {
-                res.code = Code.PARAM_ERROR;
-                log.warn("新增展示勋章时，该勋章未激活 playerId={},oldMedalId={},newMedalId={}", ctx.playerId(), oldMedalId, newMedalId);
-                return res;
-            }
-
-            ctx.getSimBaseData().addMedalId(newMedalId);
-        } else {
-            if (!ctx.getSimBaseData().hasShowMedalId(oldMedalId)) {
-                res.code = Code.FORBID;
-                log.warn("展示勋章中没有该勋章id，无法被替换 playerId={},oldMedalId={},newMedalId={}", ctx.playerId(), oldMedalId, newMedalId);
-                return res;
-            }
-
-            PlayerPack pack = playerPackService.getFromAllDB(ctx.playerId());
-            if (isActivated(medalListCfg, pack)) {
-                res.code = Code.PARAM_ERROR;
-                log.warn("替换勋章时，该勋章未激活 playerId={},oldMedalId={},newMedalId={}", ctx.playerId(), oldMedalId, newMedalId);
-                return res;
-            }
-
-            //替换
-            ctx.getSimBaseData().replaceMedalId(oldMedalId, newMedalId);
+        if (newMedalIds.size() > showMax) {
+            res.code = Code.FORBID;
+            log.warn("展示的勋章已经达到上限，无法 playerId={},newMedalId={}", ctx.playerId(), newMedalIds);
+            return res;
         }
+
+        PlayerPack pack = playerPackService.getFromAllDB(ctx.playerId());
+        for (int newMedalId : newMedalIds) {
+            MedalListCfg medalListCfg = GameDataManager.getMedalListCfg(newMedalId);
+            if (isActivated(medalListCfg, pack)) {
+                res.code = Code.PARAM_ERROR;
+                log.warn("新增展示勋章时，该勋章未激活 playerId={},newMedalIds={},newMedalId={}", ctx.playerId(), newMedalIds, newMedalId);
+                return res;
+            }
+        }
+
+        ctx.getSimBaseData().setShowMedalIds(newMedalIds);
         res.showMedalIds = ctx.getSimBaseData().getShowMedalIds();
         return res;
     }
