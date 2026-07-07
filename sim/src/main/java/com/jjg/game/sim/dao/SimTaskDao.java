@@ -11,6 +11,7 @@ import org.springframework.data.mongodb.core.query.Query;
 import org.springframework.stereotype.Repository;
 
 import java.util.Collection;
+import java.util.List;
 
 /**
  * sim 任务数据 DAO (主键 = playerId)。
@@ -22,6 +23,16 @@ import java.util.Collection;
 public class SimTaskDao extends MongoBaseDao<SimTaskData, Long> {
     public SimTaskDao(@Autowired MongoTemplate mongoTemplate) {
         super(SimTaskData.class, mongoTemplate);
+    }
+
+    /**
+     * 拜访展示只需要展示勋章列表, 投影避免拉全量任务文档。
+     */
+    public List<Integer> findDisplayedMedalIds(long playerId) {
+        Query query = Query.query(Criteria.where("_id").is(playerId));
+        query.fields().include("displayedMedalIds");
+        SimTaskData data = mongoTemplate.findOne(query, SimTaskData.class);
+        return data == null ? List.of() : data.getDisplayedMedalIds();
     }
 
     public void saveAll(Collection<SimTaskData> list) {

@@ -332,6 +332,8 @@ public interface SimConstant {
     interface Building {
         //运营部id
         int ID_OPERATIONS_DEPART = 1303;
+        //研发部id (其建筑等级即研究院等级, 决定 ResearchInstitute 配置的游戏解锁)
+        int ID_RESEARCH_DEPART = 1302;
     }
 
     interface ResearchPoint {

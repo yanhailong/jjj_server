@@ -25,6 +25,7 @@ import com.jjg.game.sim.pb.struct.OfflineReward;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.context.annotation.Lazy;
 import org.springframework.stereotype.Service;
 
 import java.util.*;
@@ -54,6 +55,10 @@ public class SimBuildingService implements SimPlayerTickListener {
     private AllianceEventService allianceEventService;
     @Autowired
     private SimMedalService medalService;
+    //懒加载打破与 SimCasinoService 的循环依赖 (对方持有本服务)
+    @Autowired
+    @Lazy
+    private SimCasinoService simCasinoService;
 
     @Override
     public void onTick(SimPlayerContext ctx, long now) {
@@ -378,7 +383,7 @@ public class SimBuildingService implements SimPlayerTickListener {
 
             long now = System.currentTimeMillis();
             applyAllianceSpeedup(ctx.playerId(), data, now);
-            res.code = completeBuildingUpgrade(casino, data, now);
+            res.code = completeBuildingUpgrade(ctx, casino, data, now);
             if (res.code == Code.SUCCESS) {
                 res.level = data.getLevel();
                 //联盟任务: 建筑升级次数 (param=建筑ID, 供 0=任意/指定建筑 过滤)
@@ -415,7 +420,7 @@ public class SimBuildingService implements SimPlayerTickListener {
             applyAllianceSpeedup(ctx.playerId(), data, now);
             if (!data.isUpgrading(now)) {
                 if (data.isUpgradeReady(now)) {
-                    completeBuildingUpgrade(casino, data, now);
+                    completeBuildingUpgrade(ctx, casino, data, now);
                     res.buildingInfo = SimPbConverter.toBuildingInfo(data);
                     ctx.send(res);
                     return;
@@ -972,7 +977,7 @@ public class SimBuildingService implements SimPlayerTickListener {
     /**
      * 完成建筑升级
      */
-    public int completeBuildingUpgrade(SimCasinoData casino, BuildingData data, long now) {
+    public int completeBuildingUpgrade(SimPlayerContext ctx, SimCasinoData casino, BuildingData data, long now) {
         if (!data.isUpgradeReady(now)) {
             return Code.PARAM_ERROR;
         }
@@ -980,6 +985,10 @@ public class SimBuildingService implements SimPlayerTickListener {
         data.setCdEndTime(0);
         data.setAdClearCount(0);
         data.setProgress(0);
+        //研发部升级 -> 同步研究院等级快照 (游戏解锁判定/大厅游戏列表的数据源)
+        if (data.getId() == SimConstant.Building.ID_RESEARCH_DEPART) {
+            simCasinoService.updateCasinoUnlock(ctx, casino.getCasinoId(), data.getLevel());
+        }
         log.info("完成建筑升级 playerId={},buildingId={},newLevel={}", casino.getPlayerId(), data.getId(), data.getLevel());
         return Code.SUCCESS;
     }
@@ -999,13 +1008,13 @@ public class SimBuildingService implements SimPlayerTickListener {
         return reduced;
     }
 
-    public void completeAllBuildingUpgrade(SimCasinoData casino) {
+    public void completeAllBuildingUpgrade(SimPlayerContext ctx, SimCasinoData casino) {
         if (casino == null || casino.getBuildingData() == null || casino.getBuildingData().isEmpty()) {
             return;
         }
 
         long now = System.currentTimeMillis();
-        casino.getBuildingData().forEach((k, v) -> completeBuildingUpgrade(casino, v, now));
+        casino.getBuildingData().forEach((k, v) -> completeBuildingUpgrade(ctx, casino, v, now));
     }
 
     /**

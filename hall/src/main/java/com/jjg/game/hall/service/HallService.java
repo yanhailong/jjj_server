@@ -1146,9 +1146,10 @@ public class HallService implements ConfigExcelChangeListener, TimerListener {
             }
             int researchLevel = en.getValue();
 
+            //tmpMap: gameType -> 所需研究院等级
             for (Map.Entry<Integer, Integer> en2 : tmpMap.entrySet()) {
-                if (researchLevel >= en2.getKey()) {
-                    openGameTypeSet.add(en2.getValue());
+                if (researchLevel >= en2.getValue()) {
+                    openGameTypeSet.add(en2.getKey());
                 }
             }
         }
@@ -1165,7 +1166,7 @@ public class HallService implements ConfigExcelChangeListener, TimerListener {
             if (!openGameTypeSet.contains(cfg.sid)) {
                 newConfig.status = 2;
             }
-            newList.add(cfg);
+            newList.add(newConfig);
         }
         return newList;
     }

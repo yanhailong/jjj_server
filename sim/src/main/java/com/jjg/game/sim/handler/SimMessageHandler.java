@@ -12,6 +12,7 @@ import com.jjg.game.core.listener.GmListener;
 import com.jjg.game.sampledata.GameDataManager;
 import com.jjg.game.sampledata.bean.CasinoStatsSheetCfg;
 import com.jjg.game.sim.constant.SimConstant;
+import com.jjg.game.sim.data.BuildingData;
 import com.jjg.game.sim.data.SimPlayerContext;
 import com.jjg.game.sim.manager.SimManager;
 import com.jjg.game.sim.manager.SimPlayerContextRegistry;
@@ -731,6 +732,22 @@ public class SimMessageHandler implements GmListener {
                 Map<Integer, Long> map = new HashMap<>();
                 map.put(itemId, count);
                 simPackService.addItems(ctx, map, AddType.GM_OPERATOR, null, true);
+            } else if ("simBuildLevelUp".equalsIgnoreCase(gmOrders[0])) {
+                int buildingId = Integer.parseInt(gmOrders[1]);
+                int level = Integer.parseInt(gmOrders[2]);
+                if (buildingId < 1 || level < 1) {
+                    res.code = Code.PARAM_ERROR;
+                    log.warn("simBuildLevelUp 参数错误 buildingId={},level={}", buildingId, level);
+                    return res;
+                }
+                SimPlayerContext ctx = this.simPlayerContextRegistry.getContext(playerController.playerId());
+                BuildingData buildingData = ctx.getCurrentCasino().findBuilding(buildingId);
+                if (buildingData == null) {
+                    res.code = Code.PARAM_ERROR;
+                    log.warn("simBuildLevelUp 未找到该建筑 buildingId={},level={}", buildingId, level);
+                    return res;
+                }
+                buildingData.setLevel(level);
             } else {
                 res.code = Code.NOT_FOUND;
             }

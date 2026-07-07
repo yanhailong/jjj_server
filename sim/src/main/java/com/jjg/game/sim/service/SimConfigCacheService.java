@@ -30,6 +30,8 @@ public class SimConfigCacheService implements ConfigExcelChangeListener {
     private Map<Integer, Map<Integer, CasinoStatsSheetCfg>> casinoStatsSheetCfgMap;
     //ResearchInstitute配置 regionID -> gameTypeSet
     private Map<Integer, Set<Integer>> unlockGamesMap;
+    //ResearchInstitute配置 regionID -> gameType -> 所需研究院等级
+    private Map<Integer, Map<Integer, Integer>> unlockGameLevelMap;
 
     //VisitorQuest配置 itemId -> cfg
     private Map<Integer, VisitorQuestCfg> visitorQuestItemCfgMap;
@@ -139,10 +141,14 @@ public class SimConfigCacheService implements ConfigExcelChangeListener {
      */
     private void loadResearchInstituteCfg() {
         Map<Integer, Set<Integer>> tmpUnlockGamesMap = new HashMap<>();
+        Map<Integer, Map<Integer, Integer>> tmpUnlockGameLevelMap = new HashMap<>();
         for (ResearchInstituteCfg cfg : GameDataManager.getResearchInstituteCfgList()) {
             tmpUnlockGamesMap.computeIfAbsent(cfg.getRegionID(), k -> new HashSet<>()).add(cfg.getGameType());
+            tmpUnlockGameLevelMap.computeIfAbsent(cfg.getRegionID(), k -> new HashMap<>())
+                    .put(cfg.getGameType(), cfg.getLevel());
         }
         this.unlockGamesMap = tmpUnlockGamesMap;
+        this.unlockGameLevelMap = tmpUnlockGameLevelMap;
     }
 
     /**
@@ -522,6 +528,17 @@ public class SimConfigCacheService implements ConfigExcelChangeListener {
             return Collections.emptySet();
         }
         return unlockGamesMap.get(regionId);
+    }
+
+    /**
+     * 该场景解锁指定游戏所需的研究院等级; 该场景未配置此游戏返回 null
+     */
+    public Integer getUnlockGameLevel(int regionId, int gameType) {
+        if (this.unlockGameLevelMap == null) {
+            return null;
+        }
+        Map<Integer, Integer> tmpMap = this.unlockGameLevelMap.get(regionId);
+        return tmpMap == null ? null : tmpMap.get(gameType);
     }
 
     public List<PropCfg> getPropCfgList(int gameType) {

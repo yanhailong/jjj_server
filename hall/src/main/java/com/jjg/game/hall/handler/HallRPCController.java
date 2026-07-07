@@ -166,17 +166,20 @@ public class HallRPCController extends CoreRPCController implements GmToHallBrid
     }
 
     @Override
+    @RpcCallSetting(processorModKey = "#arg0")
     public CommonResult<SlotsSpinResult> onSlotsSpin(long playerId, int gameType, int winTimes, boolean changeNode,
                                                     SpinStatInfo statInfo, VisitTrialSpinPermit trialPermit) {
         return simManager.onSlotsSpin(playerId, gameType, winTimes, changeNode, statInfo, trialPermit);
     }
 
     @Override
+    @RpcCallSetting(processorModKey = "#arg0")
     public CommonResult<VisitTrialSpinPermit> prepareVisitTrialSpin(long playerId, int gameType) {
         return simManager.prepareVisitTrialSpin(playerId, gameType);
     }
 
     @Override
+    @RpcCallSetting(processorModKey = "#arg0")
     public CommonResult<Boolean> cancelVisitTrialSpin(long playerId, VisitTrialSpinPermit permit) {
         return simManager.cancelVisitTrialSpin(playerId, permit);
     }

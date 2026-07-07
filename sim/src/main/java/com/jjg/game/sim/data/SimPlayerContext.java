@@ -43,6 +43,8 @@ public class SimPlayerContext {
     private long lastSaveTime;
     //上次活跃时间
     private long lastActiveTime;
+    //上次随机拜访时间 (ms, 内存态, 服务端兜底限频用)
+    private long lastRandomVisitTime;
 
     public PlayerController getPlayerController() {
         return playerController;
@@ -175,6 +177,14 @@ public class SimPlayerContext {
 
     public void setLastActiveTime(long lastActiveTime) {
         this.lastActiveTime = lastActiveTime;
+    }
+
+    public long getLastRandomVisitTime() {
+        return lastRandomVisitTime;
+    }
+
+    public void setLastRandomVisitTime(long lastRandomVisitTime) {
+        this.lastRandomVisitTime = lastRandomVisitTime;
     }
 
     // ---------------------------------------------------------------------

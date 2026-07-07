@@ -122,7 +122,8 @@ public class SimCasinoService {
             //切换到目标场景 (新加载实体的运行时 transient 字段天然为初始值)
             ctx.setCurrentCasino(target);
             ctx.switchCasino(targetCasinoId);
-            simBuildingService.completeAllBuildingUpgrade(target);
+            simBuildingService.completeAllBuildingUpgrade(ctx, target);
+            syncResearchLevel(ctx, target);
 
             SimCasinoData casino = ctx.getCurrentCasino();
             res.currentCasinoId = casino.getCasinoId();
@@ -197,8 +198,31 @@ public class SimCasinoService {
 
         ctx.setCurrentCasino(currentCasino);
         //检查是否有建筑完成升级
-        simBuildingService.completeAllBuildingUpgrade(currentCasino);
+        simBuildingService.completeAllBuildingUpgrade(ctx, currentCasino);
+        //自愈研究院等级快照 (升级同步钩子上线前的旧数据)
+        syncResearchLevel(ctx, currentCasino);
         return currentCasino;
+    }
+
+    /**
+     * 对齐研究院等级快照与研发部建筑等级 (只升不降): 快照是游戏解锁判定与大厅游戏列表的数据源。
+     */
+    private void syncResearchLevel(SimPlayerContext ctx, SimCasinoData casino) {
+        if (casino == null || casino.getBuildingData() == null) {
+            return;
+        }
+        BuildingData research = casino.getBuildingData().get(SimConstant.Building.ID_RESEARCH_DEPART);
+        if (research == null) {
+            return;
+        }
+        SimCasinoUnlock casinoUnlock = ctx.getCasinoUnlock();
+        int cached = 0;
+        if (casinoUnlock != null && casinoUnlock.getResearchLevelMap() != null) {
+            cached = casinoUnlock.getResearchLevelMap().getOrDefault(casino.getCasinoId(), 0);
+        }
+        if (research.getLevel() > cached) {
+            updateCasinoUnlock(ctx, casino.getCasinoId(), research.getLevel());
+        }
     }
 
     /**

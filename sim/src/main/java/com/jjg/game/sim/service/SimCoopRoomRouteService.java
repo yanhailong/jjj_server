@@ -12,9 +12,9 @@ import com.jjg.game.sampledata.GameDataManager;
 import com.jjg.game.sampledata.bean.WarehouseCfg;
 import com.jjg.game.sim.constant.CoopTaskConst;
 import com.jjg.game.sim.dao.CoopRoomRecordDao;
-import com.jjg.game.sim.dao.SimSkillsDao;
 import com.jjg.game.sim.data.CoopRoomRecord;
 import com.jjg.game.sim.data.CoopTaskRule;
+import com.jjg.game.sim.data.SimCasinoUnlock;
 import com.jjg.game.sim.data.SimCoopTaskEntry;
 import com.jjg.game.sim.data.SimPlayerContext;
 import com.jjg.game.sim.pb.res.ResCreateCoopRoom;
@@ -26,6 +26,7 @@ import org.springframework.stereotype.Service;
 
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Map;
 
 /**
  * 协作房间路由 (hall 侧): 创建/加入时校验 + 写路由记录 + 把会话切到房间所在 slots 节点。
@@ -48,7 +49,7 @@ public class SimCoopRoomRouteService {
     @Autowired
     private SimCoopTaskService coopTaskService;
     @Autowired
-    private SimSkillsDao simSkillsDao;
+    private SimConfigCacheService simConfigCacheService;
     @Autowired
     private SnowflakeManager snowflakeManager;
     @Autowired
@@ -87,7 +88,7 @@ public class SimCoopRoomRouteService {
                     playerId, taskId, rule.gameType(), gameType);
             return res;
         }
-        int code = validateGame(playerId, gameType, roomCfgId);
+        int code = validateGame(ctx, gameType, roomCfgId);
         if (code != Code.SUCCESS) {
             log.info("创建协作房间失败,游戏校验不通过 playerId={},gameType={},roomCfgId={},reason={}",
                     playerId, gameType, roomCfgId, code);
@@ -178,7 +179,7 @@ public class SimCoopRoomRouteService {
             return res;
         }
         //需求: 被邀请玩家未解锁此游戏时提示"游戏未解锁"
-        if (simSkillsDao.findByGameType(playerId, record.getGameType()) == null) {
+        if (!isGameUnlocked(ctx, record.getGameType())) {
             log.info("加入协作房间失败,游戏未解锁 playerId={},roomId={},gameType={}",
                     playerId, roomId, record.getGameType());
             return res;
@@ -203,7 +204,8 @@ public class SimCoopRoomRouteService {
     /**
      * 校验游戏已解锁且房间配置与游戏匹配。
      */
-    private int validateGame(long playerId, int gameType, int roomCfgId) {
+    private int validateGame(SimPlayerContext ctx, int gameType, int roomCfgId) {
+        long playerId = ctx.playerId();
         WarehouseCfg warehouseCfg = GameDataManager.getWarehouseCfg(roomCfgId);
         if (warehouseCfg == null || warehouseCfg.getGameID() != gameType) {
             log.warn("协作房间游戏配置不匹配 playerId={},gameType={},roomCfgId={}", playerId, gameType, roomCfgId);
@@ -216,11 +218,31 @@ public class SimCoopRoomRouteService {
                     playerId, roomCfgId, warehouseCfg.getRoomType());
             return Code.PARAM_ERROR;
         }
-        //游戏解锁判定与拜访客座赌局一致: 有该游戏技能数据即已解锁
-        if (simSkillsDao.findByGameType(playerId, gameType) == null) {
+        if (!isGameUnlocked(ctx, gameType)) {
+            log.info("协作房间游戏未解锁 playerId={},gameType={}", playerId, gameType);
             return Code.NOT_FOUND;
         }
         return Code.SUCCESS;
+    }
+
+    /**
+     * 游戏解锁判定 (语义同大厅游戏列表 HallService.getSortGameList):
+     * 任一已解锁场景的研究院等级达到 ResearchInstitute 配置的等级即解锁。
+     * 数据全部来自内存 (ctx 登录预热的解锁快照 + 配置缓存), 不查库。
+     */
+    private boolean isGameUnlocked(SimPlayerContext ctx, int gameType) {
+        SimCasinoUnlock casinoUnlock = ctx.getCasinoUnlock();
+        Map<Integer, Integer> researchLevelMap = casinoUnlock == null ? null : casinoUnlock.getResearchLevelMap();
+        if (researchLevelMap == null || researchLevelMap.isEmpty()) {
+            return false;
+        }
+        for (Map.Entry<Integer, Integer> en : researchLevelMap.entrySet()) {
+            Integer needLevel = simConfigCacheService.getUnlockGameLevel(en.getKey(), gameType);
+            if (needLevel != null && en.getValue() >= needLevel) {
+                return true;
+            }
+        }
+        return false;
     }
 
     /**

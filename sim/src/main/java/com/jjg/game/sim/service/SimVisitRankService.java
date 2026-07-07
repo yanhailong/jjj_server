@@ -27,7 +27,6 @@ import java.time.ZoneId;
 import java.time.format.DateTimeFormatter;
 import java.util.ArrayList;
 import java.util.Collections;
-import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
@@ -42,6 +41,10 @@ public class SimVisitRankService {
     private static final Logger log = LoggerFactory.getLogger(SimVisitRankService.class);
     private static final DateTimeFormatter MONTH = DateTimeFormatter.ofPattern("yyyyMM");
     private static final int SHOW_COUNT = 100;
+    private static final long TOP_CACHE_MILLIS = 10_000;
+
+    //top100 节点内短缓存 (对全服玩家内容相同, 拜访界面+主界面两处高频入口)
+    private volatile CachedTop cachedTop;
 
     private final RankService rankService;
     private final CorePlayerService corePlayerService;
@@ -72,32 +75,51 @@ public class SimVisitRankService {
         ResVisitRank res = new ResVisitRank(Code.SUCCESS);
         LocalDate today = LocalDate.now();
         String key = rankKey(today);
-        List<RankEntry> entries = rankService.topN(key, SHOW_COUNT);
-        List<Long> ids = entries.stream().map(RankEntry::getPlayerId).toList();
-        Map<Long, Player> players = new HashMap<>(corePlayerService.multiGetPlayerMap(ids));
-        Map<Long, Integer> casinoLevels = new HashMap<>(simCasinoDao.findMaxCasinoLevel(ids));
-        List<VisitRankInfo> ranks = new ArrayList<>(entries.size());
-        for (RankEntry entry : entries) {
-            VisitRankInfo info = toInfo(entry, players, casinoLevels);
-            if (info != null) {
-                ranks.add(info);
-            }
-        }
-        res.ranks = ranks;
+        res.ranks = topRanks(key);
         RankEntry myEntry = rankService.getRank(key, playerId);
         if (myEntry == null) {
             myEntry = new RankEntry(playerId, 0, -1);
         }
-        if (!players.containsKey(playerId)) {
-            players.putAll(corePlayerService.multiGetPlayerMap(List.of(playerId)));
-        }
-        if (!casinoLevels.containsKey(playerId)) {
-            casinoLevels.putAll(simCasinoDao.findMaxCasinoLevel(List.of(playerId)));
-        }
+        Map<Long, Player> players = corePlayerService.multiGetPlayerMap(List.of(playerId));
+        Map<Long, Integer> casinoLevels = simCasinoDao.findMaxCasinoLevel(List.of(playerId));
         res.my = toInfo(myEntry, players, casinoLevels);
         res.seasonEndTime = today.withDayOfMonth(1).plusMonths(1)
                 .atStartOfDay(ZoneId.systemDefault()).toInstant().toEpochMilli();
         return res;
+    }
+
+    /**
+     * top100 短缓存读取: 命中直接复用组装结果, 未命中在锁内重建, 防止并发请求打穿
+     * 100 玩家的 Player/赌场等级批量查询; 自己的名次与积分仍每次实时读取。
+     */
+    private List<VisitRankInfo> topRanks(String key) {
+        long now = System.currentTimeMillis();
+        CachedTop cached = cachedTop;
+        if (cached != null && cached.key().equals(key) && now < cached.expireAt()) {
+            return cached.ranks();
+        }
+        synchronized (this) {
+            cached = cachedTop;
+            if (cached != null && cached.key().equals(key) && now < cached.expireAt()) {
+                return cached.ranks();
+            }
+            List<RankEntry> entries = rankService.topN(key, SHOW_COUNT);
+            List<Long> ids = entries.stream().map(RankEntry::getPlayerId).toList();
+            Map<Long, Player> players = corePlayerService.multiGetPlayerMap(ids);
+            Map<Long, Integer> casinoLevels = simCasinoDao.findMaxCasinoLevel(ids);
+            List<VisitRankInfo> ranks = new ArrayList<>(entries.size());
+            for (RankEntry entry : entries) {
+                VisitRankInfo info = toInfo(entry, players, casinoLevels);
+                if (info != null) {
+                    ranks.add(info);
+                }
+            }
+            cachedTop = new CachedTop(key, List.copyOf(ranks), now + TOP_CACHE_MILLIS);
+            return cachedTop.ranks();
+        }
+    }
+
+    private record CachedTop(String key, List<VisitRankInfo> ranks, long expireAt) {
     }
 
     private VisitRankInfo toInfo(RankEntry entry, Map<Long, Player> players,
@@ -146,9 +168,10 @@ public class SimVisitRankService {
                 }
                 List<Item> items = new ArrayList<>(rewards.size());
                 rewards.forEach((id, count) -> items.add(new Item(id, count)));
-                mailService.addMail(entry.getPlayerId(), "人气榜赛季奖励",
+                //发奖循环可能中途异常后整体重试, 按赛季+玩家业务键幂等, 避免已发玩家重复领奖
+                mailService.addMailIfAbsent(entry.getPlayerId(), "人气榜赛季奖励",
                         "上赛季人气榜第" + entry.getRank() + "名奖励", items,
-                        AddType.SIM_VISIT_RANK_REWARD);
+                        AddType.SIM_VISIT_RANK_REWARD, oldKey + ":reward:" + entry.getPlayerId());
             }
             marker.set(true, Duration.ofDays(90));
             rankService.reset(oldKey);

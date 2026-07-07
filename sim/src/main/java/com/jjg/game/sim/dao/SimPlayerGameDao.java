@@ -83,6 +83,16 @@ public class SimPlayerGameDao extends MongoBaseDao<SimBaseData, Long> {
         }
     }
 
+    /**
+     * 拜访展示只需要玩家总等级, 投影避免拉全量玩家文档。
+     */
+    public int findAllLevelById(long playerId) {
+        Query query = Query.query(Criteria.where("_id").is(playerId));
+        query.fields().include("allLevel");
+        SimBaseData data = mongoTemplate.findOne(query, SimBaseData.class);
+        return data == null ? 0 : data.getAllLevel();
+    }
+
     public List<SimBaseData> findVisitBriefs(Collection<Long> playerIds) {
         if (playerIds == null || playerIds.isEmpty()) {
             return Collections.emptyList();

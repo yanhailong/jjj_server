@@ -76,4 +76,31 @@ public class SimVisitDao extends MongoBaseDao<SimVisitProfileData, Long> {
         query.fields().include("playerId", "totalPopularity", "unreadCommentCount");
         return mongoTemplate.find(query, SimVisitProfileData.class);
     }
+
+    /**
+     * 概要投影 (不含记录/留言数组), 只读人气汇总时避免拉全量文档。
+     */
+    public SimVisitProfileData findBrief(long playerId) {
+        Query query = Query.query(Criteria.where("_id").is(playerId));
+        query.fields().include("playerId", "totalPopularity", "unreadCommentCount");
+        return mongoTemplate.findOne(query, SimVisitProfileData.class);
+    }
+
+    /**
+     * 记录页视图: 排除留言数组, 翻页时少拉一半内嵌数据。
+     */
+    public SimVisitProfileData findRecordsView(long playerId) {
+        Query query = Query.query(Criteria.where("_id").is(playerId));
+        query.fields().exclude("comments");
+        return mongoTemplate.findOne(query, SimVisitProfileData.class);
+    }
+
+    /**
+     * 留言页视图: 排除拜访记录数组。
+     */
+    public SimVisitProfileData findCommentsView(long playerId) {
+        Query query = Query.query(Criteria.where("_id").is(playerId));
+        query.fields().exclude("records");
+        return mongoTemplate.findOne(query, SimVisitProfileData.class);
+    }
 }

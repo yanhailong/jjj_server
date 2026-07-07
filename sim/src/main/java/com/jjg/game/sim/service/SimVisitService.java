@@ -24,9 +24,9 @@ import com.jjg.game.sim.dao.SimVisitDao;
 import com.jjg.game.sim.data.BuildingData;
 import com.jjg.game.sim.data.SimBaseData;
 import com.jjg.game.sim.data.SimCasinoData;
+import com.jjg.game.sim.data.SimCasinoUnlock;
 import com.jjg.game.sim.data.SimPlayerContext;
 import com.jjg.game.sim.data.SimSkillsData;
-import com.jjg.game.sim.data.SimTaskData;
 import com.jjg.game.sim.data.SimVisitCommentData;
 import com.jjg.game.sim.data.SimVisitProfileData;
 import com.jjg.game.sim.data.SimVisitRecordData;
@@ -75,6 +75,7 @@ import java.util.concurrent.ThreadLocalRandom;
 public class SimVisitService {
     private static final Logger log = LoggerFactory.getLogger(SimVisitService.class);
     private static final int RANDOM_CANDIDATE_LIMIT = 40;
+    private static final long RANDOM_VISIT_MIN_INTERVAL_MILLIS = 1000;
 
     @Autowired
     private CorePlayerService corePlayerService;
@@ -96,6 +97,8 @@ public class SimVisitService {
     private SimVisitRankService rankService;
     @Autowired
     private SimConfigCacheService configCacheService;
+    @Autowired
+    private SimCasinoService simCasinoService;
     @Autowired
     private FriendDao friendDao;
     @Autowired
@@ -147,6 +150,12 @@ public class SimVisitService {
     }
 
     public ResVisitCasino randomVisit(SimPlayerContext ctx, long lastPlayerId) {
+        //切换按钮客户端无冷却, 服务端兜底限频, 避免连点放大候选查询链路 (玩家线程串行, 直接用 ctx 字段)
+        long now = System.currentTimeMillis();
+        if (now - ctx.getLastRandomVisitTime() < RANDOM_VISIT_MIN_INTERVAL_MILLIS) {
+            return visitFailure(Code.FORBID);
+        }
+        ctx.setLastRandomVisitTime(now);
         Set<Long> excludes = new HashSet<>();
         excludes.add(ctx.playerId());
         if (lastPlayerId > 0) {
@@ -182,7 +191,8 @@ public class SimVisitService {
             casinos.computeIfAbsent(casino.getPlayerId(), ignored -> new ArrayList<>()).add(casino);
         }
         Set<Long> visited = quotaService.visitedTargets(ctx.playerId());
-        long selfPopularity = visitDao.findById(ctx.playerId()).map(SimVisitProfileData::getTotalPopularity).orElse(0L);
+        SimVisitProfileData selfProfile = visitDao.findBrief(ctx.playerId());
+        long selfPopularity = selfProfile == null ? 0 : selfProfile.getTotalPopularity();
         int selfLevel = ctx.getSimBaseData() == null ? 0 : ctx.getSimBaseData().getAllLevel();
 
         List<Long> ordered = ids.stream().filter(casinos::containsKey)
@@ -311,7 +321,7 @@ public class SimVisitService {
 
     public ResVisitRecords records(long playerId, int offset, int limit) {
         ResVisitRecords res = new ResVisitRecords(Code.SUCCESS);
-        SimVisitProfileData profile = visitDao.findById(playerId).orElse(null);
+        SimVisitProfileData profile = visitDao.findRecordsView(playerId);
         List<SimVisitRecordData> records = profile == null ? List.of() : profile.getRecords();
         res.total = records.size();
         res.records = page(records, offset, limit, configService.getRecordLimit()).stream()
@@ -323,7 +333,7 @@ public class SimVisitService {
 
     public ResVisitComments comments(long playerId, int offset, int limit) {
         ResVisitComments res = new ResVisitComments(Code.SUCCESS);
-        SimVisitProfileData profile = visitDao.findById(playerId).orElse(null);
+        SimVisitProfileData profile = visitDao.findCommentsView(playerId);
         List<SimVisitCommentData> comments = profile == null ? List.of() : profile.getComments();
         res.total = comments.size();
         res.comments = page(comments, offset, limit, configService.getRecordLimit()).stream()
@@ -349,7 +359,7 @@ public class SimVisitService {
 
     public ResVisitSummary summary(long playerId) {
         ResVisitSummary res = new ResVisitSummary(Code.SUCCESS);
-        SimVisitProfileData profile = visitDao.findById(playerId).orElse(null);
+        SimVisitProfileData profile = visitDao.findBrief(playerId);
         res.totalPopularity = profile == null ? 0 : profile.getTotalPopularity();
         res.todayPopularity = (int) quotaService.used(SimVisitConstant.QuotaType.POPULARITY, playerId);
         res.commissionGold = quotaService.used(SimVisitConstant.QuotaType.COMMISSION, playerId);
@@ -368,9 +378,9 @@ public class SimVisitService {
             res.code = target.code();
             return res;
         }
-        Set<Integer> games = configCacheService.getUnlockGameByRegionId(casinoId);
-        if (games == null || !games.contains(gameType)
-                || simSkillsDao.findByGameType(playerId, gameType) == null) {
+        //被拜访玩家该场景研究院等级达到配置等级才算已解锁 (语义同协作房间/大厅游戏列表)
+        Integer needLevel = configCacheService.getUnlockGameLevel(casinoId, gameType);
+        if (needLevel == null || !reachResearchLevel(playerId, casinoId, needLevel)) {
             res.code = Code.NOT_UNLOCKED;
             return res;
         }
@@ -398,6 +408,15 @@ public class SimVisitService {
     public ResVisitTrial exitTrial(long playerId) {
         quotaService.deleteTrialSession(playerId);
         return new ResVisitTrial(Code.SUCCESS);
+    }
+
+    /**
+     * 被拜访玩家该场景研究院等级是否达标: 远端玩家无本地 ctx, 读 Redis 解锁快照。
+     */
+    private boolean reachResearchLevel(long playerId, int casinoId, int needLevel) {
+        SimCasinoUnlock casinoUnlock = simCasinoService.getCasinoUnlock(playerId);
+        Map<Integer, Integer> researchLevelMap = casinoUnlock == null ? null : casinoUnlock.getResearchLevelMap();
+        return researchLevelMap != null && researchLevelMap.getOrDefault(casinoId, 0) >= needLevel;
     }
 
     /**
@@ -534,8 +553,7 @@ public class SimVisitService {
         info.casinoId = casino.getCasinoId();
         info.casinoLevel = casino.getCasinoLevel();
 
-        SimBaseData base = simPlayerGameDao.findById(player.getId()).orElse(null);
-        info.roleLevel = base == null ? 0 : base.getAllLevel();
+        info.roleLevel = simPlayerGameDao.findAllLevelById(player.getId());
         CasinoStatsSheetCfg casinoCfg = configCacheService.getCasinoStatsSheetCfg(
                 casino.getCasinoId(), casino.getCasinoLevel());
         info.visitorCapacity = casinoCfg == null ? 0 : casinoCfg.getVisitorSpawnCount();
@@ -543,8 +561,7 @@ public class SimVisitService {
         info.popularity = profile == null ? 0 : profile.getTotalPopularity();
         info.todayPopularity = todayPopularity;
         info.dailyPopularityLimit = configService.getDailyPopularityLimit();
-        SimTaskData task = simTaskDao.findById(player.getId()).orElse(null);
-        info.medalIds = task == null ? List.of() : new ArrayList<>(task.getDisplayedMedalIds());
+        info.medalIds = simTaskDao.findDisplayedMedalIds(player.getId());
 
         Collection<BuildingData> buildings = casino.getBuildingData() == null
                 ? List.of() : casino.getBuildingData().values();
