@@ -8,6 +8,8 @@ import com.jjg.game.core.service.GameStatusService;
 import com.jjg.game.sampledata.GameDataManager;
 import com.jjg.game.sampledata.bean.WarehouseCfg;
 import com.jjg.game.slots.dao.SlotsPoolDao;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.context.ApplicationContext;
 import org.springframework.stereotype.Component;
@@ -22,6 +24,7 @@ import java.util.stream.Collectors;
 @Component
 public class SlotsFactoryManager {
 
+    private static final Logger log = LoggerFactory.getLogger(SlotsFactoryManager.class);
     @Autowired
     private SlotsPoolDao slotsPoolDao;
     @Autowired
@@ -67,15 +70,20 @@ public class SlotsFactoryManager {
     private void initGameManager(ApplicationContext context) {
         Map<String, AbstractSlotsGameManager> gameManages = context.getBeansOfType(AbstractSlotsGameManager.class);
         gameManages.forEach((k, v) -> {
-            v.init();
-            int gameType = v.getGameType();
-            if (v.getRoomType() == null) {
-                this.slotsGameManagerMap.put(gameType, v);
-            } else if (v.getRoomType() == RoomType.SLOTS_TEAM_UP_ROOM) {
-                this.slotsRoomGameManagerMap.put(gameType, v);
-            } else {
-                throw new RuntimeException("roomType not support  " + v.getRoomType());
+            try {
+                v.init();
+                int gameType = v.getGameType();
+                if (v.getRoomType() == null) {
+                    this.slotsGameManagerMap.put(gameType, v);
+                } else if (v.getRoomType() == RoomType.SLOTS_TEAM_UP_ROOM) {
+                    this.slotsRoomGameManagerMap.put(gameType, v);
+                } else {
+                    throw new RuntimeException("roomType not support  " + v.getRoomType());
+                }
+            } catch (Exception e) {
+                log.error("gameType={}", v.getGameType(), e);
             }
+
         });
     }
 
