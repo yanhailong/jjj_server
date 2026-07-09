@@ -2,6 +2,7 @@ package com.jjg.game.alliance.handler;
 
 import com.jjg.game.alliance.constant.AllianceConst;
 import com.jjg.game.alliance.pb.req.*;
+import com.jjg.game.alliance.service.AllianceAssetService;
 import com.jjg.game.alliance.service.AllianceBattleService;
 import com.jjg.game.alliance.service.AllianceDonateService;
 import com.jjg.game.alliance.service.AllianceEventService;
@@ -62,6 +63,8 @@ public class AllianceMessageHandler implements GmListener {
     private AllianceBattleService battleService;
     @Autowired
     private AllianceEventService eventService;
+    @Autowired
+    private AllianceAssetService assetService;
 
     @PreDestroy
     public void shutdownReadExecutor() {
@@ -384,6 +387,13 @@ public class AllianceMessageHandler implements GmListener {
                 battleService.tick();
             } else if ("allianceBattle".equalsIgnoreCase(cmd)) {
                 reqBattleInfo(pc, null);
+            } else if ("addcontribut".equalsIgnoreCase(cmd)) {
+                long contribution = Long.parseLong(gmOrders[1]);
+                long allianceId = 0;
+                if(gmOrders.length == 3){
+                    allianceId = Long.parseLong(gmOrders[2]);
+                }
+                assetService.grantContribution(pc.playerId(), contribution, 0, allianceId);
             } else {
                 res.code = Code.NOT_FOUND;
             }
