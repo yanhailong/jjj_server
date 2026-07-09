@@ -21,6 +21,8 @@ public class ResSimCasinoInfo extends AbstractResponse {
     public int upgradeCost;
     @ProtoDesc("联盟id")
     public long allianceId;
+    @ProtoDesc("场景id")
+    public int casinoId;
 
 
     public ResSimCasinoInfo(int code) {

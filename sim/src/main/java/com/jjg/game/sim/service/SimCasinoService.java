@@ -160,6 +160,7 @@ public class SimCasinoService {
             CasinoStatsSheetCfg cfg = configCacheService.getCasinoStatsSheetCfg(casinoData.getCasinoId(), casinoData.getCasinoLevel());
             res.upgradeCost = cfg.getUpgradeCost();
             res.allianceId = allianceCacheService.getAllianceId(ctx.playerId());
+            res.casinoId = casinoData.getCasinoId();
         } catch (Exception e) {
             log.error("", e);
             res.code = Code.EXCEPTION;

@@ -7,6 +7,7 @@ import com.jjg.game.sim.data.SimBaseData;
 import com.jjg.game.sim.data.SimCasinoData;
 import com.jjg.game.sim.data.SimPlayerContext;
 import com.jjg.game.sim.listener.SimPlayerTickListener;
+import com.jjg.game.sim.season.data.SeasonPlayerData;
 import com.mongodb.client.model.ReplaceOptions;
 import org.bson.Document;
 import org.slf4j.Logger;
@@ -81,6 +82,10 @@ public class SimAutoSaveService implements SimPlayerTickListener {
         if (ctx.getSimCoopTaskData() != null) {
             enqueued |= enqueueIfChanged(ctx.getSimCoopTaskData());
         }
+        SeasonPlayerData seasonData = ctx.getSeasonPlayerData();
+        if (seasonData != null) {
+            enqueued |= enqueueIfChanged(seasonData);
+        }
         for (AbstractData employee : ctx.getEmployeeMap().values()) {
             enqueued |= enqueueIfChanged(employee);
         }
@@ -91,6 +96,35 @@ public class SimAutoSaveService implements SimPlayerTickListener {
         if (enqueued) {
             ctx.setLastSaveTime(now);
         }
+    }
+
+    /**
+     * 业务在关键节点主动落库的入口: 与周期性自动落库走同一 IO 线程,
+     * 保证同一文档的写入严格 FIFO, 避免业务同步写与自动落库的异步旧快照互相覆盖。
+     *
+     * @return 是否有变更被提交落库
+     */
+    public boolean enqueueSave(AbstractData data) {
+        return enqueueIfChanged(data);
+    }
+
+    /**
+     * 在落库 IO 线程上执行任务, 与之前提交的落库写严格 FIFO;
+     * 用于"数据落库完成后再删除源记录"这类顺序依赖 (如赛季待结算队列的消费删除)。
+     */
+    public void enqueueTask(Runnable task) {
+        ExecutorService ex = this.ioExecutor;
+        if (ex == null || ex.isShutdown()) {
+            task.run();
+            return;
+        }
+        ex.execute(() -> {
+            try {
+                task.run();
+            } catch (Exception e) {
+                log.error("落库 IO 线程任务执行失败", e);
+            }
+        });
     }
 
     /**
@@ -110,17 +144,25 @@ public class SimAutoSaveService implements SimPlayerTickListener {
 
         String collection = mongoTemplate.getCollectionName(data.getClass());
         Object id = snapshot.get("_id");
-        ioExecutor.execute(() -> {
-            try {
-                mongoTemplate.getCollection(collection)
-                        .replaceOne(new Document("_id", id), snapshot, new ReplaceOptions().upsert(true));
-                //写库成功后再记录哈希 (volatile 跨线程可见); 失败则保持脏, 下个周期重试
-                data.markSaved(hash);
-            } catch (Exception e) {
-                log.error("异步落库失败 collection={},id={}", collection, id, e);
-            }
-        });
+        ExecutorService ex = this.ioExecutor;
+        if (ex == null || ex.isShutdown()) {
+            //init 前或关闭后退化为同步写, 保证不丢
+            writeSnapshot(collection, id, snapshot, data, hash);
+            return true;
+        }
+        ex.execute(() -> writeSnapshot(collection, id, snapshot, data, hash));
         return true;
+    }
+
+    private void writeSnapshot(String collection, Object id, Document snapshot, AbstractData data, long hash) {
+        try {
+            mongoTemplate.getCollection(collection)
+                    .replaceOne(new Document("_id", id), snapshot, new ReplaceOptions().upsert(true));
+            //写库成功后再记录哈希 (volatile 跨线程可见); 失败则保持脏, 下个周期重试
+            data.markSaved(hash);
+        } catch (Exception e) {
+            log.error("异步落库失败 collection={},id={}", collection, id, e);
+        }
     }
 
     /**

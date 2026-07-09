@@ -212,6 +212,15 @@ public class GameDataManager {
     containerMap.put(RouletteShopCfg.class, new RouletteShopCfgContainer());
     containerMap.put(RunninglightCfg.class, new RunninglightCfgContainer());
     containerMap.put(ScratchCardsCfg.class, new ScratchCardsCfgContainer());
+    containerMap.put(SeasonGemCfg.class, new SeasonGemCfgContainer());
+    containerMap.put(SeasonGemCraftCfg.class, new SeasonGemCraftCfgContainer());
+    containerMap.put(SeasonGemDropCfg.class, new SeasonGemDropCfgContainer());
+    containerMap.put(SeasonMatchCfg.class, new SeasonMatchCfgContainer());
+    containerMap.put(SeasonRankingCfg.class, new SeasonRankingCfgContainer());
+    containerMap.put(SeasonShopCfg.class, new SeasonShopCfgContainer());
+    containerMap.put(SeasonStartCfg.class, new SeasonStartCfgContainer());
+    containerMap.put(SeasonTierCfg.class, new SeasonTierCfgContainer());
+    containerMap.put(SeasondropDetailedCfg.class, new SeasondropDetailedCfgContainer());
     containerMap.put(SharePromoteCfg.class, new SharePromoteCfgContainer());
     containerMap.put(SouthernMoneyCfg.class, new SouthernMoneyCfgContainer());
     containerMap.put(SpecialAuxiliaryCfg.class, new SpecialAuxiliaryCfgContainer());
@@ -1761,6 +1770,114 @@ public class GameDataManager {
 
   public static List<ScratchCardsCfg> getScratchCardsCfgList() {
     return getInstance().getCfgContainer(ScratchCardsCfg.class).getCfgBeanList();
+  }
+
+  public static SeasonGemCfg getSeasonGemCfg(int key) {
+    return getInstance().getCfgContainer(SeasonGemCfg.class).getCfgBeanMap().get(key);
+  }
+
+  public static Map<Integer, SeasonGemCfg> getSeasonGemCfgMap() {
+    return getInstance().getCfgContainer(SeasonGemCfg.class).getCfgBeanMap();
+  }
+
+  public static List<SeasonGemCfg> getSeasonGemCfgList() {
+    return getInstance().getCfgContainer(SeasonGemCfg.class).getCfgBeanList();
+  }
+
+  public static SeasonGemCraftCfg getSeasonGemCraftCfg(int key) {
+    return getInstance().getCfgContainer(SeasonGemCraftCfg.class).getCfgBeanMap().get(key);
+  }
+
+  public static Map<Integer, SeasonGemCraftCfg> getSeasonGemCraftCfgMap() {
+    return getInstance().getCfgContainer(SeasonGemCraftCfg.class).getCfgBeanMap();
+  }
+
+  public static List<SeasonGemCraftCfg> getSeasonGemCraftCfgList() {
+    return getInstance().getCfgContainer(SeasonGemCraftCfg.class).getCfgBeanList();
+  }
+
+  public static SeasonGemDropCfg getSeasonGemDropCfg(int key) {
+    return getInstance().getCfgContainer(SeasonGemDropCfg.class).getCfgBeanMap().get(key);
+  }
+
+  public static Map<Integer, SeasonGemDropCfg> getSeasonGemDropCfgMap() {
+    return getInstance().getCfgContainer(SeasonGemDropCfg.class).getCfgBeanMap();
+  }
+
+  public static List<SeasonGemDropCfg> getSeasonGemDropCfgList() {
+    return getInstance().getCfgContainer(SeasonGemDropCfg.class).getCfgBeanList();
+  }
+
+  public static SeasonMatchCfg getSeasonMatchCfg(int key) {
+    return getInstance().getCfgContainer(SeasonMatchCfg.class).getCfgBeanMap().get(key);
+  }
+
+  public static Map<Integer, SeasonMatchCfg> getSeasonMatchCfgMap() {
+    return getInstance().getCfgContainer(SeasonMatchCfg.class).getCfgBeanMap();
+  }
+
+  public static List<SeasonMatchCfg> getSeasonMatchCfgList() {
+    return getInstance().getCfgContainer(SeasonMatchCfg.class).getCfgBeanList();
+  }
+
+  public static SeasonRankingCfg getSeasonRankingCfg(int key) {
+    return getInstance().getCfgContainer(SeasonRankingCfg.class).getCfgBeanMap().get(key);
+  }
+
+  public static Map<Integer, SeasonRankingCfg> getSeasonRankingCfgMap() {
+    return getInstance().getCfgContainer(SeasonRankingCfg.class).getCfgBeanMap();
+  }
+
+  public static List<SeasonRankingCfg> getSeasonRankingCfgList() {
+    return getInstance().getCfgContainer(SeasonRankingCfg.class).getCfgBeanList();
+  }
+
+  public static SeasonShopCfg getSeasonShopCfg(int key) {
+    return getInstance().getCfgContainer(SeasonShopCfg.class).getCfgBeanMap().get(key);
+  }
+
+  public static Map<Integer, SeasonShopCfg> getSeasonShopCfgMap() {
+    return getInstance().getCfgContainer(SeasonShopCfg.class).getCfgBeanMap();
+  }
+
+  public static List<SeasonShopCfg> getSeasonShopCfgList() {
+    return getInstance().getCfgContainer(SeasonShopCfg.class).getCfgBeanList();
+  }
+
+  public static SeasonStartCfg getSeasonStartCfg(int key) {
+    return getInstance().getCfgContainer(SeasonStartCfg.class).getCfgBeanMap().get(key);
+  }
+
+  public static Map<Integer, SeasonStartCfg> getSeasonStartCfgMap() {
+    return getInstance().getCfgContainer(SeasonStartCfg.class).getCfgBeanMap();
+  }
+
+  public static List<SeasonStartCfg> getSeasonStartCfgList() {
+    return getInstance().getCfgContainer(SeasonStartCfg.class).getCfgBeanList();
+  }
+
+  public static SeasonTierCfg getSeasonTierCfg(int key) {
+    return getInstance().getCfgContainer(SeasonTierCfg.class).getCfgBeanMap().get(key);
+  }
+
+  public static Map<Integer, SeasonTierCfg> getSeasonTierCfgMap() {
+    return getInstance().getCfgContainer(SeasonTierCfg.class).getCfgBeanMap();
+  }
+
+  public static List<SeasonTierCfg> getSeasonTierCfgList() {
+    return getInstance().getCfgContainer(SeasonTierCfg.class).getCfgBeanList();
+  }
+
+  public static SeasondropDetailedCfg getSeasondropDetailedCfg(int key) {
+    return getInstance().getCfgContainer(SeasondropDetailedCfg.class).getCfgBeanMap().get(key);
+  }
+
+  public static Map<Integer, SeasondropDetailedCfg> getSeasondropDetailedCfgMap() {
+    return getInstance().getCfgContainer(SeasondropDetailedCfg.class).getCfgBeanMap();
+  }
+
+  public static List<SeasondropDetailedCfg> getSeasondropDetailedCfgList() {
+    return getInstance().getCfgContainer(SeasondropDetailedCfg.class).getCfgBeanList();
   }
 
   public static SharePromoteCfg getSharePromoteCfg(int key) {

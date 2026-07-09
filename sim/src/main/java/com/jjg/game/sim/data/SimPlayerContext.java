@@ -2,6 +2,7 @@ package com.jjg.game.sim.data;
 
 import com.alibaba.fastjson.JSONObject;
 import com.jjg.game.core.data.PlayerController;
+import com.jjg.game.sim.season.data.SeasonPlayerData;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -36,6 +37,8 @@ public class SimPlayerContext {
     private SimTaskData simTaskData;
     //多人协作任务数据
     private SimCoopTaskData simCoopTaskData;
+    //赛季玩法玩家聚合数据
+    private SeasonPlayerData seasonPlayerData;
     //勋章品质加成缓存 (condition表id -> 千分比加成值; 登录/成就领奖后刷新; 内存态不落库, 供收益计算零IO读取)
     private Map<Integer, Integer> medalBuffMap = new HashMap<>();
 
@@ -153,6 +156,14 @@ public class SimPlayerContext {
 
     public void setSimCoopTaskData(SimCoopTaskData simCoopTaskData) {
         this.simCoopTaskData = simCoopTaskData;
+    }
+
+    public SeasonPlayerData getSeasonPlayerData() {
+        return seasonPlayerData;
+    }
+
+    public void setSeasonPlayerData(SeasonPlayerData seasonPlayerData) {
+        this.seasonPlayerData = seasonPlayerData;
     }
 
     public Map<Integer, Integer> getMedalBuffMap() {

@@ -21,6 +21,11 @@ import com.jjg.game.sim.listener.SimPlayerTickListener;
 import com.jjg.game.sim.pb.SimPbConverter;
 import com.jjg.game.sim.pb.res.ResSimEnterGame;
 import com.jjg.game.sim.pb.res.ResSimPlayerInfo;
+import com.jjg.game.sim.season.dao.SeasonPlayerDao;
+import com.jjg.game.sim.season.data.SeasonPlayerData;
+import com.jjg.game.sim.season.pb.res.NotifySeasonMatchResult;
+import com.jjg.game.sim.season.service.SeasonLifecycleService;
+import com.jjg.game.sim.season.service.SeasonService;
 import com.jjg.game.sim.service.*;
 import io.netty.util.Timeout;
 import org.slf4j.Logger;
@@ -101,6 +106,12 @@ public class SimManager {
     private SimMedalService simMedalService;
     @Autowired
     private SimPlayerContextRegistry simPlayerContextRegistry;
+    @Autowired
+    private SeasonPlayerDao seasonPlayerDao;
+    @Autowired
+    private SeasonLifecycleService seasonLifecycleService;
+    @Autowired
+    private SeasonService seasonService;
 
 
     /**
@@ -330,6 +341,13 @@ public class SimManager {
         simTaskService.reconcileFinishedTaskCount(ctx);
         //加载多人协作任务数据 (每日池懒重置)
         simCoopTaskService.initData(ctx);
+        SeasonPlayerData seasonData = seasonPlayerDao.findById(playerId).orElse(null);
+        if (seasonData == null) {
+            seasonData = new SeasonPlayerData();
+            seasonData.setPlayerId(playerId);
+        }
+        ctx.setSeasonPlayerData(seasonData);
+        seasonLifecycleService.ensureCurrent(ctx, System.currentTimeMillis());
         this.simPlayerContextRegistry.putContext(ctx);
         simNodeService.save(playerId, clusterSystem.getNodePath());
         return ctx;
@@ -390,6 +408,7 @@ public class SimManager {
         List<SimSkillsData> skillDataList = new ArrayList<>();
         List<SimTaskData> simTaskDataList = new ArrayList<>();
         List<SimCoopTaskData> simCoopTaskDataList = new ArrayList<>();
+        List<SeasonPlayerData> seasonPlayerDataList = new ArrayList<>();
         for (Map.Entry<Long, SimPlayerContext> en : this.simPlayerContextRegistry.getContextMap().entrySet()) {
             try {
                 SimPlayerContext ctx = en.getValue();
@@ -407,6 +426,9 @@ public class SimManager {
                 if (ctx.getSimCoopTaskData() != null) {
                     simCoopTaskDataList.add(ctx.getSimCoopTaskData());
                 }
+                if (ctx.getSeasonPlayerData() != null) {
+                    seasonPlayerDataList.add(ctx.getSeasonPlayerData());
+                }
             } catch (Exception e) {
                 log.error("shutdown onExitGame 异常 playerId={}", en.getKey(), e);
             }
@@ -418,6 +440,7 @@ public class SimManager {
         simSkillsDao.saveAll(skillDataList);
         simTaskDao.saveAll(simTaskDataList);
         simCoopTaskDao.saveAll(simCoopTaskDataList);
+        seasonPlayerDao.saveAll(seasonPlayerDataList);
         //删除本节点上所有玩家的sim节点路由信息
         this.simNodeService.delete(this.simPlayerContextRegistry.getContextMap().keySet());
     }
@@ -444,6 +467,9 @@ public class SimManager {
         }
         if (ctx.getSimCoopTaskData() != null) {
             simCoopTaskDao.save(ctx.getSimCoopTaskData());
+        }
+        if (ctx.getSeasonPlayerData() != null) {
+            seasonPlayerDao.save(ctx.getSeasonPlayerData());
         }
         //删除本节点上玩家的sim节点路由信息
         this.simNodeService.delete(playerId);
@@ -511,6 +537,12 @@ public class SimManager {
 
             //主线/成就任务联动: 旋转次数 + 累积投注 (内部吞异常, 不影响主流程)
             simTaskService.onSpin(ctx, gameType, statInfo);
+            if (!visitTrial) {
+                NotifySeasonMatchResult seasonResult = seasonService.onSpin(ctx, gameType, statInfo);
+                if (seasonResult != null && ctx.getPlayerController() != null) {
+                    ctx.send(seasonResult);
+                }
+            }
             return result;
         } catch (Exception e) {
             log.error("", e);

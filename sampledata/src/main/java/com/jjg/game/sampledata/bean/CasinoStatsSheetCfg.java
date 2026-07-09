@@ -21,6 +21,12 @@ public class CasinoStatsSheetCfg extends BaseCfgBean {
 
   /** 游客基础来访间隔(秒) */
   protected int BaseVisitInterval;
+  /** 消耗效率（百分比） */
+  protected int DrainRate;
+  /** 曝光要求 */
+  protected int ExposureRequirements;
+  /** 延长游客生成间隔的倍数上限 */
+  protected int MaxMultiplier;
   /** 离线收益时长（分） */
   protected int OfflineDuration;
   /** 基础繁荣度 */
@@ -39,6 +45,21 @@ public class CasinoStatsSheetCfg extends BaseCfgBean {
   /** 返回游客基础来访间隔(秒) */
   public int getBaseVisitInterval() {
     return BaseVisitInterval;
+  }
+
+  /** 返回消耗效率（百分比） */
+  public int getDrainRate() {
+    return DrainRate;
+  }
+
+  /** 返回曝光要求 */
+  public int getExposureRequirements() {
+    return ExposureRequirements;
+  }
+
+  /** 返回延长游客生成间隔的倍数上限 */
+  public int getMaxMultiplier() {
+    return MaxMultiplier;
   }
 
   /** 返回离线收益时长（分） */
