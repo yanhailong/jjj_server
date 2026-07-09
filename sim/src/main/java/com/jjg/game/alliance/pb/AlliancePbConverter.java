@@ -60,7 +60,7 @@ public class AlliancePbConverter {
         brief.level = data.getLevel();
         brief.reputation = data.getReputation();
 
-        AllianceLevelCfg cfg = config.allianceLevelCfg(data.getLevel() + 1);
+        AllianceLevelCfg cfg = config.allianceLevelCfg(data.getLevel());
         if (cfg != null) {
             brief.nextLevelReputation = cfg.getReputationRequired();
             brief.memberCap = cfg.getMaxMembers();
