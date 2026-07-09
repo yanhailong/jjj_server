@@ -198,9 +198,49 @@ public class BountyDuelGenerateManager extends AbstractSlotsGenerateManager<Boun
 
     @Override
     protected BountyDuelAwardLineInfo addFullLineAwardInfo(Set<Integer> sameIconIndexSet, BaseElementRewardCfg cfg, int[] arr) {
-        BountyDuelAwardLineInfo info = super.addFullLineAwardInfo(sameIconIndexSet, cfg, arr);
+        BountyDuelAwardLineInfo info = getAwardLineInfo();
+        info.setSameIconSet(sameIconIndexSet);
         info.setSameIcon(cfg.getElementId().getFirst());
+        info.setBaseTimes(calFullLineBaseTimes(sameIconIndexSet, cfg, arr));
         return info;
+    }
+
+    private int calFullLineBaseTimes(Set<Integer> sameIconIndexSet, BaseElementRewardCfg cfg, int[] arr) {
+        if (sameIconIndexSet == null || sameIconIndexSet.isEmpty()) {
+            return cfg.getBet();
+        }
+
+        Map<Integer, Integer> iconNum = new HashMap<>();
+        Map<Integer, Integer> columnIconCountMap = new HashMap<>();
+        for (int index : sameIconIndexSet) {
+            int columnId = (index - 1) / ROWS + 1;
+            columnIconCountMap.merge(columnId, 1, Integer::sum);
+            iconNum.merge(arr[index], 1, Integer::sum);
+        }
+
+        int addTimes = getConfiguredAddTimes(cfg, iconNum);
+        for (Integer count : columnIconCountMap.values()) {
+            addTimes *= count;
+        }
+        return cfg.getBet() * addTimes;
+    }
+
+    private int getConfiguredAddTimes(BaseElementRewardCfg cfg, Map<Integer, Integer> iconNum) {
+        if (cfg.getBetTimes() == null || cfg.getBetTimes().isEmpty()) {
+            return 1;
+        }
+
+        for (List<Integer> betTime : cfg.getBetTimes()) {
+            if (betTime.size() != 3) {
+                continue;
+            }
+
+            Integer num = iconNum.get(betTime.get(0));
+            if (num != null && num >= betTime.get(1)) {
+                return betTime.get(2);
+            }
+        }
+        return 1;
     }
 
     @Override

@@ -416,7 +416,8 @@ public class PointsAwardTurntableService implements IRedDotService {
         }
         int afterCount = getMaxCount(playerId) - getCount(playerId);
         Pair<Integer, Integer> rank = pointsAwardLeaderboardService.getRank(PointsAwardConstant.Leaderboard.TYPE_MONTH, playerId);
-        pointsAwardLogger.turntableLog(playerId, beforeCount, afterCount - beforeCount, afterCount, 0, 0, rank.getSecond());
+        // 删除该记录 2026/6/17 飞书 lzy
+//        pointsAwardLogger.turntableLog(playerId, beforeCount, afterCount - beforeCount, afterCount, 0, 0, rank.getSecond());
     }
 
     /**

@@ -124,7 +124,7 @@ public interface MessageConst {
         //金钱兔
         int MONEY_RABBIT = 0x35;
         //德古拉黑暗财富
-        int DEGULA_WEALTH = 0x36;
+        int DRACULA_TYPE = 0x36;
         //宙斯VS哈迪斯
         int ZEUS_VS_HADES = 0x37;
         //杰克船长
@@ -189,6 +189,10 @@ public interface MessageConst {
         int GARA_GEMSTONE_3 = 0x53;
         // 赏金大对决
         int BOUNTY_DUEL_TYPE = 0x55;
+        //连环夺宝
+        int LIAN_HUAN_DUO_BAO_TYPE = 0x56;
+        //超级高尔夫
+        int SUPER_GOLF_TYPE = 0x57;
         //模拟经营游戏
         int SIM_GAME = 0x54;
         //聊天

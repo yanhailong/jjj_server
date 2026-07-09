@@ -16,6 +16,9 @@ public interface BountyDuelConstant {
 
         int REQ_START_GAME = BASE_MSG_PREFIX | 0x3;
         int RES_START_GAME = BASE_MSG_PREFIX | 0x4;
+
+        int REQ_POOL_INFO = BASE_MSG_PREFIX | 0x5;
+        int RES_POOL_INFO = BASE_MSG_PREFIX | 0x6;
     }
 
     interface BaseElement {

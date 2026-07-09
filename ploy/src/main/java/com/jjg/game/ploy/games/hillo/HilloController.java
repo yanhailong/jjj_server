@@ -42,6 +42,7 @@ import org.springframework.stereotype.Component;
 import java.math.BigDecimal;
 import java.math.RoundingMode;
 import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.List;
 
 @Component
@@ -681,6 +682,14 @@ public class HilloController extends AbstractSinglePloyController<HilloPloyGameD
         history.setBetMode(playerGameData.getCurrentBetMode());
         history.setBalanceAfter(balanceAfter);
         playerGameData.addTotalHistory(history);
+        HashMap<String, Object> settlementData = new HashMap<>();
+        settlementData.put("history", history.getHistory());
+        settlementData.put("totalProfit", history.getTotalProfit());
+        settlementData.put("startTime", history.getStartTime());
+        settlementData.put("betMode", history.getBetMode());
+        settlementData.put("balanceAfter", balanceAfter);
+        settlementData.put("tax", tax);
+        sendSettlementDataTrack(playerGameData, playerGameData.getLastBet(), settleCoin - tax, settlementData);
 
         playerGameData.setCurrentCardId(0);
         playerGameData.setCurrentCoin(0);

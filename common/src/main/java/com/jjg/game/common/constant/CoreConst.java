@@ -58,7 +58,7 @@ public class CoreConst {
         //篮球巨星
         public static final int BASKETBALL_STAR = 101800;
         //德古拉黑暗财富
-        public static final int DEGULA_WEALTH = 101900;
+        public static final int DRACULA = 101900;
         //宙斯VS哈迪斯
         public static final int ZEUS_VS_HADES = 102000;
         //杰克船长
@@ -85,6 +85,8 @@ public class CoreConst {
         public static final int MONEY_RABBIT = 103501;
         //糖果派对
         public static final int CANDY_PARTY = 105100;
+        //连环夺宝
+        public static final int LIAN_HUAN_DUO_BAO = 105200;
         //鼠鼠福福
         public static final int LUCKY_MOUSE = 103600;
         //十倍金牛
@@ -109,6 +111,8 @@ public class CoreConst {
         public static final int GARA_GEMSTONE_2 = 105501;
         //伽罗宝石3
         public static final int GARA_GEMSTONE_3 = 105502;
+        //超级高尔夫
+        public static final int SUPER_GOLF = 104800;
         //红黑大战
         public static final int RED_BLACK_WAR = 200100;
         //龙虎斗

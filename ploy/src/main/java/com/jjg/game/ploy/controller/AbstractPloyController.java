@@ -2,6 +2,8 @@ package com.jjg.game.ploy.controller;
 
 import cn.hutool.core.collection.CollectionUtil;
 import com.alibaba.fastjson.JSON;
+import com.alibaba.fastjson.serializer.SerializerFeature;
+import com.jjg.game.common.config.NodeConfig;
 import com.jjg.game.common.pb.AbstractMessage;
 import com.jjg.game.common.pb.AbstractResponse;
 import com.jjg.game.common.proto.Pair;
@@ -27,8 +29,10 @@ import com.jjg.game.ploy.pb.ReqPloyRecord;
 import com.jjg.game.sampledata.GameDataManager;
 import com.jjg.game.sampledata.bean.PloygameRoomCfg;
 import com.jjg.game.sampledata.bean.PoolResultLibCfg;
+import com.jjg.game.core.manager.SnowflakeManager;
 import org.slf4j.Logger;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.kafka.core.KafkaTemplate;
 
 import java.lang.reflect.Constructor;
 import java.math.BigDecimal;
@@ -45,6 +49,14 @@ import java.util.concurrent.atomic.AtomicBoolean;
  * @date 2026/3/19
  */
 public abstract class AbstractPloyController<T extends PlayerPloyGameData> implements TimerListener<String>, ConfigExcelChangeListener {
+    private static final String DATA_TRACK_TOPIC_PREFIX = "game_bet";
+    private static final String SETTLEMENT_LOG_TYPE = "settlement";
+    private static final String TOTAL_BET = "TotalBet";
+    private static final String TOTAL_WIN = "TotalWin";
+    private static final String INCOME = "Income";
+    private static final String EFFECTIVE_BET = "EffectiveBet";
+    private static final String SETTLEMENT_DATA = "SettlementData";
+
     protected final Logger log;
 
     @Autowired
@@ -61,6 +73,12 @@ public abstract class AbstractPloyController<T extends PlayerPloyGameData> imple
     protected TaskManager taskManager;
     @Autowired
     protected PloyLogger logger;
+    @Autowired
+    protected SnowflakeManager snowflakeManager;
+    @Autowired
+    protected KafkaTemplate<String, String> kafkaTemplate;
+    @Autowired
+    protected NodeConfig nodeConfig;
 
     protected AtomicBoolean open = new AtomicBoolean(false);
 
@@ -326,6 +344,67 @@ public abstract class AbstractPloyController<T extends PlayerPloyGameData> imple
         result.data = new Pair<>(addResult.data, afterPool);
         log.info("从奖池扣除，并且给玩家加钱成功 playerId = {},poolChangeValue = {},addToPlayerValue = {},addType = {}", playerGameData.playerId(), poolChangeValue, addToPlayerValue, addType);
         return result;
+    }
+
+    protected long calcRewardAfterTax(long value, int tax) {
+        if (value <= 0) {
+            return 0;
+        }
+        long addToPlayer = value;
+        if (tax > 0) {
+            int addRate = GameConstant.TEN_THOUSAND - tax;
+            if (addRate > 0) {
+                addToPlayer = BigDecimal.valueOf(addRate).multiply(BigDecimal.valueOf(value)).setScale(0, RoundingMode.FLOOR)
+                        .divide(GameConstant.TEN_THOUSAND_BD, RoundingMode.DOWN).longValue();
+            }
+        }
+        return addToPlayer;
+    }
+
+    protected void sendSettlementDataTrack(T playerGameData, long totalBet, long totalWin, Object settlementData) {
+        try {
+            if (playerGameData == null || playerGameData.getPlayerController() == null || playerGameData.getPlayerController().getPlayer() == null) {
+                return;
+            }
+            Player player = playerGameData.getPlayerController().getPlayer();
+
+            HashMap<String, Object> playerInfo = new HashMap<>();
+            playerInfo.put("playerId", player.getId());
+            playerInfo.put("playerName", player.getNickName());
+
+            HashMap<String, Object> playerLogData = new HashMap<>();
+            playerLogData.put(TOTAL_BET, totalBet);
+            playerLogData.put(TOTAL_WIN, totalWin);
+            playerLogData.put(INCOME, totalWin - totalBet);
+            playerLogData.put(EFFECTIVE_BET, totalBet);
+
+            HashMap<String, Object> playerData = new HashMap<>();
+            playerData.put("playerInfo", playerInfo);
+            playerData.put("data", playerLogData);
+
+            HashMap<String, Object> playerDataList = new HashMap<>();
+            playerDataList.put(player.getId() + "", playerData);
+
+            HashMap<String, Object> gameData = new HashMap<>();
+            if (settlementData != null) {
+                gameData.put(SETTLEMENT_DATA, settlementData);
+            }
+
+            HashMap<String, Object> trackData = new HashMap<>();
+            trackData.put("playerData", playerDataList);
+            trackData.put("gameData", gameData);
+            trackData.put("nodeName", nodeConfig.getName());
+            trackData.put("gameId", playerGameData.getGameType());
+            trackData.put("gameCfgId", playerGameData.getRoomCfgId());
+            trackData.put("roomId", player.getRoomId());
+            trackData.put("orderId", snowflakeManager.nextId());
+            trackData.put("sendTime", System.currentTimeMillis());
+
+            kafkaTemplate.send(DATA_TRACK_TOPIC_PREFIX + "_" + SETTLEMENT_LOG_TYPE,
+                    JSON.toJSONString(trackData, SerializerFeature.WriteNonStringKeyAsString));
+        } catch (Exception e) {
+            log.error("策略游戏结算埋点发送异常 playerId={}", playerGameData == null ? 0 : playerGameData.playerId(), e);
+        }
     }
 
     /**

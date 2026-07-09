@@ -36,6 +36,7 @@ import com.jjg.game.core.constant.GameConstant;
 import com.jjg.game.core.dao.CountDao;
 import com.jjg.game.core.data.*;
 import com.jjg.game.core.listener.ConfigExcelChangeListener;
+import com.jjg.game.core.logger.CoreLogger;
 import com.jjg.game.core.service.CorePlayerService;
 import com.jjg.game.core.service.MailService;
 import com.jjg.game.core.utils.ItemUtils;
@@ -87,6 +88,7 @@ public class CashCowController extends BaseActivityController implements TimerLi
     // 结构： activityId -> (detailId -> nextTriggerMillis)
     private final Map<Long, Map<Integer, Long>> timerMap;
     private final RobotUtil robotUtil;
+    private final CoreLogger coreLogger;
     // 上次机器人自动增加奖池的时间戳（毫秒）
     private long lastRobotAddTime;
     // 定时器 key（注册/移除时使用）
@@ -106,7 +108,7 @@ public class CashCowController extends BaseActivityController implements TimerLi
             .build();
 
     public CashCowController(CashCowDao cashCowDao, TimerCenter timerCenter, CorePlayerService corePlayerService,
-                             MailService mailService, RobotUtil robotUtil) {
+                             MailService mailService, RobotUtil robotUtil, CoreLogger coreLogger) {
         this.cashCowDao = cashCowDao;
         this.timerCenter = timerCenter;
         this.corePlayerService = corePlayerService;
@@ -114,6 +116,7 @@ public class CashCowController extends BaseActivityController implements TimerLi
         // 使用并发 Map 以保证在并发环境下对 timerMap 的安全访问
         timerMap = new ConcurrentHashMap<>();
         this.robotUtil = robotUtil;
+        this.coreLogger = coreLogger;
     }
 
 
@@ -436,6 +439,7 @@ public class CashCowController extends BaseActivityController implements TimerLi
         arrayList.add(new LanguageParamData(0, NumberUtil.decimalFormat("#.##%", BigDecimal.valueOf(addValue.getFirst()).divide(GameConstant.TEN_THOUSAND_BD, 4, RoundingMode.DOWN))));
         arrayList.add(new LanguageParamData(0, String.valueOf(NumberUtil.decimalFormat(",##0", addValue.getSecond()))));
         mailService.addCfgMail(player.getId(), 38, List.of(new Item(ItemUtils.getGoldItemId(), addValue.getSecond())), arrayList, AddType.VIP_REWARDS_CASHCOW);
+        coreLogger.sendVipLog(player, 5, Map.of(ItemUtils.getGoldItemId(), addValue.getSecond()), null, 0);
     }
 
     @Override

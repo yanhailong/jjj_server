@@ -31,6 +31,7 @@ import java.math.BigDecimal;
 import java.math.RoundingMode;
 import java.util.ArrayList;
 import java.util.Collections;
+import java.util.HashMap;
 import java.util.List;
 
 /**
@@ -229,8 +230,14 @@ public class HighLowPokerController extends AbstractSinglePloyController<HighLow
      */
     private void resetData(HighLowPokerPloyGameData pokerPloyGameData, long tax) {
         HighLowPokerHistory highLowPokerHistory = new HighLowPokerHistory();
-        highLowPokerHistory.setHistory(pokerPloyGameData.getHistory());
+        List<HighLowHistoryInfo> roundHistory = new ArrayList<>(pokerPloyGameData.getHistory());
+        highLowPokerHistory.setHistory(roundHistory);
         highLowPokerHistory.setTotalProfit(pokerPloyGameData.getCurrentCoin() - tax - pokerPloyGameData.getLastBet());
+        HashMap<String, Object> settlementData = new HashMap<>();
+        settlementData.put("history", roundHistory);
+        settlementData.put("totalProfit", highLowPokerHistory.getTotalProfit());
+        settlementData.put("tax", tax);
+        sendSettlementDataTrack(pokerPloyGameData, pokerPloyGameData.getLastBet(), pokerPloyGameData.getCurrentCoin() - tax, settlementData);
         pokerPloyGameData.setCard(null);
         pokerPloyGameData.setCurrentIndex(0);
         pokerPloyGameData.setCurrentCoin(0);

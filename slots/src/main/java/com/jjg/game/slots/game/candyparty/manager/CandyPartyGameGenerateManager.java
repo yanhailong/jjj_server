@@ -163,6 +163,7 @@ public class CandyPartyGameGenerateManager extends AbstractSlotsGenerateManager<
         System.arraycopy(arr, 0, newArr, 0, arr.length);
         //是否有消除
         List<CandyPartyAwardLineInfo> awardLineInfoList = lib.getAwardLineInfoList();
+        lib.setRollerMode(specialModeCfg.getRollerMode());
         repairIcons(cols, rows, newArr, awardLineInfoList, addIconInfoList, lib.getRollerMode());
         if (!addIconInfoList.isEmpty()) {
             lib.setAddIconInfos(addIconInfoList);
