@@ -180,15 +180,6 @@ public interface AllianceConst {
     }
 
     /**
-     * 成员在线状态 (与社交模块口径一致)
-     */
-    interface MemberStatus {
-        int OFFLINE = 0;
-        int ONLINE = 1;
-        int IN_GAME = 2;
-    }
-
-    /**
      * 通用变更通知类型 (NOTIFY_ALLIANCE.type)
      */
     interface NotifyType {
@@ -376,5 +367,9 @@ public interface AllianceConst {
         int ALREADY_IN = 1;
         //人数已满
         int FULL = 2;
+    }
+
+    interface Global{
+        int CREATE_MIN_CASINO_LEVEL_ID = 221;
     }
 }

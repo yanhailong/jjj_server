@@ -14,6 +14,7 @@ import org.springframework.data.mongodb.core.query.Update;
 import org.springframework.stereotype.Repository;
 
 import java.util.Collection;
+import java.util.Collections;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -182,6 +183,34 @@ public class AlliancePlayerDao extends MongoBaseDao<AlliancePlayerData, Long> {
         Query query = new Query(Criteria.where("_id").is(creatorId).and("createdAllianceId").is(allianceId));
         return mongoTemplate.updateFirst(query,
                 new Update().set("createdAllianceId", 0L), AlliancePlayerData.class).getModifiedCount() > 0;
+    }
+
+    // ----------------------- 申请反向索引 -----------------------
+
+    /**
+     * 记录"我申请过的联盟" (入盟/退盟时据此反查清理各联盟侧的申请记录)。
+     * 调用方须先记索引再写联盟侧申请: 索引残留陈旧项无害 (清理时空操作), 反之漏记会漏删。
+     */
+    public void addAppliedAlliances(long playerId, Collection<Long> allianceIds) {
+        if (allianceIds == null || allianceIds.isEmpty()) {
+            return;
+        }
+        mongoTemplate.upsert(byId(playerId),
+                new Update().addToSet("appliedAllianceIds").each(allianceIds.toArray()), AlliancePlayerData.class);
+    }
+
+    /**
+     * 取出并清空"我申请过的联盟"索引 (findAndModify 原子完成)。
+     *
+     * @return 清空前的联盟 id 列表; 无记录返回空列表
+     */
+    public List<Long> pullAppliedAlliances(long playerId) {
+        Query query = byId(playerId);
+        query.fields().include("appliedAllianceIds");
+        AlliancePlayerData data = mongoTemplate.findAndModify(query,
+                new Update().unset("appliedAllianceIds"), AlliancePlayerData.class);
+        return data == null || data.getAppliedAllianceIds() == null
+                ? Collections.emptyList() : data.getAppliedAllianceIds();
     }
 
     // ----------------------- 贡献值 -----------------------

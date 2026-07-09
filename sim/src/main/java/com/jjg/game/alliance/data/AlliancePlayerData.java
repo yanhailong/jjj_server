@@ -29,6 +29,9 @@ public class AlliancePlayerData {
     private long createdAllianceId;
     //入盟时间(ms)
     private long joinTime;
+    //有申请记录的联盟 id (反向索引: 入盟成功/退盟时据此反查清理各联盟侧的申请;
+    //允许残留被拒/过期/被挤掉的陈旧项, 清理时按空操作处理)
+    private List<Long> appliedAllianceIds = new ArrayList<>();
 
     //联盟贡献值 (流通货币, 退盟保留; 无盟时不可使用)
     private long contribution;
@@ -95,6 +98,14 @@ public class AlliancePlayerData {
 
     public void setJoinTime(long joinTime) {
         this.joinTime = joinTime;
+    }
+
+    public List<Long> getAppliedAllianceIds() {
+        return appliedAllianceIds;
+    }
+
+    public void setAppliedAllianceIds(List<Long> appliedAllianceIds) {
+        this.appliedAllianceIds = appliedAllianceIds == null ? new ArrayList<>() : appliedAllianceIds;
     }
 
     public long getContribution() {

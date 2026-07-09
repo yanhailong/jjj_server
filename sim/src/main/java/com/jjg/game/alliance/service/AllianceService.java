@@ -19,7 +19,9 @@ import com.jjg.game.core.constant.Code;
 import com.jjg.game.core.data.*;
 import com.jjg.game.core.service.CorePlayerService;
 import com.jjg.game.core.service.PlayerPackService;
+import com.jjg.game.sampledata.GameDataManager;
 import com.jjg.game.sampledata.bean.AllianceLevelCfg;
+import com.jjg.game.sampledata.bean.GlobalConfigCfg;
 import com.jjg.game.sim.data.SimPlayerContext;
 import com.jjg.game.sim.manager.SimPlayerContextRegistry;
 import com.jjg.game.sim.service.SimConfigCacheService;
@@ -277,10 +279,18 @@ public class AllianceService {
             return res;
         }
 
+        GlobalConfigCfg globalConfigCfg = GameDataManager.getGlobalConfigCfg(AllianceConst.Global.CREATE_MIN_CASINO_LEVEL_ID);
+        if (globalConfigCfg == null || globalConfigCfg.getIntValue() < 0) {
+            res.code = code;
+            log.warn("创建联盟失败,等级要求配置获取失败 playerId={}", playerId);
+            return res;
+        }
+
         int allLevel = casinoLevelOf(playerId);
-        if (allLevel < AllianceConst.Cfg.CREATE_MIN_CASINO_LEVEL) {
+
+        if (allLevel < globalConfigCfg.getIntValue()) {
             res.code = Code.LEVEL_NOT_ENOUGH;
-            log.warn("创建联盟失败,场景等级不足 playerId={},allLevel={}", playerId, allLevel);
+            log.warn("创建联盟失败,场景等级不足 playerId={},allLevel={},cfgLevel={}", playerId, allLevel, globalConfigCfg.getIntValue());
             return res;
         }
 
@@ -339,6 +349,8 @@ public class AllianceService {
         alliance.getMembers().put(playerId, new AllianceMember(pc.playerId(), pc.getPlayer().getNickName(), AllianceConst.Position.LEADER, now));
         allianceDao.save(alliance);
         cacheService.invalidatePlayer(playerId);
+        //建盟成功同样撤掉之前散落在其它联盟的申请
+        clearPlayerApplications(playerId, allianceId);
         res.alliance = AlliancePbConverter.toBrief(alliance, configService);
         log.info("创建联盟成功 playerId={},allianceId={},name={}", playerId, allianceId, name);
         return res;
@@ -360,11 +372,6 @@ public class AllianceService {
             return res;
         }
         int myCasinoLevel = casinoLevelOf(player.getId());
-        if (myCasinoLevel < AllianceConst.Cfg.CREATE_MIN_CASINO_LEVEL) {
-            res.code = Code.LEVEL_NOT_ENOUGH;
-            log.warn("加入联盟失败,玩家场景等级不足 playerId={},allLevel={}", player.getId(), myCasinoLevel);
-            return res;
-        }
         if (allianceId > 0) {
             return joinOne(res, player, allianceId, myCasinoLevel);
         }
@@ -420,6 +427,8 @@ public class AllianceService {
                 allianceDao.removeApplications(allianceId, List.of(earliest));
             }
         }
+        //先记玩家侧"申请过"反向索引再写联盟侧申请 (索引残留无害, 漏记会漏删)
+        alliancePlayerDao.addAppliedAlliances(player.getId(), List.of(allianceId));
         if (!allianceDao.addApplication(allianceId, player.getId(),
                 new AllianceApplication(System.currentTimeMillis(), myCasinoLevel))) {
             res.code = Code.REPEAT_OP;
@@ -468,6 +477,15 @@ public class AllianceService {
         //无可直接加入的: 向需审核的联盟批量发申请
         long now = System.currentTimeMillis();
 
+        //先记玩家侧"申请过"反向索引再写联盟侧申请 (索引残留无害, 漏记会漏删)
+        List<Long> auditIds = new ArrayList<>();
+        for (AllianceData data : candidates) {
+            if (data.isJoinNeedAudit()) {
+                auditIds.add(data.getAllianceId());
+            }
+        }
+        alliancePlayerDao.addAppliedAlliances(player.getId(), auditIds);
+
         List<Long> applyList = new ArrayList<>();
         for (AllianceData data : candidates) {
             if (!data.isJoinNeedAudit()) {
@@ -509,8 +527,26 @@ public class AllianceService {
         }
         cacheService.invalidatePlayer(player.getId());
         cacheService.publishInvalidate(allianceId);
+        //入盟成功: 撤掉散落在其它联盟的申请, 其它盟主不再看到已入他盟玩家的无效申请
+        clearPlayerApplications(player.getId(), allianceId);
         log.info("加入联盟成功 playerId={},allianceId={}", player.getId(), allianceId);
         return Code.SUCCESS;
+    }
+
+    /**
+     * 清理玩家散落在各联盟的入盟申请 (入盟成功/建盟/退盟时调用):
+     * 入盟后其它盟主不再看到无效申请; 退盟后可重新申请之前申请过的联盟。
+     *
+     * @param excludeAllianceId 刚加入的联盟 (其申请已由 tryAddMember 顺带 unset, 缓存也已失效), 无需排除时传 0
+     */
+    private void clearPlayerApplications(long playerId, long excludeAllianceId) {
+        for (Long aid : alliancePlayerDao.pullAppliedAlliances(playerId)) {
+            if (aid == null || aid <= 0 || aid == excludeAllianceId) {
+                continue;
+            }
+            allianceDao.removeApplications(aid, List.of(playerId));
+            cacheService.publishInvalidate(aid);
+        }
     }
 
     /**
@@ -645,6 +681,8 @@ public class AllianceService {
     private void leaveInternal(long playerId, long allianceId) {
         allianceDao.removeMember(allianceId, playerId);
         alliancePlayerDao.clearAlliance(playerId, allianceId);
+        //清掉历史申请记录, 退盟后可重新申请之前申请过的联盟 (正常入盟时已清, 此处兜底)
+        clearPlayerApplications(playerId, 0);
         cacheService.invalidatePlayer(playerId);
         cacheService.publishInvalidate(allianceId);
         rankService.removeFromContribRank(allianceId, playerId);
