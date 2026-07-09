@@ -206,27 +206,6 @@ public interface SimConstant {
         int RES_JOIN_COOP_ROOM = BASE_MSG_PREFIX | 0x68;
         //多人任务-任务状态变更通知 (结算/自愈回退)
         int NOTIFY_COOP_TASK_UPDATE = BASE_MSG_PREFIX | 0x69;
-
-        //赛季玩法
-        int REQ_SEASON_INFO = BASE_MSG_PREFIX | 0x6A;
-        int RES_SEASON_INFO = BASE_MSG_PREFIX | 0x6B;
-        int REQ_SEASON_SHOP = BASE_MSG_PREFIX | 0x6C;
-        int RES_SEASON_SHOP = BASE_MSG_PREFIX | 0x6D;
-        int REQ_SEASON_BUY = BASE_MSG_PREFIX | 0x6E;
-        int RES_SEASON_BUY = BASE_MSG_PREFIX | 0x6F;
-        int REQ_SEASON_GEMS = BASE_MSG_PREFIX | 0x70;
-        int RES_SEASON_GEMS = BASE_MSG_PREFIX | 0x71;
-        int REQ_SEASON_EQUIP_GEM = BASE_MSG_PREFIX | 0x72;
-        int RES_SEASON_EQUIP_GEM = BASE_MSG_PREFIX | 0x73;
-        int REQ_SEASON_CRAFT_GEM = BASE_MSG_PREFIX | 0x74;
-        int RES_SEASON_CRAFT_GEM = BASE_MSG_PREFIX | 0x75;
-        int REQ_SEASON_MATCH = BASE_MSG_PREFIX | 0x76;
-        int RES_SEASON_MATCH = BASE_MSG_PREFIX | 0x77;
-        int NOTIFY_SEASON_MATCH_RESULT = BASE_MSG_PREFIX | 0x78;
-        int REQ_SEASON_MATCH_HISTORY = BASE_MSG_PREFIX | 0x79;
-        int RES_SEASON_MATCH_HISTORY = BASE_MSG_PREFIX | 0x7A;
-        int REQ_SEASON_RANK = BASE_MSG_PREFIX | 0x7B;
-        int RES_SEASON_RANK = BASE_MSG_PREFIX | 0x7C;
     }
 
     interface Common {

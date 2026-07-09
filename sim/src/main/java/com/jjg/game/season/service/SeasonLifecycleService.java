@@ -1,0 +1,259 @@
+package com.jjg.game.season.service;
+
+import com.jjg.game.core.constant.AddType;
+import com.jjg.game.core.data.Item;
+import com.jjg.game.core.data.Player;
+import com.jjg.game.core.data.PlayerPack;
+import com.jjg.game.core.service.CorePlayerService;
+import com.jjg.game.core.service.MailService;
+import com.jjg.game.core.service.PlayerPackService;
+import com.jjg.game.sampledata.bean.SeasonMatchCfg;
+import com.jjg.game.sampledata.bean.SeasonRankingCfg;
+import com.jjg.game.sampledata.bean.SeasonTierCfg;
+import com.jjg.game.sim.data.SimPlayerContext;
+import com.jjg.game.sim.listener.SimPlayerTickListener;
+import com.jjg.game.season.dao.SeasonPlayerDao;
+import com.jjg.game.season.data.SeasonPlayerData;
+import com.jjg.game.season.data.SeasonPendingSettlement;
+import com.jjg.game.season.model.SeasonSnapshot;
+import com.jjg.game.sim.service.SimAutoSaveService;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+import org.springframework.stereotype.Service;
+
+import java.time.Instant;
+import java.time.LocalDate;
+import java.time.ZoneId;
+import java.util.ArrayList;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
+
+/**
+ * 维护玩家个人赛季时间线，并在登录和在线跨季时完成状态切换。
+ */
+@Service
+public class SeasonLifecycleService implements SimPlayerTickListener {
+    private static final Logger log = LoggerFactory.getLogger(SeasonLifecycleService.class);
+    private static final long DAY_MILLIS = 24L * 60 * 60 * 1000;
+    /**
+     * 跨节点待结算记录的拉取节流; 登录后首次访问必拉, 其后最多每隔该间隔查一次库。
+     */
+    private static final long PENDING_CHECK_INTERVAL_MILLIS = 60_000L;
+
+    private final SeasonConfigService configService;
+    private final SeasonTimeline timeline = new SeasonTimeline();
+    private final CorePlayerService corePlayerService;
+    private final SeasonPlayerDao seasonPlayerDao;
+    private final SeasonRankingService rankingService;
+    private final PlayerPackService playerPackService;
+    private final SeasonEconomyService economyService;
+    private final MailService mailService;
+    private final SimAutoSaveService autoSaveService;
+
+    public SeasonLifecycleService(SeasonConfigService configService, CorePlayerService corePlayerService,
+                                  SeasonPlayerDao seasonPlayerDao, SeasonRankingService rankingService,
+                                  PlayerPackService playerPackService, SeasonEconomyService economyService,
+                                  MailService mailService, SimAutoSaveService autoSaveService) {
+        this.configService = configService;
+        this.corePlayerService = corePlayerService;
+        this.seasonPlayerDao = seasonPlayerDao;
+        this.rankingService = rankingService;
+        this.playerPackService = playerPackService;
+        this.economyService = economyService;
+        this.mailService = mailService;
+        this.autoSaveService = autoSaveService;
+    }
+
+    public SeasonSnapshot ensureCurrent(SimPlayerContext ctx, long now) {
+        SeasonPlayerData data = ctx.getSeasonPlayerData();
+        if (data == null) {
+            data = new SeasonPlayerData();
+            data.setPlayerId(ctx.playerId());
+            ctx.setSeasonPlayerData(data);
+        }
+        if (data.getSeasonKey() != null) {
+            data.resetDaily(dailyKey(now));
+        }
+        applyPendingSettlements(ctx, data, now);
+        if (data.getSeasonKey() != null && now >= data.getStartTime() && now < data.getEndTime()) {
+            return snapshot(data, now);
+        }
+        long origin = resolveTimelineOrigin(ctx, data);
+        SeasonSnapshot snapshot = timeline.resolve(origin, now, configService.definitions());
+        boolean changed = !snapshot.seasonKey().equals(data.getSeasonKey());
+        if (changed) {
+            //切季前绕过节流强制消费一次待结算, 避免节流窗口内新到的记录被切季清理误删
+            data.setLastPendingCheckTime(0);
+            applyPendingSettlements(ctx, data, now);
+            long initialCoin = settlePreviousSeason(ctx, data);
+            data.startSeason(snapshot, initialCoin);
+            log.info("玩家赛季切换 playerId={},seasonId={},seasonKey={}",
+                    ctx.playerId(), snapshot.seasonId(), snapshot.seasonKey());
+        }
+        data.resetDaily(dailyKey(now));
+        if (changed) {
+            autoSaveService.enqueueSave(data);
+            //切季后旧 seasonKey 的待结算记录不再可消费, 一并清理 (IO 线程执行, FIFO 在数据落库之后)
+            long playerId = ctx.playerId();
+            autoSaveService.enqueueTask(() -> seasonPlayerDao.deletePendingSettlementsByPlayer(playerId));
+        }
+        return snapshot;
+    }
+
+    @Override
+    public void onTick(SimPlayerContext ctx, long now) {
+        SeasonPlayerData data = ctx.getSeasonPlayerData();
+        if (data != null && now < data.getEndTime() && data.getDailyKey() == dailyKey(now)) {
+            return;
+        }
+        ensureCurrent(ctx, now);
+    }
+
+    /**
+     * 注册时间是整条赛季时间线的锚点; 解析不到时直接失败, 绝不能用当前时间兜底落库造成永久漂移。
+     */
+    private long resolveTimelineOrigin(SimPlayerContext ctx, SeasonPlayerData data) {
+        long origin = data.getTimelineOrigin();
+        if (origin > 0) {
+            return origin;
+        }
+        Player player = ctx.getPlayerController() == null ? null : ctx.getPlayerController().getPlayer();
+        if (player == null || player.getCreateTime() <= 0) {
+            player = corePlayerService.get(ctx.playerId());
+        }
+        if (player == null || player.getCreateTime() <= 0) {
+            throw new IllegalStateException("无法确定玩家注册时间, 赛季时间线解析失败 playerId=" + ctx.playerId());
+        }
+        origin = player.getCreateTime() * 1000L;
+        data.setTimelineOrigin(origin);
+        return origin;
+    }
+
+    private int dailyKey(long now) {
+        LocalDate date = Instant.ofEpochMilli(now).atZone(ZoneId.systemDefault()).toLocalDate();
+        return date.getYear() * 10_000 + date.getMonthValue() * 100 + date.getDayOfMonth();
+    }
+
+    private void applyPendingSettlements(SimPlayerContext ctx, SeasonPlayerData data, long now) {
+        if (data.getSeasonKey() == null) {
+            return;
+        }
+        //高频协议入口都会经过这里, 按间隔节流避免每个请求都查一次库
+        if (now - data.getLastPendingCheckTime() < PENDING_CHECK_INTERVAL_MILLIS) {
+            return;
+        }
+        data.setLastPendingCheckTime(now);
+        List<SeasonPendingSettlement> pending = seasonPlayerDao.findPendingSettlements(
+                ctx.playerId(), data.getSeasonKey());
+        if (pending == null || pending.isEmpty()) {
+            return;
+        }
+        List<String> handledIds = new ArrayList<>(pending.size());
+        for (SeasonPendingSettlement settlement : pending) {
+            handledIds.add(settlement.getId());
+            if (!data.markMatchProcessed(settlement.getMatchId(), settlement.getHistoryLimit())) {
+                continue;
+            }
+            long delta = settlement.getCoinDelta();
+            if (delta > 0) {
+                //被挑战方赢币同样受本人每日赢取上限的梯度削减
+                SeasonMatchCfg cfg = configService.matchForDay(currentDay(data, now));
+                if (cfg != null && data.getDailyWinAmount() >= cfg.getDailyWinLimit()) {
+                    delta = SeasonPolicy.applyRatio(delta, SeasonPolicy.ratioFor(
+                            data.getDailyWinAmount() - cfg.getDailyWinLimit(), cfg.getProfitRatio()));
+                }
+                economyService.addEarnedCoin(ctx, delta);
+                data.setDailyWinAmount(Math.addExact(data.getDailyWinAmount(), delta));
+                if (settlement.getRecord() != null) {
+                    settlement.getRecord().setCoinChange(delta);
+                    settlement.getRecord().setResult(Long.compare(delta, 0));
+                }
+            } else if (delta < 0) {
+                long loss = Math.min(-delta, data.getSeasonCoin());
+                data.setSeasonCoin(data.getSeasonCoin() - loss);
+                data.setDailyLossAmount(Math.addExact(data.getDailyLossAmount(), loss));
+                if (settlement.getRecord() != null) {
+                    settlement.getRecord().setCoinChange(-loss);
+                    settlement.getRecord().setResult(Long.compare(-loss, 0));
+                }
+            }
+            data.addMatchRecord(settlement.getRecord(), settlement.getHistoryLimit());
+        }
+        //数据先落库、再删除待结算记录; 两者都在落库 IO 线程 FIFO 执行, 崩溃时靠 processedMatchIds 幂等重放
+        autoSaveService.enqueueSave(data);
+        autoSaveService.enqueueTask(() -> seasonPlayerDao.deletePendingSettlements(handledIds));
+    }
+
+    private SeasonSnapshot snapshot(SeasonPlayerData data, long now) {
+        return new SeasonSnapshot(data.getSeasonId(), data.seasonPhase(), data.getCycleIndex(),
+                data.getStartTime(), data.getEndTime(), currentDay(data, now), data.getSeasonKey());
+    }
+
+    private int currentDay(SeasonPlayerData data, long now) {
+        return (int) ((Math.max(now, data.getStartTime()) - data.getStartTime()) / DAY_MILLIS) + 1;
+    }
+
+    /**
+     * 结算上一赛季: 排名奖励 + 段位结算奖励通过邮件发放 (按 seasonKey+playerId 幂等);
+     * 奖励中的赛季币部分不进邮件, 作为下一赛季的初始币直接带入。
+     */
+    private long settlePreviousSeason(SimPlayerContext ctx, SeasonPlayerData data) {
+        if (data.getSeasonId() == 0 || data.seasonPhase() == null) {
+            return 0;
+        }
+        Map<Integer, Long> rewards = new HashMap<>();
+        int rank = rankingService.rankOf(data);
+        SeasonRankingCfg ranking = configService.rankingReward(data.seasonPhase(), rank);
+        if (ranking != null && ranking.getGetItem() != null) {
+            ranking.getGetItem().forEach((id, count) -> rewards.merge(id, count, Long::sum));
+        }
+        SeasonTierCfg tier = configService.tiers(data.seasonPhase()).stream()
+                .filter(cfg -> cfg.getId() == data.getTierId()).findFirst().orElse(null);
+        if (tier != null && tier.getSettlementReward() != null) {
+            tier.getSettlementReward().forEach((id, count) -> rewards.merge(id, count, Long::sum));
+        }
+        int currencyId = configService.currencyItemId();
+        long initialCoin = currencyId == 0 ? 0 : rewards.getOrDefault(currencyId, 0L);
+        rewards.remove(currencyId);
+        if (!rewards.isEmpty()) {
+            List<Item> items = new ArrayList<>(rewards.size());
+            rewards.forEach((id, count) -> items.add(new Item(id, count)));
+            try {
+                mailService.addMailIfAbsent(ctx.playerId(), "赛季结算奖励",
+                        "上赛季结算排名第" + rank + "名，奖励已发放，请查收。", items,
+                        AddType.ACTIVITY, "season-settle:" + data.getSeasonKey() + ":" + ctx.playerId());
+            } catch (Exception e) {
+                log.error("赛季结算奖励邮件发放失败 playerId={},seasonKey={}",
+                        ctx.playerId(), data.getSeasonKey(), e);
+            }
+        }
+        clearSeasonGems(ctx);
+        return initialCoin;
+    }
+
+    private void clearSeasonGems(SimPlayerContext ctx) {
+        PlayerPack pack = playerPackService.getFromAllDB(ctx.playerId());
+        if (pack == null) {
+            return;
+        }
+        Map<Integer, Long> gems = new HashMap<>();
+        configService.gems().forEach(cfg -> {
+            long count = pack.getItemCount(cfg.getGemName());
+            if (count > 0) {
+                gems.put(cfg.getGemName(), count);
+            }
+        });
+        if (gems.isEmpty()) {
+            return;
+        }
+        Player player = ctx.getPlayerController() == null ? corePlayerService.get(ctx.playerId())
+                : ctx.getPlayerController().getPlayer();
+        var result = playerPackService.removeItems(player, gems, AddType.ACTIVITY,
+                "season-gem-reset:" + ctx.getSeasonPlayerData().getSeasonKey());
+        if (!result.success()) {
+            log.warn("赛季宝石重置失败 playerId={},seasonKey={},code={}",
+                    ctx.playerId(), ctx.getSeasonPlayerData().getSeasonKey(), result.code);
+        }
+    }
+}

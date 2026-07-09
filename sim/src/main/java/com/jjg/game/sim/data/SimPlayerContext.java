@@ -2,7 +2,7 @@ package com.jjg.game.sim.data;
 
 import com.alibaba.fastjson.JSONObject;
 import com.jjg.game.core.data.PlayerController;
-import com.jjg.game.sim.season.data.SeasonPlayerData;
+import com.jjg.game.season.data.SeasonPlayerData;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 

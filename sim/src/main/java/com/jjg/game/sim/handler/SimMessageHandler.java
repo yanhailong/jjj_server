@@ -19,8 +19,6 @@ import com.jjg.game.sim.manager.SimPlayerContextRegistry;
 import com.jjg.game.sim.pb.req.*;
 import com.jjg.game.sim.pb.res.*;
 import com.jjg.game.sim.service.*;
-import com.jjg.game.sim.season.pb.req.*;
-import com.jjg.game.sim.season.service.SeasonService;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -74,8 +72,6 @@ public class SimMessageHandler implements GmListener {
     private SimCoopRoomRouteService coopRoomRouteService;
     @Autowired
     private SimPackService simPackService;
-    @Autowired
-    private SeasonService seasonService;
 
 
     /**
@@ -94,55 +90,6 @@ public class SimMessageHandler implements GmListener {
         //退出 sim 界面不卸载 ctx, 场景后台继续运行直到玩家下线
         playerController.setScene(null);
     }
-
-    //--------------------------赛季玩法 begin--------------------------
-
-    @Command(SimConstant.MsgBean.REQ_SEASON_INFO)
-    public void reqSeasonInfo(PlayerController playerController, ReqSeasonInfo req) {
-        execute(playerController, ctx -> ctx.send(seasonService.info(ctx)));
-    }
-
-    @Command(SimConstant.MsgBean.REQ_SEASON_SHOP)
-    public void reqSeasonShop(PlayerController playerController, ReqSeasonShop req) {
-        execute(playerController, ctx -> ctx.send(seasonService.shop(ctx)));
-    }
-
-    @Command(SimConstant.MsgBean.REQ_SEASON_BUY)
-    public void reqSeasonBuy(PlayerController playerController, ReqSeasonBuy req) {
-        execute(playerController, ctx -> ctx.send(seasonService.buy(ctx, req.shopId, req.count)));
-    }
-
-    @Command(SimConstant.MsgBean.REQ_SEASON_GEMS)
-    public void reqSeasonGems(PlayerController playerController, ReqSeasonGems req) {
-        execute(playerController, ctx -> ctx.send(seasonService.gems(ctx)));
-    }
-
-    @Command(SimConstant.MsgBean.REQ_SEASON_EQUIP_GEM)
-    public void reqSeasonEquipGem(PlayerController playerController, ReqSeasonEquipGem req) {
-        execute(playerController, ctx -> ctx.send(seasonService.equip(ctx, req.slot, req.itemId)));
-    }
-
-    @Command(SimConstant.MsgBean.REQ_SEASON_CRAFT_GEM)
-    public void reqSeasonCraftGem(PlayerController playerController, ReqSeasonCraftGem req) {
-        execute(playerController, ctx -> ctx.send(seasonService.craft(ctx, req.itemIds, req.keepItemId)));
-    }
-
-    @Command(SimConstant.MsgBean.REQ_SEASON_MATCH)
-    public void reqSeasonMatch(PlayerController playerController, ReqSeasonMatch req) {
-        execute(playerController, ctx -> ctx.send(seasonService.match(ctx, req.gameType, req.stake)));
-    }
-
-    @Command(SimConstant.MsgBean.REQ_SEASON_MATCH_HISTORY)
-    public void reqSeasonMatchHistory(PlayerController playerController, ReqSeasonMatchHistory req) {
-        execute(playerController, ctx -> ctx.send(seasonService.history(ctx)));
-    }
-
-    @Command(SimConstant.MsgBean.REQ_SEASON_RANK)
-    public void reqSeasonRank(PlayerController playerController, ReqSeasonRank req) {
-        execute(playerController, ctx -> ctx.send(seasonService.rank(ctx, req.limit)));
-    }
-
-    //--------------------------赛季玩法 end----------------------------
 
     /**
      * 完成新手引导

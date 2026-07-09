@@ -7,7 +7,7 @@ import com.jjg.game.sim.data.SimBaseData;
 import com.jjg.game.sim.data.SimCasinoData;
 import com.jjg.game.sim.data.SimPlayerContext;
 import com.jjg.game.sim.listener.SimPlayerTickListener;
-import com.jjg.game.sim.season.data.SeasonPlayerData;
+import com.jjg.game.season.data.SeasonPlayerData;
 import com.mongodb.client.model.ReplaceOptions;
 import org.bson.Document;
 import org.slf4j.Logger;
