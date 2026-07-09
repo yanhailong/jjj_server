@@ -196,6 +196,17 @@ public class HallRPCController extends CoreRPCController implements GmToHallBrid
 
     @Override
     @RpcCallSetting(processorModKey = "#arg0")
+    public int getCombatPower(long playerId) {
+        SimPlayerContext ctx = this.simPlayerContextRegistry.getContext(playerId);
+        if (ctx == null) {
+            log.warn("获取战力失败，未找到SimPlayerContext playerId={}", playerId);
+            return 0;
+        }
+        return simSkillService.computeCombatPower(ctx);
+    }
+
+    @Override
+    @RpcCallSetting(processorModKey = "#arg0")
     public CommonResult<Boolean> onCoopRoomSettle(long ownerId, int taskId, long roomId, boolean success, List<Long> helperIds) {
         try {
             SimPlayerContext ctx = this.simPlayerContextRegistry.getContext(ownerId);

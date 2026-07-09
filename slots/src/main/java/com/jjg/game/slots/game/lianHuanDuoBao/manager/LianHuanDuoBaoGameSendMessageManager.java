@@ -20,7 +20,6 @@ import com.jjg.game.slots.game.lianHuanDuoBao.pb.res.ResLianHuanDuoBaoEnterGame;
 import com.jjg.game.slots.game.lianHuanDuoBao.pb.res.ResLianHuanDuoBaoPoolValue;
 import com.jjg.game.slots.game.lianHuanDuoBao.pb.res.ResLianHuanDuoBaoStartGame;
 import com.jjg.game.slots.logger.SlotsLogger;
-import org.springframework.stereotype.Component;
 
 import java.util.*;
 import java.util.stream.Collectors;
@@ -57,11 +56,7 @@ public class LianHuanDuoBaoGameSendMessageManager extends BaseSendMessageManager
         BaseRoomCfg config = GameDataManager.getBaseRoomCfg(playerController.getPlayer().getRoomCfgId());
         BaseInitCfg baseInitCfg = GameDataManager.getBaseInitCfg(playerController.getPlayer().getGameType());
         if (config != null) {
-            List<long[]> list = gameManager.getAllStakeMap().get(playerController.getPlayer().getRoomCfgId());
-            res.stakeList = new ArrayList<>(list.size());
-            for (long[] arr : list) {
-                res.stakeList.add(arr[1]);
-            }
+            res.stakeList = gameManager.stakeList(gameRunInfo.getData());
             res.defaultBet = gameManager.getDefaultBetValue(gameRunInfo, config);
             LianHuanDuoBaoPlayerGameData data = gameRunInfo.getData();
             res.status = data.getStatus();

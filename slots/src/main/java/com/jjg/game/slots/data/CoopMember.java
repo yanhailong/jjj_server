@@ -23,6 +23,8 @@ public class CoopMember {
     private int spinQuota;
     //已消耗 Spin (已扣血量)
     private int spinUsed;
+    //战力 (进房时从 sim 拉取并缓存, 技能累加战力值)
+    private int combatPower;
     //会话引用 (广播用; 断线置空)
     private transient PlayerController playerController;
 
@@ -97,6 +99,14 @@ public class CoopMember {
 
     public int hpLeft() {
         return Math.max(0, spinQuota - spinUsed);
+    }
+
+    public int getCombatPower() {
+        return combatPower;
+    }
+
+    public void setCombatPower(int combatPower) {
+        this.combatPower = combatPower;
     }
 
     public PlayerController getPlayerController() {

@@ -2,6 +2,9 @@ package com.jjg.game.sim.service;
 
 import com.jjg.game.alliance.data.AllianceData;
 import com.jjg.game.alliance.service.AllianceCacheService;
+import com.jjg.game.common.cluster.ClusterSystem;
+import com.jjg.game.common.curator.MarsNode;
+import com.jjg.game.common.curator.NodeManager;
 import com.jjg.game.core.constant.AddType;
 import com.jjg.game.core.constant.Code;
 import com.jjg.game.core.data.CommonResult;
@@ -12,6 +15,7 @@ import com.jjg.game.core.manager.SnowflakeManager;
 import com.jjg.game.core.pb.KVInfo;
 import com.jjg.game.core.service.CorePlayerService;
 import com.jjg.game.core.service.PlayerPackService;
+import com.jjg.game.core.service.PlayerSessionService;
 import com.jjg.game.sampledata.GameDataManager;
 import com.jjg.game.sampledata.bean.CasinoStatsSheetCfg;
 import com.jjg.game.sampledata.bean.GiftListCfg;
@@ -109,6 +113,12 @@ public class SimVisitService {
     private CountDao countDao;
     @Autowired
     private PlayerPackService playerPackService;
+    @Autowired
+    private NodeManager nodeManager;
+    @Autowired
+    private ClusterSystem clusterSystem;
+    @Autowired
+    private PlayerSessionService playerSessionService;
 
     public ResVisitCasino visit(SimPlayerContext ctx, long playerId, int casinoId) {
         ResVisitCasino res = new ResVisitCasino(Code.SUCCESS);
@@ -371,16 +381,23 @@ public class SimVisitService {
         return rankService.buildRank(playerId);
     }
 
-    public ResVisitTrial startTrial(SimPlayerContext ctx, long playerId, int casinoId, int gameType) {
+    /**
+     * 进入客座赌局试玩: 校验"房主已解锁该游戏 + 访客当日试玩次数未达上限", 通过后创建试玩会话
+     * (以访客 playerId 为键, 每人同时只能试玩一个房主), 按房主游戏推导单人 slots 场次并切到该节点
+     * (范式对齐 SimCoopRoomRouteService.switchToNode / HallRoomService.enterGameNode)。
+     * <p>
+     * 成功时服务内已回包并切节点, 返回 null; 失败返回带错误码的响应交由 handler 回包。
+     */
+    public ResVisitTrial enterVisitGame(SimPlayerContext ctx, long ownerId, int casinoId, int gameType) {
         ResVisitTrial res = new ResVisitTrial(Code.SUCCESS);
-        TargetResult target = findTarget(ctx.playerId(), playerId, casinoId);
+        TargetResult target = findTarget(ctx.playerId(), ownerId, casinoId);
         if (!target.success()) {
             res.code = target.code();
             return res;
         }
         //被拜访玩家该场景研究院等级达到配置等级才算已解锁 (语义同协作房间/大厅游戏列表)
         Integer needLevel = configCacheService.getUnlockGameLevel(casinoId, gameType);
-        if (needLevel == null || !reachResearchLevel(playerId, casinoId, needLevel)) {
+        if (needLevel == null || !reachResearchLevel(ownerId, casinoId, needLevel)) {
             res.code = Code.NOT_UNLOCKED;
             return res;
         }
@@ -390,19 +407,32 @@ public class SimVisitService {
             res.code = Code.FORBID;
             return res;
         }
+        //先定位单人场次与游戏节点, 拿不到就直接失败, 避免建了会话却切不过去
+        Integer roomCfgId = configCacheService.getTrialWareId(gameType);
+        MarsNode node = roomCfgId == null ? null : nodeManager.getGameNodeByWeight(
+                gameType, ctx.playerId(), ctx.getPlayerController().ipAddress());
+        if (node == null) {
+            log.warn("进入客座赌局失败,无场次/节点 visitorId={},ownerId={},gameType={},roomCfgId={}",
+                    ctx.playerId(), ownerId, gameType, roomCfgId);
+            res.code = Code.NOT_FOUND;
+            return res;
+        }
         long expireTime = System.currentTimeMillis() + configService.getTrialSessionSeconds() * 1000L;
-        String sessionId = String.valueOf(snowflakeManager.nextId());
-        SimVisitTrialSession session = new SimVisitTrialSession(sessionId, ctx.playerId(), playerId,
+        SimVisitTrialSession session = new SimVisitTrialSession(ctx.playerId(), ownerId,
                 casinoId, gameType, expireTime);
         quotaService.saveTrialSession(session, configService.getTrialSessionSeconds());
-        res.sessionId = sessionId;
-        res.playerId = playerId;
+        res.playerId = ownerId;
         res.casinoId = casinoId;
         res.gameType = gameType;
         res.remainingTrials = remaining;
         res.power = ctx.getSimBaseData() == null ? 0 : ctx.getSimBaseData().getPower();
         res.expireTime = expireTime;
-        return res;
+        res.wareId = roomCfgId;
+        //先回包再切节点, 客户端切到 slots 节点后按 roomCfgId 进房; slots 侧 createPlayerGameData 读会话绑定房主属性
+        ctx.send(res);
+        playerSessionService.changeGameType(ctx.playerId(), gameType, roomCfgId);
+        clusterSystem.switchNode(ctx.getPlayerController().getSession(), node);
+        return null;
     }
 
     public ResVisitTrial exitTrial(long playerId) {
@@ -453,7 +483,6 @@ public class SimVisitService {
         }
         permit.setTrial(true);
         permit.setPermitId(permitId);
-        permit.setSessionId(session.getSessionId());
         permit.setOwnerId(session.getOwnerId());
         permit.setCasinoId(session.getCasinoId());
         permit.setRemainingCount(remaining);

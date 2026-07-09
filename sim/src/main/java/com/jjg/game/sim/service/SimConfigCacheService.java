@@ -3,6 +3,7 @@ package com.jjg.game.sim.service;
 import com.jjg.game.alliance.data.AllianceRefreshTaskConfig;
 import com.jjg.game.alliance.data.DonateCfg;
 import com.jjg.game.common.utils.WeightRandom;
+import com.jjg.game.core.constant.GameConstant;
 import com.jjg.game.core.constant.TaskConstant;
 import com.jjg.game.core.data.Item;
 import com.jjg.game.core.listener.ConfigExcelChangeListener;
@@ -32,6 +33,8 @@ public class SimConfigCacheService implements ConfigExcelChangeListener {
     private Map<Integer, Set<Integer>> unlockGamesMap;
     //ResearchInstitute配置 regionID -> gameType -> 所需研究院等级
     private Map<Integer, Map<Integer, Integer>> unlockGameLevelMap;
+    //客座赌局试玩场次 gameType(=warehouse.gameID) -> 单人slots场次id, 供拜访试玩进房
+    private Map<Integer, Integer> trialWareMap;
 
     //VisitorQuest配置 itemId -> cfg
     private Map<Integer, VisitorQuestCfg> visitorQuestItemCfgMap;
@@ -91,6 +94,7 @@ public class SimConfigCacheService implements ConfigExcelChangeListener {
     public void testLoadConfig() {
         loadCasinoStatsSheetCfg();
         loadResearchInstituteCfg();
+        loadTrialWareConfig();
 
         loadBuildingDeviceConfig();
         loadBuildingUpgradeConfig();
@@ -149,6 +153,21 @@ public class SimConfigCacheService implements ConfigExcelChangeListener {
         }
         this.unlockGamesMap = tmpUnlockGamesMap;
         this.unlockGameLevelMap = tmpUnlockGameLevelMap;
+    }
+
+    /**
+     * 加载客座赌局试玩场次: gameID -> 单人slots场次(roomType<好友房起始, 取最小场次id保证确定性)。
+     * 拜访试玩进房用: 访客按房主已解锁的游戏进入该游戏的普通单人场次, 属性走房主研发(技能在slots侧按房主取)。
+     */
+    private void loadTrialWareConfig() {
+        Map<Integer, Integer> tmp = new HashMap<>();
+        for (WarehouseCfg cfg : GameDataManager.getWarehouseCfgList()) {
+            if (cfg.getRoomType() >= GameConstant.RoomTypeCons.FRIEND_ROOM_TYPE_START) {
+                continue;
+            }
+            tmp.merge(cfg.getGameID(), cfg.getId(), Math::min);
+        }
+        this.trialWareMap = tmp;
     }
 
     /**
@@ -411,6 +430,7 @@ public class SimConfigCacheService implements ConfigExcelChangeListener {
     public void initSampleCallbackCollector() {
         addInitSampleFileObserveWithCallBack(CasinoStatsSheetCfg.EXCEL_NAME, this::loadCasinoStatsSheetCfg);
         addInitSampleFileObserveWithCallBack(ResearchInstituteCfg.EXCEL_NAME, this::loadResearchInstituteCfg);
+        addInitSampleFileObserveWithCallBack(WarehouseCfg.EXCEL_NAME, this::loadTrialWareConfig);
 
         addInitSampleFileObserveWithCallBack(VisitorQuestCfg.EXCEL_NAME, this::loadVisitorQuestConfig);
         addInitSampleFileObserveWithCallBack(VisitorLevelCfg.EXCEL_NAME, this::loadVisitorLevelConfig);
@@ -539,6 +559,13 @@ public class SimConfigCacheService implements ConfigExcelChangeListener {
         }
         Map<Integer, Integer> tmpMap = this.unlockGameLevelMap.get(regionId);
         return tmpMap == null ? null : tmpMap.get(gameType);
+    }
+
+    /**
+     * 客座赌局试玩进房场次: 该游戏(gameID)对应的单人slots场次id; 未配置返回 null
+     */
+    public Integer getTrialWareId(int gameType) {
+        return trialWareMap == null ? null : trialWareMap.get(gameType);
     }
 
     public List<PropCfg> getPropCfgList(int gameType) {

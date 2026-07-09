@@ -257,6 +257,30 @@ public class SimSkillService extends AbstractSkillService implements ConfigExcel
         ctx.send(res);
     }
 
+    /**
+     * 计算玩家战力: 遍历所有游戏的技能 (propId -> level), 累加对应 ResearchSkillsCfg 的战力值。
+     */
+    public int computeCombatPower(SimPlayerContext ctx) {
+        Map<Integer, SimSkillsData> skillsDataMap = ctx.getSkillsDataMap();
+        if (skillsDataMap == null || skillsDataMap.isEmpty()) {
+            return 0;
+        }
+        int total = 0;
+        for (SimSkillsData skillsData : skillsDataMap.values()) {
+            Map<Integer, Integer> skillsMap = skillsData.getSkillsMap();
+            if (skillsMap == null || skillsMap.isEmpty()) {
+                continue;
+            }
+            for (Map.Entry<Integer, Integer> en : skillsMap.entrySet()) {
+                ResearchSkillsCfg cfg = getResearchSkillsCfg(skillsData.getGameType(), en.getKey(), en.getValue());
+                if (cfg != null) {
+                    total += cfg.getCombatPower();
+                }
+            }
+        }
+        return total;
+    }
+
     public CommonResult<Map<Integer, Integer>> skillLevelUp(SimPlayerContext ctx, int gameType, int skillId) {
         CommonResult<Map<Integer, Integer>> result = new CommonResult<>(Code.SUCCESS);
         try {

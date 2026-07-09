@@ -7,7 +7,6 @@ package com.jjg.game.sim.data;
  * @date 2026/6/30
  */
 public class SimVisitTrialSession {
-    private String sessionId;
     private long visitorId;
     private long ownerId;
     private int casinoId;
@@ -17,9 +16,8 @@ public class SimVisitTrialSession {
     public SimVisitTrialSession() {
     }
 
-    public SimVisitTrialSession(String sessionId, long visitorId, long ownerId,
+    public SimVisitTrialSession(long visitorId, long ownerId,
                                 int casinoId, int gameType, long expireTime) {
-        this.sessionId = sessionId;
         this.visitorId = visitorId;
         this.ownerId = ownerId;
         this.casinoId = casinoId;
@@ -27,20 +25,10 @@ public class SimVisitTrialSession {
         this.expireTime = expireTime;
     }
 
-    public boolean matches(long visitorId, long ownerId, int casinoId, int gameType, long now) {
-        return this.visitorId == visitorId
-                && this.ownerId == ownerId
-                && this.casinoId == casinoId
-                && this.gameType == gameType
-                && expireTime >= now;
-    }
-
     public boolean activeFor(long visitorId, int gameType, long now) {
         return this.visitorId == visitorId && this.gameType == gameType && expireTime >= now;
     }
 
-    public String getSessionId() { return sessionId; }
-    public void setSessionId(String sessionId) { this.sessionId = sessionId; }
     public long getVisitorId() { return visitorId; }
     public void setVisitorId(long visitorId) { this.visitorId = visitorId; }
     public long getOwnerId() { return ownerId; }

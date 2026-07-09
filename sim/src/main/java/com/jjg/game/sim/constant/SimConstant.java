@@ -173,8 +173,7 @@ public interface SimConstant {
         int REQ_VISIT_RANK = BASE_MSG_PREFIX | 0x54;
         int RES_VISIT_RANK = BASE_MSG_PREFIX | 0x55;
 
-        //客座赌局
-        int REQ_START_VISIT_TRIAL = BASE_MSG_PREFIX | 0x56;
+        //客座赌局 (0x56 曾为 REQ_START_VISIT_TRIAL, 已由 REQ_ENTER_VISIT_GAME 取代, 保留空号)
         int RES_VISIT_TRIAL = BASE_MSG_PREFIX | 0x57;
         int REQ_EXIT_VISIT_TRIAL = BASE_MSG_PREFIX | 0x58;
 
@@ -206,6 +205,9 @@ public interface SimConstant {
         int RES_JOIN_COOP_ROOM = BASE_MSG_PREFIX | 0x68;
         //多人任务-任务状态变更通知 (结算/自愈回退)
         int NOTIFY_COOP_TASK_UPDATE = BASE_MSG_PREFIX | 0x69;
+
+        //拜访-进入客座赌局试玩 (校验房主已解锁该游戏+访客当日次数后切换到 slots 节点, 复用 RES_VISIT_TRIAL 回包)
+        int REQ_ENTER_VISIT_GAME = BASE_MSG_PREFIX | 0x6A;
     }
 
     interface Common {

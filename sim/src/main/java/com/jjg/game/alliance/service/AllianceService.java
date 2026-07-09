@@ -712,6 +712,7 @@ public class AllianceService {
         }
         if (!allianceDao.transferLeader(alliance.getAllianceId(), playerId, targetId)) {
             res.code = Code.FAIL;
+            log.warn("转让盟主失败,修改数据库失败 playerId={},targetId={}", playerId, targetId);
             return res;
         }
         cacheService.publishInvalidate(alliance.getAllianceId());
@@ -731,21 +732,25 @@ public class AllianceService {
         long allianceId = playerData.getAllianceId();
         if (allianceId <= 0) {
             res.code = Code.NOT_FOUND;
+            log.warn("解散联盟失败,allianceId小于1 playerId={}", playerId);
             return res;
         }
         AllianceData alliance = allianceDao.findById(allianceId).orElse(null);
         if (alliance == null) {
             res.code = Code.NOT_FOUND;
+            log.warn("解散联盟失败,未找到联盟数据 playerId={},allianceId={}", playerId, allianceId);
             return res;
         }
         if (!alliance.isLeader(playerId)) {
             res.code = Code.FORBID;
+            log.warn("解散联盟失败,该玩家不是盟主 playerId={},allianceId={}", playerId, allianceId);
             return res;
         }
         //先广播再删 (删后拿不到成员清单)
         assetService.broadcastToAlliance(allianceId, AllianceConst.NotifyType.DISSOLVED, "");
         if (!allianceDao.dissolve(allianceId, playerId)) {
             res.code = Code.FAIL;
+            log.warn("解散联盟失败,修改数据库失败 playerId={},allianceId={}", playerId, allianceId);
             return res;
         }
         List<Long> memberIds = new ArrayList<>(alliance.getMembers().keySet());
@@ -771,20 +776,24 @@ public class AllianceService {
         AllianceData alliance = allianceOf(playerId);
         if (alliance == null) {
             res.code = Code.NOT_FOUND;
+            log.warn("编辑联盟信息失败,未找到联盟数据 playerId={}", playerId);
             return res;
         }
         if (!alliance.isLeader(playerId)) {
             res.code = Code.FORBID;
+            log.warn("编辑联盟信息失败,该玩家不是盟主 playerId={},allianceId={}", playerId, alliance.getAllianceId());
             return res;
         }
         int code = validateSettings(name, notice, joinMinCasinoLevel);
         if (code != Code.SUCCESS) {
             res.code = code;
+            log.warn("编辑联盟信息失败,校验信息失败 playerId={},allianceId={},code={}", playerId, alliance.getAllianceId(), code);
             return res;
         }
         if (!allianceDao.updateSettings(alliance.getAllianceId(), playerId, name, icon,
                 notice == null ? "" : notice, joinMinCasinoLevel, joinNeedAudit)) {
             res.code = Code.FAIL;
+            log.warn("编辑联盟信息失败,修改数据库失败 playerId={},allianceId={}", playerId, alliance.getAllianceId());
             return res;
         }
         cacheService.publishInvalidate(alliance.getAllianceId());

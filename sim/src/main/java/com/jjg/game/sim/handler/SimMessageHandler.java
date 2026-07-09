@@ -553,10 +553,15 @@ public class SimMessageHandler implements GmListener {
                 ResVisitRank::new);
     }
 
-    @Command(SimConstant.MsgBean.REQ_START_VISIT_TRIAL)
-    public void reqStartVisitTrial(PlayerController playerController, ReqStartVisitTrial req) {
-        executeVisit(playerController, ctx -> visitService.startTrial(
-                ctx, req.playerId, req.casinoId, req.gameType), ResVisitTrial::new);
+    @Command(SimConstant.MsgBean.REQ_ENTER_VISIT_GAME)
+    public void reqEnterVisitGame(PlayerController playerController, ReqEnterVisitGame req) {
+        execute(playerController, ctx -> {
+            ResVisitTrial res = visitService.enterVisitGame(ctx, req.playerId, req.casinoId, req.gameType);
+            //成功路径服务内已回包并切节点; 失败时这里回包
+            if (res != null) {
+                ctx.send(res);
+            }
+        });
     }
 
     @Command(SimConstant.MsgBean.REQ_EXIT_VISIT_TRIAL)

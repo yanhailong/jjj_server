@@ -66,6 +66,14 @@ public interface ToSimBridge extends IGameRpc {
     CommonResult<Map<Integer, Integer>> skillLevelUp(long playerId, int gameType, int skillId);
 
     /**
+     * 获取玩家战力 (遍历所有游戏技能, 累加 ResearchSkillsCfg 的战力值; 玩家不在线返回 0)。
+     *
+     * @param playerId
+     * @return
+     */
+    int getCombatPower(long playerId);
+
+    /**
      * 多人协作任务结算回写 (slots 房间结束时调用发起者所在 sim 节点):
      * 发起者任务态 -> 待领奖/失败; 协助者奖励经邮件发放。
      *

@@ -118,6 +118,8 @@ public class CoopRoomManager {
             log.warn("进入房间失败,未找到房间 playerId={},roomId={} ", playerId, roomId);
             return res;
         }
+        //在锁外拉取战力 (仅依赖玩家自身 sim 数据, 避免网络 RPC 占用房间锁)
+        int combatPower = fetchCombatPower(playerId, pc.ipAddress());
         synchronized (room) {
             if (room.getStatus() == CoopTaskConst.RoomStatus.FINISHED && !room.getMembers().containsKey(playerId)) {
                 log.info("进入房间失败,房间已结算 playerId={},roomId={}", playerId, roomId);
@@ -150,6 +152,7 @@ public class CoopRoomManager {
                 member.setHeadImgId(player.getHeadImgId());
                 member.setHeadFrameId(player.getHeadFrameId());
             }
+            member.setCombatPower(combatPower);
             member.setOnline(true);
             member.setPlayerController(pc);
             //仅新成员加入才覆写路由记录(memberIds 变更); 断线重连成员数/状态不变, 跳过 Redis 写
@@ -967,10 +970,33 @@ public class CoopRoomManager {
             info.online = member.isOnline();
             info.spinQuota = member.getSpinQuota();
             info.hpLeft = member.hpLeft();
+            info.combatPower = member.getCombatPower();
             members.add(info);
         }
         snapshot.members = members;
         return snapshot;
+    }
+
+    private int fetchCombatPower(long playerId, String ipAddress) {
+        try {
+            ClusterClient client = simNodeService.getSimClusterClient(playerId, ipAddress);
+            if (client == null) {
+                log.warn("获取玩家战力失败,无可用sim节点 playerId={}", playerId);
+                return 0;
+            }
+            GameRpcContext rpcContext = GameRpcContext.getContext();
+            RpcReqParameterBuilder previousBuilder = rpcContext.getReqParameterBuilder();
+            try {
+                rpcContext.withReqParameterBuilder(RpcReqParameterBuilder.create()
+                        .addClusterClient(client).setTryMillisPerClient(1000));
+                return toSimBridge.getCombatPower(playerId);
+            } finally {
+                rpcContext.setReqParameterBuilder(previousBuilder);
+            }
+        } catch (Exception e) {
+            log.warn("获取玩家战力异常 playerId={}", playerId, e);
+            return 0;
+        }
     }
 
     /**

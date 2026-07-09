@@ -9,7 +9,6 @@ package com.jjg.game.sim.data;
 public class VisitTrialSpinPermit {
     private boolean trial;
     private String permitId;
-    private String sessionId;
     private long ownerId;
     private int casinoId;
     private int remainingCount;
@@ -19,8 +18,6 @@ public class VisitTrialSpinPermit {
     public void setTrial(boolean trial) { this.trial = trial; }
     public String getPermitId() { return permitId; }
     public void setPermitId(String permitId) { this.permitId = permitId; }
-    public String getSessionId() { return sessionId; }
-    public void setSessionId(String sessionId) { this.sessionId = sessionId; }
     public long getOwnerId() { return ownerId; }
     public void setOwnerId(long ownerId) { this.ownerId = ownerId; }
     public int getCasinoId() { return casinoId; }

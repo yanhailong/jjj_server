@@ -23,6 +23,8 @@ public class ResearchSkillsCfg extends BaseCfgBean {
   protected int Attr;
   /** 自动旋转次数 */
   protected int AutoSpin;
+  /** 战力值 */
+  protected int CombatPower;
   /** 每级所需研究点 */
   protected Map<Integer,Integer> ResearchPoints;
   /** 快速旋转 */
@@ -50,6 +52,11 @@ public class ResearchSkillsCfg extends BaseCfgBean {
   /** 返回自动旋转次数 */
   public int getAutoSpin() {
     return AutoSpin;
+  }
+
+  /** 返回战力值 */
+  public int getCombatPower() {
+    return CombatPower;
   }
 
   /** 返回每级所需研究点 */

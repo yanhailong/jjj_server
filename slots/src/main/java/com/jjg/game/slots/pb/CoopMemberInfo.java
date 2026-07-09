@@ -32,4 +32,6 @@ public class CoopMemberInfo {
     public int spinQuota;
     @ProtoDesc("剩余血量")
     public int hpLeft;
+    @ProtoDesc("战力")
+    public int combatPower;
 }
