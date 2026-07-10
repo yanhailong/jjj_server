@@ -484,6 +484,14 @@ public class SimMessageHandler implements GmListener {
         });
     }
 
+    /**
+     * 获取战力
+     */
+    @Command(SimConstant.MsgBean.REQ_COMBAT_POWER)
+    public void reqCombatPower(PlayerController playerController, ReqCombatPower req) {
+        execute(playerController, ctx -> ctx.send(coopTaskService.combatPowers(ctx)));
+    }
+
     //--------------------------多人协作任务 end--------------------------
 
     //--------------------------拜访相关 begin--------------------------

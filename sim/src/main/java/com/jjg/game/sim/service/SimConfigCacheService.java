@@ -639,22 +639,33 @@ public class SimConfigCacheService implements ConfigExcelChangeListener {
         return this.allianceLevelCfgMap.get(level);
     }
 
+    /**
+     * 按累计声誉重算联盟等级 (只升不降由调用方保证)。
+     * <p>
+     * {@link AllianceLevelCfg#getReputationRequired()} 语义为「从该等级升到下一级所需的累计声誉值」
+     * (与 {@code AllianceBrief.nextLevelReputation} 一致), 因此达标后等级应为 {@code i + 1},
+     * 而不是停留在 i。
+     */
     public int allianceLevelOf(int nowLevel, int reputation) {
-        int size = this.allianceLevelCfgMap.size();
-        if (nowLevel >= size) {
+        if (this.allianceLevelCfgMap == null || this.allianceLevelCfgMap.isEmpty()) {
+            return nowLevel;
+        }
+        int maxLevel = this.allianceLevelCfgMap.size();
+        if (nowLevel >= maxLevel) {
             return nowLevel;
         }
 
         int newLevel = nowLevel;
-        for (int i = nowLevel; i <= size; i++) {
+        // 从当前等级起逐级判定: 达到本级升级门槛则升到下一级, 最多升到 maxLevel
+        for (int i = nowLevel; i < maxLevel; i++) {
             AllianceLevelCfg cfg = this.allianceLevelCfgMap.get(i);
             if (cfg == null) {
-                continue;
+                break;
             }
             if (reputation < cfg.getReputationRequired()) {
                 break;
             }
-            newLevel = cfg.getLevel();
+            newLevel = i + 1;
         }
         return newLevel;
     }

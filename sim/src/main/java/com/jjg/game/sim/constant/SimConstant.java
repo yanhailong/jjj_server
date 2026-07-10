@@ -208,6 +208,9 @@ public interface SimConstant {
 
         //拜访-进入客座赌局试玩 (校验房主已解锁该游戏+访客当日次数后切换到 slots 节点, 复用 RES_VISIT_TRIAL 回包)
         int REQ_ENTER_VISIT_GAME = BASE_MSG_PREFIX | 0x6A;
+
+        int REQ_COMBAT_POWER = BASE_MSG_PREFIX | 0x6B;
+        int RES_COMBAT_POWER = BASE_MSG_PREFIX | 0x6C;
     }
 
     interface Common {

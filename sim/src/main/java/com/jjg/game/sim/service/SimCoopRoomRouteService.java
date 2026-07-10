@@ -12,11 +12,7 @@ import com.jjg.game.sampledata.GameDataManager;
 import com.jjg.game.sampledata.bean.WarehouseCfg;
 import com.jjg.game.sim.constant.CoopTaskConst;
 import com.jjg.game.sim.dao.CoopRoomRecordDao;
-import com.jjg.game.sim.data.CoopRoomRecord;
-import com.jjg.game.sim.data.CoopTaskRule;
-import com.jjg.game.sim.data.SimCasinoUnlock;
-import com.jjg.game.sim.data.SimCoopTaskEntry;
-import com.jjg.game.sim.data.SimPlayerContext;
+import com.jjg.game.sim.data.*;
 import com.jjg.game.sim.pb.res.ResCreateCoopRoom;
 import com.jjg.game.sim.pb.res.ResJoinCoopRoom;
 import org.slf4j.Logger;
@@ -252,4 +248,5 @@ public class SimCoopRoomRouteService {
         playerSessionService.changeGameType(ctx.playerId(), gameType, roomCfgId);
         clusterSystem.switchNode(ctx.getPlayerController().getSession(), node);
     }
+
 }

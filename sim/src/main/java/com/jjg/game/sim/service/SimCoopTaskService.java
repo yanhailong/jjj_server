@@ -6,24 +6,18 @@ import com.jjg.game.core.constant.Code;
 import com.jjg.game.core.data.CommonResult;
 import com.jjg.game.core.data.Item;
 import com.jjg.game.core.data.Player;
+import com.jjg.game.core.pb.KVInfo;
 import com.jjg.game.core.service.CorePlayerService;
 import com.jjg.game.core.service.MailService;
 import com.jjg.game.core.service.PlayerPackService;
 import com.jjg.game.sampledata.GameDataManager;
+import com.jjg.game.sampledata.bean.ResearchSkillsCfg;
 import com.jjg.game.sampledata.bean.TaskCfg;
 import com.jjg.game.sim.constant.CoopTaskConst;
 import com.jjg.game.sim.dao.CoopRoomRecordDao;
 import com.jjg.game.sim.dao.SimCoopTaskDao;
-import com.jjg.game.sim.data.CoopRoomRecord;
-import com.jjg.game.sim.data.CoopSettlementReceipt;
-import com.jjg.game.sim.data.SimCoopTaskData;
-import com.jjg.game.sim.data.SimCoopTaskEntry;
-import com.jjg.game.sim.data.SimPlayerContext;
-import com.jjg.game.sim.pb.res.NotifyCoopTaskUpdate;
-import com.jjg.game.sim.pb.res.ResCoopTaskClaim;
-import com.jjg.game.sim.pb.res.ResCoopTaskList;
-import com.jjg.game.sim.pb.res.ResCoopTaskRefresh;
-import com.jjg.game.sim.pb.res.ResCoopTaskReward;
+import com.jjg.game.sim.data.*;
+import com.jjg.game.sim.pb.res.*;
 import com.jjg.game.sim.pb.struct.CoopTaskInfo;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -68,6 +62,8 @@ public class SimCoopTaskService {
     private CorePlayerService corePlayerService;
     @Autowired
     private MailService mailService;
+    @Autowired
+    private SimSkillService simSkillService;
 
     // =====================================================================
     // 加载 / 每日重置
@@ -479,5 +475,33 @@ public class SimCoopTaskService {
     static long nextMidnightMillis() {
         return LocalDate.now(ZoneId.systemDefault()).plusDays(1)
                 .atStartOfDay(ZoneId.systemDefault()).toInstant().toEpochMilli();
+    }
+
+    public ResCombatPower combatPowers(SimPlayerContext ctx) {
+        ResCombatPower res = new ResCombatPower(Code.SUCCESS);
+        if (ctx.getSkillsDataMap() == null || ctx.getSkillsDataMap().isEmpty()) {
+            return res;
+        }
+
+        res.combatPowers = new ArrayList<>();
+        for (Map.Entry<Integer, SimSkillsData> en : ctx.getSkillsDataMap().entrySet()) {
+            SimSkillsData skillsData = en.getValue();
+            Map<Integer, Integer> skillsMap = skillsData.getSkillsMap();
+            if (skillsMap == null || skillsMap.isEmpty()) {
+                continue;
+            }
+
+            KVInfo kvInfo = new KVInfo();
+            kvInfo.key = en.getKey();
+
+            for (Map.Entry<Integer, Integer> en2 : skillsMap.entrySet()) {
+                ResearchSkillsCfg cfg = simSkillService.getResearchSkillsCfg(skillsData.getGameType(), en2.getKey(), en2.getValue());
+                if (cfg != null) {
+                    kvInfo.value += cfg.getCombatPower();
+                }
+            }
+            res.combatPowers.add(kvInfo);
+        }
+        return res;
     }
 }
