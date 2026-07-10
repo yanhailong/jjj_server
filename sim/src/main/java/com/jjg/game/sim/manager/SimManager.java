@@ -58,6 +58,8 @@ public class SimManager {
     private SimBuildingService buildingService;
     @Autowired
     private SimEmployeeService employeeService;
+    @Autowired
+    private SimSkillService skillService;
 
     //所有玩家级定时回调 (Spring 自动注入全部实现, 按 order 排序)
     @Autowired
@@ -331,6 +333,8 @@ public class SimManager {
         }
         ctx.setSimBaseData(baseData);
         simMedalService.refreshMedalBonusCache(ctx);
+        //加载技能 (须在加载场景数据之前: initUnlock 依赖已入内存的技能等级)
+        skillService.loadSkillsData(ctx);
         //加载场景数据
         simCasinoService.loadCasinoData(ctx, baseData);
         migrateLegacyOperationStats(ctx);

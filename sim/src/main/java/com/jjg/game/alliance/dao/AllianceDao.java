@@ -262,11 +262,6 @@ public class AllianceDao extends MongoBaseDao<AllianceData, Long> {
     /**
      * 批量移除求助订单 (完成/超时清理)。
      */
-    @Deprecated
-    public boolean tryHelp(long allianceId, long orderId, long helperId, long time) {
-        return tryHelp(allianceId, orderId, helperId, time, Integer.MAX_VALUE);
-    }
-
     public void removeHelpOrders(long allianceId, Collection<Long> orderIds) {
         if (orderIds == null || orderIds.isEmpty()) {
             return;
@@ -278,11 +273,8 @@ public class AllianceDao extends MongoBaseDao<AllianceData, Long> {
         mongoTemplate.updateFirst(byId(allianceId), update, AllianceData.class);
     }
 
-    // ----------------------- 查询 -----------------------
-
     /**
-     * 可加入联盟列表: 按声誉降序取一页 (服务层再按"等级门槛/满员"过滤)。
-     * 只投影列表展示所需字段, 不拉 members/tasks 等大字段。
+     * 订单帮助次数已满则移除 (帮助成功后调用; 条件更新, 未满时空操作)。
      */
     public void removeHelpOrderIfFull(long allianceId, long orderId, int maxHelp) {
         if (maxHelp <= 0) {
@@ -292,6 +284,8 @@ public class AllianceDao extends MongoBaseDao<AllianceData, Long> {
         Query query = new Query(Criteria.where("_id").is(allianceId).and(path + ".helpCount").gte(maxHelp));
         mongoTemplate.updateFirst(query, new Update().unset(path), AllianceData.class);
     }
+
+    // ----------------------- 查询 -----------------------
 
     /**
      * 按声誉降序取联盟概要 (可加入列表/一键加入扫描用)。

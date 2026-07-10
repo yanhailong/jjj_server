@@ -1,6 +1,7 @@
 package com.jjg.game.sim.data;
 
 import org.springframework.data.annotation.Id;
+import org.springframework.data.mongodb.core.index.Indexed;
 import org.springframework.data.mongodb.core.mapping.Document;
 
 import java.util.*;
@@ -14,7 +15,8 @@ public class SimSkillsData extends AbstractData{
     //playerId:gameType 联合主键
     @Id
     private String id;
-    //玩家id
+    //玩家id (登录全量加载按此查询)
+    @Indexed
     private long playerId;
     //游戏类型
     private int gameType;

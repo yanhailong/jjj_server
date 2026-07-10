@@ -21,6 +21,8 @@ public class SeasonStartCfg extends BaseCfgBean {
 
   /** 赛季开启的游戏 */
   protected int AvailableGames;
+  /** 开启的宝石孔数 */
+  protected int GemCount;
   /** 循环的序列 */
   protected int LoopSequence;
   /** 赛季持续时间 */
@@ -31,6 +33,11 @@ public class SeasonStartCfg extends BaseCfgBean {
   /** 返回赛季开启的游戏 */
   public int getAvailableGames() {
     return AvailableGames;
+  }
+
+  /** 返回开启的宝石孔数 */
+  public int getGemCount() {
+    return GemCount;
   }
 
   /** 返回循环的序列 */

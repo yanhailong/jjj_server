@@ -18,7 +18,7 @@ import com.jjg.game.alliance.pb.struct.AllianceHelpOrderInfo;
 public class ResAllianceSeekHelp extends AbstractResponse {
     @ProtoDesc("新建求助订单")
     public AllianceHelpOrderInfo order;
-    @ProtoDesc("今日剩余求助次数")
+    @ProtoDesc("今日剩余求助次数(按本次求助类型: 任务/建筑分享)")
     public int remainSeek;
 
     public ResAllianceSeekHelp(int code) {

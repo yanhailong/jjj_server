@@ -24,7 +24,8 @@ import java.util.Map;
  * <p>
  * "每人只能在 1 个联盟"的约束以本文档 allianceId 字段的"0 -> aid"条件占位实现:
  * 加入/创建先占位、联盟文档写入失败再回滚, 两文档间不需要事务。
- * 每日计数等玩家私有字段因请求按 playerId 串行, 走普通 set; 贡献值扣减保留条件 $inc 兜底。
+ * 每日计数走条件 $inc 原子占用/回滚 (被帮助计数由帮助者节点写入, 不能依赖 playerId 串行);
+ * 贡献值扣减保留条件 $inc 兜底。
  *
  * @author 11
  * @date 2026/6/11
@@ -239,11 +240,6 @@ public class AlliancePlayerDao extends MongoBaseDao<AlliancePlayerData, Long> {
 
     // ----------------------- 每日计数 -----------------------
 
-    public void setDonate(long playerId, int day, int count) {
-        mongoTemplate.upsert(byId(playerId),
-                new Update().set("donateDay", day).set("donateCount", count), AlliancePlayerData.class);
-    }
-
     public int reserveDonate(long playerId, int day, int limit) {
         AlliancePlayerData data = incrementDailyCounterReturning(playerId, day, "donateDay", "donateCount", limit);
         return data == null ? -1 : data.getDonateCount();
@@ -251,11 +247,6 @@ public class AlliancePlayerDao extends MongoBaseDao<AlliancePlayerData, Long> {
 
     public void rollbackDonate(long playerId, int day) {
         rollbackDailyCounter(playerId, day, "donateDay", "donateCount");
-    }
-
-    public void setTaskFinish(long playerId, int day, int count) {
-        mongoTemplate.upsert(byId(playerId),
-                new Update().set("taskDay", day).set("taskFinishCount", count), AlliancePlayerData.class);
     }
 
     public void incrementTaskFinish(long playerId, int day) {
@@ -273,18 +264,12 @@ public class AlliancePlayerDao extends MongoBaseDao<AlliancePlayerData, Long> {
         rollbackDailyCounter(playerId, day, "refreshDay", "refreshCount");
     }
 
-    public void setSeekHelp(long playerId, int day, int count) {
-        mongoTemplate.upsert(byId(playerId),
-                new Update().set("seekHelpDay", day).set("seekHelpCount", count), AlliancePlayerData.class);
-    }
-
     public boolean tryConsumeSeekHelp(long playerId, int day, int limit) {
         return tryIncrementDailyCounter(playerId, day, "seekHelpDay", "seekHelpCount", limit);
     }
 
-    public void setHelp(long playerId, int day, int count) {
-        mongoTemplate.upsert(byId(playerId),
-                new Update().set("helpDay", day).set("helpCount", count), AlliancePlayerData.class);
+    public boolean tryConsumeSpeedupSeek(long playerId, int day, int limit) {
+        return tryIncrementDailyCounter(playerId, day, "speedupSeekDay", "speedupSeekCount", limit);
     }
 
     public boolean tryConsumeHelp(long playerId, int day, int limit) {
@@ -293,6 +278,18 @@ public class AlliancePlayerDao extends MongoBaseDao<AlliancePlayerData, Long> {
 
     public void rollbackHelp(long playerId, int day) {
         rollbackDailyCounter(playerId, day, "helpDay", "helpCount");
+    }
+
+    /**
+     * 占用求助者"建筑加速当日被帮助"额度。注意写方是帮助者所在节点 (非求助者请求线程),
+     * 依赖条件 $inc 保证多节点并发安全。
+     */
+    public boolean tryConsumeSpeedupHelped(long playerId, int day, int limit) {
+        return tryIncrementDailyCounter(playerId, day, "speedupHelpedDay", "speedupHelpedCount", limit);
+    }
+
+    public void rollbackSpeedupHelped(long playerId, int day) {
+        rollbackDailyCounter(playerId, day, "speedupHelpedDay", "speedupHelpedCount");
     }
 
     /**

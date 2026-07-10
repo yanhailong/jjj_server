@@ -20,14 +20,18 @@ import java.util.List;
 public class ResAllianceHelpList extends AbstractResponse {
     @ProtoDesc("进行中的求助订单")
     public List<AllianceHelpOrderInfo> orders;
-    @ProtoDesc("今日剩余求助次数")
+    @ProtoDesc("今日剩余任务求助次数")
     public int remainSeek;
-    @ProtoDesc("每日求助上限")
+    @ProtoDesc("每日任务求助上限")
     public int dailySeekLimit;
-    @ProtoDesc("今日剩余帮助次数")
+    @ProtoDesc("今日剩余帮助次数(建筑加速)")
     public int remainHelp;
-    @ProtoDesc("每日帮助上限")
+    @ProtoDesc("每日帮助上限(建筑加速)")
     public int dailyHelpLimit;
+    @ProtoDesc("今日剩余建筑分享(加速求助)次数")
+    public int remainShare;
+    @ProtoDesc("每日建筑分享上限")
+    public int dailyShareLimit;
 
     public ResAllianceHelpList(int code) {
         super(code);

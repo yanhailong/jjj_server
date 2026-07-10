@@ -20,6 +20,8 @@ import java.util.List;
 public class ResAllianceList extends AbstractResponse {
     @ProtoDesc("联盟列表(按声誉降序)")
     public List<ShowAllianceInfo> list;
+    @ProtoDesc("最大任务数量")
+    public int taskMaxCount;
 
     public ResAllianceList(int code) {
         super(code);

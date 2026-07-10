@@ -48,12 +48,18 @@ public class AlliancePlayerData {
     //任务刷新次数
     private int refreshDay;
     private int refreshCount;
-    //求助次数
+    //任务求助次数
     private int seekHelpDay;
     private int seekHelpCount;
-    //帮助次数
+    //帮助次数 (仅建筑加速类, global 表 226 上限)
     private int helpDay;
     private int helpCount;
+    //建筑加速被帮助次数 (求助者视角, global 表 225 上限)
+    private int speedupHelpedDay;
+    private int speedupHelpedCount;
+    //建筑加速求助(分享)次数 (global 表 249 上限)
+    private int speedupSeekDay;
+    private int speedupSeekCount;
     //商店限购 goodsId -> 当日已购数量
     private int shopDay;
     private Map<Integer, Integer> shopPurchases = new HashMap<>();
@@ -204,6 +210,38 @@ public class AlliancePlayerData {
         this.helpCount = helpCount;
     }
 
+    public int getSpeedupHelpedDay() {
+        return speedupHelpedDay;
+    }
+
+    public void setSpeedupHelpedDay(int speedupHelpedDay) {
+        this.speedupHelpedDay = speedupHelpedDay;
+    }
+
+    public int getSpeedupHelpedCount() {
+        return speedupHelpedCount;
+    }
+
+    public void setSpeedupHelpedCount(int speedupHelpedCount) {
+        this.speedupHelpedCount = speedupHelpedCount;
+    }
+
+    public int getSpeedupSeekDay() {
+        return speedupSeekDay;
+    }
+
+    public void setSpeedupSeekDay(int speedupSeekDay) {
+        this.speedupSeekDay = speedupSeekDay;
+    }
+
+    public int getSpeedupSeekCount() {
+        return speedupSeekCount;
+    }
+
+    public void setSpeedupSeekCount(int speedupSeekCount) {
+        this.speedupSeekCount = speedupSeekCount;
+    }
+
     public int getShopDay() {
         return shopDay;
     }
@@ -274,6 +312,10 @@ public class AlliancePlayerData {
 
     public int helpCountOf(int today) {
         return helpDay == today ? helpCount : 0;
+    }
+
+    public int speedupSeekCountOf(int today) {
+        return speedupSeekDay == today ? speedupSeekCount : 0;
     }
 
     public int shopPurchasedOf(int today, int goodsId) {

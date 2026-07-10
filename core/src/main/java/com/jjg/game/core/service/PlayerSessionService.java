@@ -151,7 +151,11 @@ public class PlayerSessionService implements TimerListener<String> {
     public PFSession getSession(long playerId) {
         PFSession session = clusterSystem.getSession(playerId);
         if (session == null) {
-            session = getSession(getInfo(playerId));
+            PlayerSessionInfo info = getInfo(playerId);
+            if (info == null) {
+                return null;
+            }
+            session = getSession(info);
         }
         return session;
     }

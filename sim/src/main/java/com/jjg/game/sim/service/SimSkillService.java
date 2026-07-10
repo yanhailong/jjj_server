@@ -12,7 +12,6 @@ import com.jjg.game.sampledata.bean.PropCfg;
 import com.jjg.game.sampledata.bean.ResearchSkillsCfg;
 import com.jjg.game.sim.constant.SimConstant;
 import com.jjg.game.sim.dao.SimSkillsDao;
-import com.jjg.game.sim.data.SimCasinoData;
 import com.jjg.game.sim.data.SimPlayerContext;
 import com.jjg.game.sim.data.SimSkillsData;
 import com.jjg.game.sim.pb.SimPbConverter;
@@ -38,6 +37,15 @@ public class SimSkillService extends AbstractSkillService implements ConfigExcel
     private SimConfigCacheService simConfigCacheService;
     @Autowired
     private AllianceEventService allianceEventService;
+
+    /**
+     * 登录加载技能 (player 全量)。须在加载场景数据之前调用: initUnlock 依据已入内存的技能等级决定是否补解锁。
+     */
+    public void loadSkillsData(SimPlayerContext ctx) {
+        for (SimSkillsData data : simSkillsDao.findByPlayerId(ctx.playerId())) {
+            ctx.getSkillsDataMap().putIfAbsent(data.getGameType(), data);
+        }
+    }
 
     /**
      * 初始时解锁技能

@@ -285,19 +285,11 @@ public interface AllianceConst {
         //已完成任务保留条数 (最近 N 条滚动保留, 供"已完成任务"查询)
         int FINISHED_TASK_KEEP = 20;
 
-        //--------- 互助 ---------
-        //每人每日求助次数
+        //--------- 互助
+        //每人每日任务求助次数 (建筑加速求助走 global 表 249, 见 Global.SPEEDUP_DAILY_SEEK_LIMIT_ID)
         int DAILY_SEEK_HELP_LIMIT = 3;
-        //每人每日帮助次数
-        int DAILY_HELP_LIMIT = 5;
-        //单次建筑加速帮助减少的秒数 (需求示例: 点击一次缩减1分钟)
-        int SPEEDUP_SEC_PER_HELP = 60;
-        //单个建筑加速订单可被帮助的次数上限
-        int SPEEDUP_ORDER_MAX_HELP = 10;
         //单个任务求助订单可被帮助的次数上限 (需求: 同一任务只能由一名用户帮助)
         int TASK_ORDER_MAX_HELP = 1;
-        //帮助一次获得的贡献值
-        int HELP_REWARD_CONTRIBUTION = 2;
         //求助订单留存时间(ms): 超时惰性清理
         long HELP_ORDER_VALID_MILLS = 24 * 3600 * 1000L;
         //建筑加速抵扣 Redis key TTL(秒)
@@ -371,5 +363,15 @@ public interface AllianceConst {
 
     interface Global{
         int CREATE_MIN_CASINO_LEVEL_ID = 221;
+        //用户建筑加速每日被帮助次数上限
+        int SPEEDUP_DAILY_HELPED_LIMIT_ID = 225;
+        //用户每日给盟友可提供的加速次数上限
+        int SPEEDUP_DAILY_HELP_LIMIT_ID = 226;
+        //用户的建筑被帮助加速一次可减少的时间(分钟)
+        int SPEEDUP_MINUTES_PER_HELP_ID = 227;
+        //用户帮助求助者一次可获得的贡献值数量
+        int HELP_REWARD_CONTRIBUTION_ID = 228;
+        //用户每日在建筑上进行分享(发起建筑加速求助)的次数上限
+        int SPEEDUP_DAILY_SEEK_LIMIT_ID = 249;
     }
 }

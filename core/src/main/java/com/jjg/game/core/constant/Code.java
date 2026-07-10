@@ -198,4 +198,6 @@ public interface Code {
 
     //场景等级不足
     int SIM_CASINO_LEVEL_LOW = 4010039;
+    //联盟建筑加速:对方今日被帮助次数已达上限
+    int ALLIANCE_HELPED_LIMIT = 4010040;
 }
