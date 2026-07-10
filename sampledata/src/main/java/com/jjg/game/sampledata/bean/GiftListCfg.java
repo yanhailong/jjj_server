@@ -27,6 +27,8 @@ public class GiftListCfg extends BaseCfgBean {
   protected String icon;
   /** 名称多语言ID */
   protected int name;
+  /** 类型 */
+  protected int type;
 
   /** 返回增加人气值 */
   public int getPopularity() {
@@ -46,6 +48,11 @@ public class GiftListCfg extends BaseCfgBean {
   /** 返回名称多语言ID */
   public int getName() {
     return name;
+  }
+
+  /** 返回类型 */
+  public int getType() {
+    return type;
   }
 
   @Override
