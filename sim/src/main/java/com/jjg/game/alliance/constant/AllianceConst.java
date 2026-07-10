@@ -274,10 +274,6 @@ public interface AllianceConst {
         int MEMBER_LIMIT_PER_LEVEL = 10;
 
         //--------- 任务 ---------
-        //任务池条数
-        int TASK_POOL_SIZE = 20;
-        //每人每日可完成任务次数上限
-        int DAILY_TASK_LIMIT = 10;
         //放弃任务冷却(秒)
         int ABANDON_TASK_CD_SEC = 5 * 60;
         //任务进度 Redis 计数 TTL(秒): 略大于最长任务持续时间即可
@@ -354,15 +350,19 @@ public interface AllianceConst {
         String RANK_SETTLE_LOCK = "alliance:rank:settle:lock";
     }
 
-    interface ApplyFailReason{
+    interface ApplyFailReason {
         //已在联盟中
         int ALREADY_IN = 1;
         //人数已满
         int FULL = 2;
     }
 
-    interface Global{
+    interface Global {
         int CREATE_MIN_CASINO_LEVEL_ID = 221;
+        //任务池条数
+        int TASK_POOL_SIZE_ID = 223;
+        //每人每日可完成任务次数上限
+        int DAILY_TASK_LIMIT_ID = 224;
         //用户建筑加速每日被帮助次数上限
         int SPEEDUP_DAILY_HELPED_LIMIT_ID = 225;
         //用户每日给盟友可提供的加速次数上限

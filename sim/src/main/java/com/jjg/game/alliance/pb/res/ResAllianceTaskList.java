@@ -38,6 +38,8 @@ public class ResAllianceTaskList extends AbstractResponse {
     public int spendCountEach;
     @ProtoDesc("今日刷新任务次数")
     public int todayRefreshTaskCount;
+    @ProtoDesc("最大任务数量")
+    public int taskMaxCount;
 
     public ResAllianceTaskList(int code) {
         super(code);

@@ -18,6 +18,7 @@ import com.jjg.game.core.constant.Code;
 import com.jjg.game.core.data.PlayerController;
 import com.jjg.game.core.service.PlayerPackService;
 import com.jjg.game.core.utils.ItemUtils;
+import com.jjg.game.sampledata.GameDataManager;
 import com.jjg.game.sampledata.bean.TaskCfg;
 import com.jjg.game.sim.constant.SimConstant;
 import com.jjg.game.sim.service.SimConfigCacheService;
@@ -124,7 +125,8 @@ public class AllianceTaskService {
             AlliancePlayerData playerData = alliancePlayerDao.getOrEmpty(playerId);
             int today = TimeHelper.getDayNumerical();
             res.dailyFinished = playerData.taskFinishCountOf(today);
-            res.dailyLimit = AllianceConst.Cfg.DAILY_TASK_LIMIT;
+            res.dailyLimit = GameDataManager.getGlobalConfigCfg(AllianceConst.Global.DAILY_TASK_LIMIT_ID).getIntValue();
+            res.taskMaxCount = GameDataManager.getGlobalConfigCfg(AllianceConst.Global.TASK_POOL_SIZE_ID).getIntValue();
 
             res.abandonCdUntil = playerData.getAbandonCdUntil();
             if (playerData.getAbandonCdUntil() <= now) {
@@ -236,7 +238,7 @@ public class AllianceTaskService {
 
             playerData = alliancePlayerDao.getOrEmpty(playerId);
             res.dailyFinished = playerData.taskFinishCountOf(today);
-            res.dailyLimit = AllianceConst.Cfg.DAILY_TASK_LIMIT;
+            res.dailyLimit = GameDataManager.getGlobalConfigCfg(AllianceConst.Global.DAILY_TASK_LIMIT_ID).getIntValue();
             res.todayRefreshTaskCount = playerData.refreshCountOf(today);
 
             res.abandonCdUntil = playerData.getAbandonCdUntil();
@@ -282,7 +284,8 @@ public class AllianceTaskService {
                 pool.put(slot.getCfgId(), slot);
             }
         }
-        int need = AllianceConst.Cfg.TASK_POOL_SIZE - pool.size();
+
+        int need = GameDataManager.getGlobalConfigCfg(AllianceConst.Global.TASK_POOL_SIZE_ID).getIntValue() - pool.size();
         for (TaskCfg cfg : configService.randomAllianceTasks(need, pool.keySet())) {
             long durationMs = Math.max(1, cfg.getDuration()) * 60_000L;
             pool.put(cfg.getId(), new AllianceTaskSlot(cfg.getId(), now, now + durationMs));
@@ -330,9 +333,10 @@ public class AllianceTaskService {
         }
         //每日完成次数上限
         int today = TimeHelper.getDayNumerical();
-        if (playerData.taskFinishCountOf(today) >= AllianceConst.Cfg.DAILY_TASK_LIMIT) {
+        int dailyLimit = GameDataManager.getGlobalConfigCfg(AllianceConst.Global.DAILY_TASK_LIMIT_ID).getIntValue();
+        if (playerData.taskFinishCountOf(today) >= dailyLimit) {
             res.code = Code.REPEAT_OP;
-            log.warn("接取联盟任务失败,今日完成次数已达上限 playerId={},finished={},limit={}", playerId, playerData.taskFinishCountOf(today), AllianceConst.Cfg.DAILY_TASK_LIMIT);
+            log.warn("接取联盟任务失败,今日完成次数已达上限 playerId={},finished={},limit={}", playerId, playerData.taskFinishCountOf(today), dailyLimit);
             return res;
         }
         //单次只能接一条 (已有未超期任务)
