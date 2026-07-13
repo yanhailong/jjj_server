@@ -17,6 +17,7 @@ import com.jjg.game.sim.data.SimPlayerContext;
 import com.jjg.game.sim.data.SpinStatInfo;
 import com.jjg.game.sim.listener.SimPlayerTickListener;
 import com.jjg.game.season.model.SeasonSnapshot;
+import com.jjg.game.social.service.SocialSender;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Service;
@@ -41,12 +42,13 @@ public class SeasonService implements SimPlayerTickListener {
     private final SeasonRankingService rankingService;
     private final PlayerPackService playerPackService;
     private final SeasonTrialService trialService;
+    private final SocialSender socialSender;
 
     public SeasonService(SeasonLifecycleService lifecycleService, SeasonConfigService configService,
                          SeasonShopService shopService, SeasonGemService gemService,
                          SeasonMatchService matchService, SeasonDropService dropService,
                          SeasonRankingService rankingService, PlayerPackService playerPackService,
-                         SeasonTrialService trialService) {
+                         SeasonTrialService trialService, SocialSender socialSender) {
         this.lifecycleService = lifecycleService;
         this.configService = configService;
         this.shopService = shopService;
@@ -56,6 +58,7 @@ public class SeasonService implements SimPlayerTickListener {
         this.rankingService = rankingService;
         this.playerPackService = playerPackService;
         this.trialService = trialService;
+        this.socialSender = socialSender;
     }
 
     public ResSeasonInfo info(SimPlayerContext ctx) {
@@ -198,8 +201,8 @@ public class SeasonService implements SimPlayerTickListener {
         dropService.onSpin(ctx, gameType);
         //试炼挑战窗口推进; 结算时直接下发通知 (与对局互斥: 试炼仅新手赛季, 对局仅进阶/循环赛季)
         SeasonTrialResult trialResult = trialService.onSpin(ctx, gameType, statInfo);
-        if (trialResult != null && ctx.getPlayerController() != null) {
-            ctx.send(trialNotify(trialResult));
+        if (trialResult != null) {
+            socialSender.sendTo(ctx.playerId(), trialNotify(trialResult));
         }
         CommonResult<SeasonMatchResult> result = matchService.onSpin(ctx, gameType, statInfo, System.currentTimeMillis());
         if (result.data == null) {
@@ -209,7 +212,9 @@ public class SeasonService implements SimPlayerTickListener {
             }
             return null;
         }
-        return matchNotify(result.data);
+        NotifySeasonMatchResult notify = matchNotify(result.data);
+        socialSender.sendTo(ctx.playerId(), notify);
+        return notify;
     }
 
     /**
@@ -275,8 +280,8 @@ public class SeasonService implements SimPlayerTickListener {
     @Override
     public void onTick(SimPlayerContext ctx, long now) {
         SeasonMatchResult result = matchService.settleIfExpired(ctx, now);
-        if (result != null && ctx.getPlayerController() != null) {
-            ctx.send(matchNotify(result));
+        if (result != null) {
+            socialSender.sendTo(ctx.playerId(), matchNotify(result));
         }
     }
 

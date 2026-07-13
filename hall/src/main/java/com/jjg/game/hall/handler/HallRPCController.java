@@ -13,6 +13,8 @@ import com.jjg.game.hall.service.HallPlayerService;
 import com.jjg.game.hall.service.HallService;
 import com.jjg.game.sampledata.GameDataManager;
 import com.jjg.game.sampledata.bean.ResearchSkillsCfg;
+import com.jjg.game.season.pb.res.ResSeasonMatch;
+import com.jjg.game.season.service.SeasonService;
 import com.jjg.game.sim.bridge.ToSimBridge;
 import com.jjg.game.sim.data.SimPlayerContext;
 import com.jjg.game.sim.data.SimSkillsData;
@@ -55,6 +57,8 @@ public class HallRPCController extends CoreRPCController implements GmToHallBrid
     private SimPlayerContextRegistry simPlayerContextRegistry;
     @Autowired
     private SimManager simManager;
+    @Autowired
+    private SeasonService seasonService;
     @Autowired
     private SimCoopTaskService simCoopTaskService;
     @Autowired
@@ -170,6 +174,17 @@ public class HallRPCController extends CoreRPCController implements GmToHallBrid
     public CommonResult<SlotsSpinResult> onSlotsSpin(long playerId, int gameType, int winTimes, boolean changeNode,
                                                     SpinStatInfo statInfo, VisitTrialSpinPermit trialPermit) {
         return simManager.onSlotsSpin(playerId, gameType, winTimes, changeNode, statInfo, trialPermit);
+    }
+
+    @Override
+    @RpcCallSetting(processorModKey = "#arg0")
+    public ResSeasonMatch seasonMatch(long playerId, int gameType, long stake) {
+        SimPlayerContext ctx = this.simPlayerContextRegistry.getContext(playerId);
+        if (ctx == null) {
+            log.warn("赛季匹配失败，未找到玩家 sim 数据 playerId={}", playerId);
+            return new ResSeasonMatch(Code.NOT_FOUND);
+        }
+        return seasonService.match(ctx, gameType, stake);
     }
 
     @Override

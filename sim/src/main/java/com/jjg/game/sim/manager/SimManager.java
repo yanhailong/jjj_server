@@ -23,7 +23,6 @@ import com.jjg.game.sim.pb.res.ResSimEnterGame;
 import com.jjg.game.sim.pb.res.ResSimPlayerInfo;
 import com.jjg.game.season.dao.SeasonPlayerDao;
 import com.jjg.game.season.data.SeasonPlayerData;
-import com.jjg.game.season.pb.res.NotifySeasonMatchResult;
 import com.jjg.game.season.service.SeasonLifecycleService;
 import com.jjg.game.season.service.SeasonService;
 import com.jjg.game.sim.service.*;
@@ -542,10 +541,7 @@ public class SimManager {
             //主线/成就任务联动: 旋转次数 + 累积投注 (内部吞异常, 不影响主流程)
             simTaskService.onSpin(ctx, gameType, statInfo);
             if (!visitTrial) {
-                NotifySeasonMatchResult seasonResult = seasonService.onSpin(ctx, gameType, statInfo);
-                if (seasonResult != null && ctx.getPlayerController() != null) {
-                    ctx.send(seasonResult);
-                }
+                seasonService.onSpin(ctx, gameType, statInfo);
             }
             return result;
         } catch (Exception e) {

@@ -2,6 +2,7 @@ package com.jjg.game.sim.bridge;
 
 import com.jjg.game.common.rpc.IGameRpc;
 import com.jjg.game.core.data.CommonResult;
+import com.jjg.game.season.pb.res.ResSeasonMatch;
 import com.jjg.game.sim.data.SimSkillsData;
 import com.jjg.game.sim.data.SlotsSpinResult;
 import com.jjg.game.sim.data.SpinStatInfo;
@@ -44,6 +45,11 @@ public interface ToSimBridge extends IGameRpc {
      */
     CommonResult<SlotsSpinResult> onSlotsSpin(long playerId, int gameType, int winTimes, boolean changeNode,
                                              SpinStatInfo statInfo, VisitTrialSpinPermit trialPermit);
+
+    /**
+     * 发起赛季匹配，始终在玩家的 sim owner 节点执行。
+     */
+    ResSeasonMatch seasonMatch(long playerId, int gameType, long stake);
 
     /**
      * 客座赌局每次旋转前授权；普通旋转由 slots 本地直接跳过该 RPC。

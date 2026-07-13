@@ -1,15 +1,23 @@
 package com.jjg.game.season.handler;
 
+import com.jjg.game.common.cluster.ClusterClient;
 import com.jjg.game.common.constant.MessageConst;
 import com.jjg.game.common.pb.AbstractResponse;
 import com.jjg.game.common.protostuff.Command;
 import com.jjg.game.common.protostuff.MessageType;
+import com.jjg.game.common.rpc.ClusterRpcReference;
+import com.jjg.game.common.rpc.GameRpcContext;
+import com.jjg.game.common.rpc.RpcReqParameterBuilder;
+import com.jjg.game.core.constant.Code;
 import com.jjg.game.core.data.PlayerController;
 import com.jjg.game.season.constant.SeasonConstant;
 import com.jjg.game.season.pb.req.*;
+import com.jjg.game.season.pb.res.ResSeasonMatch;
 import com.jjg.game.season.service.SeasonService;
+import com.jjg.game.sim.bridge.ToSimBridge;
 import com.jjg.game.sim.data.SimPlayerContext;
 import com.jjg.game.sim.manager.SimPlayerContextRegistry;
+import com.jjg.game.sim.service.SimNodeService;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -30,6 +38,10 @@ public class SeasonMessageHandler {
     private SeasonService seasonService;
     @Autowired
     private SimPlayerContextRegistry simPlayerContextRegistry;
+    @Autowired
+    private SimNodeService simNodeService;
+    @ClusterRpcReference
+    private ToSimBridge toSimBridge;
 
     @Command(SeasonConstant.MsgBean.REQ_SEASON_INFO)
     public void reqSeasonInfo(PlayerController playerController, ReqSeasonInfo req) {
@@ -63,7 +75,13 @@ public class SeasonMessageHandler {
 
     @Command(SeasonConstant.MsgBean.REQ_SEASON_MATCH)
     public void reqSeasonMatch(PlayerController playerController, ReqSeasonMatch req) {
-        execute(playerController, ctx -> ctx.send(seasonService.match(ctx, req.gameType, req.stake)));
+        long playerId = playerController.playerId();
+        SimPlayerContext ctx = this.simPlayerContextRegistry.getContext(playerId);
+        if (ctx != null) {
+            playerController.send(seasonService.match(ctx, req.gameType, req.stake));
+            return;
+        }
+        playerController.send(remoteSeasonMatch(playerController, req));
     }
 
     @Command(SeasonConstant.MsgBean.REQ_SEASON_MATCH_HISTORY)
@@ -93,5 +111,29 @@ public class SeasonMessageHandler {
             return;
         }
         action.accept(ctx);
+    }
+
+    private ResSeasonMatch remoteSeasonMatch(PlayerController playerController, ReqSeasonMatch req) {
+        long playerId = playerController.playerId();
+        ClusterClient client = simNodeService.getSimClusterClient(playerId, playerController.ipAddress());
+        if (client == null) {
+            log.warn("赛季匹配失败，未找到玩家 sim 节点 playerId={}", playerId);
+            return new ResSeasonMatch(Code.NOT_FOUND);
+        }
+
+        GameRpcContext rpcContext = GameRpcContext.getContext();
+        RpcReqParameterBuilder previousBuilder = rpcContext.getReqParameterBuilder();
+        try {
+            rpcContext.withReqParameterBuilder(RpcReqParameterBuilder.create()
+                    .addClusterClient(client).setTryMillisPerClient(1000));
+            ResSeasonMatch response = toSimBridge.seasonMatch(playerId, req.gameType, req.stake);
+            return response == null ? new ResSeasonMatch(Code.EXCEPTION) : response;
+        } catch (Exception e) {
+            log.error("远程赛季匹配异常 playerId={},gameType={},stake={}",
+                    playerId, req.gameType, req.stake, e);
+            return new ResSeasonMatch(Code.EXCEPTION);
+        } finally {
+            rpcContext.setReqParameterBuilder(previousBuilder);
+        }
     }
 }
