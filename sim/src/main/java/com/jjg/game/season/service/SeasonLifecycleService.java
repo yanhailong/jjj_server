@@ -112,15 +112,29 @@ public class SeasonLifecycleService implements SimPlayerTickListener {
     }
 
     /**
-     * 昵称冗余在赛季文档上供匹配/榜单直接读取; 改名后在下一次协议入口同步并落库。
+     * 昵称/头像冗余在赛季文档上供匹配/榜单直接读取; 变更后在下一次协议入口同步并落库。
      */
     private void refreshPlayerName(SimPlayerContext ctx, SeasonPlayerData data) {
         Player player = ctx.getPlayerController() == null ? null : ctx.getPlayerController().getPlayer();
-        if (player == null || player.getNickName() == null || player.getNickName().equals(data.getPlayerName())) {
+        if (player == null) {
             return;
         }
-        data.setPlayerName(player.getNickName());
-        autoSaveService.enqueueSave(data);
+        boolean changed = false;
+        if (player.getNickName() != null && !player.getNickName().equals(data.getPlayerName())) {
+            data.setPlayerName(player.getNickName());
+            changed = true;
+        }
+        if (player.getHeadImgId() != data.getHeadImgId()) {
+            data.setHeadImgId(player.getHeadImgId());
+            changed = true;
+        }
+        if (player.getHeadFrameId() != data.getHeadFrameId()) {
+            data.setHeadFrameId(player.getHeadFrameId());
+            changed = true;
+        }
+        if (changed) {
+            autoSaveService.enqueueSave(data);
+        }
     }
 
     /**

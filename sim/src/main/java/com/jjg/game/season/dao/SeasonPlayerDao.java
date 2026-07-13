@@ -91,8 +91,8 @@ public class SeasonPlayerDao extends MongoBaseDao<SeasonPlayerData, Long> {
                 .and("representativeStake").is(stake)
                 .and("representativeSpinWins." + (Math.max(1, minSpins) - 1)).exists(true)
                 .and("seasonCoin").gt(0));
-        query.fields().include("playerId", "playerName", "tierId", "seasonKey", "seasonCoin",
-                "representativeGameType", "representativeStake", "representativeSpinWins");
+        query.fields().include("playerId", "playerName", "headImgId", "headFrameId", "tierId", "seasonKey",
+                "seasonCoin", "representativeGameType", "representativeStake", "representativeSpinWins");
         query.limit(limit);
         return mongoTemplate.find(query, SeasonPlayerData.class);
     }

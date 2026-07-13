@@ -9,8 +9,10 @@ import java.util.List;
 public class SeasonMatchSession {
     private String matchId;
     private long opponentId;
-    //匹配时从候选文档快照的对手昵称/段位, 结算落记录直接使用, 免二次查库
+    //匹配时从候选文档快照的对手展示信息, 结算落记录直接使用, 免二次查库
     private String opponentName;
+    private int opponentHeadImgId;
+    private int opponentHeadFrameId;
     private int opponentTierId;
     private int gameType;
     private long stake;
@@ -41,6 +43,22 @@ public class SeasonMatchSession {
 
     public void setOpponentName(String opponentName) {
         this.opponentName = opponentName;
+    }
+
+    public int getOpponentHeadImgId() {
+        return opponentHeadImgId;
+    }
+
+    public void setOpponentHeadImgId(int opponentHeadImgId) {
+        this.opponentHeadImgId = opponentHeadImgId;
+    }
+
+    public int getOpponentHeadFrameId() {
+        return opponentHeadFrameId;
+    }
+
+    public void setOpponentHeadFrameId(int opponentHeadFrameId) {
+        this.opponentHeadFrameId = opponentHeadFrameId;
     }
 
     public int getOpponentTierId() {

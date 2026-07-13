@@ -161,6 +161,8 @@ public class SeasonService implements SimPlayerTickListener {
             response.matchId = result.data.getMatchId();
             response.opponentId = result.data.getOpponentId();
             response.opponentName = result.data.getOpponentName();
+            response.opponentHeadImgId = result.data.getOpponentHeadImgId();
+            response.opponentHeadFrameId = result.data.getOpponentHeadFrameId();
             response.gameType = result.data.getGameType();
             response.stake = result.data.getStake();
             response.expectedSpins = result.data.getExpectedSpins();

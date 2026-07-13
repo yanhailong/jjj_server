@@ -102,6 +102,8 @@ public class SeasonMatchService {
         session.setMatchId(RandomUtils.getOriginalUUid());
         session.setOpponentId(opponent.getPlayerId());
         session.setOpponentName(opponent.getPlayerName());
+        session.setOpponentHeadImgId(opponent.getHeadImgId());
+        session.setOpponentHeadFrameId(opponent.getHeadFrameId());
         session.setOpponentTierId(opponent.getTierId());
         session.setGameType(gameType);
         session.setStake(stake);
