@@ -39,5 +39,14 @@ public interface SeasonConstant {
 
         int REQ_SEASON_RANK = BASE_MSG_PREFIX | 0x13;
         int RES_SEASON_RANK = BASE_MSG_PREFIX | 0x14;
+
+        //试炼任务 (新手赛季关卡)
+        int REQ_SEASON_TRIALS = BASE_MSG_PREFIX | 0x15;
+        int RES_SEASON_TRIALS = BASE_MSG_PREFIX | 0x16;
+
+        int REQ_SEASON_TRIAL_CHALLENGE = BASE_MSG_PREFIX | 0x17;
+        int RES_SEASON_TRIAL_CHALLENGE = BASE_MSG_PREFIX | 0x18;
+
+        int NOTIFY_SEASON_TRIAL_RESULT = BASE_MSG_PREFIX | 0x19;
     }
 }

@@ -76,6 +76,16 @@ public class SeasonMessageHandler {
         execute(playerController, ctx -> ctx.send(seasonService.rank(ctx, req.limit)));
     }
 
+    @Command(SeasonConstant.MsgBean.REQ_SEASON_TRIALS)
+    public void reqSeasonTrials(PlayerController playerController, ReqSeasonTrials req) {
+        execute(playerController, ctx -> ctx.send(seasonService.trials(ctx)));
+    }
+
+    @Command(SeasonConstant.MsgBean.REQ_SEASON_TRIAL_CHALLENGE)
+    public void reqSeasonTrialChallenge(PlayerController playerController, ReqSeasonTrialChallenge req) {
+        execute(playerController, ctx -> ctx.send(seasonService.trialChallenge(ctx, req.trialId)));
+    }
+
     public <T extends AbstractResponse> void execute(PlayerController pc, Consumer<SimPlayerContext> action) {
         SimPlayerContext ctx = this.simPlayerContextRegistry.getContext(pc.playerId());
         if (ctx == null) {

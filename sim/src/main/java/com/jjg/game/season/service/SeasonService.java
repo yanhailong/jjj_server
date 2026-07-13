@@ -9,6 +9,7 @@ import com.jjg.game.core.utils.ItemUtils;
 import com.jjg.game.sampledata.bean.SeasonGemCfg;
 import com.jjg.game.sampledata.bean.SeasonShopCfg;
 import com.jjg.game.sampledata.bean.SeasonStartCfg;
+import com.jjg.game.season.config.SeasonTrialDef;
 import com.jjg.game.season.data.*;
 import com.jjg.game.season.pb.res.*;
 import com.jjg.game.season.pb.struct.*;
@@ -39,11 +40,13 @@ public class SeasonService implements SimPlayerTickListener {
     private final SeasonDropService dropService;
     private final SeasonRankingService rankingService;
     private final PlayerPackService playerPackService;
+    private final SeasonTrialService trialService;
 
     public SeasonService(SeasonLifecycleService lifecycleService, SeasonConfigService configService,
                          SeasonShopService shopService, SeasonGemService gemService,
                          SeasonMatchService matchService, SeasonDropService dropService,
-                         SeasonRankingService rankingService, PlayerPackService playerPackService) {
+                         SeasonRankingService rankingService, PlayerPackService playerPackService,
+                         SeasonTrialService trialService) {
         this.lifecycleService = lifecycleService;
         this.configService = configService;
         this.shopService = shopService;
@@ -52,6 +55,7 @@ public class SeasonService implements SimPlayerTickListener {
         this.dropService = dropService;
         this.rankingService = rankingService;
         this.playerPackService = playerPackService;
+        this.trialService = trialService;
     }
 
     public ResSeasonInfo info(SimPlayerContext ctx) {
@@ -190,6 +194,11 @@ public class SeasonService implements SimPlayerTickListener {
      */
     public NotifySeasonMatchResult onSpin(SimPlayerContext ctx, int gameType, SpinStatInfo statInfo) {
         dropService.onSpin(ctx, gameType);
+        //试炼挑战窗口推进; 结算时直接下发通知 (与对局互斥: 试炼仅新手赛季, 对局仅进阶/循环赛季)
+        SeasonTrialResult trialResult = trialService.onSpin(ctx, gameType, statInfo);
+        if (trialResult != null && ctx.getPlayerController() != null) {
+            ctx.send(trialNotify(trialResult));
+        }
         CommonResult<SeasonMatchResult> result = matchService.onSpin(ctx, gameType, statInfo, System.currentTimeMillis());
         if (result.data == null) {
             //非本局游戏/无对局/重复结算等场景静默跳过, 不向客户端下发错误通知
@@ -199,6 +208,63 @@ public class SeasonService implements SimPlayerTickListener {
             return null;
         }
         return matchNotify(result.data);
+    }
+
+    /**
+     * 试炼任务列表 (仅新手赛季有内容)。
+     */
+    public ResSeasonTrials trials(SimPlayerContext ctx) {
+        long now = System.currentTimeMillis();
+        SeasonSnapshot snapshot = lifecycleService.ensureCurrent(ctx, now);
+        ResSeasonTrials response = new ResSeasonTrials(Code.SUCCESS);
+        response.trials = trialService.list(ctx, snapshot, now).stream().map(this::trialInfo).toList();
+        SeasonTrialSession session = ctx.getSeasonPlayerData().getActiveTrial();
+        response.activeTrialId = session == null ? 0 : session.getTrialId();
+        return response;
+    }
+
+    /**
+     * 发起试炼挑战。
+     */
+    public ResSeasonTrialChallenge trialChallenge(SimPlayerContext ctx, int trialId) {
+        long now = System.currentTimeMillis();
+        SeasonSnapshot snapshot = lifecycleService.ensureCurrent(ctx, now);
+        CommonResult<SeasonTrialSession> result = trialService.challenge(ctx, trialId, snapshot, now);
+        ResSeasonTrialChallenge response = new ResSeasonTrialChallenge(result.code);
+        response.trialId = trialId;
+        if (result.data != null) {
+            SeasonTrialDef def = trialService.trialDef(result.data.getTrialId());
+            response.expectedSpins = def == null ? 0 : def.windowSpins();
+        }
+        return response;
+    }
+
+    private SeasonTrialInfo trialInfo(SeasonTrialStatus status) {
+        SeasonTrialInfo info = new SeasonTrialInfo();
+        SeasonTrialDef def = status.getDef();
+        info.trialId = def.trialId();
+        info.day = def.day();
+        info.unlocked = status.isUnlocked();
+        info.stars = status.getStars();
+        info.taskIds = def.starTasks().stream().map(cfg -> cfg.getId()).toList();
+        info.active = status.isActive();
+        info.spinCount = status.getSpinCount();
+        info.expectedSpins = def.windowSpins();
+        info.progress = status.getProgress();
+        return info;
+    }
+
+    private NotifySeasonTrialResult trialNotify(SeasonTrialResult result) {
+        NotifySeasonTrialResult notify = new NotifySeasonTrialResult(Code.SUCCESS);
+        notify.trialId = result.getTrialId();
+        notify.achievedStars = result.getAchievedStars();
+        notify.bestStars = result.getBestStars();
+        notify.rewards = result.getRewards() == null || result.getRewards().isEmpty()
+                ? List.of() : ItemUtils.buildItemInfo(result.getRewards());
+        notify.spinCount = result.getSpinCount();
+        notify.progress = result.getProgress();
+        notify.seasonCoin = result.getSeasonCoin();
+        return notify;
     }
 
     /**

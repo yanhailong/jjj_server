@@ -1,5 +1,7 @@
 package com.jjg.game.sim.data;
 
+import java.util.List;
+
 /**
  * slots 每次旋转上报给 sim 的统计明细 (经 ToSimBridge.onSlotsSpin 跨节点传输)。
  * <p>
@@ -24,6 +26,10 @@ public class SpinStatInfo {
     private long grand;
     //本次旋转后剩余免费次数 (用于检测免费模式触发)
     private int remainFreeCount;
+    //本次结果库的模式类型集合 (SlotsResultLib.libTypeSet, SpecialMode 表 type; 赛季试炼任务判定用)
+    private List<Integer> specialModes;
+    //本次旋转的图标 (SlotsResultLib.iconArr; 赛季试炼任务判定图标出现次数用)
+    private List<Integer> icons;
 
     public SpinStatInfo() {
     }
@@ -98,5 +104,21 @@ public class SpinStatInfo {
 
     public void setRemainFreeCount(int remainFreeCount) {
         this.remainFreeCount = remainFreeCount;
+    }
+
+    public List<Integer> getSpecialModes() {
+        return specialModes;
+    }
+
+    public void setSpecialModes(List<Integer> specialModes) {
+        this.specialModes = specialModes;
+    }
+
+    public List<Integer> getIcons() {
+        return icons;
+    }
+
+    public void setIcons(List<Integer> icons) {
+        this.icons = icons;
     }
 }

@@ -431,6 +431,16 @@ public abstract class AbstractSlotsGameManager<T extends SlotsPlayerGameData, L 
         statInfo.setMajor(gameRunInfo.getMajor());
         statInfo.setGrand(gameRunInfo.getGrand());
         statInfo.setRemainFreeCount(gameRunInfo.getRemainFreeCount());
+        //结果库的模式类型/图标: 赛季试炼任务判定 "触发特殊模式/图标出现次数" 用
+        SlotsResultLib resultLib = gameRunInfo.getResultLib();
+        if (resultLib != null) {
+            if (resultLib.getLibTypeSet() != null && !resultLib.getLibTypeSet().isEmpty()) {
+                statInfo.setSpecialModes(List.copyOf(resultLib.getLibTypeSet()));
+            }
+            if (resultLib.getIconArr() != null && resultLib.getIconArr().length > 0) {
+                statInfo.setIcons(Arrays.stream(resultLib.getIconArr()).boxed().toList());
+            }
+        }
         return statInfo;
     }
 

@@ -43,6 +43,7 @@ public class SeasonPlayerData extends AbstractData {
     private Map<Integer, Integer> shopPurchases = new HashMap<>();
     private Map<Integer, Integer> dailyShopPurchases = new HashMap<>();
     private Map<Integer, Integer> trialStars = new HashMap<>();
+    private SeasonTrialSession activeTrial;
     private List<Long> representativeSpinWins = new ArrayList<>();
     private long representativeStake;
     private int representativeGameType;
@@ -84,6 +85,7 @@ public class SeasonPlayerData extends AbstractData {
         getShopPurchases().clear();
         getDailyShopPurchases().clear();
         getTrialStars().clear();
+        activeTrial = null;
         getRepresentativeSpinWins().clear();
         representativeStake = 0;
         representativeGameType = 0;
@@ -200,6 +202,8 @@ public class SeasonPlayerData extends AbstractData {
         return trialStars;
     }
     public void setTrialStars(Map<Integer, Integer> trialStars) { this.trialStars = trialStars == null ? new HashMap<>() : trialStars; }
+    public SeasonTrialSession getActiveTrial() { return activeTrial; }
+    public void setActiveTrial(SeasonTrialSession activeTrial) { this.activeTrial = activeTrial; }
     public List<Long> getRepresentativeSpinWins() {
         if (representativeSpinWins == null) representativeSpinWins = new ArrayList<>();
         return representativeSpinWins;

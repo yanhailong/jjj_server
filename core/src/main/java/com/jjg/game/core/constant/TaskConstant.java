@@ -33,6 +33,10 @@ public interface TaskConstant {
          * 联盟任务 (alliance 任务池, 不由 core 管理)
          */
         int ALLIANCE = 5;
+        /**
+         * 赛季试炼任务 (season 新手赛季关卡, 不由 core 管理)
+         */
+        int SEASON_TRIAL = 6;
     }
 
     /**
