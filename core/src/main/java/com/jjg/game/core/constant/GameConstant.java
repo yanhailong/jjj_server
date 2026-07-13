@@ -179,5 +179,9 @@ public class GameConstant {
         int CUSTOMER_TABLE_ID = 1;
         //积分大奖URL ID
         int POINTS_AWARD_URL = 2;
+        //隐私协议链接
+        int PRIVACY_PROTOCOL_URL = 3;
+        //服务协议链接
+        int SERVICE_PROTOCOL_URL = 4;
     }
 }

@@ -30,6 +30,12 @@ public enum EGamePhase {
     DRAW_ON("开奖（俄罗斯转盘专用）"),
     @ProtoDesc("休闲时间（俄罗斯转盘专用）")
     REST("休闲时间（俄罗斯转盘专用）"),
+    @ProtoDesc("飞升（斗仙牌专用）")
+    TIER_ADVANCE("飞升（斗仙牌专用）"),
+    @ProtoDesc("弃牌（斗仙牌专用）")
+    DISCARD("弃牌（斗仙牌专用）"),
+    @ProtoDesc("即时充值复活（斗仙牌专用）")
+    RECHARGE("即时充值复活（斗仙牌专用）"),
     ;
 
     /**

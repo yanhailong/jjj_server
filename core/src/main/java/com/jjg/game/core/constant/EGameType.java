@@ -79,6 +79,7 @@ public enum EGameType {
     TO_SOUTH(CoreConst.GameType.TO_SOUTH, RoomType.POKER_ROOM, "南方前进"),
     TO_SOUTH_BLOOD(CoreConst.GameType.TO_SOUTH_BLOOD, RoomType.POKER_ROOM, "南方前进-血战"),
     TO_SOUTH_FREE(CoreConst.GameType.TO_SOUTH_FREE, RoomType.POKER_ROOM, "南方前进-免费"),
+    DOU_XIAN(CoreConst.GameType.DOU_XIAN, RoomType.POKER_ROOM, "斗仙牌"),
     ;
     // 游戏类型ID
     final int gameTypeId;
