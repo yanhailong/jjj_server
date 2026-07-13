@@ -21,10 +21,20 @@ public class SeasonStartCfg extends BaseCfgBean {
 
   /** 赛季开启的游戏 */
   protected int AvailableGames;
+  /** 下注范围 */
+  protected List<Integer> BetRange;
+  /** 特色玩法多语言 */
+  protected int FeatureName;
+  /** 游戏的RTP */
+  protected int GameRTP;
   /** 开启的宝石孔数 */
   protected int GemCount;
   /** 循环的序列 */
   protected int LoopSequence;
+  /** 游戏的最大倍率 */
+  protected int MaxMultiplier;
+  /** 开启的小游戏 */
+  protected List<Integer> Openminigame;
   /** 赛季持续时间 */
   protected int SeasonDuration;
   /** 赛季名称多语言 */
@@ -35,6 +45,21 @@ public class SeasonStartCfg extends BaseCfgBean {
     return AvailableGames;
   }
 
+  /** 返回下注范围 */
+  public List<Integer> getBetRange() {
+    return BetRange;
+  }
+
+  /** 返回特色玩法多语言 */
+  public int getFeatureName() {
+    return FeatureName;
+  }
+
+  /** 返回游戏的RTP */
+  public int getGameRTP() {
+    return GameRTP;
+  }
+
   /** 返回开启的宝石孔数 */
   public int getGemCount() {
     return GemCount;
@@ -43,6 +68,16 @@ public class SeasonStartCfg extends BaseCfgBean {
   /** 返回循环的序列 */
   public int getLoopSequence() {
     return LoopSequence;
+  }
+
+  /** 返回游戏的最大倍率 */
+  public int getMaxMultiplier() {
+    return MaxMultiplier;
+  }
+
+  /** 返回开启的小游戏 */
+  public List<Integer> getOpenminigame() {
+    return Openminigame;
   }
 
   /** 返回赛季持续时间 */

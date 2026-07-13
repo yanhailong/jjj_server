@@ -9,6 +9,8 @@ import java.util.List;
 public class SeasonMatchRecord {
     private String matchId;
     private long opponentId;
+    private String opponentName;
+    private int opponentTierId;
     private int gameType;
     private long stake;
     private List<Long> playerSpinWins = new ArrayList<>();
@@ -31,6 +33,22 @@ public class SeasonMatchRecord {
 
     public void setOpponentId(long opponentId) {
         this.opponentId = opponentId;
+    }
+
+    public String getOpponentName() {
+        return opponentName;
+    }
+
+    public void setOpponentName(String opponentName) {
+        this.opponentName = opponentName;
+    }
+
+    public int getOpponentTierId() {
+        return opponentTierId;
+    }
+
+    public void setOpponentTierId(int opponentTierId) {
+        this.opponentTierId = opponentTierId;
     }
 
     public int getGameType() {

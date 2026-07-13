@@ -101,6 +101,8 @@ public class SeasonMatchService {
         SeasonMatchSession session = new SeasonMatchSession();
         session.setMatchId(RandomUtils.getOriginalUUid());
         session.setOpponentId(opponent.getPlayerId());
+        session.setOpponentName(opponent.getPlayerName());
+        session.setOpponentTierId(opponent.getTierId());
         session.setGameType(gameType);
         session.setStake(stake);
         session.setExpectedSpins(expectedSpins);
@@ -191,14 +193,17 @@ public class SeasonMatchService {
             data.setDailyLossAmount(data.getDailyLossAmount() - actualChange);
         }
 
-        SeasonMatchRecord ownRecord = record(session, actualChange, now, false, session.getOpponentId());
+        SeasonMatchRecord ownRecord = record(session, actualChange, now, false,
+                session.getOpponentId(), session.getOpponentName(), session.getOpponentTierId());
         data.addMatchRecord(ownRecord, HISTORY_LIMIT);
         data.setRepresentativeGameType(session.getGameType());
         data.setRepresentativeStake(session.getStake());
         data.setRepresentativeSpinWins(new ArrayList<>(session.getPlayerSpinWins()));
         data.setActiveMatch(null);
 
-        SeasonMatchRecord opponentRecord = record(session, -actualChange, now, true, ctx.playerId());
+        //对手视角记录里的"对手"是本人; tick 超时结算时 controller 可能为空, 取赛季文档上冗余的昵称
+        SeasonMatchRecord opponentRecord = record(session, -actualChange, now, true,
+                ctx.playerId(), data.getPlayerName(), data.getTierId());
         seasonPlayerDao.applyOpponentSettlement(session.getOpponentId(), data.getSeasonKey(),
                 session.getMatchId(), -actualChange, opponentRecord, HISTORY_LIMIT);
         autoSaveService.enqueueSave(data);
@@ -208,16 +213,20 @@ public class SeasonMatchService {
         result.setResult(Long.compare(actualChange, 0));
         result.setPlayerTotalWin(playerTotal);
         result.setOpponentTotalWin(opponentTotal);
+        result.setPlayerSpinWins(session.getPlayerSpinWins());
+        result.setOpponentSpinWins(session.getOpponentSpinWins());
         result.setCoinChange(actualChange);
         result.setSeasonCoin(data.getSeasonCoin());
         return new CommonResult<>(Code.SUCCESS, result);
     }
 
     private SeasonMatchRecord record(SeasonMatchSession session, long coinChange, long now,
-                                     boolean opponent, long opponentId) {
+                                     boolean opponent, long opponentId, String opponentName, int opponentTierId) {
         SeasonMatchRecord record = new SeasonMatchRecord();
         record.setMatchId(session.getMatchId());
         record.setOpponentId(opponentId);
+        record.setOpponentName(opponentName);
+        record.setOpponentTierId(opponentTierId);
         record.setGameType(session.getGameType());
         record.setStake(session.getStake());
         record.setPlayerSpinWins(opponent ? session.getOpponentSpinWins() : session.getPlayerSpinWins());

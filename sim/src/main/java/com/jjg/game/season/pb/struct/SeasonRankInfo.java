@@ -10,6 +10,8 @@ public class SeasonRankInfo {
     public int rank;
     @ProtoDesc("玩家ID")
     public long playerId;
+    @ProtoDesc("玩家昵称")
+    public String playerName;
     @ProtoDesc("当前赛季币")
     public long seasonCoin;
     @ProtoDesc("累计获得赛季币")

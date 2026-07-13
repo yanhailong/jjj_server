@@ -12,6 +12,10 @@ public class SeasonMatchRecordInfo {
     public String matchId;
     @ProtoDesc("对手玩家ID")
     public long opponentId;
+    @ProtoDesc("对手玩家昵称")
+    public String opponentName;
+    @ProtoDesc("对手段位配置ID")
+    public int opponentTierId;
     @ProtoDesc("游戏ID")
     public int gameType;
     @ProtoDesc("下注赛季币")

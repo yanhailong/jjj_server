@@ -41,4 +41,16 @@ public class SeasonInfo {
     public int rank;
     @ProtoDesc("试炼关卡ID到最高星级；无关卡配置时为空")
     public List<KVInfo> trialStars;
+    @ProtoDesc("游戏的rtp,展示的时候需要除以100")
+    public int rtp;
+    @ProtoDesc("游戏的最大倍率")
+    public int maxMultiplier;
+    @ProtoDesc("下注范围(开始)")
+    public int betRangeBegin;
+    @ProtoDesc("下注范围(结束)")
+    public int betRangeEnd;
+    @ProtoDesc("特色玩法多语言id")
+    public int featureName;
+    @ProtoDesc("开启的小游戏")
+    public List<Integer> openminigames;
 }

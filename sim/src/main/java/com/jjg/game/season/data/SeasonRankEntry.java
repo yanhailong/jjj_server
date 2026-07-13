@@ -6,6 +6,7 @@ package com.jjg.game.season.data;
 public class SeasonRankEntry {
     private int rank;
     private long playerId;
+    private String playerName;
     private long seasonCoin;
     private long totalEarnedCoin;
     private int tierId;
@@ -14,6 +15,8 @@ public class SeasonRankEntry {
     public void setRank(int rank) { this.rank = rank; }
     public long getPlayerId() { return playerId; }
     public void setPlayerId(long playerId) { this.playerId = playerId; }
+    public String getPlayerName() { return playerName; }
+    public void setPlayerName(String playerName) { this.playerName = playerName; }
     public long getSeasonCoin() { return seasonCoin; }
     public void setSeasonCoin(long seasonCoin) { this.seasonCoin = seasonCoin; }
     public long getTotalEarnedCoin() { return totalEarnedCoin; }

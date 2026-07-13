@@ -15,6 +15,8 @@ public class ResSeasonMatch extends AbstractResponse {
     public String matchId;
     @ProtoDesc("对手玩家ID")
     public long opponentId;
+    @ProtoDesc("对手玩家昵称")
+    public String opponentName;
     @ProtoDesc("游戏ID")
     public int gameType;
     @ProtoDesc("下注赛季币")

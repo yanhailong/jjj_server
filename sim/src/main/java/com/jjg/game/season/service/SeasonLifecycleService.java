@@ -72,6 +72,7 @@ public class SeasonLifecycleService implements SimPlayerTickListener {
             data.setPlayerId(ctx.playerId());
             ctx.setSeasonPlayerData(data);
         }
+        refreshPlayerName(ctx, data);
         if (data.getSeasonKey() != null) {
             data.resetDaily(dailyKey(now));
         }
@@ -108,6 +109,18 @@ public class SeasonLifecycleService implements SimPlayerTickListener {
             return;
         }
         ensureCurrent(ctx, now);
+    }
+
+    /**
+     * 昵称冗余在赛季文档上供匹配/榜单直接读取; 改名后在下一次协议入口同步并落库。
+     */
+    private void refreshPlayerName(SimPlayerContext ctx, SeasonPlayerData data) {
+        Player player = ctx.getPlayerController() == null ? null : ctx.getPlayerController().getPlayer();
+        if (player == null || player.getNickName() == null || player.getNickName().equals(data.getPlayerName())) {
+            return;
+        }
+        data.setPlayerName(player.getNickName());
+        autoSaveService.enqueueSave(data);
     }
 
     /**

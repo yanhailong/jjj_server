@@ -82,6 +82,7 @@ public class SeasonRankingService {
             SeasonRankEntry entry = new SeasonRankEntry();
             entry.setRank(index + 1);
             entry.setPlayerId(player.getPlayerId());
+            entry.setPlayerName(player.getPlayerName());
             entry.setSeasonCoin(player.getSeasonCoin());
             entry.setTotalEarnedCoin(player.getTotalEarnedCoin());
             entry.setTierId(player.getTierId());

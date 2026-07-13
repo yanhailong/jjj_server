@@ -91,7 +91,7 @@ public class SeasonPlayerDao extends MongoBaseDao<SeasonPlayerData, Long> {
                 .and("representativeStake").is(stake)
                 .and("representativeSpinWins." + (Math.max(1, minSpins) - 1)).exists(true)
                 .and("seasonCoin").gt(0));
-        query.fields().include("playerId", "seasonKey", "seasonCoin",
+        query.fields().include("playerId", "playerName", "tierId", "seasonKey", "seasonCoin",
                 "representativeGameType", "representativeStake", "representativeSpinWins");
         query.limit(limit);
         return mongoTemplate.find(query, SeasonPlayerData.class);
@@ -140,7 +140,7 @@ public class SeasonPlayerDao extends MongoBaseDao<SeasonPlayerData, Long> {
         Query query = Query.query(Criteria.where("seasonKey").is(seasonKey));
         query.with(Sort.by(Sort.Order.desc("seasonCoin"), Sort.Order.desc("totalEarnedCoin"),
                 Sort.Order.asc("playerId")));
-        query.fields().include("playerId", "seasonKey", "seasonCoin", "totalEarnedCoin", "tierId");
+        query.fields().include("playerId", "playerName", "seasonKey", "seasonCoin", "totalEarnedCoin", "tierId");
         query.limit(Math.max(1, limit));
         return mongoTemplate.find(query, SeasonPlayerData.class);
     }

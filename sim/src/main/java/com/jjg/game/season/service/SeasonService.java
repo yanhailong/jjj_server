@@ -81,6 +81,14 @@ public class SeasonService implements SimPlayerTickListener {
             kv.value = entry.getValue();
             return kv;
         }).toList();
+
+        info.rtp = cfg.getGameRTP();
+        info.maxMultiplier = cfg.getMaxMultiplier();
+        info.betRangeBegin = cfg.getBetRange().get(0);
+        info.betRangeEnd = cfg.getBetRange().get(1);
+        info.featureName = cfg.getFeatureName();
+        info.openminigames = cfg.getOpenminigame();
+
         response.info = info;
         return response;
     }
@@ -148,6 +156,7 @@ public class SeasonService implements SimPlayerTickListener {
         if (result.data != null) {
             response.matchId = result.data.getMatchId();
             response.opponentId = result.data.getOpponentId();
+            response.opponentName = result.data.getOpponentName();
             response.gameType = result.data.getGameType();
             response.stake = result.data.getStake();
             response.expectedSpins = result.data.getExpectedSpins();
@@ -217,6 +226,8 @@ public class SeasonService implements SimPlayerTickListener {
         notify.result = result.getResult();
         notify.playerTotalWin = result.getPlayerTotalWin();
         notify.opponentTotalWin = result.getOpponentTotalWin();
+        notify.playerSpinWins = result.getPlayerSpinWins();
+        notify.opponentSpinWins = result.getOpponentSpinWins();
         notify.coinChange = result.getCoinChange();
         notify.seasonCoin = result.getSeasonCoin();
         return notify;
@@ -269,6 +280,8 @@ public class SeasonService implements SimPlayerTickListener {
         SeasonMatchRecordInfo info = new SeasonMatchRecordInfo();
         info.matchId = record.getMatchId();
         info.opponentId = record.getOpponentId();
+        info.opponentName = record.getOpponentName();
+        info.opponentTierId = record.getOpponentTierId();
         info.gameType = record.getGameType();
         info.stake = record.getStake();
         info.playerSpinWins = record.getPlayerSpinWins();
@@ -283,6 +296,7 @@ public class SeasonService implements SimPlayerTickListener {
         SeasonRankInfo info = new SeasonRankInfo();
         info.rank = entry.getRank();
         info.playerId = entry.getPlayerId();
+        info.playerName = entry.getPlayerName();
         info.seasonCoin = entry.getSeasonCoin();
         info.totalEarnedCoin = entry.getTotalEarnedCoin();
         info.tierId = entry.getTierId();

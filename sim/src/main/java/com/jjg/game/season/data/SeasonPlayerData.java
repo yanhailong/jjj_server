@@ -20,6 +20,8 @@ import java.util.Map;
 public class SeasonPlayerData extends AbstractData {
     @Id
     private long playerId;
+    //昵称冗余在赛季文档上, 匹配/榜单等跨玩家展示直接随文档读出, 避免按 ID 查玩家表
+    private String playerName;
     private int seasonId;
     private long timelineOrigin;
     private String seasonKey;
@@ -141,6 +143,8 @@ public class SeasonPlayerData extends AbstractData {
 
     public long getPlayerId() { return playerId; }
     public void setPlayerId(long playerId) { this.playerId = playerId; }
+    public String getPlayerName() { return playerName; }
+    public void setPlayerName(String playerName) { this.playerName = playerName; }
     public int getSeasonId() { return seasonId; }
     public void setSeasonId(int seasonId) { this.seasonId = seasonId; }
     public long getTimelineOrigin() { return timelineOrigin; }
