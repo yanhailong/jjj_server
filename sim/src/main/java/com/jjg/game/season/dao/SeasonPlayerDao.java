@@ -81,14 +81,15 @@ public class SeasonPlayerDao extends MongoBaseDao<SeasonPlayerData, Long> {
 
     /**
      * 只读取匹配所需字段，避免把对手完整历史拉入内存。
+     * {@code minSpins} 下推到查询 (第 minSpins-1 个数组元素存在即长度足够), 不合格文档不出库。
      */
     public List<SeasonPlayerData> findMatchCandidates(String seasonKey, long excludePlayerId,
-                                                       int gameType, long stake, int limit) {
+                                                       int gameType, long stake, int minSpins, int limit) {
         Query query = Query.query(Criteria.where("seasonKey").is(seasonKey)
                 .and("playerId").ne(excludePlayerId)
                 .and("representativeGameType").is(gameType)
                 .and("representativeStake").is(stake)
-                .and("representativeSpinWins.0").exists(true)
+                .and("representativeSpinWins." + (Math.max(1, minSpins) - 1)).exists(true)
                 .and("seasonCoin").gt(0));
         query.fields().include("playerId", "seasonKey", "seasonCoin",
                 "representativeGameType", "representativeStake", "representativeSpinWins");

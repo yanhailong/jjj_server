@@ -51,6 +51,19 @@ public class SeasonPlayerData extends AbstractData {
     @Transient
     @JSONField(serialize = false, deserialize = false)
     private transient long lastPendingCheckTime;
+    //展示用名次缓存 (玩家线程本地, 不落库); 币值变化或 TTL 过期时由 SeasonRankingService 重查
+    @Transient
+    @JSONField(serialize = false, deserialize = false)
+    private transient long rankCacheTime;
+    @Transient
+    @JSONField(serialize = false, deserialize = false)
+    private transient long rankCacheCoin;
+    @Transient
+    @JSONField(serialize = false, deserialize = false)
+    private transient long rankCacheEarned;
+    @Transient
+    @JSONField(serialize = false, deserialize = false)
+    private transient int rankCacheValue;
 
     public void startSeason(SeasonSnapshot snapshot, long initialCoin) {
         seasonId = snapshot.seasonId();
@@ -75,6 +88,7 @@ public class SeasonPlayerData extends AbstractData {
         activeMatch = null;
         getMatchHistory().clear();
         getProcessedMatchIds().clear();
+        rankCacheTime = 0;
     }
 
     public boolean resetDaily(int newDailyKey) {
@@ -206,4 +220,16 @@ public class SeasonPlayerData extends AbstractData {
     @JSONField(serialize = false, deserialize = false)
     public long getLastPendingCheckTime() { return lastPendingCheckTime; }
     public void setLastPendingCheckTime(long lastPendingCheckTime) { this.lastPendingCheckTime = lastPendingCheckTime; }
+    @JSONField(serialize = false, deserialize = false)
+    public long getRankCacheTime() { return rankCacheTime; }
+    public void setRankCacheTime(long rankCacheTime) { this.rankCacheTime = rankCacheTime; }
+    @JSONField(serialize = false, deserialize = false)
+    public long getRankCacheCoin() { return rankCacheCoin; }
+    public void setRankCacheCoin(long rankCacheCoin) { this.rankCacheCoin = rankCacheCoin; }
+    @JSONField(serialize = false, deserialize = false)
+    public long getRankCacheEarned() { return rankCacheEarned; }
+    public void setRankCacheEarned(long rankCacheEarned) { this.rankCacheEarned = rankCacheEarned; }
+    @JSONField(serialize = false, deserialize = false)
+    public int getRankCacheValue() { return rankCacheValue; }
+    public void setRankCacheValue(int rankCacheValue) { this.rankCacheValue = rankCacheValue; }
 }

@@ -1,8 +1,12 @@
 package com.jjg.game.season.pb.struct;
 
 import com.jjg.game.common.proto.ProtoDesc;
-import java.util.Map;
+import com.jjg.game.common.proto.ProtobufMessage;
+import com.jjg.game.core.pb.KVInfo;
 
+import java.util.List;
+
+@ProtobufMessage
 @ProtoDesc("玩家当前赛季信息")
 public class SeasonInfo {
     @ProtoDesc("赛季配置ID")
@@ -36,5 +40,5 @@ public class SeasonInfo {
     @ProtoDesc("当前排行榜名次")
     public int rank;
     @ProtoDesc("试炼关卡ID到最高星级；无关卡配置时为空")
-    public Map<Integer, Integer> trialStars;
+    public List<KVInfo> trialStars;
 }

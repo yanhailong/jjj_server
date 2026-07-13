@@ -1,8 +1,12 @@
 package com.jjg.game.season.pb.struct;
 
+import com.jjg.game.common.pb.ItemInfo;
 import com.jjg.game.common.proto.ProtoDesc;
-import java.util.Map;
+import com.jjg.game.common.proto.ProtobufMessage;
 
+import java.util.List;
+
+@ProtobufMessage
 @ProtoDesc("赛季商店商品")
 public class SeasonShopItemInfo {
     @ProtoDesc("商品配置ID")
@@ -10,9 +14,9 @@ public class SeasonShopItemInfo {
     @ProtoDesc("显示顺序")
     public int order;
     @ProtoDesc("获得道具")
-    public Map<Integer, Long> goods;
+    public List<ItemInfo> goods;
     @ProtoDesc("购买消耗")
-    public Map<Integer, Long> cost;
+    public List<ItemInfo> cost;
     @ProtoDesc("是否每日重置限购")
     public boolean resetDaily;
     @ProtoDesc("限购次数，负数表示不限")

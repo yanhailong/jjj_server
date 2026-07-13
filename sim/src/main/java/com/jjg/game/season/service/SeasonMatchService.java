@@ -84,10 +84,11 @@ public class SeasonMatchService {
             return failStart(Code.NOT_ENOUGH, ctx, gameType, stake, "赛季币不足");
         }
 
-        List<SeasonPlayerData> candidates = seasonPlayerDao.findMatchCandidates(
-                data.getSeasonKey(), ctx.playerId(), gameType, stake, CANDIDATE_LIMIT);
         int expectedSpins = data.seasonPhase() == SeasonPhase.ADVANCED
                 ? ADVANCED_SPIN_COUNT : LOOP_SPIN_COUNT;
+        List<SeasonPlayerData> candidates = seasonPlayerDao.findMatchCandidates(
+                data.getSeasonKey(), ctx.playerId(), gameType, stake, expectedSpins, CANDIDATE_LIMIT);
+        //查询已按 minSpins 过滤, 这里兜底复核一次
         List<SeasonPlayerData> eligible = candidates.stream()
                 .filter(candidate -> candidate.getRepresentativeSpinWins().size() >= expectedSpins)
                 .toList();
@@ -142,14 +143,18 @@ public class SeasonMatchService {
     }
 
     /**
-     * 进行中的对局超时则按弃赛补 0 结算; 匹配入口调用, 保证玩家不会被残留对局永久卡死。
+     * 进行中的对局超时则按弃赛补 0 结算; 匹配入口与玩家 tick 调用,
+     * 保证玩家不会被残留对局锁住押金/卡死匹配。
+     *
+     * @return 发生结算时返回结算结果, 否则 null
      */
-    public void settleIfExpired(SimPlayerContext ctx, long now) {
+    public SeasonMatchResult settleIfExpired(SimPlayerContext ctx, long now) {
         SeasonPlayerData data = ctx.getSeasonPlayerData();
         SeasonMatchSession session = data == null ? null : data.getActiveMatch();
         if (session != null && now - session.getStartedAt() >= MATCH_TIMEOUT_MILLIS) {
-            settleExpired(ctx, session, now);
+            return settleExpired(ctx, session, now).data;
         }
+        return null;
     }
 
     private CommonResult<SeasonMatchResult> settleExpired(SimPlayerContext ctx, SeasonMatchSession session, long now) {

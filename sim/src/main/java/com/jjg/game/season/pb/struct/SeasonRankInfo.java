@@ -1,7 +1,9 @@
 package com.jjg.game.season.pb.struct;
 
 import com.jjg.game.common.proto.ProtoDesc;
+import com.jjg.game.common.proto.ProtobufMessage;
 
+@ProtobufMessage
 @ProtoDesc("赛季排行条目")
 public class SeasonRankInfo {
     @ProtoDesc("名次")

@@ -203,7 +203,8 @@ public class SeasonLifecycleService implements SimPlayerTickListener {
             return 0;
         }
         Map<Integer, Long> rewards = new HashMap<>();
-        int rank = rankingService.rankOf(data);
+        //发奖名次必须实时, 不能用展示缓存
+        int rank = rankingService.freshRankOf(data);
         SeasonRankingCfg ranking = configService.rankingReward(data.seasonPhase(), rank);
         if (ranking != null && ranking.getGetItem() != null) {
             ranking.getGetItem().forEach((id, count) -> rewards.merge(id, count, Long::sum));

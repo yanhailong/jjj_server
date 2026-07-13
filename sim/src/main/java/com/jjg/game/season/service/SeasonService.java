@@ -3,7 +3,9 @@ package com.jjg.game.season.service;
 import com.jjg.game.core.constant.Code;
 import com.jjg.game.core.data.CommonResult;
 import com.jjg.game.core.data.PlayerPack;
+import com.jjg.game.core.pb.KVInfo;
 import com.jjg.game.core.service.PlayerPackService;
+import com.jjg.game.core.utils.ItemUtils;
 import com.jjg.game.sampledata.bean.SeasonGemCfg;
 import com.jjg.game.sampledata.bean.SeasonShopCfg;
 import com.jjg.game.sampledata.bean.SeasonStartCfg;
@@ -12,6 +14,7 @@ import com.jjg.game.season.pb.res.*;
 import com.jjg.game.season.pb.struct.*;
 import com.jjg.game.sim.data.SimPlayerContext;
 import com.jjg.game.sim.data.SpinStatInfo;
+import com.jjg.game.sim.listener.SimPlayerTickListener;
 import com.jjg.game.season.model.SeasonSnapshot;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -25,7 +28,7 @@ import java.util.Map;
  * 赛季协议层门面，集中完成领域对象到客户端结构的转换。
  */
 @Service
-public class SeasonService {
+public class SeasonService implements SimPlayerTickListener {
     private static final Logger log = LoggerFactory.getLogger(SeasonService.class);
 
     private final SeasonLifecycleService lifecycleService;
@@ -72,7 +75,12 @@ public class SeasonService {
         info.dailyWinAmount = data.getDailyWinAmount();
         info.dailyLossAmount = data.getDailyLossAmount();
         info.rank = rankingService.rankOf(data);
-        info.trialStars = Map.copyOf(data.getTrialStars());
+        info.trialStars = data.getTrialStars().entrySet().stream().map(entry -> {
+            KVInfo kv = new KVInfo();
+            kv.key = entry.getKey();
+            kv.value = entry.getValue();
+            return kv;
+        }).toList();
         response.info = info;
         return response;
     }
@@ -90,7 +98,9 @@ public class SeasonService {
         lifecycleService.ensureCurrent(ctx, System.currentTimeMillis());
         CommonResult<Map<Integer, Long>> result = shopService.buy(ctx, shopId, count);
         ResSeasonBuy response = new ResSeasonBuy(result.code);
-        response.goods = result.data;
+        if (result.data != null && !result.data.isEmpty()) {
+            response.goods = ItemUtils.buildItemInfo(result.data);
+        }
         response.seasonCoin = ctx.getSeasonPlayerData().getSeasonCoin();
         SeasonShopCfg cfg = configService.shop(shopId, ctx.getSeasonPlayerData().seasonPhase());
         response.purchased = cfg != null && cfg.getResetDaily()
@@ -179,13 +189,36 @@ public class SeasonService {
             }
             return null;
         }
+        return matchNotify(result.data);
+    }
+
+    /**
+     * 玩家 tick: 超时对局按弃赛结算并通知, 玩家不旋转/不再匹配时押金也能按时释放。
+     */
+    @Override
+    public void onTick(SimPlayerContext ctx, long now) {
+        SeasonMatchResult result = matchService.settleIfExpired(ctx, now);
+        if (result != null && ctx.getPlayerController() != null) {
+            ctx.send(matchNotify(result));
+        }
+    }
+
+    /**
+     * 先于生命周期切季 (order=100) 结算超时对局, 避免残留对局被切季直接清掉。
+     */
+    @Override
+    public int order() {
+        return 90;
+    }
+
+    private NotifySeasonMatchResult matchNotify(SeasonMatchResult result) {
         NotifySeasonMatchResult notify = new NotifySeasonMatchResult(Code.SUCCESS);
-        notify.matchId = result.data.getMatchId();
-        notify.result = result.data.getResult();
-        notify.playerTotalWin = result.data.getPlayerTotalWin();
-        notify.opponentTotalWin = result.data.getOpponentTotalWin();
-        notify.coinChange = result.data.getCoinChange();
-        notify.seasonCoin = result.data.getSeasonCoin();
+        notify.matchId = result.getMatchId();
+        notify.result = result.getResult();
+        notify.playerTotalWin = result.getPlayerTotalWin();
+        notify.opponentTotalWin = result.getOpponentTotalWin();
+        notify.coinChange = result.getCoinChange();
+        notify.seasonCoin = result.getSeasonCoin();
         return notify;
     }
 
@@ -193,8 +226,8 @@ public class SeasonService {
         SeasonShopItemInfo info = new SeasonShopItemInfo();
         info.id = cfg.getId();
         info.order = cfg.getOrder();
-        info.goods = cfg.getGoods();
-        info.cost = cfg.getCost();
+        info.goods = cfg.getGoods() == null ? List.of() : ItemUtils.buildItemInfo(cfg.getGoods());
+        info.cost = cfg.getCost() == null ? List.of() : ItemUtils.buildItemInfo(cfg.getCost());
         info.resetDaily = cfg.getResetDaily();
         info.purchaseLimit = cfg.getDailyPurchaseLimit();
         info.purchased = (cfg.getResetDaily() ? data.getDailyShopPurchases() : data.getShopPurchases())

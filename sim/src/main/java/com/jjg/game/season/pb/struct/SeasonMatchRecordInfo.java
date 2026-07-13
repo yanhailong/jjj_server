@@ -1,8 +1,11 @@
 package com.jjg.game.season.pb.struct;
 
 import com.jjg.game.common.proto.ProtoDesc;
+import com.jjg.game.common.proto.ProtobufMessage;
+
 import java.util.List;
 
+@ProtobufMessage
 @ProtoDesc("赛季异步对局记录")
 public class SeasonMatchRecordInfo {
     @ProtoDesc("对局ID")

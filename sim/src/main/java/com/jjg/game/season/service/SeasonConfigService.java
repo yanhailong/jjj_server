@@ -69,7 +69,7 @@ public class SeasonConfigService {
     }
 
     public SeasonStartCfg season(int seasonId) {
-        return startConfigs().stream().filter(cfg -> cfg.getId() == seasonId).findFirst().orElse(null);
+        return index().seasonById.get(seasonId);
     }
 
     public SeasonMatchCfg matchForDay(int day) {
@@ -134,7 +134,7 @@ public class SeasonConfigService {
     }
 
     public SeasonGemDropCfg gemDrop(int seasonId) {
-        return dropConfigs().stream().filter(cfg -> cfg.getSeasonID() == seasonId).findFirst().orElse(null);
+        return index().gemDropBySeasonId.get(seasonId);
     }
 
     public SeasondropDetailedCfg detailedDrop(int id) {
@@ -175,10 +175,13 @@ public class SeasonConfigService {
         List<SeasonMatchCfg> matchSource = matchConfigs();
         List<SeasonGemCfg> gemSource = gemConfigs();
         List<SeasonShopCfg> shopSource = shopConfigs();
+        List<SeasonStartCfg> startSource = startConfigs();
+        List<SeasonGemDropCfg> dropSource = dropConfigs();
         ConfigIndex cached = index;
         if (cached == null || cached.matchSource != matchSource
-                || cached.gemSource != gemSource || cached.shopSource != shopSource) {
-            cached = new ConfigIndex(matchSource, gemSource, shopSource);
+                || cached.gemSource != gemSource || cached.shopSource != shopSource
+                || cached.startSource != startSource || cached.dropSource != dropSource) {
+            cached = new ConfigIndex(matchSource, gemSource, shopSource, startSource, dropSource);
             index = cached;
         }
         return cached;
@@ -188,21 +191,30 @@ public class SeasonConfigService {
         final List<SeasonMatchCfg> matchSource;
         final List<SeasonGemCfg> gemSource;
         final List<SeasonShopCfg> shopSource;
+        final List<SeasonStartCfg> startSource;
+        final List<SeasonGemDropCfg> dropSource;
         final Map<Integer, SeasonMatchCfg> matchByDay = new HashMap<>();
         final Map<Integer, SeasonGemCfg> gemById = new HashMap<>();
         final Map<Integer, SeasonGemCfg> gemByItemId = new HashMap<>();
+        final Map<Integer, SeasonStartCfg> seasonById = new HashMap<>();
+        final Map<Integer, SeasonGemDropCfg> gemDropBySeasonId = new HashMap<>();
         final int currencyItemId;
 
         ConfigIndex(List<SeasonMatchCfg> matchSource, List<SeasonGemCfg> gemSource,
-                    List<SeasonShopCfg> shopSource) {
+                    List<SeasonShopCfg> shopSource, List<SeasonStartCfg> startSource,
+                    List<SeasonGemDropCfg> dropSource) {
             this.matchSource = matchSource;
             this.gemSource = gemSource;
             this.shopSource = shopSource;
+            this.startSource = startSource;
+            this.dropSource = dropSource;
             matchSource.forEach(cfg -> matchByDay.putIfAbsent(cfg.getDays(), cfg));
             gemSource.forEach(cfg -> {
                 gemById.putIfAbsent(cfg.getId(), cfg);
                 gemByItemId.putIfAbsent(cfg.getGemName(), cfg);
             });
+            startSource.forEach(cfg -> seasonById.putIfAbsent(cfg.getId(), cfg));
+            dropSource.forEach(cfg -> gemDropBySeasonId.putIfAbsent(cfg.getSeasonID(), cfg));
             this.currencyItemId = shopSource.stream().filter(cfg -> cfg.getCost() != null)
                     .flatMap(cfg -> cfg.getCost().keySet().stream()).findFirst().orElse(0);
         }

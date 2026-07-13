@@ -1,7 +1,9 @@
 package com.jjg.game.season.pb.struct;
 
 import com.jjg.game.common.proto.ProtoDesc;
+import com.jjg.game.common.proto.ProtobufMessage;
 
+@ProtobufMessage
 @ProtoDesc("赛季宝石信息")
 public class SeasonGemInfo {
     @ProtoDesc("宝石配置ID")
