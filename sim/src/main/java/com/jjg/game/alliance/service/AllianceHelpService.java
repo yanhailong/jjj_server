@@ -376,13 +376,33 @@ public class AllianceHelpService {
         int today = TimeHelper.getDayNumerical();
         res.dailySeekLimit = AllianceConst.Cfg.DAILY_SEEK_HELP_LIMIT;
         res.remainSeek = Math.max(0, AllianceConst.Cfg.DAILY_SEEK_HELP_LIMIT - playerData.seekHelpCountOf(today));
-        int dailyShareLimit = globalInt(AllianceConst.Global.SPEEDUP_DAILY_SEEK_LIMIT_ID);
-        res.dailyShareLimit = dailyShareLimit;
-        res.remainShare = Math.max(0, dailyShareLimit - playerData.speedupSeekCountOf(today));
-        int dailyHelpLimit = globalInt(AllianceConst.Global.SPEEDUP_DAILY_HELP_LIMIT_ID);
-        res.dailyHelpLimit = dailyHelpLimit;
-        res.remainHelp = Math.max(0, dailyHelpLimit - playerData.helpCountOf(today));
+        SpeedupQuota quota = speedupQuota(playerData);
+        res.dailyShareLimit = quota.dailyShareLimit();
+        res.remainShare = quota.remainShare();
+        res.dailyHelpLimit = quota.dailyHelpLimit();
+        res.remainHelp = quota.remainHelp();
         return res;
+    }
+
+    /**
+     * 建筑加速的 帮助/分享(发起加速求助) 每日上限及今日剩余次数。
+     */
+    public record SpeedupQuota(int remainHelp, int dailyHelpLimit, int remainShare, int dailyShareLimit) {
+    }
+
+    public SpeedupQuota speedupQuota(long playerId) {
+        return speedupQuota(alliancePlayerDao.getOrEmpty(playerId));
+    }
+
+    private SpeedupQuota speedupQuota(AlliancePlayerData playerData) {
+        int today = TimeHelper.getDayNumerical();
+        int dailyHelpLimit = globalInt(AllianceConst.Global.SPEEDUP_DAILY_HELP_LIMIT_ID);
+        int dailyShareLimit = globalInt(AllianceConst.Global.SPEEDUP_DAILY_SEEK_LIMIT_ID);
+        return new SpeedupQuota(
+                Math.max(0, dailyHelpLimit - playerData.helpCountOf(today)),
+                dailyHelpLimit,
+                Math.max(0, dailyShareLimit - playerData.speedupSeekCountOf(today)),
+                dailyShareLimit);
     }
 
     // =====================================================================

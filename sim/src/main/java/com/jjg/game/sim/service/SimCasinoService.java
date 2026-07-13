@@ -2,6 +2,7 @@ package com.jjg.game.sim.service;
 
 import com.alibaba.fastjson.JSONObject;
 import com.jjg.game.alliance.service.AllianceCacheService;
+import com.jjg.game.alliance.service.AllianceHelpService;
 import com.jjg.game.core.constant.Code;
 import com.jjg.game.sampledata.GameDataManager;
 import com.jjg.game.sampledata.bean.BuildingUpgradeTableCfg;
@@ -54,6 +55,8 @@ public class SimCasinoService {
     private SimSkillService simSkillService;
     @Autowired
     private AllianceCacheService allianceCacheService;
+    @Autowired
+    private AllianceHelpService allianceHelpService;
 
     /**
      * 开辟新场景 (校验 condition 后创建并落库, 不自动切换)
@@ -161,6 +164,11 @@ public class SimCasinoService {
             res.upgradeCost = cfg.getUpgradeCost();
             res.allianceId = allianceCacheService.getAllianceId(ctx.playerId());
             res.casinoId = casinoData.getCasinoId();
+            AllianceHelpService.SpeedupQuota quota = allianceHelpService.speedupQuota(ctx.playerId());
+            res.remainHelp = quota.remainHelp();
+            res.dailyHelpLimit = quota.dailyHelpLimit();
+            res.remainShare = quota.remainShare();
+            res.dailyShareLimit = quota.dailyShareLimit();
         } catch (Exception e) {
             log.error("", e);
             res.code = Code.EXCEPTION;

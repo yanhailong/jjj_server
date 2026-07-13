@@ -23,6 +23,14 @@ public class ResSimCasinoInfo extends AbstractResponse {
     public long allianceId;
     @ProtoDesc("场景id")
     public int casinoId;
+    @ProtoDesc("今日剩余帮助次数(建筑加速)")
+    public int remainHelp;
+    @ProtoDesc("每日帮助上限(建筑加速)")
+    public int dailyHelpLimit;
+    @ProtoDesc("今日剩余建筑分享(加速求助)次数")
+    public int remainShare;
+    @ProtoDesc("每日建筑分享上限")
+    public int dailyShareLimit;
 
 
     public ResSimCasinoInfo(int code) {
