@@ -21,6 +21,8 @@ public class MedalBuffCfg extends BaseCfgBean {
 
   /** 加成效果 */
   protected Map<Integer,Integer> BuffId;
+  /** BUFF描述 */
+  protected List<Integer> BuffStr;
   /** 收集数量目标 */
   protected int CollectNum;
   /** 勋章品质 */
@@ -29,6 +31,11 @@ public class MedalBuffCfg extends BaseCfgBean {
   /** 返回加成效果 */
   public Map<Integer,Integer> getBuffId() {
     return BuffId;
+  }
+
+  /** 返回BUFF描述 */
+  public List<Integer> getBuffStr() {
+    return BuffStr;
   }
 
   /** 返回收集数量目标 */
