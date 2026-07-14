@@ -10,6 +10,7 @@ import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Service;
 
 import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
 
 /**
@@ -47,11 +48,23 @@ public class SeasonEconomyService {
 
     private void updateTier(SimPlayerContext ctx) {
         SeasonPlayerData data = ctx.getSeasonPlayerData();
-        SeasonTierCfg tier = configService.tierFor(data.seasonPhase(), data.getTotalEarnedCoin());
-        if (tier == null || tier.getId() == data.getTierId()) {
+        SeasonTierCfg targetTier = configService.tierFor(data.seasonPhase(), data.getTotalEarnedCoin());
+        if (targetTier == null || targetTier.getId() == data.getTierId()) {
             return;
         }
-        data.setTierId(tier.getId());
+        List<SeasonTierCfg> tiers = configService.tiers(data.seasonPhase());
+        int currentIndex = indexOf(tiers, data.getTierId());
+        int targetIndex = indexOf(tiers, targetTier.getId());
+        if (targetIndex < 0 || (currentIndex >= 0 && targetIndex < currentIndex)) {
+            return;
+        }
+        for (int index = currentIndex + 1; index <= targetIndex; index++) {
+            grantTierReward(ctx, data, tiers.get(index));
+        }
+        data.setTierId(targetTier.getId());
+    }
+
+    private void grantTierReward(SimPlayerContext ctx, SeasonPlayerData data, SeasonTierCfg tier) {
         Map<Integer, Long> reward = tier.getRankUpReward();
         if (reward == null || reward.isEmpty()) {
             return;
@@ -70,5 +83,14 @@ public class SeasonEconomyService {
                         ctx.playerId(), tier.getId(), result.code);
             }
         }
+    }
+
+    private int indexOf(List<SeasonTierCfg> tiers, int tierId) {
+        for (int index = 0; index < tiers.size(); index++) {
+            if (tiers.get(index).getId() == tierId) {
+                return index;
+            }
+        }
+        return -1;
     }
 }

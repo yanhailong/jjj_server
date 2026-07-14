@@ -1,6 +1,7 @@
 package com.jjg.game.season.service;
 
 import com.jjg.game.common.utils.RandomUtils;
+import com.jjg.game.common.utils.WeightRandom;
 import com.jjg.game.core.constant.Code;
 import com.jjg.game.core.data.CommonResult;
 import com.jjg.game.sampledata.bean.SeasonMatchCfg;
@@ -88,14 +89,20 @@ public class SeasonMatchService {
         List<SeasonPlayerData> candidates = seasonPlayerDao.findMatchCandidates(
                 data.getSeasonKey(), ctx.playerId(), gameType, stake, expectedSpins, CANDIDATE_LIMIT);
         //查询已按 minSpins 过滤, 这里兜底复核一次
-        List<SeasonPlayerData> eligible = candidates.stream()
-                .filter(candidate -> candidate.getRepresentativeSpinWins().size() >= expectedSpins)
-                .toList();
-        if (eligible.isEmpty()) {
+        WeightRandom<SeasonPlayerData> candidatePool = WeightRandom.create();
+        for (SeasonPlayerData candidate : candidates) {
+            if (candidate.getRepresentativeSpinWins().size() < expectedSpins) {
+                continue;
+            }
+            int weight = matchWeight(candidate, cfg, true);
+            if (weight > 0) {
+                candidatePool.add(candidate, weight);
+            }
+        }
+        SeasonPlayerData opponent = candidatePool.next();
+        if (opponent == null) {
             return failStart(Code.NOT_FOUND, ctx, gameType, stake, "没有可用对手");
         }
-        //候选池内随机, 避免固定命中同一对手
-        SeasonPlayerData opponent = eligible.get(RandomUtils.getRandomNumIntMax(eligible.size()) - 1);
 
         SeasonMatchSession session = new SeasonMatchSession();
         session.setMatchId(RandomUtils.getOriginalUUid());
@@ -127,13 +134,14 @@ public class SeasonMatchService {
         SeasonPlayerData data = ctx.getSeasonPlayerData();
         SeasonMatchSession session = data == null ? null : data.getActiveMatch();
         if (session == null) {
+            seedRepresentativeIfAbsent(ctx, gameType, statInfo);
             return new CommonResult<>(Code.SUCCESS);
         }
         if (now - session.getStartedAt() >= MATCH_TIMEOUT_MILLIS) {
             //超时弃赛: 先补 0 结算旧局, 本次旋转不计入
             return settleExpired(ctx, session, now);
         }
-        if (session.getGameType() != gameType || statInfo == null) {
+        if (session.getGameType() != gameType || statInfo == null || statInfo.getBet() != session.getStake()) {
             return new CommonResult<>(Code.SUCCESS);
         }
         if (session.getPlayerSpinWins().size() < session.getExpectedSpins()) {
@@ -219,6 +227,51 @@ public class SeasonMatchService {
         result.setCoinChange(actualChange);
         result.setSeasonCoin(data.getSeasonCoin());
         return new CommonResult<>(Code.SUCCESS, result);
+    }
+
+    /**
+     * 首场 PK 前使用当前赛季机台的连续 Spin 结果生成一次初始代表数据，避免所有玩家都因没有 PK
+     * 历史而无法进入首场匹配。首份数据凑齐后不再由普通 Spin 覆盖，完成 PK 后仍以最新 PK 结果为准。
+     */
+    private void seedRepresentativeIfAbsent(SimPlayerContext ctx, int gameType, SpinStatInfo statInfo) {
+        SeasonPlayerData data = ctx.getSeasonPlayerData();
+        if (data == null || data.seasonPhase() == null || data.seasonPhase() == SeasonPhase.NOVICE
+                || statInfo == null || statInfo.getBet() <= 0) {
+            return;
+        }
+        int expectedSpins = data.seasonPhase() == SeasonPhase.ADVANCED
+                ? ADVANCED_SPIN_COUNT : LOOP_SPIN_COUNT;
+        List<Long> wins = data.getRepresentativeSpinWins();
+        if (wins.size() >= expectedSpins) {
+            return;
+        }
+        SeasonStartCfg season = configService.season(data.getSeasonId());
+        if (season == null || season.getAvailableGames() != gameType) {
+            return;
+        }
+        if (!wins.isEmpty() && (data.getRepresentativeGameType() != gameType
+                || data.getRepresentativeStake() != statInfo.getBet())) {
+            wins.clear();
+        }
+        data.setRepresentativeGameType(gameType);
+        data.setRepresentativeStake(statInfo.getBet());
+        wins.add(Math.max(0, statInfo.getWin()));
+        autoSaveService.enqueueSave(data);
+    }
+
+    /**
+     * 亏损保护作用于“被匹配”概率。主动匹配仅在配置明确开启时应用；当前配置为 false，
+     * 因此不会错误限制主动发起方。
+     */
+    int matchWeight(SeasonPlayerData candidate, SeasonMatchCfg cfg, boolean activeMatch) {
+        if (activeMatch && !cfg.getActiveMatchAffected()) {
+            return SeasonPolicy.RATIO_BASE;
+        }
+        long excessLoss = candidate.getDailyLossAmount() - cfg.getDailyMatchLossLimit();
+        if (cfg.getDailyMatchLossLimit() < 0 || excessLoss < 0) {
+            return SeasonPolicy.RATIO_BASE;
+        }
+        return SeasonPolicy.ratioFor(excessLoss, cfg.getExceedLossMatcProb());
     }
 
     private SeasonMatchRecord record(SeasonMatchSession session, long coinChange, long now,

@@ -9,6 +9,7 @@ import com.jjg.game.core.data.PlayerPack;
 import com.jjg.game.core.service.PlayerPackService;
 import com.jjg.game.sampledata.bean.SeasonGemCfg;
 import com.jjg.game.sampledata.bean.SeasonGemCraftCfg;
+import com.jjg.game.sampledata.bean.SeasonStartCfg;
 import com.jjg.game.sim.data.SimPlayerContext;
 import com.jjg.game.season.data.SeasonCraftResult;
 import com.jjg.game.season.data.SeasonPlayerData;
@@ -69,6 +70,11 @@ public class SeasonGemService {
             autoSaveService.enqueueSave(data);
             return new CommonResult<>(Code.SUCCESS, Map.copyOf(data.getEquippedGems()));
         }
+        if (!isSlotUnlocked(data, slot)) {
+            log.warn("赛季宝石槽位未开放 playerId={},seasonId={},slot={}",
+                    ctx.playerId(), data.getSeasonId(), slot);
+            return new CommonResult<>(Code.NOT_UNLOCKED);
+        }
         SeasonGemCfg gem = configService.gemByItemId(itemId);
         int requiredType = (slot - 1) / SLOTS_PER_TYPE + 1;
         if (gem == null || gem.getType() != requiredType) {
@@ -88,6 +94,22 @@ public class SeasonGemService {
         data.getEquippedGems().put(slot, itemId);
         autoSaveService.enqueueSave(data);
         return new CommonResult<>(Code.SUCCESS, Map.copyOf(data.getEquippedGems()));
+    }
+
+    /**
+     * GemCount 在三种形状间均匀开孔：3/6/9 分别表示每种形状开放 1/2/3 个孔。
+     */
+    boolean isSlotUnlocked(SeasonPlayerData data, int slot) {
+        SeasonStartCfg season = data == null ? null : configService.season(data.getSeasonId());
+        if (season == null || slot <= 0 || slot > SLOTS_PER_TYPE * GEM_TYPE_COUNT) {
+            return false;
+        }
+        int unlocked = Math.max(0, Math.min(season.getGemCount(), SLOTS_PER_TYPE * GEM_TYPE_COUNT));
+        int typeIndex = (slot - 1) / SLOTS_PER_TYPE;
+        int positionInType = (slot - 1) % SLOTS_PER_TYPE;
+        int perType = unlocked / GEM_TYPE_COUNT;
+        int remainder = unlocked % GEM_TYPE_COUNT;
+        return positionInType < perType + (typeIndex < remainder ? 1 : 0);
     }
 
     public CommonResult<SeasonCraftResult> craft(SimPlayerContext ctx, List<Integer> itemIds, int keepItemId) {
