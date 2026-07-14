@@ -27,7 +27,6 @@ import java.util.List;
 @Service
 public class SeasonMatchService {
     private static final Logger log = LoggerFactory.getLogger(SeasonMatchService.class);
-    private static final long DAY_MILLIS = 24L * 60 * 60 * 1000;
     private static final int ADVANCED_SPIN_COUNT = 3;
     private static final int LOOP_SPIN_COUNT = 5;
     private static final int CANDIDATE_LIMIT = 20;
@@ -240,7 +239,7 @@ public class SeasonMatchService {
     }
 
     private int currentDay(SeasonPlayerData data, long now) {
-        return (int) ((Math.max(now, data.getStartTime()) - data.getStartTime()) / DAY_MILLIS) + 1;
+        return SeasonTimeline.currentDay(data.getStartTime(), now);
     }
 
     private long sum(List<Long> values) {

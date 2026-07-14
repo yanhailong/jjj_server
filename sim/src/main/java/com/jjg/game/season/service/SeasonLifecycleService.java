@@ -35,7 +35,6 @@ import java.util.Map;
 @Service
 public class SeasonLifecycleService implements SimPlayerTickListener {
     private static final Logger log = LoggerFactory.getLogger(SeasonLifecycleService.class);
-    private static final long DAY_MILLIS = 24L * 60 * 60 * 1000;
     /**
      * 跨节点待结算记录的拉取节流; 登录后首次访问必拉, 其后最多每隔该间隔查一次库。
      */
@@ -218,7 +217,7 @@ public class SeasonLifecycleService implements SimPlayerTickListener {
     }
 
     private int currentDay(SeasonPlayerData data, long now) {
-        return (int) ((Math.max(now, data.getStartTime()) - data.getStartTime()) / DAY_MILLIS) + 1;
+        return SeasonTimeline.currentDay(data.getStartTime(), now);
     }
 
     /**

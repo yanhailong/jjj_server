@@ -4,6 +4,10 @@ import com.jjg.game.season.config.SeasonDefinition;
 import com.jjg.game.season.model.SeasonPhase;
 import com.jjg.game.season.model.SeasonSnapshot;
 
+import java.time.Instant;
+import java.time.LocalDate;
+import java.time.ZoneId;
+import java.time.temporal.ChronoUnit;
 import java.util.ArrayList;
 import java.util.Comparator;
 import java.util.List;
@@ -12,45 +16,46 @@ import java.util.List;
  * 根据玩家注册时间和赛季配置计算个人赛季时间线。
  */
 public class SeasonTimeline {
-    private static final long DAY_MILLIS = 24L * 60 * 60 * 1000;
-
     public SeasonSnapshot resolve(long registeredAt, long now, List<SeasonDefinition> definitions) {
         TimelineConfig config = validate(definitions);
-        long elapsed = Math.max(0, now - registeredAt);
-        long cursor = registeredAt;
+        ZoneId zone = ZoneId.systemDefault();
+        LocalDate cursor = dateOf(registeredAt, zone);
+        LocalDate currentDate = dateOf(Math.max(registeredAt, now), zone);
+        long elapsed = ChronoUnit.DAYS.between(cursor, currentDate);
 
         SeasonDefinition novice = config.introductory().get(0);
-        long noviceDuration = durationMillis(novice);
+        long noviceDuration = novice.durationDays();
         if (elapsed < noviceDuration) {
-            return snapshot(novice, SeasonPhase.NOVICE, 0, cursor, now);
+            return snapshot(novice, SeasonPhase.NOVICE, 0, cursor, currentDate, zone);
         }
         elapsed -= noviceDuration;
-        cursor += noviceDuration;
+        cursor = cursor.plusDays(noviceDuration);
 
         SeasonDefinition advanced = config.introductory().get(1);
-        long advancedDuration = durationMillis(advanced);
+        long advancedDuration = advanced.durationDays();
         if (elapsed < advancedDuration) {
-            return snapshot(advanced, SeasonPhase.ADVANCED, 0, cursor, now);
+            return snapshot(advanced, SeasonPhase.ADVANCED, 0, cursor, currentDate, zone);
         }
         elapsed -= advancedDuration;
-        cursor += advancedDuration;
+        cursor = cursor.plusDays(advancedDuration);
 
-        long loopDuration = config.loop().stream().mapToLong(this::durationMillis).sum();
+        long loopDuration = config.loop().stream().mapToLong(SeasonDefinition::durationDays).sum();
         long completedRounds = elapsed / loopDuration;
         long inRound = elapsed % loopDuration;
         int cycleIndex = Math.toIntExact(completedRounds * config.loop().size());
+        LocalDate roundStart = cursor.plusDays(Math.multiplyExact(completedRounds, loopDuration));
         for (SeasonDefinition definition : config.loop()) {
-            long duration = durationMillis(definition);
+            long duration = definition.durationDays();
             cycleIndex++;
             if (inRound < duration) {
-                long start = cursor + completedRounds * loopDuration;
+                LocalDate start = roundStart;
                 for (SeasonDefinition previous : config.loop()) {
                     if (previous == definition) {
                         break;
                     }
-                    start += durationMillis(previous);
+                    start = start.plusDays(previous.durationDays());
                 }
-                return snapshot(definition, SeasonPhase.LOOP, cycleIndex, start, now);
+                return snapshot(definition, SeasonPhase.LOOP, cycleIndex, start, currentDate, zone);
             }
             inRound -= duration;
         }
@@ -58,11 +63,25 @@ public class SeasonTimeline {
     }
 
     private SeasonSnapshot snapshot(SeasonDefinition definition, SeasonPhase phase,
-                                    int cycleIndex, long start, long now) {
-        long end = start + durationMillis(definition);
-        int day = (int) ((Math.max(start, now) - start) / DAY_MILLIS) + 1;
+                                    int cycleIndex, LocalDate startDate,
+                                    LocalDate currentDate, ZoneId zone) {
+        long start = startDate.atStartOfDay(zone).toInstant().toEpochMilli();
+        long end = startDate.plusDays(definition.durationDays())
+                .atStartOfDay(zone).toInstant().toEpochMilli();
+        int day = Math.toIntExact(ChronoUnit.DAYS.between(startDate, currentDate)) + 1;
         String key = definition.id() + ":" + cycleIndex;
         return new SeasonSnapshot(definition.id(), phase, cycleIndex, start, end, day, key);
+    }
+
+    static int currentDay(long start, long now) {
+        ZoneId zone = ZoneId.systemDefault();
+        LocalDate startDate = dateOf(start, zone);
+        LocalDate currentDate = dateOf(Math.max(start, now), zone);
+        return Math.toIntExact(ChronoUnit.DAYS.between(startDate, currentDate)) + 1;
+    }
+
+    private static LocalDate dateOf(long time, ZoneId zone) {
+        return Instant.ofEpochMilli(time).atZone(zone).toLocalDate();
     }
 
     private TimelineConfig validate(List<SeasonDefinition> definitions) {
@@ -91,10 +110,6 @@ public class SeasonTimeline {
             }
         }
         return new TimelineConfig(introductory, loop);
-    }
-
-    private long durationMillis(SeasonDefinition definition) {
-        return Math.multiplyExact(definition.durationDays(), DAY_MILLIS);
     }
 
     private record TimelineConfig(List<SeasonDefinition> introductory, List<SeasonDefinition> loop) {
