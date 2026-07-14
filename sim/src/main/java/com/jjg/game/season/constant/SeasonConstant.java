@@ -48,5 +48,8 @@ public interface SeasonConstant {
         int RES_SEASON_TRIAL_CHALLENGE = BASE_MSG_PREFIX | 0x18;
 
         int NOTIFY_SEASON_TRIAL_RESULT = BASE_MSG_PREFIX | 0x19;
+
+        int REQ_SEASON_TRIAL_PROGRESS = BASE_MSG_PREFIX | 0x1B;
+        int RES_SEASON_TRIAL_PROGRESS = BASE_MSG_PREFIX | 0x1C;
     }
 }

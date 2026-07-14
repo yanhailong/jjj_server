@@ -14,6 +14,7 @@ import com.jjg.game.hall.service.HallService;
 import com.jjg.game.sampledata.GameDataManager;
 import com.jjg.game.sampledata.bean.ResearchSkillsCfg;
 import com.jjg.game.season.pb.res.ResSeasonMatch;
+import com.jjg.game.season.pb.res.ResSeasonTrialProgress;
 import com.jjg.game.season.service.SeasonService;
 import com.jjg.game.sim.bridge.ToSimBridge;
 import com.jjg.game.sim.data.SimPlayerContext;
@@ -185,6 +186,17 @@ public class HallRPCController extends CoreRPCController implements GmToHallBrid
             return new ResSeasonMatch(Code.NOT_FOUND);
         }
         return seasonService.match(ctx, gameType, stake);
+    }
+
+    @Override
+    @RpcCallSetting(processorModKey = "#arg0")
+    public ResSeasonTrialProgress seasonTrialProgress(long playerId) {
+        SimPlayerContext ctx = this.simPlayerContextRegistry.getContext(playerId);
+        if (ctx == null) {
+            log.warn("获取赛季试炼进度失败，未找到玩家 sim 数据 playerId={}", playerId);
+            return new ResSeasonTrialProgress(Code.NOT_FOUND);
+        }
+        return seasonService.trialProgress(ctx);
     }
 
     @Override

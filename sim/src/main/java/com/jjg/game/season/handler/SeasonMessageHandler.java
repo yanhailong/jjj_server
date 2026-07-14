@@ -13,6 +13,7 @@ import com.jjg.game.core.data.PlayerController;
 import com.jjg.game.season.constant.SeasonConstant;
 import com.jjg.game.season.pb.req.*;
 import com.jjg.game.season.pb.res.ResSeasonMatch;
+import com.jjg.game.season.pb.res.ResSeasonTrialProgress;
 import com.jjg.game.season.service.SeasonService;
 import com.jjg.game.sim.bridge.ToSimBridge;
 import com.jjg.game.sim.data.SimPlayerContext;
@@ -104,6 +105,17 @@ public class SeasonMessageHandler {
         execute(playerController, ctx -> ctx.send(seasonService.trialChallenge(ctx, req.trialId)));
     }
 
+    @Command(SeasonConstant.MsgBean.REQ_SEASON_TRIAL_PROGRESS)
+    public void reqSeasonTrialProgress(PlayerController playerController, ReqSeasonTrialProgress req) {
+        long playerId = playerController.playerId();
+        SimPlayerContext ctx = this.simPlayerContextRegistry.getContext(playerId);
+        if (ctx != null) {
+            playerController.send(seasonService.trialProgress(ctx));
+            return;
+        }
+        playerController.send(remoteSeasonTrialProgress(playerController));
+    }
+
     public <T extends AbstractResponse> void execute(PlayerController pc, Consumer<SimPlayerContext> action) {
         SimPlayerContext ctx = this.simPlayerContextRegistry.getContext(pc.playerId());
         if (ctx == null) {
@@ -132,6 +144,29 @@ public class SeasonMessageHandler {
             log.error("远程赛季匹配异常 playerId={},gameType={},stake={}",
                     playerId, req.gameType, req.stake, e);
             return new ResSeasonMatch(Code.EXCEPTION);
+        } finally {
+            rpcContext.setReqParameterBuilder(previousBuilder);
+        }
+    }
+
+    private ResSeasonTrialProgress remoteSeasonTrialProgress(PlayerController playerController) {
+        long playerId = playerController.playerId();
+        ClusterClient client = simNodeService.getSimClusterClient(playerId, playerController.ipAddress());
+        if (client == null) {
+            log.warn("获取赛季试炼进度失败，未找到玩家 sim 节点 playerId={}", playerId);
+            return new ResSeasonTrialProgress(Code.NOT_FOUND);
+        }
+
+        GameRpcContext rpcContext = GameRpcContext.getContext();
+        RpcReqParameterBuilder previousBuilder = rpcContext.getReqParameterBuilder();
+        try {
+            rpcContext.withReqParameterBuilder(RpcReqParameterBuilder.create()
+                    .addClusterClient(client).setTryMillisPerClient(1000));
+            ResSeasonTrialProgress response = toSimBridge.seasonTrialProgress(playerId);
+            return response == null ? new ResSeasonTrialProgress(Code.EXCEPTION) : response;
+        } catch (Exception e) {
+            log.error("远程获取赛季试炼进度异常 playerId={}", playerId, e);
+            return new ResSeasonTrialProgress(Code.EXCEPTION);
         } finally {
             rpcContext.setReqParameterBuilder(previousBuilder);
         }

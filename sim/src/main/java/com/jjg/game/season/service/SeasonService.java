@@ -231,6 +231,20 @@ public class SeasonService implements SimPlayerTickListener {
     }
 
     /**
+     * slots 每次旋转结束后查询当前试炼进度。
+     */
+    public ResSeasonTrialProgress trialProgress(SimPlayerContext ctx) {
+        ResSeasonTrialProgress response = new ResSeasonTrialProgress(Code.SUCCESS);
+        SeasonPlayerData data = ctx.getSeasonPlayerData();
+        SeasonTrialSession session = data == null ? null : data.getActiveTrial();
+        if (session != null) {
+            response.spinCount = session.getSpinCount();
+            response.progress = session.getProgress();
+        }
+        return response;
+    }
+
+    /**
      * 发起试炼挑战。
      */
     public ResSeasonTrialChallenge trialChallenge(SimPlayerContext ctx, int trialId) {
