@@ -212,6 +212,7 @@ public class HallRPCController extends CoreRPCController implements GmToHallBrid
     }
 
     @Override
+    @RpcCallSetting(processorModKey = "#arg0")
     public CommonResult<Map<Integer, Integer>> skillLevelUp(long playerId, int gameType, int skillId) {
         SimPlayerContext ctx = this.simPlayerContextRegistry.getContext(playerId);
         if (ctx == null) {

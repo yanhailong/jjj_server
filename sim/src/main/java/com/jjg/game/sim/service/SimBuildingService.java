@@ -43,6 +43,10 @@ public class SimBuildingService implements SimPlayerTickListener {
     //初始等级 (解锁后)
     private static final int INITIAL_LEVEL = 1;
 
+    //tick 内联盟加速抵扣的检查间隔: 抵扣走 Redis GETDEL, 升级 CD 为分钟级,
+    //无需每个 tick(2s) 每建筑一次往返; 显式请求路径(建筑信息/完成升级)仍即时消费
+    private static final long SPEEDUP_CHECK_INTERVAL_MS = 30_000L;
+
     @Autowired
     private SimConfigCacheService configCache;
     @Autowired
@@ -76,13 +80,19 @@ public class SimBuildingService implements SimPlayerTickListener {
             if (casino == null || casino.getBuildingData() == null || casino.getBuildingData().isEmpty()) {
                 return;
             }
+            boolean consumeSpeedup = now - ctx.getLastSpeedupCheckTime() >= SPEEDUP_CHECK_INTERVAL_MS;
+            if (consumeSpeedup) {
+                ctx.setLastSpeedupCheckTime(now);
+            }
             for (BuildingData data : casino.getBuildingData().values()) {
                 //未处于升级 CD 的跳过
                 if (data.getCdEndTime() <= 0) {
                     continue;
                 }
-                //应用联盟加速 (可能使 CD 提前到时)
-                applyAllianceSpeedup(ctx.playerId(), data, now);
+                //应用联盟加速 (可能使 CD 提前到时; 最多延迟一个检查间隔生效)
+                if (consumeSpeedup) {
+                    applyAllianceSpeedup(ctx.playerId(), data, now);
+                }
                 if (data.isUpgradeReady(now)) {
                     onCompleteBuildingUpgrade(ctx, data.getId());
                 }

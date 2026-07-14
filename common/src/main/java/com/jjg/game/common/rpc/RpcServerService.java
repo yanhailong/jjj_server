@@ -110,8 +110,10 @@ public class RpcServerService {
             }
             // 如果需要服务端使用指定的线程执行方法
             if (processorId != null && processorId.longValue() > 0) {
+                //ring 满时经 fallback 线程池阻塞发布到原槽位, 不能静默丢弃:
+                //丢弃不回包会导致调用方干等满 RPC 超时后重试, 过载时被放大为双倍请求
                 PlayerExecutorGroupDisruptor.getDefaultExecutor()
-                        .tryPublish(processorId.longValue(), processorId.intValue(), new BaseHandler<>() {
+                        .publishWithFallback(processorId.longValue(), processorId.intValue(), new BaseHandler<>() {
                             @Override
                             public void action() throws Exception {
                                 invokeMethod(method, provider, args, resp, clusterConnect);

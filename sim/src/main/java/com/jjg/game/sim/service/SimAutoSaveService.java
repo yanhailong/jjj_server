@@ -66,35 +66,34 @@ public class SimAutoSaveService implements SimPlayerTickListener {
         if (base == null) {
             return;
         }
-        //节流: 距上次落库不够间隔则跳过
+        //节流: 距上次落库检查不够间隔则跳过 (业务置 0 可强制下个 tick 立即检查)
         if (ctx.getLastSaveTime() > 0 && now - ctx.getLastSaveTime() < SAVE_INTERVAL_MS) {
             return;
         }
+        //无论是否有变更都推进检查时间: 否则数据不变的玩家每个 tick 都全量序列化比对, 空转 CPU;
+        //写库失败的数据 savedHash 保持脏, 下个检查周期自然重试
+        ctx.setLastSaveTime(now);
 
-        boolean enqueued = enqueueIfChanged(base);
+        enqueueIfChanged(base);
         SimCasinoData casino = ctx.getCurrentCasino();
         if (casino != null) {
-            enqueued |= enqueueIfChanged(casino);
+            enqueueIfChanged(casino);
         }
         if (ctx.getSimTaskData() != null) {
-            enqueued |= enqueueIfChanged(ctx.getSimTaskData());
+            enqueueIfChanged(ctx.getSimTaskData());
         }
         if (ctx.getSimCoopTaskData() != null) {
-            enqueued |= enqueueIfChanged(ctx.getSimCoopTaskData());
+            enqueueIfChanged(ctx.getSimCoopTaskData());
         }
         SeasonPlayerData seasonData = ctx.getSeasonPlayerData();
         if (seasonData != null) {
-            enqueued |= enqueueIfChanged(seasonData);
+            enqueueIfChanged(seasonData);
         }
         for (AbstractData employee : ctx.getEmployeeMap().values()) {
-            enqueued |= enqueueIfChanged(employee);
+            enqueueIfChanged(employee);
         }
         for (AbstractData skills : ctx.getSkillsDataMap().values()) {
-            enqueued |= enqueueIfChanged(skills);
-        }
-
-        if (enqueued) {
-            ctx.setLastSaveTime(now);
+            enqueueIfChanged(skills);
         }
     }
 

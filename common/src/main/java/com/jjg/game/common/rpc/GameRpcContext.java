@@ -7,6 +7,12 @@ import java.util.List;
 import java.util.Map;
 import java.util.concurrent.Callable;
 import java.util.concurrent.CompletableFuture;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.LinkedBlockingQueue;
+import java.util.concurrent.RejectedExecutionException;
+import java.util.concurrent.ThreadPoolExecutor;
+import java.util.concurrent.TimeUnit;
+import java.util.concurrent.atomic.AtomicInteger;
 
 /**
  * 游戏RPC上下文
@@ -20,6 +26,30 @@ public class GameRpcContext {
      */
     private static final ThreadLocal<GameRpcContext> METADATA_CARRIER_THREAD_LOCAL = new ThreadLocal<>();
     private static final Logger log = LoggerFactory.getLogger(GameRpcContext.class);
+
+    /**
+     * 异步 RPC 专用有界线程池: callable 内部是阻塞式等待响应(最长 RPC 超时),
+     * 不能用 ForkJoinPool.commonPool(4 核机并行度仅 3, 对端变慢时全部阻塞且任务无界堆积)。
+     * 队列满时快速拒绝, 由调用方按失败处理(异步联动本身允许失败)。
+     */
+    private static final ExecutorService ASYNC_CALL_EXECUTOR = createAsyncCallExecutor();
+
+    private static ExecutorService createAsyncCallExecutor() {
+        int threads = Math.max(8, Runtime.getRuntime().availableProcessors() * 2);
+        AtomicInteger seq = new AtomicInteger();
+        ThreadPoolExecutor executor = new ThreadPoolExecutor(
+                threads, threads,
+                60, TimeUnit.SECONDS,
+                new LinkedBlockingQueue<>(1024),
+                r -> {
+                    Thread t = new Thread(r, "rpc-async-" + seq.incrementAndGet());
+                    t.setDaemon(true);
+                    return t;
+                });
+        //空闲线程可回收, 不常驻
+        executor.allowCoreThreadTimeOut(true);
+        return executor;
+    }
 
     // 每个节点的数据
     private Map<String, Object> dataOfNode;
@@ -81,17 +111,22 @@ public class GameRpcContext {
     public <T> CompletableFuture<T> asyncCall(Callable<T> callable) {
         // 需要将外部参数进行传递
         RpcReqParameterBuilder rpcReqParameterBuilder = GameRpcContext.getContext().getReqParameterBuilder();
-        return CompletableFuture.supplyAsync(() -> {
-            GameRpcContext.getContext().setReqParameterBuilder(rpcReqParameterBuilder);
-            try {
-                return callable.call();
-            } catch (Exception e) {
-                log.error("异步调用rpc发生异常 {}", e.getMessage(), e);
-                throw new RuntimeException(e);
-            } finally {
-                GameRpcContext.getContext().clearRpcBuilderData();
-            }
-        });
+        try {
+            return CompletableFuture.supplyAsync(() -> {
+                GameRpcContext.getContext().setReqParameterBuilder(rpcReqParameterBuilder);
+                try {
+                    return callable.call();
+                } catch (Exception e) {
+                    log.error("异步调用rpc发生异常 {}", e.getMessage(), e);
+                    throw new RuntimeException(e);
+                } finally {
+                    GameRpcContext.getContext().clearRpcBuilderData();
+                }
+            }, ASYNC_CALL_EXECUTOR);
+        } catch (RejectedExecutionException e) {
+            log.warn("异步RPC线程池已满, 放弃本次调用");
+            return CompletableFuture.failedFuture(e);
+        }
     }
 
     public static GameRpcContext getContext() {

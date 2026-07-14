@@ -14,6 +14,10 @@ public class ResSeasonTrialProgress extends AbstractResponse {
     @ProtoDesc("当前进度值")
     public long progress;
 
+    public ResSeasonTrialProgress() {
+        super(0);
+    }
+
     public ResSeasonTrialProgress(int code) {
         super(code);
     }

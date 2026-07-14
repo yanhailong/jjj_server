@@ -42,12 +42,14 @@ public class SimPlayerContext {
     //勋章品质加成缓存 (condition表id -> 千分比加成值; 登录/成就领奖后刷新; 内存态不落库, 供收益计算零IO读取)
     private Map<Integer, Integer> medalBuffMap = new HashMap<>();
 
-    //上次落库时间 (ms)
+    //上次落库检查时间 (ms; 业务置 0 可强制下个 tick 立即检查落库)
     private long lastSaveTime;
     //上次活跃时间
     private long lastActiveTime;
     //上次随机拜访时间 (ms, 内存态, 服务端兜底限频用)
     private long lastRandomVisitTime;
+    //上次联盟加速抵扣检查时间 (ms, 内存态; tick 内按玩家节流 Redis 访问)
+    private long lastSpeedupCheckTime;
 
     public PlayerController getPlayerController() {
         return playerController;
@@ -196,6 +198,14 @@ public class SimPlayerContext {
 
     public void setLastRandomVisitTime(long lastRandomVisitTime) {
         this.lastRandomVisitTime = lastRandomVisitTime;
+    }
+
+    public long getLastSpeedupCheckTime() {
+        return lastSpeedupCheckTime;
+    }
+
+    public void setLastSpeedupCheckTime(long lastSpeedupCheckTime) {
+        this.lastSpeedupCheckTime = lastSpeedupCheckTime;
     }
 
     // ---------------------------------------------------------------------

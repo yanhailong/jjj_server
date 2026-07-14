@@ -36,7 +36,10 @@ import java.util.ArrayList;
 import java.util.Comparator;
 import java.util.List;
 import java.util.Map;
+import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.TimeUnit;
+import java.util.concurrent.atomic.AtomicBoolean;
 
 /**
  * 模拟经营游戏管理器
@@ -70,6 +73,21 @@ public class SimManager {
 
     //玩家状态检查任务句柄
     private volatile Timeout checkPlayerDataTimeout;
+
+    //登出落库在 sim-save-io 队列排队期间的暂存: 玩家在落库完成前重登/被 RPC 重建时
+    //复用内存 ctx 或等待落库完成, 避免从库里读到未落地的旧数据
+    private final Map<Long, PendingExitSave> pendingExitSaves = new ConcurrentHashMap<>();
+
+    private static class PendingExitSave {
+        final SimPlayerContext ctx;
+        //单一归属权: 落库任务与重登复活谁先 CAS 成功谁处理该 ctx
+        final AtomicBoolean claimed = new AtomicBoolean();
+        final CountDownLatch done = new CountDownLatch(1);
+
+        PendingExitSave(SimPlayerContext ctx) {
+            this.ctx = ctx;
+        }
+    }
 
     @Autowired
     private SimCasinoDao simCasinoDao;
@@ -319,6 +337,11 @@ public class SimManager {
         if (ctx != null) {
             return ctx;
         }
+        //登出落库还在队列中: 复活内存 ctx 或等落库完成, 避免读到未落地的旧库数据
+        ctx = tryReviveExitingContext(playerId);
+        if (ctx != null) {
+            return ctx;
+        }
         //装配 ctx
         ctx = new SimPlayerContext();
         ctx.setPlayerId(playerId);
@@ -449,34 +472,87 @@ public class SimManager {
     }
 
     /**
-     * 单玩家退出落库 + 释放缓存 (供长时掉线/主动登出场景使用)
+     * 单玩家退出落库 + 释放缓存 (供长时掉线/主动登出场景使用)。
+     * 落库整体排入 sim-save-io 单线程队列: FIFO 天然保证在途异步旧快照先于本次全量落库执行,
+     * 且不在调用方线程(玩家槽位/登出事件线程)上做屏障等待 + 同步 Mongo 写
+     * (大规模掉线时那会把所有槽位线程串行在 IO 上, ring 填满后拒绝在线玩家请求)。
      */
     public void exitSaveData(long playerId) {
-        SimPlayerContext ctx = this.simPlayerContextRegistry.removeContext(playerId);
+        SimPlayerContext ctx = this.simPlayerContextRegistry.getContext(playerId);
         if (ctx == null) {
             return;
         }
-        //先等异步落库排空, 避免在途旧快照覆盖下面的同步全量落库
-        autoSaveService.awaitPending();
+        //先挂 pending 再摘 registry: 保证任意时刻"不在 registry 的玩家必在 pending 中(或落库已完成)",
+        //否则并发的 createContextByPlayerId 会在两步之间从库里读到未落地的旧数据
+        PendingExitSave pending = new PendingExitSave(ctx);
+        pendingExitSaves.put(playerId, pending);
+        if (this.simPlayerContextRegistry.removeContext(playerId) == null) {
+            //并发登出竞态: 对方已摘除并接管落库, 撤销本次 pending
+            pendingExitSaves.remove(playerId, pending);
+            return;
+        }
+        autoSaveService.enqueueTask(() -> {
+            try {
+                //玩家已重登复活 ctx: 放弃本次落库, 数据仍在内存, 由周期落库接管
+                if (!pending.claimed.compareAndSet(false, true)) {
+                    return;
+                }
+                simPlayerGameDao.save(ctx.getSimBaseData());
+                if (ctx.getCurrentCasino() != null) {
+                    simCasinoDao.save(ctx.getCurrentCasino());
+                }
+                simEmployeeDao.saveAll(ctx.getEmployeeMap().values());
+                simSkillsDao.saveAll(ctx.getSkillsDataMap().values());
+                if (ctx.getSimTaskData() != null) {
+                    simTaskDao.save(ctx.getSimTaskData());
+                }
+                if (ctx.getSimCoopTaskData() != null) {
+                    simCoopTaskDao.save(ctx.getSimCoopTaskData());
+                }
+                if (ctx.getSeasonPlayerData() != null) {
+                    seasonPlayerDao.save(ctx.getSeasonPlayerData());
+                }
+                //落库完成后再删路由; 玩家可能在复活等待超时后已重建 ctx, 此时路由必须保留
+                if (simPlayerContextRegistry.getContext(playerId) == null) {
+                    this.simNodeService.delete(playerId);
+                    //极小窗口补偿: 删除期间玩家恰好完成重建, 补回路由
+                    if (simPlayerContextRegistry.getContext(playerId) != null) {
+                        this.simNodeService.save(playerId, clusterSystem.getNodePath());
+                    }
+                }
+                log.info("保存玩家数据 playerId={}", playerId);
+            } finally {
+                pendingExitSaves.remove(playerId, pending);
+                pending.done.countDown();
+            }
+        });
+    }
 
-        simPlayerGameDao.save(ctx.getSimBaseData());
-        if (ctx.getCurrentCasino() != null) {
-            simCasinoDao.save(ctx.getCurrentCasino());
+    /**
+     * 玩家在登出落库尚未完成时重新进入: 直接复活内存 ctx (最新状态);
+     * 若落库任务已开始执行, 则等它完成后返回 null 走正常加载, 保证读到最终快照。
+     */
+    private SimPlayerContext tryReviveExitingContext(long playerId) {
+        PendingExitSave pending = pendingExitSaves.remove(playerId);
+        if (pending == null) {
+            return null;
         }
-        simEmployeeDao.saveAll(ctx.getEmployeeMap().values());
-        simSkillsDao.saveAll(ctx.getSkillsDataMap().values());
-        if (ctx.getSimTaskData() != null) {
-            simTaskDao.save(ctx.getSimTaskData());
+        if (pending.claimed.compareAndSet(false, true)) {
+            SimPlayerContext ctx = pending.ctx;
+            this.simPlayerContextRegistry.putContext(ctx);
+            this.simNodeService.save(playerId, clusterSystem.getNodePath());
+            log.info("重登复活待落库的 SimPlayerContext playerId={}", playerId);
+            return ctx;
         }
-        if (ctx.getSimCoopTaskData() != null) {
-            simCoopTaskDao.save(ctx.getSimCoopTaskData());
+        //落库任务正在执行: 等待完成, 随后从库加载
+        try {
+            if (!pending.done.await(10, TimeUnit.SECONDS)) {
+                log.error("等待登出落库完成超时, 继续从库加载可能读到旧数据 playerId={}", playerId);
+            }
+        } catch (InterruptedException e) {
+            Thread.currentThread().interrupt();
         }
-        if (ctx.getSeasonPlayerData() != null) {
-            seasonPlayerDao.save(ctx.getSeasonPlayerData());
-        }
-        //删除本节点上玩家的sim节点路由信息
-        this.simNodeService.delete(playerId);
-        log.info("保存玩家数据 playerId={}", playerId);
+        return null;
     }
 
     /**
