@@ -16,12 +16,18 @@ import com.jjg.game.season.pb.struct.*;
 import com.jjg.game.sim.data.SimPlayerContext;
 import com.jjg.game.sim.data.SpinStatInfo;
 import com.jjg.game.sim.listener.SimPlayerTickListener;
+import com.jjg.game.sim.service.SimAutoSaveService;
 import com.jjg.game.season.model.SeasonSnapshot;
 import com.jjg.game.social.service.SocialSender;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Service;
 
+import java.time.Instant;
+import java.time.LocalDate;
+import java.time.ZoneId;
+import java.time.format.DateTimeFormatter;
+import java.time.format.DateTimeParseException;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
@@ -32,6 +38,9 @@ import java.util.Map;
 @Service
 public class SeasonService implements SimPlayerTickListener {
     private static final Logger log = LoggerFactory.getLogger(SeasonService.class);
+    private static final long DAY_MILLIS = 24L * 60 * 60 * 1000;
+    private static final DateTimeFormatter GM_DATE_FORMATTER = DateTimeFormatter.BASIC_ISO_DATE;
+    private static final DateTimeFormatter GM_RESULT_FORMATTER = DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss");
 
     private final SeasonLifecycleService lifecycleService;
     private final SeasonConfigService configService;
@@ -42,13 +51,15 @@ public class SeasonService implements SimPlayerTickListener {
     private final SeasonRankingService rankingService;
     private final PlayerPackService playerPackService;
     private final SeasonTrialService trialService;
+    private final SimAutoSaveService autoSaveService;
     private final SocialSender socialSender;
 
     public SeasonService(SeasonLifecycleService lifecycleService, SeasonConfigService configService,
                          SeasonShopService shopService, SeasonGemService gemService,
                          SeasonMatchService matchService, SeasonDropService dropService,
                          SeasonRankingService rankingService, PlayerPackService playerPackService,
-                         SeasonTrialService trialService, SocialSender socialSender) {
+                         SeasonTrialService trialService, SimAutoSaveService autoSaveService,
+                         SocialSender socialSender) {
         this.lifecycleService = lifecycleService;
         this.configService = configService;
         this.shopService = shopService;
@@ -58,6 +69,7 @@ public class SeasonService implements SimPlayerTickListener {
         this.rankingService = rankingService;
         this.playerPackService = playerPackService;
         this.trialService = trialService;
+        this.autoSaveService = autoSaveService;
         this.socialSender = socialSender;
     }
 
@@ -157,8 +169,10 @@ public class SeasonService implements SimPlayerTickListener {
     }
 
     public ResSeasonMatch match(SimPlayerContext ctx, int gameType, long stake) {
-        lifecycleService.ensureCurrent(ctx, System.currentTimeMillis());
-        CommonResult<SeasonMatchSession> result = matchService.start(ctx, gameType, stake, System.currentTimeMillis());
+        long systemTime = System.currentTimeMillis();
+        lifecycleService.ensureCurrent(ctx, systemTime);
+        CommonResult<SeasonMatchSession> result = matchService.start(
+                ctx, gameType, stake, lifecycleService.currentTime(ctx, systemTime));
         ResSeasonMatch response = new ResSeasonMatch(result.code);
         if (result.data != null) {
             response.matchId = result.data.getMatchId();
@@ -204,7 +218,9 @@ public class SeasonService implements SimPlayerTickListener {
         if (trialResult != null) {
             socialSender.sendTo(ctx.playerId(), trialNotify(trialResult));
         }
-        CommonResult<SeasonMatchResult> result = matchService.onSpin(ctx, gameType, statInfo, System.currentTimeMillis());
+        long systemTime = System.currentTimeMillis();
+        CommonResult<SeasonMatchResult> result = matchService.onSpin(
+                ctx, gameType, statInfo, lifecycleService.currentTime(ctx, systemTime));
         if (result.data == null) {
             //非本局游戏/无对局/重复结算等场景静默跳过, 不向客户端下发错误通知
             if (!result.success()) {
@@ -221,8 +237,9 @@ public class SeasonService implements SimPlayerTickListener {
      * 试炼任务列表 (仅新手赛季有内容)。
      */
     public ResSeasonTrials trials(SimPlayerContext ctx) {
-        long now = System.currentTimeMillis();
-        SeasonSnapshot snapshot = lifecycleService.ensureCurrent(ctx, now);
+        long systemTime = System.currentTimeMillis();
+        SeasonSnapshot snapshot = lifecycleService.ensureCurrent(ctx, systemTime);
+        long now = lifecycleService.currentTime(ctx, systemTime);
         ResSeasonTrials response = new ResSeasonTrials(Code.SUCCESS);
         response.trials = trialService.list(ctx, snapshot, now).stream().map(this::trialInfo).toList();
         SeasonTrialSession session = ctx.getSeasonPlayerData().getActiveTrial();
@@ -248,8 +265,9 @@ public class SeasonService implements SimPlayerTickListener {
      * 发起试炼挑战。
      */
     public ResSeasonTrialChallenge trialChallenge(SimPlayerContext ctx, int trialId) {
-        long now = System.currentTimeMillis();
-        SeasonSnapshot snapshot = lifecycleService.ensureCurrent(ctx, now);
+        long systemTime = System.currentTimeMillis();
+        SeasonSnapshot snapshot = lifecycleService.ensureCurrent(ctx, systemTime);
+        long now = lifecycleService.currentTime(ctx, systemTime);
         CommonResult<SeasonTrialSession> result = trialService.challenge(ctx, trialId, snapshot, now);
         ResSeasonTrialChallenge response = new ResSeasonTrialChallenge(result.code);
         response.trialId = trialId;
@@ -292,7 +310,8 @@ public class SeasonService implements SimPlayerTickListener {
      * 玩家 tick: 超时对局按弃赛结算并通知, 玩家不旋转/不再匹配时押金也能按时释放。
      */
     @Override
-    public void onTick(SimPlayerContext ctx, long now) {
+    public void onTick(SimPlayerContext ctx, long systemTime) {
+        long now = lifecycleService.currentTime(ctx, systemTime);
         SeasonMatchResult result = matchService.settleIfExpired(ctx, now);
         if (result != null) {
             socialSender.sendTo(ctx.playerId(), matchNotify(result));
@@ -305,6 +324,74 @@ public class SeasonService implements SimPlayerTickListener {
     @Override
     public int order() {
         return 90;
+    }
+
+    /**
+     * 调整当前玩家的赛季测试时间。addday/settime 只能推进到未来；resettime 仅允许在当前赛季内恢复系统时间。
+     */
+    public CommonResult<String> gmTime(SimPlayerContext ctx, String[] orders) {
+        if (ctx == null || ctx.getSeasonPlayerData() == null || orders == null || orders.length < 2) {
+            return new CommonResult<>(Code.PARAM_ERROR);
+        }
+        SeasonPlayerData data = ctx.getSeasonPlayerData();
+        long systemTime = System.currentTimeMillis();
+        try {
+            if ("addday".equalsIgnoreCase(orders[1])) {
+                if (orders.length != 3) {
+                    return new CommonResult<>(Code.PARAM_ERROR);
+                }
+                long days = Long.parseLong(orders[2]);
+                if (days <= 0) {
+                    log.warn("赛季 GM addday 参数必须为正数 playerId={},days={}", ctx.playerId(), days);
+                    return new CommonResult<>(Code.PARAM_ERROR);
+                }
+                long delta = Math.multiplyExact(days, DAY_MILLIS);
+                data.setGmTimeOffset(Math.addExact(data.getGmTimeOffset(), delta));
+            } else if ("settime".equalsIgnoreCase(orders[1])) {
+                if (orders.length != 3) {
+                    return new CommonResult<>(Code.PARAM_ERROR);
+                }
+                LocalDate targetDate = LocalDate.parse(orders[2], GM_DATE_FORMATTER);
+                long targetTime = targetDate.atStartOfDay(ZoneId.systemDefault()).toInstant().toEpochMilli();
+                if (targetTime <= lifecycleService.currentTime(ctx, systemTime)) {
+                    log.warn("赛季 GM settime 不允许回拨 playerId={},date={}", ctx.playerId(), orders[2]);
+                    return new CommonResult<>(Code.PARAM_ERROR);
+                }
+                data.setGmTimeOffset(Math.subtractExact(targetTime, systemTime));
+            } else if ("resettime".equalsIgnoreCase(orders[1])) {
+                if (orders.length != 2) {
+                    return new CommonResult<>(Code.PARAM_ERROR);
+                }
+                if (data.getGmTimeOffset() != 0) {
+                    if (data.getActiveMatch() != null) {
+                        log.warn("赛季 GM resettime 执行失败，存在进行中的对局 playerId={},matchId={}",
+                                ctx.playerId(), data.getActiveMatch().getMatchId());
+                        return new CommonResult<>(Code.REPEAT_OP);
+                    }
+                    if (!lifecycleService.canResetTime(ctx, systemTime)) {
+                        log.warn("赛季 GM resettime 执行失败，恢复系统时间会跨赛季 playerId={},seasonKey={}",
+                                ctx.playerId(), data.getSeasonKey());
+                        return new CommonResult<>(Code.PARAM_ERROR);
+                    }
+                    data.setGmTimeOffset(0L);
+                    data.setLastMatchTime(0L);
+                }
+            } else {
+                return new CommonResult<>(Code.PARAM_ERROR);
+            }
+        } catch (NumberFormatException | DateTimeParseException | ArithmeticException e) {
+            log.warn("赛季 GM 时间参数错误 playerId={},orders={}", ctx.playerId(), orders, e);
+            return new CommonResult<>(Code.PARAM_ERROR);
+        }
+
+        data.setLastPendingCheckTime(0L);
+        onTick(ctx, systemTime);
+        SeasonSnapshot snapshot = lifecycleService.ensureCurrent(ctx, systemTime);
+        autoSaveService.enqueueSave(data);
+        long now = lifecycleService.currentTime(ctx, systemTime);
+        String current = Instant.ofEpochMilli(now).atZone(ZoneId.systemDefault()).format(GM_RESULT_FORMATTER);
+        return new CommonResult<>(Code.SUCCESS, "seasonId=" + snapshot.seasonId()
+                + ",day=" + snapshot.day() + ",time=" + current);
     }
 
     private NotifySeasonMatchResult matchNotify(SeasonMatchResult result) {

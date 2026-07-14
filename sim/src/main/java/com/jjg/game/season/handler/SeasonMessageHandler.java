@@ -9,7 +9,9 @@ import com.jjg.game.common.rpc.ClusterRpcReference;
 import com.jjg.game.common.rpc.GameRpcContext;
 import com.jjg.game.common.rpc.RpcReqParameterBuilder;
 import com.jjg.game.core.constant.Code;
+import com.jjg.game.core.data.CommonResult;
 import com.jjg.game.core.data.PlayerController;
+import com.jjg.game.core.listener.GmListener;
 import com.jjg.game.season.constant.SeasonConstant;
 import com.jjg.game.season.pb.req.*;
 import com.jjg.game.season.pb.res.ResSeasonMatch;
@@ -32,7 +34,7 @@ import java.util.function.Consumer;
  */
 @Component
 @MessageType(MessageConst.MessageTypeDef.SEASON)
-public class SeasonMessageHandler {
+public class SeasonMessageHandler implements GmListener {
     private Logger log = LoggerFactory.getLogger(getClass());
 
     @Autowired
@@ -125,6 +127,18 @@ public class SeasonMessageHandler {
         action.accept(ctx);
     }
 
+    @Override
+    public CommonResult<String> gm(PlayerController playerController, String[] gmOrders) {
+        if (gmOrders == null || gmOrders.length == 0 || !"season".equalsIgnoreCase(gmOrders[0])) {
+            return new CommonResult<>(Code.NOT_FOUND);
+        }
+        SimPlayerContext ctx = simPlayerContextRegistry.getContext(playerController.playerId());
+        if (ctx != null) {
+            return seasonService.gmTime(ctx, gmOrders);
+        }
+        return remoteSeasonGm(playerController, gmOrders);
+    }
+
     private ResSeasonMatch remoteSeasonMatch(PlayerController playerController, ReqSeasonMatch req) {
         long playerId = playerController.playerId();
         ClusterClient client = simNodeService.getSimClusterClient(playerId, playerController.ipAddress());
@@ -167,6 +181,29 @@ public class SeasonMessageHandler {
         } catch (Exception e) {
             log.error("远程获取赛季试炼进度异常 playerId={}", playerId, e);
             return new ResSeasonTrialProgress(Code.EXCEPTION);
+        } finally {
+            rpcContext.setReqParameterBuilder(previousBuilder);
+        }
+    }
+
+    private CommonResult<String> remoteSeasonGm(PlayerController playerController, String[] orders) {
+        long playerId = playerController.playerId();
+        ClusterClient client = simNodeService.getSimClusterClient(playerId, playerController.ipAddress());
+        if (client == null) {
+            log.warn("赛季 GM 执行失败，未找到玩家 sim 节点 playerId={}", playerId);
+            return new CommonResult<>(Code.NOT_FOUND);
+        }
+
+        GameRpcContext rpcContext = GameRpcContext.getContext();
+        RpcReqParameterBuilder previousBuilder = rpcContext.getReqParameterBuilder();
+        try {
+            rpcContext.withReqParameterBuilder(RpcReqParameterBuilder.create()
+                    .addClusterClient(client).setTryMillisPerClient(1000));
+            CommonResult<String> response = toSimBridge.seasonGm(playerId, orders);
+            return response == null ? new CommonResult<>(Code.EXCEPTION) : response;
+        } catch (Exception e) {
+            log.error("远程执行赛季 GM 异常 playerId={}", playerId, e);
+            return new CommonResult<>(Code.EXCEPTION);
         } finally {
             rpcContext.setReqParameterBuilder(previousBuilder);
         }

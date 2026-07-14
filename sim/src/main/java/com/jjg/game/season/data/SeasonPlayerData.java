@@ -26,6 +26,7 @@ public class SeasonPlayerData extends AbstractData {
     private int headFrameId;
     private int seasonId;
     private long timelineOrigin;
+    private long gmTimeOffset;
     private String seasonKey;
     private String phase;
     private int cycleIndex;
@@ -157,6 +158,8 @@ public class SeasonPlayerData extends AbstractData {
     public void setSeasonId(int seasonId) { this.seasonId = seasonId; }
     public long getTimelineOrigin() { return timelineOrigin; }
     public void setTimelineOrigin(long timelineOrigin) { this.timelineOrigin = timelineOrigin; }
+    public long getGmTimeOffset() { return gmTimeOffset; }
+    public void setGmTimeOffset(long gmTimeOffset) { this.gmTimeOffset = gmTimeOffset; }
     public String getSeasonKey() { return seasonKey; }
     public void setSeasonKey(String seasonKey) { this.seasonKey = seasonKey; }
     public String getPhase() { return phase; }

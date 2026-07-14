@@ -58,6 +58,11 @@ public interface ToSimBridge extends IGameRpc {
     ResSeasonTrialProgress seasonTrialProgress(long playerId);
 
     /**
+     * 在玩家的 sim owner 节点调整个人赛季测试时间。
+     */
+    CommonResult<String> seasonGm(long playerId, String[] orders);
+
+    /**
      * 客座赌局每次旋转前授权；普通旋转由 slots 本地直接跳过该 RPC。
      */
     CommonResult<VisitTrialSpinPermit> prepareVisitTrialSpin(long playerId, int gameType);

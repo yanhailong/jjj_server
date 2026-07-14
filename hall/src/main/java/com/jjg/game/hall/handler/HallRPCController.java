@@ -201,6 +201,17 @@ public class HallRPCController extends CoreRPCController implements GmToHallBrid
 
     @Override
     @RpcCallSetting(processorModKey = "#arg0")
+    public CommonResult<String> seasonGm(long playerId, String[] orders) {
+        SimPlayerContext ctx = this.simPlayerContextRegistry.getContext(playerId);
+        if (ctx == null) {
+            log.warn("赛季 GM 执行失败，未找到玩家 sim 数据 playerId={}", playerId);
+            return new CommonResult<>(Code.NOT_FOUND);
+        }
+        return seasonService.gmTime(ctx, orders);
+    }
+
+    @Override
+    @RpcCallSetting(processorModKey = "#arg0")
     public CommonResult<VisitTrialSpinPermit> prepareVisitTrialSpin(long playerId, int gameType) {
         return simManager.prepareVisitTrialSpin(playerId, gameType);
     }

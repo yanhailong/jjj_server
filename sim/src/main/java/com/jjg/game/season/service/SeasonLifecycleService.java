@@ -64,7 +64,32 @@ public class SeasonLifecycleService implements SimPlayerTickListener {
         this.autoSaveService = autoSaveService;
     }
 
-    public SeasonSnapshot ensureCurrent(SimPlayerContext ctx, long now) {
+    /**
+     * 将系统时间换算为玩家的赛季时间。GM 偏移仅影响赛季业务，不影响其他系统。
+     */
+    public long currentTime(SimPlayerContext ctx, long systemTime) {
+        SeasonPlayerData data = ctx == null ? null : ctx.getSeasonPlayerData();
+        return Math.addExact(systemTime, data == null ? 0L : data.getGmTimeOffset());
+    }
+
+    /**
+     * 判断恢复系统时间后是否仍处于当前赛季，避免回拨触发切季结算。
+     */
+    public boolean canResetTime(SimPlayerContext ctx, long systemTime) {
+        SeasonPlayerData data = ctx == null ? null : ctx.getSeasonPlayerData();
+        if (data == null || data.getSeasonKey() == null || data.getGmTimeOffset() == 0) {
+            return true;
+        }
+        long origin = resolveTimelineOrigin(ctx, data);
+        SeasonSnapshot snapshot = timeline.resolve(origin, systemTime, configService.definitions());
+        return data.getSeasonKey().equals(snapshot.seasonKey());
+    }
+
+    public SeasonSnapshot ensureCurrent(SimPlayerContext ctx, long systemTime) {
+        return ensureCurrentAt(ctx, currentTime(ctx, systemTime));
+    }
+
+    private SeasonSnapshot ensureCurrentAt(SimPlayerContext ctx, long now) {
         SeasonPlayerData data = ctx.getSeasonPlayerData();
         if (data == null) {
             data = new SeasonPlayerData();
@@ -102,12 +127,13 @@ public class SeasonLifecycleService implements SimPlayerTickListener {
     }
 
     @Override
-    public void onTick(SimPlayerContext ctx, long now) {
+    public void onTick(SimPlayerContext ctx, long systemTime) {
+        long now = currentTime(ctx, systemTime);
         SeasonPlayerData data = ctx.getSeasonPlayerData();
         if (data != null && now < data.getEndTime() && data.getDailyKey() == dailyKey(now)) {
             return;
         }
-        ensureCurrent(ctx, now);
+        ensureCurrentAt(ctx, now);
     }
 
     /**
