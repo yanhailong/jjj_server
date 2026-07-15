@@ -401,9 +401,10 @@ public abstract class BasePokerGameController<T extends BasePokerGameDataVo> ext
                     controller.getGameDataVo().getReadyTimerScheduled().add(gameRobotPlayer.getId());
                 }
                 case DouXianGameController controller -> {
-                    // 斗仙牌没有下注/准备阶段，人数够了 respRoomInitInfo 里的 tryStartNextGame() 会自动开局，
-                    // 出牌/弃牌阶段的机器人调度在 DouXianPlayCardPhase/DouXianDiscardPhase 的
-                    // robotActionOnPhaseStart 钩子里按阶段单独触发，这里不需要额外调度。
+                    // 斗仙牌有等待阶段(仿南方前进)：respRoomInitInfo 末尾会调 tryStartNextGame -> tryStartGame，
+                    // 机器人的"自动准备"调度是在 DouXianGameController#tryStartGame 里统一给所有还没准备/
+                    // 还没被调度过的座上机器人补的，这里不需要单独调度；出牌/弃牌阶段的机器人调度另见
+                    // DouXianPlayCardPhase/DouXianDiscardPhase 的 robotActionOnPhaseStart 钩子。
                     respRoomInitInfo(playerController);
                 }
                 default -> {

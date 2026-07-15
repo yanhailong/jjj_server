@@ -1,10 +1,12 @@
 package com.jjg.game.poker.game.douxian.data;
 
 import com.jjg.game.core.data.Card;
+import com.jjg.game.core.utils.ItemUtils;
 import com.jjg.game.poker.game.common.data.PokerCard;
 import com.jjg.game.poker.game.common.data.PokerDataHelper;
 import com.jjg.game.poker.game.douxian.room.data.DouXianGameDataVo;
 import com.jjg.game.sampledata.GameDataManager;
+import com.jjg.game.sampledata.bean.GlobalConfigCfg;
 import com.jjg.game.sampledata.bean.ImmortalCardCfg;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -44,6 +46,59 @@ public final class DouXianDataHelper {
     public static int getPoolId(DouXianGameDataVo gameDataVo) {
         ImmortalCardCfg cfg = getImmortalCardCfg(gameDataVo);
         return cfg == null ? 0 : cfg.getPoolId();
+    }
+
+    /**
+     * 即时充值复活的钻石消耗/金币赠送，DESIGN.md 8.9
+     */
+    public record DouXianRechargeCost(long diamondCost, long goldReward) {
+    }
+
+    /**
+     * global.xlsx id=270 一行配置，value格式："&lt;gameType&gt;,&lt;钻石道具id&gt;_&lt;钻石消耗数量&gt;|&lt;金币道具id&gt;_&lt;赠送金币数量&gt;"，
+     * 例如"300800,1980000_20|1990000_10000" = 花20个钻石(道具1980000)换10000金币(道具1990000)。
+     * 不按位置(第一段固定是钻石)解析，而是按道具类型(钻石道具id/金币道具id)匹配，配置顺序调换也不受影响。
+     */
+    private static final int RECHARGE_GLOBAL_CFG_ID = 270;
+
+    public static DouXianRechargeCost getRechargeCost() {
+        GlobalConfigCfg cfg = GameDataManager.getGlobalConfigCfg(RECHARGE_GLOBAL_CFG_ID);
+        if (cfg == null || cfg.getValue() == null || cfg.getValue().isBlank()) {
+            log.error("斗仙牌即时充值复活配置缺失 global.xlsx id:{}", RECHARGE_GLOBAL_CFG_ID);
+            return null;
+        }
+        String[] parts = cfg.getValue().split(",", 2);
+        if (parts.length != 2) {
+            log.error("斗仙牌即时充值复活配置格式错误(缺逗号分隔的gameType) value:{}", cfg.getValue());
+            return null;
+        }
+        int diamondItemId = ItemUtils.getDiamondItemId();
+        int goldItemId = ItemUtils.getGoldItemId();
+        Long diamondCost = null;
+        Long goldReward = null;
+        for (String segment : parts[1].split("\\|")) {
+            String[] kv = segment.split("_");
+            if (kv.length != 2) {
+                continue;
+            }
+            try {
+                int itemId = Integer.parseInt(kv[0].trim());
+                long amount = Long.parseLong(kv[1].trim());
+                if (itemId == diamondItemId) {
+                    diamondCost = amount;
+                } else if (itemId == goldItemId) {
+                    goldReward = amount;
+                }
+            } catch (NumberFormatException e) {
+                log.error("斗仙牌即时充值复活配置片段解析失败 segment:{} value:{}", segment, cfg.getValue());
+            }
+        }
+        if (diamondCost == null || goldReward == null) {
+            log.error("斗仙牌即时充值复活配置没能同时解析出钻石消耗({})和金币赠送({}) 钻石道具id:{} 金币道具id:{} value:{}",
+                    diamondCost, goldReward, diamondItemId, goldItemId, cfg.getValue());
+            return null;
+        }
+        return new DouXianRechargeCost(diamondCost, goldReward);
     }
 
     public static int getClientCardId(DouXianGameDataVo gameDataVo, int cardCfgId) {

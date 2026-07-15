@@ -1,5 +1,6 @@
 package com.jjg.game.poker.game.douxian.room;
 
+import com.jjg.game.core.constant.AddType;
 import com.jjg.game.core.constant.Code;
 import com.jjg.game.core.constant.EGameType;
 import com.jjg.game.core.data.PlayerController;
@@ -7,6 +8,7 @@ import com.jjg.game.core.data.Room;
 import com.jjg.game.core.data.RoomPlayer;
 import com.jjg.game.core.data.RoomType;
 import com.jjg.game.core.data.Card;
+import com.jjg.game.core.utils.ItemUtils;
 import com.jjg.game.poker.game.common.BasePokerGameController;
 import com.jjg.game.poker.game.common.data.PlayerSeatInfo;
 import com.jjg.game.poker.game.common.message.req.ReqPokerBet;
@@ -16,6 +18,7 @@ import com.jjg.game.poker.game.douxian.constant.DouXianZone;
 import com.jjg.game.poker.game.douxian.data.DouXianBuilder;
 import com.jjg.game.poker.game.douxian.data.DouXianDataHelper;
 import com.jjg.game.poker.game.douxian.data.DouXianZoneCards;
+import com.jjg.game.poker.game.douxian.autohandler.DouXianRobotHandler;
 import com.jjg.game.poker.game.douxian.gamephase.DouXianDealPhase;
 import com.jjg.game.poker.game.douxian.gamephase.DouXianSettlementPhase;
 import com.jjg.game.poker.game.douxian.gamephase.DouXianTierAdvancePhase;
@@ -23,38 +26,45 @@ import com.jjg.game.poker.game.douxian.message.req.ReqDouXianCancelHosting;
 import com.jjg.game.poker.game.douxian.message.req.ReqDouXianConcede;
 import com.jjg.game.poker.game.douxian.message.req.ReqDouXianConfirmPlay;
 import com.jjg.game.poker.game.douxian.message.req.ReqDouXianDiscard;
+import com.jjg.game.poker.game.douxian.message.req.ReqDouXianGoReady;
 import com.jjg.game.poker.game.douxian.message.req.ReqDouXianPlaceCard;
 import com.jjg.game.poker.game.douxian.message.req.ReqDouXianRecharge;
+import com.jjg.game.poker.game.douxian.message.bean.DouXianGrandSettlementPlayerInfo;
 import com.jjg.game.poker.game.douxian.message.resp.NotifyDouXianConcede;
 import com.jjg.game.poker.game.douxian.message.resp.NotifyDouXianConfirmResult;
 import com.jjg.game.poker.game.douxian.message.resp.NotifyDouXianDiscardResult;
+import com.jjg.game.poker.game.douxian.message.resp.NotifyDouXianGrandSettlement;
 import com.jjg.game.poker.game.douxian.message.resp.NotifyDouXianHostingState;
 import com.jjg.game.poker.game.douxian.message.resp.NotifyDouXianPlaceCardResult;
+import com.jjg.game.poker.game.douxian.message.resp.NotifyDouXianPlayerReady;
+import com.jjg.game.poker.game.douxian.message.resp.NotifyDouXianRecharge;
 import com.jjg.game.poker.game.douxian.message.resp.RepsDouXianRoomBaseInfo;
 import com.jjg.game.poker.game.douxian.room.data.DouXianGameDataVo;
 import com.jjg.game.poker.game.douxian.util.DouXianHandEvaluator;
 import com.jjg.game.poker.game.douxian.util.DouXianHandResult;
-import com.jjg.game.poker.game.douxian.util.DouXianSettlementCalculator;
 import com.jjg.game.poker.game.texas.data.SeatInfo;
 import com.jjg.game.room.constant.EGamePhase;
 import com.jjg.game.room.controller.AbstractRoomController;
 import com.jjg.game.room.controller.GameController;
+import com.jjg.game.room.data.robot.GameRobotPlayer;
+import com.jjg.game.room.data.room.GamePlayer;
 import com.jjg.game.room.message.RoomMessageBuilder;
+import com.jjg.game.room.robot.RobotScheduleUtil;
 import com.jjg.game.sampledata.bean.ImmortalCardCfg;
 import com.jjg.game.sampledata.bean.Room_ChessCfg;
 
 import java.util.ArrayList;
 import java.util.HashSet;
 import java.util.List;
+import java.util.Map;
 import java.util.Set;
 
 /**
  * 斗仙牌房间控制器。
  * <p>
- * 开局/补牌->出牌->结算->飞升->弃牌 的完整状态机、得证大道/隐忍渡劫/认输/即时充值复活流程、
- * 机器人调度都已经接好（见对应 gamephase/autohandler 类）。还没做/没接的：
- * 结算的"场次最小输赢/封顶值"（见 {@link DouXianSettlementCalculator} 的 TODO）、
- * 灵气复苏（公式未知，完全没实现）、充值复活的真实支付渠道、正式的大结算界面。
+ * 等待准备->开局/补牌->出牌->结算->飞升->弃牌 的完整状态机、场次最小输赢/封顶值、灵气复苏、
+ * 得证大道/隐忍渡劫/认输/即时充值复活(钻石换金币)/大结算流程、机器人调度都已经接好
+ * （见对应 gamephase/autohandler 类，大结算见 {@link #triggerGrandSettlement}）。
  */
 @GameController(gameType = EGameType.DOU_XIAN, roomType = RoomType.POKER_ROOM)
 public class DouXianGameController extends BasePokerGameController<DouXianGameDataVo> {
@@ -81,7 +91,15 @@ public class DouXianGameController extends BasePokerGameController<DouXianGameDa
         baseInfo.round = gameDataVo.getRound();
         baseInfo.roundMultiplier = DouXianConstant.getRoundMultiplier(Math.max(gameDataVo.getRound(), 1));
         baseInfo.playerInfos = new ArrayList<>();
-        for (Long playerId : gameDataVo.getActivePlayerIds()) {
+        // WAIT_READY阶段游戏还没真正开局，getActivePlayerIds()依赖的playerSeatInfoList要等tryStartGame成功才会
+        // 填充，这时候只能从seatInfo(坐下即有，不等开局)拿座上玩家，否则等待准备的房间列表会是空的
+        List<Long> playerIdsForInfo = baseInfo.phase == EGamePhase.WAIT_READY
+                ? gameDataVo.getSeatInfo().values().stream()
+                        .filter(SeatInfo::isSeatDown)
+                        .map(SeatInfo::getPlayerId)
+                        .toList()
+                : gameDataVo.getActivePlayerIds();
+        for (Long playerId : playerIdsForInfo) {
             // 重连/进房推送要按接收方视角脱敏：别人本回合还没结算亮牌的摆牌不能让重连玩家看到，见DESIGN.md 8.8
             baseInfo.playerInfos.add(DouXianBuilder.buildPlayerInfo(playerId, this, playerId == viewerId));
         }
@@ -101,21 +119,108 @@ public class DouXianGameController extends BasePokerGameController<DouXianGameDa
                 playerController.playerId(), gameDataVo.getRoomCfg().getId(), baseInfo.phase);
     }
 
+    /**
+     * DESIGN.md 3.1 匹配阶段：仿南方前进，人齐(座位坐满)不再直接开局，要全员确认准备才行。
+     * 每次有人准备/取消准备/加入/一局结束resetData之后都会重新调这里检查一次。
+     */
     @Override
     public boolean tryStartGame() {
-        if (gameDataVo.canStartGame() && getCurrentGamePhase() == EGamePhase.WAIT_READY) {
-            genPlayerSeatInfoList(gameDataVo.getSeatInfo(), gameDataVo.getPlayerSeatInfoList());
-            DouXianDataHelper.shuffleNewDeck(gameDataVo);
-            // 开局前携带金币快照，DESIGN.md 6.2 "小额玩家保护"判定依据之一
-            for (Long playerId : gameDataVo.getActivePlayerIds()) {
-                gameDataVo.getGameStartBalance().put(playerId, getTransactionItemNum(playerId));
-            }
-            log.info("################ 斗仙牌开局 roomCfgId:{} roomId:{} 玩家:{} 开局金币:{} ################",
-                    gameDataVo.getRoomCfg().getId(), roomController.getRoom().getId(), gameDataVo.getActivePlayerIds(), gameDataVo.getGameStartBalance());
-            addPokerPhaseTimer(new DouXianDealPhase(this));
-            return true;
+        if (getCurrentGamePhase() != EGamePhase.WAIT_READY) {
+            return false;
         }
-        return false;
+        // 给还没准备、还没安排过自动准备调度的机器人补一个调度，人齐之前/每局结束重置之后都会重新触发
+        for (SeatInfo seatInfo : gameDataVo.getSeatInfo().values()) {
+            if (!seatInfo.isSeatDown()) {
+                continue;
+            }
+            long seatPlayerId = seatInfo.getPlayerId();
+            if (gameDataVo.getReadyPlayerIds().contains(seatPlayerId) || gameDataVo.getReadyTimerScheduled().contains(seatPlayerId)) {
+                continue;
+            }
+            GamePlayer gamePlayer = gameDataVo.getGamePlayer(seatPlayerId);
+            if (gamePlayer instanceof GameRobotPlayer robotPlayer) {
+                scheduleRobotReady(robotPlayer);
+            }
+        }
+        if (!gameDataVo.canStartGame()) {
+            return false;
+        }
+        for (SeatInfo seatInfo : gameDataVo.getSeatInfo().values()) {
+            if (seatInfo.isSeatDown() && !gameDataVo.getReadyPlayerIds().contains(seatInfo.getPlayerId())) {
+                return false;
+            }
+        }
+        genPlayerSeatInfoList(gameDataVo.getSeatInfo(), gameDataVo.getPlayerSeatInfoList());
+        DouXianDataHelper.shuffleNewDeck(gameDataVo);
+        // 开局前携带金币快照，DESIGN.md 6.2 "小额玩家保护"判定依据之一
+        for (Long playerId : gameDataVo.getActivePlayerIds()) {
+            gameDataVo.getGameStartBalance().put(playerId, getTransactionItemNum(playerId));
+        }
+        log.info("################ 斗仙牌开局 roomCfgId:{} roomId:{} 玩家:{} 开局金币:{} ################",
+                gameDataVo.getRoomCfg().getId(), roomController.getRoom().getId(), gameDataVo.getActivePlayerIds(), gameDataVo.getGameStartBalance());
+        addPokerPhaseTimer(new DouXianDealPhase(this));
+        return true;
+    }
+
+    /**
+     * 给一个机器人安排"自动准备"调度，延迟看起来像是"在思考"，跟出牌/弃牌阶段用的是同一套延迟配置。
+     */
+    private void scheduleRobotReady(GameRobotPlayer robotPlayer) {
+        gameDataVo.getReadyTimerScheduled().add(robotPlayer.getId());
+        int delay = RobotScheduleUtil.getChessExecutionDelay(robotPlayer.getActionId());
+        DouXianRobotHandler handler = new DouXianRobotHandler(robotPlayer, DouXianRobotHandler.GO_READY, this);
+        RobotScheduleUtil.schedule(getRoomController(), handler, delay);
+        log.info("斗仙牌安排机器人自动准备 playerId:{} 延迟:{}ms", robotPlayer.getId(), delay);
+    }
+
+    /**
+     * 机器人自动准备，由 {@link com.jjg.game.poker.game.douxian.autohandler.DouXianRobotHandler} 延迟触发。
+     */
+    public void robotGoReady(long playerId) {
+        if (getCurrentGamePhase() != EGamePhase.WAIT_READY || gameDataVo.getReadyPlayerIds().contains(playerId)) {
+            return;
+        }
+        gameDataVo.getReadyPlayerIds().add(playerId);
+        broadcastReadyState(playerId, 1);
+        log.info("斗仙牌机器人自动准备完成 playerId:{}", playerId);
+        tryStartGame();
+    }
+
+    /**
+     * 真人玩家请求准备/取消准备。
+     */
+    public void reqGoReady(long playerId, ReqDouXianGoReady req) {
+        if (getCurrentGamePhase() != EGamePhase.WAIT_READY) {
+            log.warn("斗仙牌准备请求被忽略(未回错误码给客户端) playerId:{} status:{} 原因:当前阶段:{}(需要WAIT_READY，说明本局已经开始/还没结束)",
+                    playerId, req.status, getCurrentGamePhase());
+            return;
+        }
+        boolean seatDown = gameDataVo.getSeatInfo().values().stream()
+                .anyMatch(s -> s.getPlayerId() == playerId && s.isSeatDown());
+        if (!seatDown) {
+            log.warn("斗仙牌准备请求被忽略(未回错误码给客户端) playerId:{} status:{} 原因:该玩家不在座位表里或未坐下，座位表:{}",
+                    playerId, req.status, gameDataVo.getSeatInfo());
+            return;
+        }
+        if (req.status == 1) {
+            if (gameDataVo.getReadyPlayerIds().add(playerId)) {
+                broadcastReadyState(playerId, 1);
+                log.info("斗仙牌玩家准备 playerId:{}", playerId);
+                tryStartGame();
+            }
+        } else {
+            if (gameDataVo.getReadyPlayerIds().remove(playerId)) {
+                broadcastReadyState(playerId, 2);
+                log.info("斗仙牌玩家取消准备 playerId:{}", playerId);
+            }
+        }
+    }
+
+    private void broadcastReadyState(long playerId, int status) {
+        NotifyDouXianPlayerReady notify = new NotifyDouXianPlayerReady();
+        notify.playerId = playerId;
+        notify.status = status;
+        broadcastToPlayers(RoomMessageBuilder.newBuilder().toAllPlayer().setData(notify));
     }
 
     /**
@@ -132,16 +237,32 @@ public class DouXianGameController extends BasePokerGameController<DouXianGameDa
      */
     public void finishRoundCycle() {
         if (gameDataVo.getRound() >= DouXianConstant.Common.TOTAL_ROUND) {
-            log.info("################ 斗仙牌第{}回合(最后一回合)结束，大结算尚未实现，本局直接结束 roomCfgId:{} ################",
+            log.info("========== 斗仙牌第{}回合(最后一回合)结束，触发大结算 roomCfgId:{} ==========",
                     gameDataVo.getRound(), gameDataVo.getRoomCfg().getId());
-            goBackWaitReadyPhase();
-            gameDataVo.resetData(this);
-            tryStartNextGame();
+            triggerGrandSettlement();
             return;
         }
         log.info("========== 斗仙牌第{}回合结束，进入第{}回合 ==========", gameDataVo.getRound(), gameDataVo.getRound() + 1);
         gameDataVo.nextRound();
         addPokerPhaseTimer(new DouXianDealPhase(this));
+    }
+
+    /**
+     * 大结算(DESIGN.md 8.12)：第4回合正常结束、或只剩1名玩家未认输时触发。统计每个玩家分回合的
+     * 净输赢({@link DouXianGameDataVo#recordRoundChange} 在每回合结算时已经记好账，见
+     * {@link com.jjg.game.poker.game.douxian.gamephase.DouXianSettlementPhase})，组装广播之后
+     * 才回到等待阶段，不是直接静默重置。
+     */
+    private void triggerGrandSettlement() {
+        List<DouXianGrandSettlementPlayerInfo> playerResults = DouXianBuilder.buildGrandSettlementPlayerInfos(this);
+        NotifyDouXianGrandSettlement notify = new NotifyDouXianGrandSettlement();
+        notify.playerResults = playerResults;
+        broadcastToPlayers(RoomMessageBuilder.newBuilder().toAllPlayer().setData(notify));
+        log.info("################ 斗仙牌大结算 roomCfgId:{} 结果:{} ################",
+                gameDataVo.getRoomCfg().getId(), playerResults);
+        goBackWaitReadyPhase();
+        gameDataVo.resetData(this);
+        tryStartNextGame();
     }
 
     @Override
@@ -196,17 +317,24 @@ public class DouXianGameController extends BasePokerGameController<DouXianGameDa
         if (getCurrentGamePhase() != EGamePhase.PLAY_CART
                 || gameDataVo.getConcededPlayerIds().contains(playerId)
                 || gameDataVo.getConfirmedPlayerIds().contains(playerId)) {
+            log.warn("斗仙牌摆牌被拒绝(FORBID) playerId:{} 原因:当前阶段:{}(需要PLAY_CART) 已认输:{} 已确认出牌:{} req:{}",
+                    playerId, getCurrentGamePhase(), gameDataVo.getConcededPlayerIds().contains(playerId),
+                    gameDataVo.getConfirmedPlayerIds().contains(playerId), req.cardIds);
             sendPlaceCardError(playerId, Code.FORBID);
             return;
         }
         DouXianZone zone = DouXianZone.fromId(req.zoneId);
         int round = gameDataVo.getRound();
         if (zone == null || !zone.isOpenAt(round)) {
+            log.warn("斗仙牌摆牌被拒绝(PARAM_ERROR) playerId:{} 原因:区域id:{}无效或本回合({})未开放，解析出的区域:{}",
+                    playerId, req.zoneId, round, zone);
             sendPlaceCardError(playerId, Code.PARAM_ERROR);
             return;
         }
         DouXianZoneCards zoneCards = gameDataVo.getPlayerZoneCards(playerId).get(zone);
         if (req.cardIds.size() > zone.getCapacity() - zoneCards.getCarriedCards().size()) {
+            log.warn("斗仙牌摆牌被拒绝(PARAM_ERROR) playerId:{} zone:{} 原因:请求摆{}张，超出该区域剩余可摆数量(容量{}-已锁定{}张)",
+                    playerId, zone, req.cardIds.size(), zone.getCapacity(), zoneCards.getCarriedCards().size());
             sendPlaceCardError(playerId, Code.PARAM_ERROR);
             return;
         }
@@ -219,6 +347,11 @@ public class DouXianGameController extends BasePokerGameController<DouXianGameDa
             Integer cfgId = DouXianDataHelper.findCfgIdByClientId(gameDataVo, clientId);
             if (cfgId == null || !available.contains(cfgId) || !seen.add(cfgId)) {
                 // cfgId为null:客户端id无效；不在available里:不属于该玩家；seen.add()==false:请求里重复摆了同一张牌
+                String reason = cfgId == null ? "客户端牌id无效，找不到对应配置" :
+                        !available.contains(cfgId) ? "这张牌不在该玩家手牌/该区域已摆的牌里(不属于该玩家或已经用过)" :
+                                "请求里重复摆了同一张牌";
+                log.warn("斗仙牌摆牌被拒绝(PARAM_ERROR) playerId:{} zone:{} 原因:{} 出问题的clientId:{} 解析出的cfgId:{} 请求整体:{} 手牌:{}",
+                        playerId, zone, reason, clientId, cfgId, req.cardIds, DouXianDataHelper.cfgIdsToString(gameDataVo, hand));
                 sendPlaceCardError(playerId, Code.PARAM_ERROR);
                 return;
             }
@@ -232,21 +365,7 @@ public class DouXianGameController extends BasePokerGameController<DouXianGameDa
         }
         zoneCards.getNewCards().addAll(requestedCfgIds);
 
-        // 本回合还没结算亮牌，不能把摆入的牌面/牌型广播给其他玩家(见DESIGN.md 8.8)：
-        // 本人收到完整牌面，其他人只收到隐藏张数。
-        NotifyDouXianPlaceCardResult selfNotify = new NotifyDouXianPlaceCardResult();
-        selfNotify.playerId = playerId;
-        selfNotify.placement = DouXianBuilder.buildZonePlacements(playerId, gameDataVo, true).stream()
-                .filter(p -> p.zoneId == zone.getId()).findFirst().orElse(null);
-        selfNotify.remainHandCardNum = hand.size();
-        broadcastToPlayers(RoomMessageBuilder.newBuilder().sendPlayer(playerId, selfNotify));
-
-        NotifyDouXianPlaceCardResult othersNotify = new NotifyDouXianPlaceCardResult();
-        othersNotify.playerId = playerId;
-        othersNotify.placement = DouXianBuilder.buildZonePlacements(playerId, gameDataVo, false).stream()
-                .filter(p -> p.zoneId == zone.getId()).findFirst().orElse(null);
-        othersNotify.remainHandCardNum = hand.size();
-        broadcastToPlayers(RoomMessageBuilder.newBuilder().toAllPlayer().exceptPlayer(playerId).setData(othersNotify));
+        broadcastPlaceCardResult(playerId, zone, hand.size());
 
         log.info("斗仙牌摆牌 playerId:{} zone:{} 本次摆入:{} 该区域当前:{} 剩余手牌:{}",
                 playerId, zone, DouXianDataHelper.cfgIdsToString(gameDataVo, requestedCfgIds),
@@ -261,10 +380,34 @@ public class DouXianGameController extends BasePokerGameController<DouXianGameDa
         broadcastToPlayers(RoomMessageBuilder.newBuilder().sendPlayer(playerId, notify));
     }
 
+    /**
+     * 广播某玩家某个区域的摆牌结果，手动摆牌(reqPlaceCard)和自动摆牌(autoFillAndConfirm，
+     * 覆盖超时/机器人/托管三种场景)共用。本回合还没结算亮牌，不能把摆入的牌面/牌型广播给
+     * 其他玩家(见DESIGN.md 8.8)：本人收到完整牌面，其他人只收到隐藏张数。
+     */
+    private void broadcastPlaceCardResult(long playerId, DouXianZone zone, int remainHandCardNum) {
+        NotifyDouXianPlaceCardResult selfNotify = new NotifyDouXianPlaceCardResult();
+        selfNotify.playerId = playerId;
+        selfNotify.placement = DouXianBuilder.buildZonePlacements(playerId, gameDataVo, true).stream()
+                .filter(p -> p.zoneId == zone.getId()).findFirst().orElse(null);
+        selfNotify.remainHandCardNum = remainHandCardNum;
+        broadcastToPlayers(RoomMessageBuilder.newBuilder().sendPlayer(playerId, selfNotify));
+
+        NotifyDouXianPlaceCardResult othersNotify = new NotifyDouXianPlaceCardResult();
+        othersNotify.playerId = playerId;
+        othersNotify.placement = DouXianBuilder.buildZonePlacements(playerId, gameDataVo, false).stream()
+                .filter(p -> p.zoneId == zone.getId()).findFirst().orElse(null);
+        othersNotify.remainHandCardNum = remainHandCardNum;
+        broadcastToPlayers(RoomMessageBuilder.newBuilder().toAllPlayer().exceptPlayer(playerId).setData(othersNotify));
+    }
+
     public void reqConfirmPlay(long playerId, ReqDouXianConfirmPlay req) {
         if (getCurrentGamePhase() != EGamePhase.PLAY_CART
                 || gameDataVo.getConcededPlayerIds().contains(playerId)
                 || gameDataVo.getConfirmedPlayerIds().contains(playerId)) {
+            log.warn("斗仙牌确认出牌被忽略(未回错误码给客户端) playerId:{} 原因:当前阶段:{}(需要PLAY_CART) 已认输:{} 已确认出牌:{}",
+                    playerId, getCurrentGamePhase(), gameDataVo.getConcededPlayerIds().contains(playerId),
+                    gameDataVo.getConfirmedPlayerIds().contains(playerId));
             return;
         }
         int round = gameDataVo.getRound();
@@ -272,7 +415,10 @@ public class DouXianGameController extends BasePokerGameController<DouXianGameDa
             if (!zone.isOpenAt(round)) {
                 continue;
             }
-            if (!gameDataVo.getPlayerZoneCards(playerId).get(zone).isFull()) {
+            DouXianZoneCards zoneCards = gameDataVo.getPlayerZoneCards(playerId).get(zone);
+            if (!zoneCards.isFull()) {
+                log.warn("斗仙牌确认出牌被拒绝(PARAM_ERROR) playerId:{} round:{} 原因:{}区域还没摆满(容量{}，已锁定{}张+本回合已摆{}张)",
+                        playerId, round, zone, zone.getCapacity(), zoneCards.getCarriedCards().size(), zoneCards.getNewCards().size());
                 NotifyDouXianConfirmResult error = new NotifyDouXianConfirmResult();
                 error.code = Code.PARAM_ERROR;
                 error.playerId = playerId;
@@ -312,6 +458,12 @@ public class DouXianGameController extends BasePokerGameController<DouXianGameDa
 
     /**
      * 托管/超时时自动摆牌：按 仙>灵>凡 优先级贪心选灵力值最高的组合(DESIGN.md 5.)
+     * <p>
+     * 注意：这里故意不做"是否全部确认，提前结束阶段"的检查(不像 reqConfirmPlay 那样)——因为这个方法
+     * 除了被机器人的异步调度回调(安全)调用之外，还会被 {@link DouXianPlayCardPhase#phaseDoAction}
+     * 在 addPokerPhaseTimer 的同步调用栈里直接调用(处理跨回合持续托管的玩家)，那种场景下提前触发
+     * phaseFinish 会跟外层还没执行完的 addPokerPhaseTimer 重入冲突。机器人调用这个方法之后想要的
+     * "提前结束阶段"效果，见 {@link #robotAutoFillAndConfirm}。
      */
     public void autoFillAndConfirm(long playerId) {
         if (gameDataVo.getConfirmedPlayerIds().contains(playerId)) {
@@ -344,10 +496,23 @@ public class DouXianGameController extends BasePokerGameController<DouXianGameDa
             log.info("斗仙牌自动摆牌(托管/机器人) playerId:{} zone:{} 候选手牌:{} 选中:{} 结果:{}({})",
                     playerId, zone, DouXianDataHelper.cardsToString(candidates), DouXianDataHelper.cardsToString(chosenNew),
                     best.getHandType().getDisplayName(), best.getAetherValue());
+            broadcastPlaceCardResult(playerId, zone, hand.size());
         }
         gameDataVo.getConfirmedPlayerIds().add(playerId);
         broadcastConfirmResult(playerId);
         logPlayerFinalHands("托管/机器人自动确认", playerId);
+    }
+
+    /**
+     * 供机器人调度(异步回调，安全)调用：自动摆牌确认之后，跟玩家主动确认(reqConfirmPlay)一样
+     * 检查是否全部确认，是的话提前结束出牌阶段，不用死等到30s超时。
+     */
+    public void robotAutoFillAndConfirm(long playerId) {
+        autoFillAndConfirm(playerId);
+        if (isAllActiveConfirmed()) {
+            removePokerPhaseTimer();
+            currentGamePhase.phaseFinish();
+        }
     }
 
     private void broadcastConfirmResult(long playerId) {
@@ -391,6 +556,9 @@ public class DouXianGameController extends BasePokerGameController<DouXianGameDa
         if (getCurrentGamePhase() != EGamePhase.DISCARD
                 || gameDataVo.getConcededPlayerIds().contains(playerId)
                 || gameDataVo.getDiscardedPlayerIds().contains(playerId)) {
+            log.warn("斗仙牌弃牌被忽略(未回错误码给客户端) playerId:{} 原因:当前阶段:{}(需要DISCARD) 已认输:{} 已处理过弃牌:{}",
+                    playerId, getCurrentGamePhase(), gameDataVo.getConcededPlayerIds().contains(playerId),
+                    gameDataVo.getDiscardedPlayerIds().contains(playerId));
             return;
         }
         List<Integer> hand = gameDataVo.getHandCards().computeIfAbsent(playerId, k -> new ArrayList<>());
@@ -401,6 +569,11 @@ public class DouXianGameController extends BasePokerGameController<DouXianGameDa
                 Integer cfgId = DouXianDataHelper.findCfgIdByClientId(gameDataVo, clientId);
                 if (cfgId == null || !hand.contains(cfgId) || !seen.add(cfgId)) {
                     // cfgId为null:客户端id无效；不在hand里:不属于该玩家；seen.add()==false:请求里重复弃了同一张牌
+                    String reason = cfgId == null ? "客户端牌id无效，找不到对应配置" :
+                            !hand.contains(cfgId) ? "这张牌不在该玩家手牌里(不属于该玩家或已经弃过/摆出去了)" :
+                                    "请求里重复弃了同一张牌";
+                    log.warn("斗仙牌弃牌被拒绝(PARAM_ERROR) playerId:{} 原因:{} 出问题的clientId:{} 解析出的cfgId:{} 请求整体:{} 手牌:{}",
+                            playerId, reason, clientId, cfgId, req.cardIds, DouXianDataHelper.cfgIdsToString(gameDataVo, hand));
                     NotifyDouXianDiscardResult error = new NotifyDouXianDiscardResult();
                     error.code = Code.PARAM_ERROR;
                     error.playerId = playerId;
@@ -423,12 +596,28 @@ public class DouXianGameController extends BasePokerGameController<DouXianGameDa
         }
     }
 
+    /**
+     * 托管/超时时自动弃牌(固定选择"不弃")，调用场景和为什么不能在这里直接做"提前结束阶段"检查，
+     * 跟 {@link #autoFillAndConfirm} 完全一样，机器人想要提前结束阶段的效果见 {@link #robotAutoNoDiscard}。
+     */
     public void autoNoDiscard(long playerId) {
         if (gameDataVo.getDiscardedPlayerIds().contains(playerId)) {
             return;
         }
         gameDataVo.getDiscardedPlayerIds().add(playerId);
         broadcastDiscardResult(playerId, true, 0);
+    }
+
+    /**
+     * 供机器人调度(异步回调，安全)调用：自动弃牌之后，跟玩家主动弃牌(reqDiscard)一样检查是否
+     * 全部完成弃牌，是的话提前结束弃牌阶段，不用死等到20s超时。
+     */
+    public void robotAutoNoDiscard(long playerId) {
+        autoNoDiscard(playerId);
+        if (isAllActiveDiscarded()) {
+            removePokerPhaseTimer();
+            currentGamePhase.phaseFinish();
+        }
     }
 
     private void broadcastDiscardResult(long playerId, boolean noDiscard, int discardCount) {
@@ -470,14 +659,58 @@ public class DouXianGameController extends BasePokerGameController<DouXianGameDa
     }
 
     // ------------------------------------------------------------------
-    // 即时充值复活(DESIGN.md 8.9)
-    // TODO(需要支付网关联调): 没有真实支付渠道可以验证"充值成功"，reqRecharge 目前只能记录请求，
-    // 不能真的补充金币；倒计时到了(DouXianRechargePhase 超时)一律按认输处理，见 forceFinishRechargePhase。
+    // 即时充值复活(DESIGN.md 8.9)：花玩家已经拥有的钻石换金币，纯内存兑换，跟真实支付网关
+    // (那是recharge模块处理真金白银订单的事)没有关系。倒计时到了还没充值成功的，
+    // 一律按认输处理，见 forceFinishRechargePhase。
     // ------------------------------------------------------------------
 
     public void reqRecharge(long playerId, ReqDouXianRecharge req) {
-        log.warn("收到斗仙牌即时充值复活请求，未接入真实支付渠道，暂时无法处理 playerId:{} rechargeOptionId:{}",
-                playerId, req.rechargeOptionId);
+        if (getCurrentGamePhase() != EGamePhase.RECHARGE || !gameDataVo.getRechargingPlayerIds().contains(playerId)) {
+            log.warn("斗仙牌充值复活请求被忽略 playerId:{} 原因:当前阶段:{}(需要RECHARGE) 是否在充值等待名单里:{}",
+                    playerId, getCurrentGamePhase(), gameDataVo.getRechargingPlayerIds().contains(playerId));
+            return;
+        }
+        DouXianDataHelper.DouXianRechargeCost cost = DouXianDataHelper.getRechargeCost();
+        if (cost == null) {
+            log.error("斗仙牌充值复活失败 playerId:{} 原因:配置读取失败(global.xlsx id=270)，具体原因看上一条error日志", playerId);
+            sendRechargeError(playerId, Code.SAMPLE_ERROR);
+            return;
+        }
+        GamePlayer gamePlayer = getGamePlayer(playerId);
+        if (gamePlayer == null) {
+            log.error("斗仙牌充值复活失败 playerId:{} 原因:找不到GamePlayer", playerId);
+            return;
+        }
+        long currentDiamond = gamePlayer.getDiamond();
+        if (currentDiamond < cost.diamondCost()) {
+            log.warn("斗仙牌充值复活失败(NOT_ENOUGH_ITEM) playerId:{} 原因:钻石不足，需要{}，当前只有{}",
+                    playerId, cost.diamondCost(), currentDiamond);
+            sendRechargeError(playerId, Code.NOT_ENOUGH_ITEM);
+            return;
+        }
+        changeCurrency(gamePlayer, Map.of(
+                ItemUtils.getDiamondItemId(), -cost.diamondCost(),
+                ItemUtils.getGoldItemId(), cost.goldReward()
+        ), AddType.ITEM_EXCHANGE, "斗仙牌即时充值复活", true);
+        gameDataVo.getRechargingPlayerIds().remove(playerId);
+        NotifyDouXianRecharge notify = new NotifyDouXianRecharge();
+        notify.playerId = playerId;
+        notify.state = 2;
+        broadcastToPlayers(RoomMessageBuilder.newBuilder().toAllPlayer().setData(notify));
+        log.info("斗仙牌充值复活成功 playerId:{} 花费钻石:{} 获得金币:{} 复活后余额:{} 还在等待充值的玩家:{}",
+                playerId, cost.diamondCost(), cost.goldReward(), getTransactionItemNum(playerId), gameDataVo.getRechargingPlayerIds());
+        // 所有人都处理完了(充值成功或者认输)，不用等满30秒，提前推进到飞升阶段
+        if (gameDataVo.getRechargingPlayerIds().isEmpty() && getCurrentGamePhase() == EGamePhase.RECHARGE) {
+            removePokerPhaseTimer();
+            currentGamePhase.phaseFinish();
+        }
+    }
+
+    private void sendRechargeError(long playerId, int code) {
+        NotifyDouXianRecharge notify = new NotifyDouXianRecharge();
+        notify.code = code;
+        notify.playerId = playerId;
+        broadcastToPlayers(RoomMessageBuilder.newBuilder().sendPlayer(playerId, notify));
     }
 
     public void forceFinishRechargePhase() {
@@ -537,12 +770,8 @@ public class DouXianGameController extends BasePokerGameController<DouXianGameDa
         log.info("斗仙牌玩家认输完成 playerId:{} 剩余活跃玩家数:{}", playerId, gameDataVo.getActivePlayerIds().size());
 
         if (notify.triggerGrandSettlement) {
-            // TODO(阶段4遗留): 应该弹真正的大结算界面，目前跟 finishRoundCycle() 的占位实现一致，
-            // 直接结束本局回到等待阶段。
-            log.warn("斗仙牌只剩一名未认输玩家，大结算尚未实现，本局直接结束 roomCfgId:{}", gameDataVo.getRoomCfg().getId());
-            goBackWaitReadyPhase();
-            gameDataVo.resetData(this);
-            tryStartNextGame();
+            log.info("========== 斗仙牌只剩一名未认输玩家，触发大结算 roomCfgId:{} ==========", gameDataVo.getRoomCfg().getId());
+            triggerGrandSettlement();
             return;
         }
         // 这个玩家的离开可能导致当前阶段"其余人全部完成操作"，需要主动推进，不能一直等一个已经不在的人

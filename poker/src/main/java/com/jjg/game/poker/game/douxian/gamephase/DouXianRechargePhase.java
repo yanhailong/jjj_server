@@ -14,10 +14,10 @@ import com.jjg.game.sampledata.bean.Room_ChessCfg;
 /**
  * 即时充值复活阶段，DESIGN.md 8.9：结算后金币归零的玩家进入30s复活倒计时。
  * <p>
- * TODO(需要支付网关联调): 目前只做了服务端的"倒计时+超时按认输处理"这部分流程，
- * 玩家用钻石购买金币复活(ReqDouXianRecharge)还没接真实支付渠道，见
- * {@link DouXianGameController#reqRecharge}。没有接入前，倒计时到了一律按认输处理，
- * 保证房间流程不会因为等一个充不了值的玩家而卡死。
+ * 花钻石换金币的兑换逻辑见 {@link DouXianGameController#reqRecharge}(阶段13已实现，是纯内存的
+ * 货币兑换，跟真实支付网关无关)。倒计时到了还没充值成功的玩家，一律按认输处理(见
+ * {@link DouXianGameController#forceFinishRechargePhase})，保证房间流程不会因为一直等一个
+ * 钻石不够或者不想充值的玩家而卡死。
  */
 public class DouXianRechargePhase extends BasePokerPhase<DouXianGameDataVo> {
 

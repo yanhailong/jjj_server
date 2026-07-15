@@ -93,5 +93,9 @@ public interface DouXianConstant {
         int NOTIFY_DOU_XIAN_CONCEDE = BASE_MSG_PREFIX | 0x11;
         //通知大结算
         int NOTIFY_DOU_XIAN_GRAND_SETTLEMENT = BASE_MSG_PREFIX | 0x12;
+        //请求准备
+        int REQ_DOU_XIAN_GO_READY = BASE_MSG_PREFIX | 0x13;
+        //通知玩家准备状态
+        int NOTIFY_DOU_XIAN_PLAYER_READY = BASE_MSG_PREFIX | 0x14;
     }
 }

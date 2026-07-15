@@ -34,6 +34,8 @@ public final class DouXianSettlementCalculator {
         int cmp = DouXianHandEvaluator.compareAether(resultA, resultB);
         info.winnerAether = cmp >= 0 ? resultA.getAetherValue() : resultB.getAetherValue();
         info.loserAether = cmp >= 0 ? resultB.getAetherValue() : resultA.getAetherValue();
+        info.winnerHandTypeName = cmp >= 0 ? resultA.getHandType().getDisplayName() : resultB.getHandType().getDisplayName();
+        info.loserHandTypeName = cmp >= 0 ? resultB.getHandType().getDisplayName() : resultA.getHandType().getDisplayName();
         if (cmp == 0) {
             return info;
         }
@@ -63,6 +65,8 @@ public final class DouXianSettlementCalculator {
             info.loserId = loserId;
             info.winnerAether = winnerResult.getAetherValue();
             info.loserAether = loserResult.getAetherValue();
+            info.winnerHandTypeName = winnerResult.getHandType().getDisplayName();
+            info.loserHandTypeName = loserResult.getHandType().getDisplayName();
             info.changeValue = (winnerResult.getAetherValue() - loserResult.getAetherValue()) * betBase;
             list.add(info);
         }

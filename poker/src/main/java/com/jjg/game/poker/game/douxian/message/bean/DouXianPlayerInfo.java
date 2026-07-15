@@ -21,4 +21,6 @@ public class DouXianPlayerInfo {
     public boolean hosting;
     @ProtoDesc("是否已认输")
     public boolean conceded;
+    @ProtoDesc("是否已准备(仅等待阶段WAIT_READY有意义)")
+    public boolean ready;
 }

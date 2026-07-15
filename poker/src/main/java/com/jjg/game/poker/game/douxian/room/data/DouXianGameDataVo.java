@@ -47,7 +47,7 @@ public class DouXianGameDataVo extends BasePokerGameDataVo {
     private final Set<Long> concededPlayerIds = new HashSet<>();
 
     /**
-     * 托管中的玩家，持续到玩家主动取消托管
+     * 托管中的玩家，持续到玩家主动取消托管(不会因为进入新回合而自动清除)
      */
     private final Set<Long> hostingPlayerIds = new HashSet<>();
 
@@ -73,6 +73,26 @@ public class DouXianGameDataVo extends BasePokerGameDataVo {
      * DESIGN.md 6.2 "小额玩家保护"的判定依据之一。
      */
     private final Map<Long, Long> roundStartBalance = new HashMap<>();
+
+    /**
+     * 等待阶段(WAIT_READY)已确认准备的玩家，DESIGN.md 3.1 匹配阶段：仿南方前进，
+     * 人齐(座位坐满)之后还需要全员都在这个集合里才会真正开局，每局结束resetData都会清空。
+     */
+    private final Set<Long> readyPlayerIds = new HashSet<>();
+
+    /**
+     * 已经安排过"自动准备"调度的机器人玩家id，避免 tryStartGame 被反复调用时重复下发调度，
+     * 每局结束resetData都会清空，下一局会重新给还坐在位置上的机器人安排。
+     */
+    private final Set<Long> readyTimerScheduled = new HashSet<>();
+
+    /**
+     * 玩家id -> 每回合结算后的净输赢(不含充值复活换来的金币，那是兑换不是输赢)，下标0对应
+     * 该玩家参与的第1个回合，只记录实际打过结算的回合(比如认输之后就不会再有新的记录)。
+     * 大结算({@link com.jjg.game.poker.game.douxian.room.DouXianGameController#triggerGrandSettlement}
+     * )直接用这个填 {@code DouXianGrandSettlementPlayerInfo.roundChangeList}，DESIGN.md 8.12
+     */
+    private final Map<Long, List<Long>> roundChangeList = new HashMap<>();
 
     public DouXianGameDataVo(Room_ChessCfg roomCfg) {
         super(roomCfg);
@@ -124,6 +144,25 @@ public class DouXianGameDataVo extends BasePokerGameDataVo {
         return roundStartBalance;
     }
 
+    public Set<Long> getReadyPlayerIds() {
+        return readyPlayerIds;
+    }
+
+    public Set<Long> getReadyTimerScheduled() {
+        return readyTimerScheduled;
+    }
+
+    public Map<Long, List<Long>> getRoundChangeList() {
+        return roundChangeList;
+    }
+
+    /**
+     * 结算阶段每回合调用一次，记一笔这个玩家本回合的净输赢
+     */
+    public void recordRoundChange(long playerId, long change) {
+        roundChangeList.computeIfAbsent(playerId, key -> new ArrayList<>()).add(change);
+    }
+
     /**
      * 当前还在游戏中的玩家id：座位没被标记删除、且没有认输
      */
@@ -159,5 +198,8 @@ public class DouXianGameDataVo extends BasePokerGameDataVo {
         rechargingPlayerIds.clear();
         gameStartBalance.clear();
         roundStartBalance.clear();
+        readyPlayerIds.clear();
+        readyTimerScheduled.clear();
+        roundChangeList.clear();
     }
 }

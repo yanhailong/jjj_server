@@ -15,6 +15,11 @@ import org.slf4j.LoggerFactory;
  * 算法({@link DouXianGameController#autoFillAndConfirm})，只是不用等到阶段超时，
  * 在阶段开始时就按 {@link com.jjg.game.room.robot.RobotScheduleUtil#getChessExecutionDelay}
  * 给的延迟去执行，看起来像是"在思考"而不是卡到最后一刻。
+ * <p>
+ * 出牌/弃牌调用的是 {@link DouXianGameController#robotAutoFillAndConfirm}/
+ * {@link DouXianGameController#robotAutoNoDiscard} 这两个包装方法，不是直接调
+ * autoFillAndConfirm/autoNoDiscard——这里是机器人调度回调触发的异步入口，可以安全地在自动确认
+ * 之后顺带检查"是否全部完成"、提前结束阶段，机器人如果刚好是最后一个确认的人，不用干等到超时。
  */
 public class DouXianRobotHandler extends BasePokerRobotProcessorHandler<DouXianGameDataVo> {
 
@@ -24,6 +29,8 @@ public class DouXianRobotHandler extends BasePokerRobotProcessorHandler<DouXianG
     public static final int PLAY_CARD = 1;
     //弃牌阶段：选择不弃(和托管默认行为一致，DESIGN.md 5.)
     public static final int DISCARD = 2;
+    //等待阶段：自动准备，DESIGN.md 3.1 匹配阶段
+    public static final int GO_READY = 3;
 
     public DouXianRobotHandler(GameRobotPlayer gameRobotPlayer, int type, BasePokerGameController<DouXianGameDataVo> gameController) {
         super(gameRobotPlayer, type, gameController);
@@ -45,13 +52,19 @@ public class DouXianRobotHandler extends BasePokerRobotProcessorHandler<DouXianG
                 if (controller.getCurrentGamePhase() != EGamePhase.PLAY_CART) {
                     return;
                 }
-                controller.autoFillAndConfirm(playerId);
+                controller.robotAutoFillAndConfirm(playerId);
             }
             case DISCARD -> {
                 if (controller.getCurrentGamePhase() != EGamePhase.DISCARD) {
                     return;
                 }
-                controller.autoNoDiscard(playerId);
+                controller.robotAutoNoDiscard(playerId);
+            }
+            case GO_READY -> {
+                if (controller.getCurrentGamePhase() != EGamePhase.WAIT_READY) {
+                    return;
+                }
+                controller.robotGoReady(playerId);
             }
             default -> log.warn("斗仙牌机器人未知的调度类型 playerId:{} type:{}", playerId, getType());
         }

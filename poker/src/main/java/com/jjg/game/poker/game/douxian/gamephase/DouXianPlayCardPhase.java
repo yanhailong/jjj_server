@@ -22,6 +22,10 @@ import com.jjg.game.sampledata.bean.Room_ChessCfg;
  * 不会再去检查"是否所有人都确认从而提前结束阶段"——那个检查必须只在 reqConfirmPlay 的调用栈里做，
  * 因为 phaseDoAction 是在 BasePokerGameController#addPokerPhaseTimer 内部同步调用的，
  * 如果在这里提前触发阶段切换会和外层还没执行完的 addPokerPhaseTimer 产生重入冲突。
+ * <p>
+ * 托管状态跨回合持续：一旦某回合出牌超时进了托管，会一直保持托管状态直到玩家主动取消
+ * ({@link DouXianGameController#reqCancelHosting})，不会因为进入新回合而自动清除，
+ * 所以每回合出牌阶段开始时都要对"已经在托管中"的玩家做一次自动摆牌+确认。
  */
 public class DouXianPlayCardPhase extends BasePokerPhase<DouXianGameDataVo> {
 

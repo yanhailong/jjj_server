@@ -2,6 +2,7 @@ package com.jjg.game.poker.game.douxian.message.bean;
 
 import com.jjg.game.common.proto.ProtoDesc;
 import com.jjg.game.common.proto.ProtobufMessage;
+import com.jjg.game.poker.game.common.message.bean.PokerPlayerInfo;
 
 import java.util.List;
 
@@ -11,6 +12,8 @@ import java.util.List;
 @ProtobufMessage
 @ProtoDesc("斗仙牌大结算玩家信息")
 public class DouXianGrandSettlementPlayerInfo {
+    @ProtoDesc("玩家基本信息(头像/昵称/当前金币等，结算弹窗展示用，不用再单独查)")
+    public PokerPlayerInfo pokerPlayerInfo;
     @ProtoDesc("玩家id")
     public long playerId;
     @ProtoDesc("每回合输赢(下标0对应第1回合)")

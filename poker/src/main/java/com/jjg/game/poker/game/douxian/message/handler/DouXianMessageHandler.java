@@ -9,6 +9,7 @@ import com.jjg.game.poker.game.douxian.message.req.ReqDouXianCancelHosting;
 import com.jjg.game.poker.game.douxian.message.req.ReqDouXianConcede;
 import com.jjg.game.poker.game.douxian.message.req.ReqDouXianConfirmPlay;
 import com.jjg.game.poker.game.douxian.message.req.ReqDouXianDiscard;
+import com.jjg.game.poker.game.douxian.message.req.ReqDouXianGoReady;
 import com.jjg.game.poker.game.douxian.message.req.ReqDouXianPlaceCard;
 import com.jjg.game.poker.game.douxian.message.req.ReqDouXianRecharge;
 import com.jjg.game.poker.game.douxian.room.DouXianGameController;
@@ -71,6 +72,14 @@ public class DouXianMessageHandler {
         DouXianGameController controller = getController(playerController.playerId());
         if (controller != null) {
             controller.reqDiscard(playerController.playerId(), req);
+        }
+    }
+
+    @Command(value = DouXianConstant.MsgBean.REQ_DOU_XIAN_GO_READY)
+    public void reqGoReady(PlayerController playerController, ReqDouXianGoReady req) {
+        DouXianGameController controller = getController(playerController.playerId());
+        if (controller != null) {
+            controller.reqGoReady(playerController.playerId(), req);
         }
     }
 

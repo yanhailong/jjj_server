@@ -154,6 +154,13 @@ public class DouXianSettlementPhase extends BasePokerPhase<DouXianGameDataVo> {
         log.info("---------- 斗仙牌结算结束 round:{} 结算对数:{} 结算后金币:{} ----------",
                 round, pairResults.size(), balanceAfter);
 
+        // 大结算(DESIGN.md 8.12)要用的分回合输赢记账，用"回合开始时余额"跟"结算后余额"的差值即可，
+        // 不需要逐笔转账去累加——充值复活换的金币发生在结算之后(recharge阶段)，不会计入这里
+        for (Long playerId : activePlayerIds) {
+            long before = gameDataVo.getRoundStartBalance().getOrDefault(playerId, balanceAfter.get(playerId));
+            gameDataVo.recordRoundChange(playerId, balanceAfter.get(playerId) - before);
+        }
+
         NotifyDouXianSettlement notify = new NotifyDouXianSettlement();
         notify.round = round;
         notify.pairResults = pairResults;
@@ -269,8 +276,8 @@ public class DouXianSettlementPhase extends BasePokerPhase<DouXianGameDataVo> {
     }
 
     /**
-     * TODO(需要支付网关联调): 只做了"检测到金币结算至0，进入30s复活倒计时"这部分服务端流程，
-     * 真正的钻石购买金币复活(ReqDouXianRecharge)还没接支付渠道，见 DouXianGameController#reqRecharge。
+     * 检测到金币结算至0的玩家，进入30s复活倒计时；花钻石换金币的真正兑换逻辑见
+     * {@link com.jjg.game.poker.game.douxian.room.DouXianGameController#reqRecharge}(阶段13已实现，跟支付网关无关)。
      */
     private List<Long> detectNeedRecharge(BasePokerGameController<DouXianGameDataVo> controller, List<Long> activePlayerIds) {
         List<Long> result = new ArrayList<>();

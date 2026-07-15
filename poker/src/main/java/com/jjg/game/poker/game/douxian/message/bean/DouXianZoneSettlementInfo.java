@@ -19,6 +19,10 @@ public class DouXianZoneSettlementInfo {
     public long winnerAether;
     @ProtoDesc("输家灵力值")
     public long loserAether;
+    @ProtoDesc("赢家牌型名称")
+    public String winnerHandTypeName;
+    @ProtoDesc("输家牌型名称")
+    public String loserHandTypeName;
     @ProtoDesc("本次结算实际变化的金额(已按封顶/最小输赢裁剪)")
     public long changeValue;
 }

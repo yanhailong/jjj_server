@@ -301,7 +301,7 @@ public class BlackJackSettlementPhase extends BaseSettlementPhase<BlackJackGameD
         gameDataTracker.addGameLogData("tax", totalTax);
         gameDataTracker.addGameLogData("dealerCards", settlementPlayerInfo.cardIds);
         gameDataTracker.addGameLogData("playerCards", playerCards);
-        log.info("21点结算信息: {}", JSON.toJSONString(settlementPlayerInfo));
+//        log.info("21点结算信息: {}", JSON.toJSONString(settlementPlayerInfo));
         addLog(controller, playerGet);
         gameDataVo.setSettlementInfo(settlementPlayerInfo);
         dealRoomPool(poolWinValue, poolLoseValue);
