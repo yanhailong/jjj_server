@@ -139,7 +139,14 @@ public class SimMessageHandler implements GmListener {
     @Command(SimConstant.MsgBean.REQ_UNLOCK_BUILDING)
     public void reqUnlockBuilding(PlayerController playerController, ReqUnlockBuilding req) {
         execute(playerController, ctx -> {
-            buildingService.onUnlockBuilding(ctx, req.id);
+            ResUnlockBuilding res = buildingService.onUnlockBuilding(ctx, req.id);
+            ctx.send(res);
+
+            //TODO 提审临时用
+            if(res.code == Code.SUCCESS){
+                guestService.unlockGuest(ctx,1001);
+                guestService.unlockGuest(ctx,1002);
+            }
         });
     }
 

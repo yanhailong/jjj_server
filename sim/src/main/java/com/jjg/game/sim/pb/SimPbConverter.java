@@ -42,13 +42,14 @@ public final class SimPbConverter {
         return info;
     }
 
-    public static BuildingInfo toBuildingInfo(BuildingData buildingData) {
+    public static BuildingInfo toBuildingInfo(BuildingData buildingData, long now) {
         BuildingInfo info = new BuildingInfo();
         info.id = buildingData.getId();
         info.level = buildingData.getLevel();
         info.cdEndTime = buildingData.getCdEndTime();
         info.progress = buildingData.getProgress();
         info.watchAdCount = buildingData.getAdClearCount();
+        info.cdZero = buildingData.getCdEndTime() <= now;
         return info;
     }
 
@@ -94,8 +95,9 @@ public final class SimPbConverter {
             return null;
         }
         List<BuildingInfo> list = new ArrayList<>(casino.getBuildingData().size());
+        long now = System.currentTimeMillis();
         for (BuildingData b : casino.getBuildingData().values()) {
-            list.add(SimPbConverter.toBuildingInfo(b));
+            list.add(SimPbConverter.toBuildingInfo(b, now));
         }
         return list;
     }

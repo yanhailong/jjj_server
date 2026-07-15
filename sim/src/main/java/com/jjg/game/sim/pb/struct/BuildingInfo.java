@@ -20,4 +20,6 @@ public class BuildingInfo {
     public int progress;
     @ProtoDesc("已经观看的广告次数")
     public int watchAdCount;
+    @ProtoDesc("cd是否清零")
+    public boolean cdZero;
 }

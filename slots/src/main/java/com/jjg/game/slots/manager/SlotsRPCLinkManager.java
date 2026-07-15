@@ -24,6 +24,7 @@ import org.springframework.stereotype.Component;
 
 import java.util.HashMap;
 import java.util.Map;
+import java.util.concurrent.ThreadLocalRandom;
 
 /**
  * @author 11
@@ -50,6 +51,10 @@ public class SlotsRPCLinkManager {
      */
     public void notifySpin(SlotsPlayerGameData playerGameData, int gameType, int winTimes,
                            SpinStatInfo statInfo, VisitTrialSpinPermit trialPermit) {
+        if (statInfo != null && statInfo.getSpinId() == 0) {
+            //幂等 id: 超时重试复用同一 id, sim 侧凭此拒绝重复投递 (|1 保证非 0)
+            statInfo.setSpinId(ThreadLocalRandom.current().nextLong() | 1L);
+        }
         notifySpin(playerGameData, gameType, winTimes, statInfo, trialPermit, 0);
     }
 
@@ -93,7 +98,7 @@ public class SlotsRPCLinkManager {
                             if (throwable != null) {
                                 log.warn("sim道具掉落异步调用异常 playerId={},gameType={},winTimes={}", playerId, gameType, winTimes, throwable);
                                 if (retryCount == 0) {
-                                    //同一 permit 可安全重试：sim 侧 pending key 只允许一次结算。
+                                    //重试安全: 试玩凭 permit 幂等, 普通旋转凭 statInfo.spinId 在 sim 侧去重。
                                     notifySpin(playerGameData, gameType, winTimes, statInfo, trialPermit, 1);
                                 }
                                 return;

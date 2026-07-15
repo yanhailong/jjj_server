@@ -6,6 +6,7 @@ import com.jjg.game.season.data.SeasonPlayerData;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import java.util.ArrayDeque;
 import java.util.HashMap;
 import java.util.Map;
 
@@ -41,6 +42,10 @@ public class SimPlayerContext {
     private SeasonPlayerData seasonPlayerData;
     //勋章品质加成缓存 (condition表id -> 千分比加成值; 登录/成就领奖后刷新; 内存态不落库, 供收益计算零IO读取)
     private Map<Integer, Integer> medalBuffMap = new HashMap<>();
+
+    //近期已处理的旋转 RPC 幂等 id (内存态; 防 slots 超时重试双计, 同玩家 RPC 串行执行无需加锁)
+    private final ArrayDeque<Long> recentSpinIds = new ArrayDeque<>();
+    private static final int RECENT_SPIN_ID_MAX = 16;
 
     //上次落库检查时间 (ms; 业务置 0 可强制下个 tick 立即检查落库)
     private long lastSaveTime;
@@ -174,6 +179,22 @@ public class SimPlayerContext {
 
     public void setMedalBuffMap(Map<Integer, Integer> medalBuffMap) {
         this.medalBuffMap = medalBuffMap == null ? new HashMap<>() : medalBuffMap;
+    }
+
+    /**
+     * 标记一次旋转 RPC 已处理。
+     *
+     * @return false 表示该 spinId 近期已处理过 (slots 超时重试的重复投递), 调用方应跳过联动
+     */
+    public boolean markSpinProcessed(long spinId) {
+        if (recentSpinIds.contains(spinId)) {
+            return false;
+        }
+        recentSpinIds.addLast(spinId);
+        if (recentSpinIds.size() > RECENT_SPIN_ID_MAX) {
+            recentSpinIds.removeFirst();
+        }
+        return true;
     }
 
     public long getLastSaveTime() {

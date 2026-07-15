@@ -86,6 +86,10 @@ public class DailyLoginController extends BaseActivityController {
                         //未领取的设置为领取
                         if (data.getClaimStatus() == ActivityConstant.ClaimStatus.NOT_CLAIM) {
                             change = true;
+                            //登录时检查领取条件, 无需充值的条件(如todayDeposit(0,0))登录即可领取
+                            if (conditionManager.isAchievement(player, "", createTimeEvent(activityData), cfg.getCondition())) {
+                                data.setClaimStatus(ActivityConstant.ClaimStatus.CAN_CLAIM);
+                            }
                         }
                     }
                     if ((activityTargetKey & (ActivityTargetType.RECHARGE.getTargetKey() | ActivityTargetType.BIND_PHONE.getTargetKey())) != 0) {
@@ -126,10 +130,13 @@ public class DailyLoginController extends BaseActivityController {
         DailyRewardsCfg cfg = baseCfgBeanMap.get(detailId);
         if (cfg == null || CollectionUtil.isEmpty(cfg.getGetItem())) {
             res.code = Code.PARAM_ERROR;
+            log.warn("领取每日特权奖励错误，获取配置错误, playerId={},detailId={}", playerId, detailId);
             return res;
         }
         if (!conditionManager.isAchievementAndNotify(player, "", createTimeEvent(activityData), cfg.getCondition())) {
-            return null;
+            log.warn("领取每日特权奖励错误，条件未达成, playerId={},detailId={}", playerId, detailId);
+            res.code = Code.FORBID;
+            return res;
         }
         PlayerActivityData data;
         List<Pair<DailyRewardsCfg, PlayerActivityData>> changData = new ArrayList<>();
@@ -145,8 +152,15 @@ public class DailyLoginController extends BaseActivityController {
                 res.code = Code.PARAM_ERROR;
                 return res;
             }
+            //连续签到的领取条件已在上方校验通过, 状态未及时流转的(如当天首次登录早于条件配置生效)直接置为可领取
+            //累计签到的门槛是累计天数而非condition, 不做自愈
+            if (cfg.getType() == ActivityConstant.DailyLogin.CONTINUE_TYPE
+                    && data.getClaimStatus() == ActivityConstant.ClaimStatus.NOT_CLAIM) {
+                data.setClaimStatus(ActivityConstant.ClaimStatus.CAN_CLAIM);
+            }
             if (data.getClaimStatus() != ActivityConstant.ClaimStatus.CAN_CLAIM) {
                 res.code = Code.ERROR_REQ;
+                log.warn("领取每日特权奖励错误，状态不为可领取状态, playerId={},detailId={},status={}", playerId, detailId, data.getClaimStatus());
                 return res;
             }
             // 发放奖励

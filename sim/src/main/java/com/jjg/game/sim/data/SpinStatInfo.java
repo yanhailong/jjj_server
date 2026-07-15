@@ -30,6 +30,8 @@ public class SpinStatInfo {
     private List<Integer> specialModes;
     //本次旋转的图标 (SlotsResultLib.iconArr; 赛季试炼任务判定图标出现次数用)
     private List<Integer> icons;
+    //本次旋转的幂等 id (slots 侧生成, 非 0; sim 侧凭此拒绝超时重试的重复投递)
+    private long spinId;
 
     public SpinStatInfo() {
     }
@@ -120,5 +122,13 @@ public class SpinStatInfo {
 
     public void setIcons(List<Integer> icons) {
         this.icons = icons;
+    }
+
+    public long getSpinId() {
+        return spinId;
+    }
+
+    public void setSpinId(long spinId) {
+        this.spinId = spinId;
     }
 }

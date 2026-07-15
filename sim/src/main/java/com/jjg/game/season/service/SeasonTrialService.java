@@ -97,7 +97,7 @@ public class SeasonTrialService {
             status.setDef(def);
             status.setUnlocked(unlocked(def, snapshot.day(), data, defs));
             if (def.passive() && status.isUnlocked()) {
-                status.setProgress(evaluatePassive(ctx, data, def, now));
+                evaluatePassive(ctx, data, def, now, status);
             } else if (session != null && session.getTrialId() == def.trialId()) {
                 status.setActive(true);
                 status.setSpinCount(session.getSpinCount());
@@ -264,26 +264,35 @@ public class SeasonTrialService {
     }
 
     /**
-     * 被动型 (累计充值) 惰性判定: 满星后不再查库; 达成新星级时就地发奖落库。
-     *
-     * @return 当前累计充值进度 (展示用)
+     * 被动型 (累计充值) 惰性判定: 满星后不再查库; 达成新星级时就地发奖落库,
+     * 并把结算结果挂到 status 上, 供上层下发 NotifySeasonTrialResult。
      */
-    private long evaluatePassive(SimPlayerContext ctx, SeasonPlayerData data, SeasonTrialDef def, long now) {
+    private void evaluatePassive(SimPlayerContext ctx, SeasonPlayerData data, SeasonTrialDef def,
+                                 long now, SeasonTrialStatus status) {
         int prevBest = starsOf(data, def.trialId());
         if (prevBest >= SeasonTrialDef.STAR_COUNT) {
-            return def.topTarget();
+            status.setProgress(def.topTarget());
+            return;
         }
         long progress = playerRechargeFlowDao.sumAmountByPlayerIdAndTimeRange(
                 ctx.playerId(), def.rechargeChannel(), data.getStartTime(), now).longValue();
+        status.setProgress(progress);
         int achieved = def.starsOf(progress);
         if (achieved > prevBest) {
-            grantStarRewards(ctx, def, prevBest, achieved);
+            Map<Integer, Long> rewards = grantStarRewards(ctx, def, prevBest, achieved);
             data.getTrialStars().put(def.trialId(), achieved);
             autoSaveService.enqueueSave(data);
             log.info("玩家[{}]试炼被动关卡达成 trialId={},progress={},achieved={},prevBest={}",
                     ctx.playerId(), def.trialId(), progress, achieved, prevBest);
+            SeasonTrialResult result = new SeasonTrialResult();
+            result.setTrialId(def.trialId());
+            result.setAchievedStars(achieved);
+            result.setBestStars(achieved);
+            result.setRewards(rewards);
+            result.setProgress(progress);
+            result.setSeasonCoin(data.getSeasonCoin());
+            status.setPassiveResult(result);
         }
-        return progress;
     }
 
     /**

@@ -325,7 +325,7 @@ public class SimManager {
      * 创建或获取玩家会话上下文
      */
     public SimPlayerContext createContext(PlayerController playerController) {
-        SimPlayerContext ctx = createContextByPlayerId(playerController.playerId());
+        SimPlayerContext ctx = createContextByPlayerId(playerController.playerId(), playerController);
         if (ctx != null) {
             ctx.setPlayerController(playerController);
         }
@@ -333,6 +333,10 @@ public class SimManager {
     }
 
     public SimPlayerContext createContextByPlayerId(long playerId) {
+        return createContextByPlayerId(playerId, null);
+    }
+
+    private SimPlayerContext createContextByPlayerId(long playerId, PlayerController playerController) {
         SimPlayerContext ctx = this.simPlayerContextRegistry.getContext(playerId);
         if (ctx != null) {
             return ctx;
@@ -345,6 +349,9 @@ public class SimManager {
         //装配 ctx
         ctx = new SimPlayerContext();
         ctx.setPlayerId(playerId);
+        if (playerController != null) {
+            ctx.setPlayerController(playerController);
+        }
 
         //加载玩家数据
         SimBaseData baseData = simPlayerGameDao.findById(playerId).orElse(null);
@@ -353,6 +360,10 @@ public class SimManager {
             baseData.setPlayerId(playerId);
             baseData.setPower(10000);
         }
+
+        //TODO 临时，提审用
+        baseData.setGuide(true);
+
         ctx.setSimBaseData(baseData);
         simMedalService.refreshMedalBonusCache(ctx);
         //加载技能 (须在加载场景数据之前: initUnlock 依赖已入内存的技能等级)
@@ -580,7 +591,7 @@ public class SimManager {
     }
 
     public CommonResult<SlotsSpinResult> onSlotsSpin(long playerId, int gameType, int winTimes, boolean changeNode,
-                                                    SpinStatInfo statInfo, VisitTrialSpinPermit trialPermit) {
+                                                     SpinStatInfo statInfo, VisitTrialSpinPermit trialPermit) {
         try {
             SimPlayerContext ctx = this.simPlayerContextRegistry.getContext(playerId);
             if (ctx == null) {
@@ -595,6 +606,13 @@ public class SimManager {
                 }
             }
 
+            //幂等去重: slots 侧超时重试会重复投递同一次旋转, 凭 statInfo.spinId 拒绝双计 (同玩家 RPC 串行, 无需加锁)
+            long spinId = statInfo == null ? 0 : statInfo.getSpinId();
+            if (spinId != 0 && !ctx.markSpinProcessed(spinId)) {
+                log.warn("slots 联动重复投递, 跳过 playerId={},gameType={},spinId={}", playerId, gameType, spinId);
+                return new CommonResult<>(Code.REPEAT_OP);
+            }
+
             boolean visitTrial = trialPermit != null && trialPermit.isTrial();
             //普通旋转沿用原语义：即使掉落失败也计入统计。试玩需要先通过 permit 幂等结算，避免 RPC 重试重复计数。
             if (!visitTrial) {
@@ -605,6 +623,10 @@ public class SimManager {
                     : simDropService.onSpin(ctx, gameType, winTimes);
             if (!result.success()) {
                 log.warn("slots 联动失败, onSpin执行失败 playerId={},gameType={},winTimes={},code={}", playerId, gameType, winTimes, result.code);
+                //真实旋转已发生: 掉落失败也照常推进赛季联动 (试炼窗口/对局按实际旋转局数计)
+                if (!visitTrial) {
+                    seasonService.onSpin(ctx, gameType, statInfo);
+                }
                 return result;
             }
             if (visitTrial) {
@@ -616,6 +638,7 @@ public class SimManager {
 
             //主线/成就任务联动: 旋转次数 + 累积投注 (内部吞异常, 不影响主流程)
             simTaskService.onSpin(ctx, gameType, statInfo);
+            //赛季联动: 宝石掉落/试炼窗口/对局结算 (内部吞异常, 不影响主流程)
             if (!visitTrial) {
                 seasonService.onSpin(ctx, gameType, statInfo);
             }

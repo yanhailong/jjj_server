@@ -16,6 +16,8 @@ public class SeasonTrialStatus {
     private int spinCount;
     //进行中挑战的当前进度 / 被动型的当前累计值
     private long progress;
+    //被动型本次惰性判定新达成星级时的结算结果 (供上层下发通知; 无新达成为 null)
+    private SeasonTrialResult passiveResult;
 
     public SeasonTrialDef getDef() {
         return def;
@@ -63,5 +65,13 @@ public class SeasonTrialStatus {
 
     public void setProgress(long progress) {
         this.progress = progress;
+    }
+
+    public SeasonTrialResult getPassiveResult() {
+        return passiveResult;
+    }
+
+    public void setPassiveResult(SeasonTrialResult passiveResult) {
+        this.passiveResult = passiveResult;
     }
 }

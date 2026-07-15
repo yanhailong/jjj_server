@@ -132,8 +132,9 @@ public class SimBuildingService implements SimPlayerTickListener {
                 return;
             }
 
-            applyAllianceSpeedup(ctx.playerId(), buildingData, System.currentTimeMillis());
-            res.buildingInfo = SimPbConverter.toBuildingInfo(buildingData);
+            long now = System.currentTimeMillis();
+            applyAllianceSpeedup(ctx.playerId(), buildingData, now);
+            res.buildingInfo = SimPbConverter.toBuildingInfo(buildingData, now);
             //建筑的基础产出，不包含加成
             Map<BuildingOutputType, Long> base = getBaseOutput(buildingData.getId(), buildingData.getLevel());
             //普通雇员加成
@@ -199,7 +200,7 @@ public class SimBuildingService implements SimPlayerTickListener {
     /**
      * 解锁建筑
      */
-    public void onUnlockBuilding(SimPlayerContext ctx, int buildingId) {
+    public ResUnlockBuilding onUnlockBuilding(SimPlayerContext ctx, int buildingId) {
         ResUnlockBuilding res = new ResUnlockBuilding(Code.SUCCESS);
         res.id = buildingId;
         try {
@@ -207,27 +208,23 @@ public class SimBuildingService implements SimPlayerTickListener {
             if (casino == null) {
                 log.warn("解锁建筑失败, 当前场景不存在 playerId={}", ctx.playerId());
                 res.code = Code.NOT_FOUND;
-                ctx.send(res);
-                return;
+                return res;
             }
             BuildingAreaTableCfg cfg = GameDataManager.getBuildingAreaTableCfg(buildingId);
             if (cfg == null) {
                 log.warn("解锁建筑失败, 配置不存在 playerId={},buildingId={}", ctx.playerId(), buildingId);
                 res.code = Code.NOT_FOUND;
-                ctx.send(res);
-                return;
+                return res;
             }
             if (cfg.getRegionID() != casino.getCasinoId()) {
                 log.warn("解锁建筑失败, 建筑不属于当前场景 playerId={},buildingId={},casinoId={}", ctx.playerId(), buildingId, casino.getCasinoId());
                 res.code = Code.PARAM_ERROR;
-                ctx.send(res);
-                return;
+                return res;
             }
             if (casino.findBuilding(buildingId) != null) {
                 log.warn("解锁建筑失败, 已解锁 playerId={},buildingId={}", ctx.playerId(), buildingId);
                 res.code = Code.PARAM_ERROR;
-                ctx.send(res);
-                return;
+                return res;
             }
             if (cfg.getUnlockMethod() != null) {
                 for (Map.Entry<Integer, Integer> en : cfg.getUnlockMethod().entrySet()) {
@@ -235,15 +232,13 @@ public class SimBuildingService implements SimPlayerTickListener {
                     if (building == null) {
                         log.warn("解锁建筑失败, 解锁方式未通过 playerId={},buildingId={},unLockBuildingId={}", ctx.playerId(), buildingId, en.getKey());
                         res.code = Code.PARAM_ERROR;
-                        ctx.send(res);
-                        return;
+                        return res;
                     }
 
                     if (building.getLevel() < en.getValue()) {
                         log.warn("解锁建筑失败, 解锁方式未通过 playerId={},buildingId={},level={},unLockBuildingId={},cfgLevel={}", ctx.playerId(), buildingId, building.getLevel(), en.getKey(), en.getValue());
                         res.code = Code.PARAM_ERROR;
-                        ctx.send(res);
-                        return;
+                        return res;
                     }
                 }
             }
@@ -252,8 +247,7 @@ public class SimBuildingService implements SimPlayerTickListener {
             if (!remove) {
                 log.warn("解锁建筑失败, 资源不足 playerId={},buildingId={},cost={}", ctx.playerId(), buildingId, cfg.getUnlockCost());
                 res.code = Code.NOT_ENOUGH;
-                ctx.send(res);
-                return;
+                return res;
             }
 
             BuildingData data = new BuildingData();
@@ -265,7 +259,7 @@ public class SimBuildingService implements SimPlayerTickListener {
             log.error("", e);
             res.code = Code.EXCEPTION;
         }
-        ctx.send(res);
+        return res;
     }
 
 
@@ -327,7 +321,7 @@ public class SimBuildingService implements SimPlayerTickListener {
                     }
 
                     data.setProgress(data.getProgress() + 1);
-                    res.buildingInfo = SimPbConverter.toBuildingInfo(data);
+                    res.buildingInfo = SimPbConverter.toBuildingInfo(data, now);
                     ctx.send(res);
                     log.info("建筑增加进度条 playerId={},buildingInfo={}", ctx.playerId(), JSON.toJSONString(res.buildingInfo));
                     return;
@@ -360,7 +354,7 @@ public class SimBuildingService implements SimPlayerTickListener {
             long cdMs = (long) currentCfg.getUpgradeCD() * 60_000L;
             allianceHelpService.consumeSpeedupSeconds(ctx.playerId(), buildingId);
             data.setCdEndTime(now + cdMs);
-            res.buildingInfo = SimPbConverter.toBuildingInfo(data);
+            res.buildingInfo = SimPbConverter.toBuildingInfo(data, now);
             log.info("升级建筑启动 playerId={},buildingInfo={}", ctx.playerId(), JSON.toJSONString(res.buildingInfo));
         } catch (Exception e) {
             log.error("", e);
@@ -431,7 +425,7 @@ public class SimBuildingService implements SimPlayerTickListener {
             if (!data.isUpgrading(now)) {
                 if (data.isUpgradeReady(now)) {
                     completeBuildingUpgrade(ctx, casino, data, now);
-                    res.buildingInfo = SimPbConverter.toBuildingInfo(data);
+                    res.buildingInfo = SimPbConverter.toBuildingInfo(data, now);
                     ctx.send(res);
                     return;
                 }
@@ -475,7 +469,7 @@ public class SimBuildingService implements SimPlayerTickListener {
                 long reduceMs = (long) costCount * TimeHelper.ONE_MINUTE_OF_MILLIS;
                 data.setCdEndTime(data.getCdEndTime() - reduceMs);
             }
-            res.buildingInfo = SimPbConverter.toBuildingInfo(data);
+            res.buildingInfo = SimPbConverter.toBuildingInfo(data, now);
             log.info("清除建筑升级CD playerId={},buildingId={},watchAd={},costCount={},level={},cdEndTime={}", ctx.playerId(), buildingId, watchAd, costCount, data.getLevel(), data.getCdEndTime());
         } catch (Exception e) {
             log.error("", e);
@@ -807,8 +801,8 @@ public class SimBuildingService implements SimPlayerTickListener {
         Map<BonusType, Integer> withSupervisor = employeeService.manageEmployeeBonus(ctx, areaCfg.getEmployeeProfile());
 
         Integer managerBonus = withSupervisor.get(bonusType);
-        if(withSupervisor.isEmpty() || managerBonus == null){
-            log.warn("获取主管加成错误 playerId={},buildingId={},base={},withSupervisor={},bonusType={}",ctx.playerId(),buildingData.getId(),base,withSupervisor,bonusType);
+        if (withSupervisor.isEmpty() || managerBonus == null) {
+            log.warn("获取主管加成错误 playerId={},buildingId={},base={},withSupervisor={},bonusType={}", ctx.playerId(), buildingData.getId(), base, withSupervisor, bonusType);
             managerBonus = 0;
         }
         return buildBonusList(base, managerBonus);
