@@ -16,6 +16,6 @@ public class SeasonRankInfo {
     public long seasonCoin;
     @ProtoDesc("累计获得赛季币")
     public long totalEarnedCoin;
-    @ProtoDesc("段位配置ID")
-    public int tierId;
+    @ProtoDesc("阶段：1新手，2进阶，3循环")
+    public int phase;
 }

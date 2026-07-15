@@ -3,7 +3,6 @@ package com.jjg.game.hall.handler;
 import cn.hutool.core.collection.CollectionUtil;
 import cn.hutool.core.util.EnumUtil;
 import com.alibaba.fastjson.JSON;
-import com.alibaba.fastjson.JSONObject;
 import com.jjg.game.common.constant.CoreConst;
 import com.jjg.game.common.constant.EFunctionType;
 import com.jjg.game.common.constant.MessageConst;
@@ -497,7 +496,7 @@ public class HallMessageHandler implements GmListener, ChooseWareListener, Choos
             return;
         }
         try {
-            CommonResult<Map<Integer, Long>> useResult = hallService.useItem(playerController.getPlayer(), req.girdId, req.itemId, req.useItemCount,req.selectItemId);
+            CommonResult<Map<Integer, Long>> useResult = hallService.useItem(playerController.getPlayer(), req.girdId, req.itemId, req.useItemCount, req.selectItemId);
             if (!useResult.success()) {
                 res.code = useResult.code;
                 playerController.send(res);
@@ -1241,8 +1240,8 @@ public class HallMessageHandler implements GmListener, ChooseWareListener, Choos
             } else if ("newGameNextDay".equalsIgnoreCase(gmOrders[0])) {
                 hallService.newGameExpectDao.clearPlayerData();
             } else if ("enterSim".equalsIgnoreCase(gmOrders[0])) {
-                onChooseSim(playerController,null);
-            }else {
+                onChooseSim(playerController, null);
+            } else {
                 res.code = Code.NOT_FOUND;
             }
         } catch (Exception e) {
@@ -1259,7 +1258,6 @@ public class HallMessageHandler implements GmListener, ChooseWareListener, Choos
     public void onChooseWare(PlayerController playerController, ReqChooseWare req) {
         ResChooseWare res = new ResChooseWare(HallCode.SUCCESS);
         try {
-            log.info("收到玩家选择游戏场次 playerId={},req={}", playerController.playerId(), JSONObject.toJSONString(req));
             CommonResult<WareHouseConfigInfo> checkRes = checkBeforeJoinRoom(playerController, req.gameType, req.wareId);
             if (checkRes.code != Code.SUCCESS) {
                 res.code = checkRes.code;
@@ -1279,7 +1277,7 @@ public class HallMessageHandler implements GmListener, ChooseWareListener, Choos
             } else {
                 res.code = Code.PARAM_ERROR;
             }
-            log.info("玩家选择场次，playerId = {},res = {}", playerController.playerId(), JSON.toJSONString(res));
+            log.info("玩家选择场次，playerId = {},gameType={},roomCfgId={},code={}", playerController.playerId(), req.gameType, req.wareId, res.code);
         } catch (Exception e) {
             log.error("", e);
             res.code = Code.EXCEPTION;

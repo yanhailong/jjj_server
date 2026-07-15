@@ -9,15 +9,16 @@ import com.jjg.game.core.utils.ItemUtils;
 import com.jjg.game.sampledata.bean.SeasonGemCfg;
 import com.jjg.game.sampledata.bean.SeasonShopCfg;
 import com.jjg.game.sampledata.bean.SeasonStartCfg;
+import com.jjg.game.sampledata.bean.TaskCfg;
 import com.jjg.game.season.config.SeasonTrialDef;
 import com.jjg.game.season.data.*;
+import com.jjg.game.season.model.SeasonSnapshot;
 import com.jjg.game.season.pb.res.*;
 import com.jjg.game.season.pb.struct.*;
 import com.jjg.game.sim.data.SimPlayerContext;
 import com.jjg.game.sim.data.SpinStatInfo;
 import com.jjg.game.sim.listener.SimPlayerTickListener;
 import com.jjg.game.sim.service.SimAutoSaveService;
-import com.jjg.game.season.model.SeasonSnapshot;
 import com.jjg.game.social.service.SocialSender;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -197,14 +198,23 @@ public class SeasonService implements SimPlayerTickListener {
     }
 
     public ResSeasonRank rank(SimPlayerContext ctx, int requestedLimit) {
-        lifecycleService.ensureCurrent(ctx, System.currentTimeMillis());
+        SeasonSnapshot snapshot = lifecycleService.ensureCurrent(ctx, System.currentTimeMillis());
         SeasonPlayerData data = ctx.getSeasonPlayerData();
         int configuredLimit = configService.rankingLimit(data.seasonPhase());
         int limit = requestedLimit <= 0 ? configuredLimit : Math.min(requestedLimit, configuredLimit);
         ResSeasonRank response = new ResSeasonRank(Code.SUCCESS);
         response.entries = rankingService.ranking(data.getSeasonKey(), Math.max(1, limit)).stream()
                 .map(this::rankInfo).toList();
-        response.selfRank = rankingService.rankOf(data);
+        SeasonRankInfo selfRankInfo = new SeasonRankInfo();
+        selfRankInfo.rank = rankingService.rankOf(data);
+        selfRankInfo.playerId = data.getPlayerId();
+        selfRankInfo.playerName = data.getPlayerName();
+        selfRankInfo.seasonCoin = data.getSeasonCoin();
+        selfRankInfo.totalEarnedCoin = data.getTotalEarnedCoin();
+        // 与 SeasonInfo.phase 一致：1新手，2进阶，3循环
+        selfRankInfo.phase = snapshot.phase().ordinal() + 1;
+        response.selfRankInfo = selfRankInfo;
+        response.endTime = snapshot.endTime();
         return response;
     }
 
@@ -285,7 +295,14 @@ public class SeasonService implements SimPlayerTickListener {
         info.day = def.day();
         info.unlocked = status.isUnlocked();
         info.stars = status.getStars();
-        info.taskIds = def.starTasks().stream().map(cfg -> cfg.getId()).toList();
+
+        if (def.starTasks() != null && !def.starTasks().isEmpty()) {
+            info.taskIds = new ArrayList<>();
+            for (TaskCfg cfg : def.starTasks()) {
+                KVInfo kvInfo = new KVInfo(cfg.getId(),cfg.getTaskConditionId().getLast().intValue());
+                info.taskIds.add(kvInfo);
+            }
+        }
         info.active = status.isActive();
         info.spinCount = status.getSpinCount();
         info.expectedSpins = def.windowSpins();
@@ -473,7 +490,7 @@ public class SeasonService implements SimPlayerTickListener {
         info.playerName = entry.getPlayerName();
         info.seasonCoin = entry.getSeasonCoin();
         info.totalEarnedCoin = entry.getTotalEarnedCoin();
-        info.tierId = entry.getTierId();
+        info.phase = entry.getPhase();
         return info;
     }
 }

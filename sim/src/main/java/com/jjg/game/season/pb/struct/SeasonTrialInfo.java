@@ -2,6 +2,7 @@ package com.jjg.game.season.pb.struct;
 
 import com.jjg.game.common.proto.ProtoDesc;
 import com.jjg.game.common.proto.ProtobufMessage;
+import com.jjg.game.core.pb.KVInfo;
 
 import java.util.List;
 
@@ -17,7 +18,7 @@ public class SeasonTrialInfo {
     @ProtoDesc("已达成最高星级 (0=未通关)")
     public int stars;
     @ProtoDesc("1/2/3星对应的任务表id (描述/目标/奖励按任务表配置读取)")
-    public List<Integer> taskIds;
+    public List<KVInfo> taskIds;
     @ProtoDesc("是否为进行中的挑战")
     public boolean active;
     @ProtoDesc("进行中挑战已用局数")

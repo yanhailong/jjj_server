@@ -39,7 +39,7 @@ public class LoginConfigService {
 
         // 确保包含必要的登录方式
         ensureLoginType(channelMap, LoginType.GUEST);
-        ensureLoginType(channelMap, LoginType.PHONE);
+//        ensureLoginType(channelMap, LoginType.PHONE);
     }
 
     private void ensureLoginType(Map<Integer, LoginConfigData> channelMap, LoginType loginType) {

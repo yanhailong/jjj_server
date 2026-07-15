@@ -141,7 +141,7 @@ public class SeasonPlayerDao extends MongoBaseDao<SeasonPlayerData, Long> {
         Query query = Query.query(Criteria.where("seasonKey").is(seasonKey));
         query.with(Sort.by(Sort.Order.desc("seasonCoin"), Sort.Order.desc("totalEarnedCoin"),
                 Sort.Order.asc("playerId")));
-        query.fields().include("playerId", "playerName", "seasonKey", "seasonCoin", "totalEarnedCoin", "tierId");
+        query.fields().include("playerId", "playerName", "seasonKey", "seasonCoin", "totalEarnedCoin", "phase");
         query.limit(Math.max(1, limit));
         return mongoTemplate.find(query, SeasonPlayerData.class);
     }

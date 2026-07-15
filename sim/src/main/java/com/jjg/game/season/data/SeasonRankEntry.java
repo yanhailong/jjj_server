@@ -9,7 +9,8 @@ public class SeasonRankEntry {
     private String playerName;
     private long seasonCoin;
     private long totalEarnedCoin;
-    private int tierId;
+    /** 阶段：1新手，2进阶，3循环 */
+    private int phase;
 
     public int getRank() { return rank; }
     public void setRank(int rank) { this.rank = rank; }
@@ -21,6 +22,6 @@ public class SeasonRankEntry {
     public void setSeasonCoin(long seasonCoin) { this.seasonCoin = seasonCoin; }
     public long getTotalEarnedCoin() { return totalEarnedCoin; }
     public void setTotalEarnedCoin(long totalEarnedCoin) { this.totalEarnedCoin = totalEarnedCoin; }
-    public int getTierId() { return tierId; }
-    public void setTierId(int tierId) { this.tierId = tierId; }
+    public int getPhase() { return phase; }
+    public void setPhase(int phase) { this.phase = phase; }
 }

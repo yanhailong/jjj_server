@@ -3,6 +3,7 @@ package com.jjg.game.season.service;
 import com.jjg.game.season.dao.SeasonPlayerDao;
 import com.jjg.game.season.data.SeasonPlayerData;
 import com.jjg.game.season.data.SeasonRankEntry;
+import com.jjg.game.season.model.SeasonPhase;
 import org.springframework.stereotype.Service;
 
 import java.util.ArrayList;
@@ -85,7 +86,9 @@ public class SeasonRankingService {
             entry.setPlayerName(player.getPlayerName());
             entry.setSeasonCoin(player.getSeasonCoin());
             entry.setTotalEarnedCoin(player.getTotalEarnedCoin());
-            entry.setTierId(player.getTierId());
+            SeasonPhase phase = player.seasonPhase();
+            // 与 SeasonInfo.phase 一致：1新手，2进阶，3循环
+            entry.setPhase(phase == null ? 0 : phase.ordinal() + 1);
             result.add(entry);
         }
         return result;

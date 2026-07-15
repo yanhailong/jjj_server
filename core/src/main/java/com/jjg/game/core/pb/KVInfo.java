@@ -17,5 +17,7 @@ public class KVInfo {
     }
 
     public KVInfo(int key, int value) {
+        this.key = key;
+        this.value = value;
     }
 }

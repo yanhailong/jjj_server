@@ -14,8 +14,10 @@ import java.util.List;
 public class ResSeasonRank extends AbstractResponse {
     @ProtoDesc("排行榜条目")
     public List<SeasonRankInfo> entries;
-    @ProtoDesc("自己的名次")
-    public int selfRank;
+    @ProtoDesc("自己的排行榜信息")
+    public SeasonRankInfo selfRankInfo;
+    @ProtoDesc("赛季结束时间戳，毫秒")
+    public long endTime;
 
     public ResSeasonRank(int code) {
         super(code);
