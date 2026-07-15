@@ -23,8 +23,6 @@ public class MedalListCfg extends BaseCfgBean {
   protected boolean IsOpen;
   /** 多语言ID */
   protected int MedalNameId;
-  /** 品质 */
-  protected int Quality;
 
   /** 返回是否开启 */
   public boolean getIsOpen() {
@@ -34,11 +32,6 @@ public class MedalListCfg extends BaseCfgBean {
   /** 返回多语言ID */
   public int getMedalNameId() {
     return MedalNameId;
-  }
-
-  /** 返回品质 */
-  public int getQuality() {
-    return Quality;
   }
 
   @Override
