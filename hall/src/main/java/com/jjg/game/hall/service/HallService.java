@@ -642,6 +642,10 @@ public class HallService implements ConfigExcelChangeListener, TimerListener {
                 return result;
             }
 
+            if (useItemCount < 1) {
+                useItemCount = 1;
+            }
+
             //检查道具类型
             if (itemCfg.getType() != GameConstant.Item.TYPE_CAN_USE) {
                 result.code = Code.FORBID;
@@ -659,7 +663,7 @@ public class HallService implements ConfigExcelChangeListener, TimerListener {
                         log.debug("未找到获得新道具的配置 playerId = {},itemId = {}", player.getId(), addItemId);
                         continue;
                     }
-                    addItemsMap.merge(addItemId, en.getValue(), Long::sum);
+                    addItemsMap.merge(addItemId, en.getValue() * useItemCount, Long::sum);
                 }
             }
 
@@ -711,8 +715,9 @@ public class HallService implements ConfigExcelChangeListener, TimerListener {
 
             result.data = addItemsMap;
             final long finalSelectItemCount = selectItemCount;
+            final long finalUseItemCount = useItemCount;
             itemListenerList.forEach(listener -> {
-                listener.useItem(player, itemId, useItemCount, selectItemId, finalSelectItemCount);
+                listener.useItem(player, itemId, finalUseItemCount, selectItemId, finalSelectItemCount);
             });
         } catch (Exception e) {
             log.error("", e);

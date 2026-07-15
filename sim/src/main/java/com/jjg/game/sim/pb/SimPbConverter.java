@@ -49,7 +49,7 @@ public final class SimPbConverter {
         info.cdEndTime = buildingData.getCdEndTime();
         info.progress = buildingData.getProgress();
         info.watchAdCount = buildingData.getAdClearCount();
-        info.cdZero = buildingData.getCdEndTime() <= now;
+        info.cdZero = (buildingData.getCdEndTime() > 0 && buildingData.getCdEndTime() <= now);
         return info;
     }
 
