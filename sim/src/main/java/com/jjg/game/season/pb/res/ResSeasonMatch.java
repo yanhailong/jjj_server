@@ -32,6 +32,10 @@ public class ResSeasonMatch extends AbstractResponse {
     @ProtoDesc("匹配后的赛季币")
     public long seasonCoin;
 
+    public ResSeasonMatch() {
+        super(0);
+    }
+
     public ResSeasonMatch(int code) {
         super(code);
     }
