@@ -16,6 +16,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Component;
 
+import java.text.NumberFormat;
 import java.util.*;
 
 /**
@@ -433,18 +434,22 @@ public class SimConfigCacheService implements ConfigExcelChangeListener {
     }
 
     private void loadItemConfig() {
+        NumberFormat format = NumberFormat.getInstance();
         Map<Integer, ItemCfg> tmpResearchPointsItemCfgMap = new HashMap<>();
-        for (Map.Entry<Integer, ItemCfg> en : GameDataManager.getItemCfgMap().entrySet()) {
-            ItemCfg value = en.getValue();
-            if (value.getItemType() == SimConstant.Item.ITEM_TYPE_RESEARCH_POINTS) {
-                if (StringUtils.isEmpty(value.getTargetCondition())) {
-                    tmpResearchPointsItemCfgMap.put(0, value);
-                } else {
-                    tmpResearchPointsItemCfgMap.put(Integer.parseInt(value.getTargetCondition()), value);
+        try {
+            for (Map.Entry<Integer, ItemCfg> en : GameDataManager.getItemCfgMap().entrySet()) {
+                ItemCfg value = en.getValue();
+                if (value.getItemType() == SimConstant.Item.ITEM_TYPE_RESEARCH_POINTS) {
+                    if (StringUtils.isEmpty(value.getTargetCondition())) {
+                        tmpResearchPointsItemCfgMap.put(0, value);
+                    } else {
+                        tmpResearchPointsItemCfgMap.put(format.parse(value.getTargetCondition()).intValue(), value);
+                    }
                 }
             }
+        } catch (Exception e) {
+            log.error("", e);
         }
-
         this.researchPointsItemCfgMap = Collections.unmodifiableMap(tmpResearchPointsItemCfgMap);
     }
 
