@@ -6,6 +6,7 @@ import com.jjg.game.core.data.PlayerPack;
 import com.jjg.game.core.pb.KVInfo;
 import com.jjg.game.core.service.PlayerPackService;
 import com.jjg.game.core.utils.ItemUtils;
+import com.jjg.game.sampledata.GameDataManager;
 import com.jjg.game.sampledata.bean.SeasonGemCfg;
 import com.jjg.game.sampledata.bean.SeasonShopCfg;
 import com.jjg.game.sampledata.bean.SeasonStartCfg;
@@ -15,6 +16,7 @@ import com.jjg.game.season.data.*;
 import com.jjg.game.season.model.SeasonSnapshot;
 import com.jjg.game.season.pb.res.*;
 import com.jjg.game.season.pb.struct.*;
+import com.jjg.game.sim.constant.SimConstant;
 import com.jjg.game.sim.data.SimPlayerContext;
 import com.jjg.game.sim.data.SpinStatInfo;
 import com.jjg.game.sim.listener.SimPlayerTickListener;
@@ -109,6 +111,9 @@ public class SeasonService implements SimPlayerTickListener {
         info.featureName = cfg.getFeatureName();
         info.openminigames = cfg.getOpenminigame();
 
+        if(info.phase > 1){
+            info.freeGameCount = GameDataManager.getGlobalConfigCfg(SimConstant.Global.ID_SEASON_FEEE_GAME_COUNT).getIntValue();
+        }
         response.info = info;
         return response;
     }

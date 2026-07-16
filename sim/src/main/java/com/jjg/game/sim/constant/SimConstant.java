@@ -286,6 +286,8 @@ public interface SimConstant {
         int ID_WATCH_AD_CLEAR_TIME = 136;
         //观看广告次数限制
         int ID_WATCH_AD_LIMIT = 137;
+        //赛季：免费游戏次数（进阶赛季、循环赛季）
+        int ID_SEASON_FEEE_GAME_COUNT = 280;
     }
 
     /**

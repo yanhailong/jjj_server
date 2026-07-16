@@ -662,7 +662,7 @@ public class SimBuildingService implements SimPlayerTickListener {
     }
 
     /**
-     * 经营信息-当前可容纳游客人数: 已解锁的游戏区+休息区建筑当前等级的最大交互数量之和。
+     * 经营信息-当前可容纳游客人数: 各已解锁建筑当前等级的最大交互数量之和。
      */
     public int computeCurrentCapacity(SimCasinoData casino) {
         if (casino.getBuildingData() == null || casino.getBuildingData().isEmpty()) {
@@ -670,14 +670,6 @@ public class SimBuildingService implements SimPlayerTickListener {
         }
         int sum = 0;
         for (BuildingData building : casino.getBuildingData().values()) {
-            BuildingAreaTableCfg areaCfg = GameDataManager.getBuildingAreaTableCfg(building.getId());
-            if (areaCfg == null) {
-                continue;
-            }
-            BuildingType buildingType = BuildingType.fromCode(areaCfg.getType());
-            if (buildingType != BuildingType.GAME && buildingType != BuildingType.REST) {
-                continue;
-            }
             BuildingUpgradeTableCfg cfg = configCache.getBuildingUpgradeCfg(building.getId(), building.getLevel());
             if (cfg == null) {
                 continue;
@@ -688,33 +680,44 @@ public class SimBuildingService implements SimPlayerTickListener {
     }
 
     /**
-     * 经营信息-职能部门 (管理区) 当前等级的属性值 (含雇员加成):
+     * 经营信息-升满级最大容纳游客人数: 该场景全部建筑满级的最大交互数量之和。
+     */
+    public int computeMaxCapacity(int casinoId) {
+        int sum = 0;
+        for (BuildingAreaTableCfg areaCfg : GameDataManager.getBuildingAreaTableCfgList()) {
+            if (areaCfg.getRegionID() != casinoId) {
+                continue;
+            }
+            BuildingUpgradeTableCfg cfg = configCache.getBuildingUpgradeCfg(areaCfg.getId(), configCache.getBuildingMaxLevel(areaCfg.getId()));
+            if (cfg == null) {
+                continue;
+            }
+            sum += cfg.getMaxInteractionCount();
+        }
+        return sum;
+    }
+
+    /**
+     * 经营信息-职能部门 (管理区) 当前等级的属性值 (含管理区普通雇员 + 主管加成, 与建筑详情页口径一致):
      * 接待区(服务能力) / 营销部(曝光度) / 运营部(知名度)。
      *
      * @param outputType 部门对应的产出类型 (按建筑 typeValue 匹配)
-     * @param bonusType  对应的雇员加成类型 (无则传 null, 仅返回基础值)
      * @return 部门属性值; 未解锁对应建筑返回 0
      */
-    public long computeDeptValue(SimPlayerContext ctx, SimCasinoData casino, BuildingOutputType outputType, BonusType bonusType) {
+    public long computeDeptValue(SimPlayerContext ctx, SimCasinoData casino, BuildingOutputType outputType) {
         BuildingData dept = findDeptBuilding(casino, outputType);
         if (dept == null) {
             return 0;
         }
-        BuildingUpgradeTableCfg cfg = configCache.getBuildingUpgradeCfg(dept.getId(), dept.getLevel());
-        if (cfg == null || cfg.getUpgradeOutput() < 1) {
+        Map<BuildingOutputType, Long> base = getBaseOutput(dept.getId(), dept.getLevel());
+        if (base.isEmpty()) {
             return 0;
         }
-        long base = cfg.getUpgradeOutput();
-        if (bonusType == null) {
-            return base;
-        }
+        BuildingAreaTableCfg areaCfg = GameDataManager.getBuildingAreaTableCfg(dept.getId());
         Map<BonusType, Integer> bonusesMap = new HashMap<>();
         employeeService.computeTypeBonusFixed(ctx, bonusesMap);
-        Integer bonus = bonusesMap.get(bonusType);
-        if (bonus == null || bonus < 1) {
-            return base;
-        }
-        return base + base * bonus / SimConstant.Common.EMPLOYEE_BONUS_DIVISOR;
+        Map<BuildingOutputType, Long> actual = applyBuildingBonus(ctx, base, BonusType.fromBuildingType(BuildingType.MANAGE), areaCfg.getEmployeeProfile(), bonusesMap);
+        return actual.getOrDefault(outputType, 0L);
     }
 
     /**

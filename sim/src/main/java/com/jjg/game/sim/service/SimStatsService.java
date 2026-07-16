@@ -2,8 +2,6 @@ package com.jjg.game.sim.service;
 
 import com.jjg.game.core.constant.Code;
 import com.jjg.game.sampledata.GameDataManager;
-import com.jjg.game.sampledata.bean.CasinoListCfg;
-import com.jjg.game.sim.constant.BonusType;
 import com.jjg.game.sim.constant.BuildingOutputType;
 import com.jjg.game.sim.constant.SimConstant;
 import com.jjg.game.sim.constant.SimStatKey;
@@ -137,7 +135,7 @@ public class SimStatsService {
                 ctx.send(res);
                 return;
             }
-            res.stats = buildSlotStats(ctx, casino, gameType);
+            res.stats = buildSlotStats(ctx, gameType);
         } catch (Exception e) {
             log.error("", e);
             res.code = Code.EXCEPTION;
@@ -151,10 +149,9 @@ public class SimStatsService {
     private List<StatInfo> buildOperationStats(SimPlayerContext ctx, SimCasinoData casino) {
         List<StatInfo> list = new ArrayList<>();
 
-        //容纳游客人数: 当前 / 最大(娱乐城配置)
+        //容纳游客人数: 已解锁建筑当前容纳 / 全部建筑满级容纳
         int curCapacity = buildingService.computeCurrentCapacity(casino);
-        CasinoListCfg listCfg = GameDataManager.getCasinoListCfg(casino.getCasinoId());
-        int maxCapacity = listCfg == null ? 0 : listCfg.getCapacityNum();
+        int maxCapacity = buildingService.computeMaxCapacity(casino.getCasinoId());
         list.add(new StatInfo(SimStatKey.Operation.CAPACITY, curCapacity, maxCapacity));
 
         //雇员人数: 已激活 / 总数(雇员配置表条数)
@@ -177,16 +174,15 @@ public class SimStatsService {
         list.add(new StatInfo(SimStatKey.Operation.FISHING_ROOM, roomOutputs.getOrDefault(SimStatKey.Operation.FISHING_ROOM, 0L)));
 
         //职能部门当前等级属性值
-        list.add(new StatInfo(SimStatKey.Operation.RECEPTION_AREA, buildingService.computeDeptValue(ctx, casino, BuildingOutputType.SERVICE, BonusType.SERVICE)));
-        list.add(new StatInfo(SimStatKey.Operation.MARKETING_DEPT, buildingService.computeDeptValue(ctx, casino, BuildingOutputType.EXPOSURE, null)));
-        list.add(new StatInfo(SimStatKey.Operation.OPERATIONS_DEPT, buildingService.computeDeptValue(ctx, casino, BuildingOutputType.AWARENESS, BonusType.AWARENESS)));
+        list.add(new StatInfo(SimStatKey.Operation.RECEPTION_AREA, buildingService.computeDeptValue(ctx, casino, BuildingOutputType.SERVICE)));
+        list.add(new StatInfo(SimStatKey.Operation.MARKETING_DEPT, buildingService.computeDeptValue(ctx, casino, BuildingOutputType.EXPOSURE)));
+        list.add(new StatInfo(SimStatKey.Operation.OPERATIONS_DEPT, buildingService.computeDeptValue(ctx, casino, BuildingOutputType.AWARENESS)));
 
-        //研发部: 已研发 / 游戏总数
-        Set<Integer> unlockGames = findAllUnlockedGames(ctx, casino.getCasinoId());
-        int totalGame = unlockGames.size();
-        list.add(new StatInfo(SimStatKey.Operation.UNLOCK_GAME, totalGame));
+        //研发部: 已研发 / 游戏总数(不受研究院等级影响)
+        Set<Integer> unlockGames = findAllUnlockedGames(ctx);
+        list.add(new StatInfo(SimStatKey.Operation.UNLOCK_GAME, unlockGames.size()));
         int researched = countResearchedGames(ctx, unlockGames);
-        list.add(new StatInfo(SimStatKey.Operation.RESEARCH_DEPT, researched, totalGame));
+        list.add(new StatInfo(SimStatKey.Operation.RESEARCH_DEPT, researched, countConfiguredGames(ctx)));
 
         return list;
     }
@@ -194,11 +190,11 @@ public class SimStatsService {
     /**
      * 组装 SPINE游戏数据列表 (gameType<=0 时汇总所有游戏)
      */
-    private List<StatInfo> buildSlotStats(SimPlayerContext ctx, SimCasinoData casino, int gameType) {
+    private List<StatInfo> buildSlotStats(SimPlayerContext ctx, int gameType) {
         List<StatInfo> list = new ArrayList<>();
 
         //玩家所有已解锁娱乐城的游戏并集
-        Set<Integer> unlockGames = findAllUnlockedGames(ctx, casino.getCasinoId());
+        Set<Integer> unlockGames = findAllUnlockedGames(ctx);
         int unlockCount = unlockGames.size();
         list.add(new StatInfo(SimStatKey.Slot.UNLOCK_GAME, unlockCount));
 
@@ -240,27 +236,47 @@ public class SimStatsService {
     }
 
     /**
-     * 玩家已解锁的所有娱乐城对应游戏并集。旧数据缺少解锁记录时回退当前娱乐城。
+     * 玩家已解锁的所有游戏并集 (语义同大厅游戏列表 HallService.getSortGameList):
+     * 任一已解锁场景的研究院等级达到 ResearchInstitute 配置的等级即解锁。
      * 解锁数据取 ctx 登录缓存, 不在高频看板路径上同步读 Redis。
      */
-    private Set<Integer> findAllUnlockedGames(SimPlayerContext ctx, int currentCasinoId) {
+    private Set<Integer> findAllUnlockedGames(SimPlayerContext ctx) {
         Set<Integer> result = new HashSet<>();
         SimCasinoUnlock unlock = ctx.getCasinoUnlock();
-        if (unlock != null && unlock.getResearchLevelMap() != null) {
-            for (Integer casinoId : unlock.getResearchLevelMap().keySet()) {
-                Set<Integer> games = configCache.getUnlockGameByRegionId(casinoId);
-                if (games != null) {
-                    result.addAll(games);
+        if (unlock == null || unlock.getResearchLevelMap() == null) {
+            return result;
+        }
+        for (Map.Entry<Integer, Integer> en : unlock.getResearchLevelMap().entrySet()) {
+            Set<Integer> games = configCache.getUnlockGameByRegionId(en.getKey());
+            if (games == null) {
+                continue;
+            }
+            for (Integer gameType : games) {
+                Integer needLevel = configCache.getUnlockGameLevel(en.getKey(), gameType);
+                if (needLevel != null && en.getValue() >= needLevel) {
+                    result.add(gameType);
                 }
             }
         }
-        if (result.isEmpty()) {
-            Set<Integer> currentGames = configCache.getUnlockGameByRegionId(currentCasinoId);
-            if (currentGames != null) {
-                result.addAll(currentGames);
+        return result;
+    }
+
+    /**
+     * 玩家已解锁娱乐城配置的全部游戏数 (研发部进度分母, 不受研究院等级影响)
+     */
+    private int countConfiguredGames(SimPlayerContext ctx) {
+        SimCasinoUnlock unlock = ctx.getCasinoUnlock();
+        if (unlock == null || unlock.getResearchLevelMap() == null) {
+            return 0;
+        }
+        Set<Integer> result = new HashSet<>();
+        for (Integer casinoId : unlock.getResearchLevelMap().keySet()) {
+            Set<Integer> games = configCache.getUnlockGameByRegionId(casinoId);
+            if (games != null) {
+                result.addAll(games);
             }
         }
-        return result;
+        return result.size();
     }
 
     /**
