@@ -91,6 +91,9 @@ public class SimConfigCacheService implements ConfigExcelChangeListener {
     //研究点道具 gameType -> ItemCfg
     private Map<Integer, ItemCfg> researchPointsItemCfgMap = Collections.emptyMap();
 
+    //赛季匹配模拟数据
+    private Map<Integer, List<SeasonSimulationDataCfg>> seasonSimulationDataCfgMap;
+
     public void init() {
         initGuestQualityItems();
     }
@@ -123,6 +126,7 @@ public class SimConfigCacheService implements ConfigExcelChangeListener {
         loadAllianceTasks();
 
         loadItemConfig();
+        loadSeasonSimulationDataConfig();
     }
 
     /**
@@ -453,6 +457,14 @@ public class SimConfigCacheService implements ConfigExcelChangeListener {
         this.researchPointsItemCfgMap = Collections.unmodifiableMap(tmpResearchPointsItemCfgMap);
     }
 
+    private void loadSeasonSimulationDataConfig() {
+        Map<Integer, List<SeasonSimulationDataCfg>> tmpSeasonSimulationDataCfgMap = new HashMap<>();
+        for (Map.Entry<Integer, SeasonSimulationDataCfg> en : GameDataManager.getSeasonSimulationDataCfgMap().entrySet()) {
+            tmpSeasonSimulationDataCfgMap.computeIfAbsent(en.getValue().getType(), k -> new ArrayList<>()).add(en.getValue());
+        }
+        this.seasonSimulationDataCfgMap = tmpSeasonSimulationDataCfgMap;
+    }
+
     @Override
     public void initSampleCallbackCollector() {
         addInitSampleFileObserveWithCallBack(CasinoStatsSheetCfg.EXCEL_NAME, this::loadCasinoStatsSheetCfg);
@@ -480,6 +492,7 @@ public class SimConfigCacheService implements ConfigExcelChangeListener {
         addInitSampleFileObserveWithCallBack(TaskCfg.EXCEL_NAME, this::loadAllianceTasks);
 
         addInitSampleFileObserveWithCallBack(ItemCfg.EXCEL_NAME, this::loadItemConfig);
+        addInitSampleFileObserveWithCallBack(SeasonSimulationDataCfg.EXCEL_NAME, this::loadSeasonSimulationDataConfig);
     }
 
     // ---------------------------------------------------------------------
@@ -738,5 +751,9 @@ public class SimConfigCacheService implements ConfigExcelChangeListener {
 
     public ItemCfg getResearchPointItemCfg(int gameType) {
         return researchPointsItemCfgMap.get(gameType);
+    }
+
+    public Map<Integer, List<SeasonSimulationDataCfg>> getSeasonSimulationDataCfgMap() {
+        return seasonSimulationDataCfgMap;
     }
 }

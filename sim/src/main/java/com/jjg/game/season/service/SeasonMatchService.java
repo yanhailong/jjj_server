@@ -4,7 +4,10 @@ import com.jjg.game.common.utils.RandomUtils;
 import com.jjg.game.common.utils.WeightRandom;
 import com.jjg.game.core.constant.Code;
 import com.jjg.game.core.data.CommonResult;
+import com.jjg.game.core.data.RobotPlayer;
+import com.jjg.game.core.utils.RobotUtil;
 import com.jjg.game.sampledata.bean.SeasonMatchCfg;
+import com.jjg.game.sampledata.bean.SeasonSimulationDataCfg;
 import com.jjg.game.sampledata.bean.SeasonStartCfg;
 import com.jjg.game.sim.data.SimPlayerContext;
 import com.jjg.game.sim.data.SpinStatInfo;
@@ -15,6 +18,7 @@ import com.jjg.game.season.data.SeasonMatchSession;
 import com.jjg.game.season.data.SeasonPlayerData;
 import com.jjg.game.season.model.SeasonPhase;
 import com.jjg.game.sim.service.SimAutoSaveService;
+import com.jjg.game.sim.service.SimConfigCacheService;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Service;
@@ -41,13 +45,18 @@ public class SeasonMatchService {
     private final SeasonPlayerDao seasonPlayerDao;
     private final SeasonEconomyService economyService;
     private final SimAutoSaveService autoSaveService;
+    private final RobotUtil robotUtil;
+    private final SimConfigCacheService simConfigCacheService;
 
     public SeasonMatchService(SeasonConfigService configService, SeasonPlayerDao seasonPlayerDao,
-                              SeasonEconomyService economyService, SimAutoSaveService autoSaveService) {
+                              SeasonEconomyService economyService, SimAutoSaveService autoSaveService,
+                              RobotUtil robotUtil, SimConfigCacheService simConfigCacheService) {
         this.configService = configService;
         this.seasonPlayerDao = seasonPlayerDao;
         this.economyService = economyService;
         this.autoSaveService = autoSaveService;
+        this.robotUtil = robotUtil;
+        this.simConfigCacheService = simConfigCacheService;
     }
 
     public CommonResult<SeasonMatchSession> start(SimPlayerContext ctx, int gameType, long stake, long now) {
@@ -88,20 +97,16 @@ public class SeasonMatchService {
                 ? ADVANCED_SPIN_COUNT : LOOP_SPIN_COUNT;
         List<SeasonPlayerData> candidates = seasonPlayerDao.findMatchCandidates(
                 data.getSeasonKey(), ctx.playerId(), gameType, stake, expectedSpins, CANDIDATE_LIMIT);
-        //查询已按 minSpins 过滤, 这里兜底复核一次
-        WeightRandom<SeasonPlayerData> candidatePool = WeightRandom.create();
-        for (SeasonPlayerData candidate : candidates) {
-            if (candidate.getRepresentativeSpinWins().size() < expectedSpins) {
-                continue;
-            }
-            int weight = matchWeight(candidate, cfg, true);
-            if (weight > 0) {
-                candidatePool.add(candidate, weight);
-            }
-        }
-        SeasonPlayerData opponent = candidatePool.next();
+
+        SeasonPlayerData opponent = pickOpponent(candidates, cfg, expectedSpins);
         if (opponent == null) {
-            return failStart(Code.NOT_FOUND, ctx, gameType, stake, "没有可用对手");
+            // 无人可匹配: 仅用机器人模拟展示数据, 不落库、不进匹配池
+            opponent = createRobotOpponent(data.seasonPhase().ordinal() + 1, stake, data.getTierId());
+            if (opponent == null) {
+                return failStart(Code.NOT_FOUND, ctx, gameType, stake, "没有可用对手且机器人配置为空");
+            }
+            log.info("赛季匹配使用机器人对手 playerId={},robotId={},gameType={},stake={}",
+                    ctx.playerId(), opponent.getPlayerId(), gameType, stake);
         }
 
         SeasonMatchSession session = new SeasonMatchSession();
@@ -115,7 +120,13 @@ public class SeasonMatchService {
         session.setStake(stake);
         session.setExpectedSpins(expectedSpins);
         session.setStartedAt(now);
-        session.setOpponentSpinWins(opponent.getRepresentativeSpinWins().subList(0, expectedSpins));
+
+        if (opponent.getRepresentativeSpinWins().size() <= expectedSpins) {
+            session.setOpponentSpinWins(opponent.getRepresentativeSpinWins());
+        } else {
+            session.setOpponentSpinWins(opponent.getRepresentativeSpinWins().subList(0, expectedSpins));
+        }
+
         data.setSeasonCoin(data.getSeasonCoin() - stake);
         data.setActiveMatch(session);
         data.setLastMatchTime(now);
@@ -125,6 +136,57 @@ public class SeasonMatchService {
         }
         autoSaveService.enqueueSave(data);
         return new CommonResult<>(Code.SUCCESS, session);
+    }
+
+    /**
+     * 从候选中加权抽取真实对手; 池为空时返回 null, 由调用方回退机器人。
+     */
+    private SeasonPlayerData pickOpponent(List<SeasonPlayerData> candidates, SeasonMatchCfg cfg, int expectedSpins) {
+        if (candidates == null || candidates.isEmpty()) {
+            return null;
+        }
+        //查询已按 minSpins 过滤, 这里兜底复核一次
+        WeightRandom<SeasonPlayerData> candidatePool = WeightRandom.create();
+        for (SeasonPlayerData candidate : candidates) {
+            if (candidate.getRepresentativeSpinWins().size() < expectedSpins) {
+                continue;
+            }
+            int weight = matchWeight(candidate, cfg, true);
+            if (weight > 0) {
+                candidatePool.add(candidate, weight);
+            }
+        }
+        return candidatePool.next();
+    }
+
+    private SeasonPlayerData createRobotOpponent(int phase, long stake, int tierId) {
+        RobotPlayer robot = robotUtil.randomRobotPlayer();
+        if (robot == null) {
+            return null;
+        }
+        SeasonPlayerData opponent = new SeasonPlayerData();
+        opponent.setPlayerId(robot.getId());
+        opponent.setPlayerName(robot.getNickName());
+        opponent.setHeadImgId(robot.getHeadImgId());
+        opponent.setHeadFrameId(robot.getHeadFrameId());
+        opponent.setTierId(tierId);
+
+        List<SeasonSimulationDataCfg> cfgs = simConfigCacheService.getSeasonSimulationDataCfgMap().get(phase);
+        if (cfgs != null && !cfgs.isEmpty()) {
+            WeightRandom<SeasonSimulationDataCfg> candidatePool = WeightRandom.create();
+            for (SeasonSimulationDataCfg cfg : cfgs) {
+                if (cfg.getExtractionWeight() > 0) {
+                    candidatePool.add(cfg, cfg.getExtractionWeight());
+                }
+            }
+            SeasonSimulationDataCfg next = candidatePool.next();
+            List<Long> representativeSpinWins = new ArrayList<>();
+            for (int num : next.getMultiplier()) {
+                representativeSpinWins.add(stake * num);
+            }
+            opponent.setRepresentativeSpinWins(representativeSpinWins);
+        }
+        return opponent;
     }
 
     /**
@@ -186,6 +248,7 @@ public class SeasonMatchService {
         long playerTotal = sum(session.getPlayerSpinWins());
         long opponentTotal = sum(session.getOpponentSpinWins());
         long rawChange = playerTotal - opponentTotal;
+        // 退还发起方押注后按分差结算; 仅改发起方币/日统计/战绩
         data.setSeasonCoin(data.getSeasonCoin() + session.getStake());
         long actualChange = rawChange;
         SeasonMatchCfg cfg = configService.matchForDay(currentDay(data, now));
@@ -210,11 +273,13 @@ public class SeasonMatchService {
         data.setRepresentativeSpinWins(new ArrayList<>(session.getPlayerSpinWins()));
         data.setActiveMatch(null);
 
-        //对手视角记录里的"对手"是本人; tick 超时结算时 controller 可能为空, 取赛季文档上冗余的昵称
-        SeasonMatchRecord opponentRecord = record(session, -actualChange, now, true,
-                ctx.playerId(), data.getPlayerName(), data.getTierId());
-        seasonPlayerDao.applyOpponentSettlement(session.getOpponentId(), data.getSeasonKey(),
-                session.getMatchId(), -actualChange, opponentRecord, HISTORY_LIMIT);
+        // 机器人对手: 只给发起方模拟对局, 不写 pending、不发对手奖励、不改任何第三方数据
+        if (!RobotUtil.isRobot(session.getOpponentId())) {
+            SeasonMatchRecord opponentRecord = record(session, -actualChange, now, true,
+                    ctx.playerId(), data.getPlayerName(), data.getTierId());
+            seasonPlayerDao.applyOpponentSettlement(session.getOpponentId(), data.getSeasonKey(),
+                    session.getMatchId(), -actualChange, opponentRecord, HISTORY_LIMIT);
+        }
         autoSaveService.enqueueSave(data);
 
         SeasonMatchResult result = new SeasonMatchResult();

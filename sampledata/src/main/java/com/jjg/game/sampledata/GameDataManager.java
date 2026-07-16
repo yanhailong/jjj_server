@@ -224,6 +224,7 @@ public class GameDataManager {
     containerMap.put(SeasonMatchCfg.class, new SeasonMatchCfgContainer());
     containerMap.put(SeasonRankingCfg.class, new SeasonRankingCfgContainer());
     containerMap.put(SeasonShopCfg.class, new SeasonShopCfgContainer());
+    containerMap.put(SeasonSimulationDataCfg.class, new SeasonSimulationDataCfgContainer());
     containerMap.put(SeasonStartCfg.class, new SeasonStartCfgContainer());
     containerMap.put(SeasonTierCfg.class, new SeasonTierCfgContainer());
     containerMap.put(SeasondropDetailedCfg.class, new SeasondropDetailedCfgContainer());
@@ -1920,6 +1921,18 @@ public class GameDataManager {
 
   public static List<SeasonShopCfg> getSeasonShopCfgList() {
     return getInstance().getCfgContainer(SeasonShopCfg.class).getCfgBeanList();
+  }
+
+  public static SeasonSimulationDataCfg getSeasonSimulationDataCfg(int key) {
+    return getInstance().getCfgContainer(SeasonSimulationDataCfg.class).getCfgBeanMap().get(key);
+  }
+
+  public static Map<Integer, SeasonSimulationDataCfg> getSeasonSimulationDataCfgMap() {
+    return getInstance().getCfgContainer(SeasonSimulationDataCfg.class).getCfgBeanMap();
+  }
+
+  public static List<SeasonSimulationDataCfg> getSeasonSimulationDataCfgList() {
+    return getInstance().getCfgContainer(SeasonSimulationDataCfg.class).getCfgBeanList();
   }
 
   public static SeasonStartCfg getSeasonStartCfg(int key) {
