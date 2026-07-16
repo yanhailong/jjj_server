@@ -3,14 +3,16 @@ package com.jjg.game.sim.service;
 import com.alibaba.fastjson.JSON;
 import com.jjg.game.alliance.constant.AllianceConst;
 import com.jjg.game.alliance.service.AllianceEventService;
+import com.jjg.game.common.pb.ItemInfo;
+import com.jjg.game.core.constant.AddType;
 import com.jjg.game.core.constant.Code;
 import com.jjg.game.core.data.CommonResult;
+import com.jjg.game.core.data.PlayerPack;
 import com.jjg.game.core.listener.ConfigExcelChangeListener;
-import com.jjg.game.core.pb.KVInfo;
 import com.jjg.game.sampledata.GameDataManager;
+import com.jjg.game.sampledata.bean.ItemCfg;
 import com.jjg.game.sampledata.bean.PropCfg;
 import com.jjg.game.sampledata.bean.ResearchSkillsCfg;
-import com.jjg.game.sim.constant.SimConstant;
 import com.jjg.game.sim.dao.SimSkillsDao;
 import com.jjg.game.sim.data.SimPlayerContext;
 import com.jjg.game.sim.data.SimSkillsData;
@@ -37,6 +39,8 @@ public class SimSkillService extends AbstractSkillService implements ConfigExcel
     private SimConfigCacheService simConfigCacheService;
     @Autowired
     private AllianceEventService allianceEventService;
+    @Autowired
+    private SimPackService simPackService;
 
     /**
      * 登录加载技能 (player 全量)。须在加载场景数据之前调用: initUnlock 依据已入内存的技能等级决定是否补解锁。
@@ -104,17 +108,7 @@ public class SimSkillService extends AbstractSkillService implements ConfigExcel
                 res.skills = new ArrayList<>();
                 res.skills.add(SimPbConverter.toGameSkills(data));
             }
-
-            if (ctx.getSimBaseData().getResearchPointMap() != null && !ctx.getSimBaseData().getResearchPointMap().isEmpty()) {
-                res.researchPoints = new ArrayList<>();
-                for (Map.Entry<Integer, Integer> en : ctx.getSimBaseData().getResearchPointMap().entrySet()) {
-                    KVInfo kvInfo = new KVInfo();
-                    kvInfo.key = en.getKey();
-                    kvInfo.value = en.getValue();
-                    res.researchPoints.add(kvInfo);
-                }
-            }
-
+            res.researchPoints = getResearchPoints(ctx.playerId(), gameType);
             log.info("玩家加载技能 playerId={},res={}", ctx.playerId(), JSON.toJSONString(res));
         } catch (Exception e) {
             log.error("", e);
@@ -188,32 +182,25 @@ public class SimSkillService extends AbstractSkillService implements ConfigExcel
                 return;
             }
 
-            //检查研究点是否足够
-            Map<Integer, Integer> tmpMap = new HashMap<>();
+            //扣除研究点 (研究点已按 itemId 存于背包, 先校验再扣除, 不足整体失败)
+            Map<Integer, Long> costMap = new HashMap<>();
             for (Map.Entry<Integer, Integer> en : newLevelCfg.getResearchPoints().entrySet()) {
-                int itemId = en.getKey();
-                int type = 0;
-                if (itemId == SimConstant.Item.ID_RESEARCH_POINT) {
-                    type = SimConstant.ResearchPoint.NORMAL_TPYE;
-                } else if (itemId == SimConstant.Item.ID_RARE_RESEARCH_POINT) {
-                    type = SimConstant.ResearchPoint.RARE_TPYE;
-                } else {
-                    log.warn("研究点道具id错误 playerId={},propId={},itemId={}", skillData.getPlayerId(), skillPropId, itemId);
-                    continue;
-                }
-                int researchPoint = ctx.getSimBaseData().findResearchPoint(type);
-                if (researchPoint < en.getValue()) {
-                    log.warn("升级技能失败，研究点不足 playerId={},propId={},newLevelCfgId={},researchPoint={}", skillData.getPlayerId(), skillPropId, newLevelCfg.getId(), researchPoint);
-                    res.code = Code.NOT_ENOUGH;
+                if (en.getKey() == null || !canUseResearchPoint(skillData.getGameType(), en.getKey())) {
+                    log.warn("升级技能失败，研究点道具与游戏不匹配 playerId={},gameType={},propId={},itemId={}",
+                            skillData.getPlayerId(), skillData.getGameType(), skillPropId, en.getKey());
+                    res.code = Code.PARAM_ERROR;
                     ctx.send(res);
                     return;
                 }
-                tmpMap.put(type, en.getValue());
+                if (en.getValue() != null && en.getValue() > 0) {
+                    costMap.put(en.getKey(), en.getValue().longValue());
+                }
             }
-
-            //扣除研究点
-            for (Map.Entry<Integer, Integer> en : tmpMap.entrySet()) {
-                ctx.getSimBaseData().deductResearchPoint(en.getKey(), en.getValue());
+            if (!simPackService.removeItems(ctx, costMap, AddType.SIM_SKILL_UPGRADE, "skillUpgrade:" + skillPropId)) {
+                log.warn("升级技能失败，研究点不足 playerId={},propId={},newLevelCfgId={}", skillData.getPlayerId(), skillPropId, newLevelCfg.getId());
+                res.code = Code.NOT_ENOUGH;
+                ctx.send(res);
+                return;
             }
             skillData.changeSkillLevel(skillPropId, newLevelCfg.getGrade());
             //联盟任务: 技能研究次数 (param=游戏类型, 供 0=任意/指定游戏 过滤)
@@ -223,13 +210,7 @@ public class SimSkillService extends AbstractSkillService implements ConfigExcel
             res.skillId = skillPropId;
             res.nowLevel = newLevelCfg.getGrade();
 
-            res.researchPoints = new ArrayList<>();
-            for (Map.Entry<Integer, Integer> en : ctx.getSimBaseData().getResearchPointMap().entrySet()) {
-                KVInfo kvInfo = new KVInfo();
-                kvInfo.key = en.getKey();
-                kvInfo.value = en.getValue();
-                res.researchPoints.add(kvInfo);
-            }
+            res.researchPoints = getResearchPoints(ctx.playerId(), gameType);
 
             //新解锁的技能
             List<PropCfg> propCfgList = simConfigCacheService.getPropCfgList(gameType);
@@ -263,6 +244,49 @@ public class SimSkillService extends AbstractSkillService implements ConfigExcel
             res.code = Code.EXCEPTION;
         }
         ctx.send(res);
+    }
+
+    private boolean canUseResearchPoint(int gameType, int itemId) {
+        ItemCfg normalItemCfg = simConfigCacheService.getResearchPointItemCfg(0);
+        if (normalItemCfg != null && normalItemCfg.getId() == itemId) {
+            return true;
+        }
+        ItemCfg exclusiveItemCfg = simConfigCacheService.getResearchPointItemCfg(gameType);
+        return exclusiveItemCfg != null && exclusiveItemCfg.getId() == itemId;
+    }
+
+    /**
+     * 获取普通研究点和专属研究点
+     *
+     * @param playerId
+     * @param gameType
+     * @return
+     */
+    private List<ItemInfo> getResearchPoints(long playerId, int gameType) {
+        PlayerPack playerPack = simPackService.getPlayerPack(playerId);
+        if (playerPack == null) {
+            return null;
+        }
+
+        List<ItemInfo> list = new ArrayList<>();
+        //普通研究点
+        ItemCfg normalItemCfg = simConfigCacheService.getResearchPointItemCfg(0);
+        if (normalItemCfg != null) {
+            ItemInfo normalItemInfo = new ItemInfo();
+            normalItemInfo.itemId = normalItemCfg.getId();
+            normalItemInfo.count = playerPack.getItemCount(normalItemCfg.getId());
+            list.add(normalItemInfo);
+        }
+
+        //专属研究点
+        ItemCfg exclusiveItemCfg = simConfigCacheService.getResearchPointItemCfg(gameType);
+        if (exclusiveItemCfg != null) {
+            ItemInfo exclusiveItemInfo = new ItemInfo();
+            exclusiveItemInfo.itemId = exclusiveItemCfg.getId();
+            exclusiveItemInfo.count = playerPack.getItemCount(exclusiveItemCfg.getId());
+            list.add(exclusiveItemInfo);
+        }
+        return list;
     }
 
     /**

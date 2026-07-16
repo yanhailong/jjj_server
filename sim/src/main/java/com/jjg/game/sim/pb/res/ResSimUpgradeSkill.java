@@ -2,9 +2,9 @@ package com.jjg.game.sim.pb.res;
 
 import com.jjg.game.common.constant.MessageConst;
 import com.jjg.game.common.pb.AbstractResponse;
+import com.jjg.game.common.pb.ItemInfo;
 import com.jjg.game.common.proto.ProtoDesc;
 import com.jjg.game.common.proto.ProtobufMessage;
-import com.jjg.game.core.pb.KVInfo;
 import com.jjg.game.sim.constant.SimConstant;
 
 import java.util.List;
@@ -21,7 +21,7 @@ public class ResSimUpgradeSkill extends AbstractResponse {
     @ProtoDesc("升级后的等级")
     public int nowLevel;
     @ProtoDesc("研究点")
-    public List<KVInfo> researchPoints;
+    public List<ItemInfo> researchPoints;
     @ProtoDesc("解锁的技能")
     public List<Integer> newUnlockSkills;
 

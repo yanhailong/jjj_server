@@ -124,6 +124,8 @@ public class SimManager {
     @Autowired
     private SimMedalService simMedalService;
     @Autowired
+    private SimPackService simPackService;
+    @Autowired
     private SimPlayerContextRegistry simPlayerContextRegistry;
     @Autowired
     private SeasonPlayerDao seasonPlayerDao;
@@ -196,7 +198,7 @@ public class SimManager {
             res.awareness = ctx.getCurrentCasino().getAwareness();
             res.power = ctx.getSimBaseData().getPower();
 
-            res.researchPoint = ctx.getSimBaseData().findResearchPoint(SimConstant.ResearchPoint.NORMAL_TPYE);
+            res.researchPoint = (int) simPackService.getResearchPointCount(ctx.playerId(), 0);
 
             //已生成待领奖的购买游客 (断线重连补发, 客户端凭 uid 领奖)
             Map<String, PurchasedGuestData> purchasedGuestMap = ctx.getCurrentCasino().getPurchasedGuestMap();

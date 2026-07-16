@@ -298,10 +298,6 @@ public interface SimConstant {
         int ID_AWARENESS = 1024002;
         //曝光度
         int ID_EXPOD = 1024003;
-        //研究点
-        int ID_RESEARCH_POINT = 1024005;
-        //稀有研究点
-        int ID_RARE_RESEARCH_POINT = 1024006;
         //加速卡
         int ID_CLEAR_CD = 1024007;
 
@@ -324,6 +320,9 @@ public interface SimConstant {
         int ID_GUEST_QULITY_PUEPLE = 1024022;
         //金色品质游客
         int ID_GUEST_QULITY_GOLD = 1024023;
+
+        //研究点类型
+        int ITEM_TYPE_RESEARCH_POINTS = 1;
     }
 
     /**
@@ -339,14 +338,6 @@ public interface SimConstant {
         int ID_OPERATIONS_DEPART = 1303;
         //研发部id (其建筑等级即研究院等级, 决定 ResearchInstitute 配置的游戏解锁)
         int ID_RESEARCH_DEPART = 1302;
-    }
-
-    interface ResearchPoint {
-        //研究点类型
-        //普通
-        int NORMAL_TPYE = 1;
-        //稀有
-        int RARE_TPYE = 2;
     }
 
     /**

@@ -19,8 +19,12 @@ public class ItemCfg extends BaseCfgBean {
   /** 配置表工作薄名 */
   public static final String SHEET_NAME = "Item";
 
+  /** 具体道具分类 */
+  protected int ItemType;
   /** 使用道具后选择获得道具 */
   protected Map<Integer,Long> SelectGetItem;
+  /** 指定条件 */
+  protected String TargetCondition;
   /** 自动激活的图鉴ID */
   protected int album;
   /** 激活的装扮 */
@@ -48,9 +52,19 @@ public class ItemCfg extends BaseCfgBean {
   /** 类型 */
   protected int type;
 
+  /** 返回具体道具分类 */
+  public int getItemType() {
+    return ItemType;
+  }
+
   /** 返回使用道具后选择获得道具 */
   public Map<Integer,Long> getSelectGetItem() {
     return SelectGetItem;
+  }
+
+  /** 返回指定条件 */
+  public String getTargetCondition() {
+    return TargetCondition;
   }
 
   /** 返回自动激活的图鉴ID */

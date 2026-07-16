@@ -184,6 +184,12 @@ public class GameDataManager {
     containerMap.put(MedalListCfg.class, new MedalListCfgContainer());
     containerMap.put(MiniGameCfg.class, new MiniGameCfgContainer());
     containerMap.put(MiniGameListCfg.class, new MiniGameListCfgContainer());
+    containerMap.put(MiningAchievementCfg.class, new MiningAchievementCfgContainer());
+    containerMap.put(MiningBundleShopCfg.class, new MiningBundleShopCfgContainer());
+    containerMap.put(MiningCellTypeCfg.class, new MiningCellTypeCfgContainer());
+    containerMap.put(MiningExchangeShopCfg.class, new MiningExchangeShopCfgContainer());
+    containerMap.put(MiningMapGenerationCfg.class, new MiningMapGenerationCfgContainer());
+    containerMap.put(MiningToolsCfg.class, new MiningToolsCfgContainer());
     containerMap.put(OfficialAwardsCfg.class, new OfficialAwardsCfgContainer());
     containerMap.put(PiggyBankCfg.class, new PiggyBankCfgContainer());
     containerMap.put(PlayerLevelConfigCfg.class, new PlayerLevelConfigCfgContainer());
@@ -1434,6 +1440,78 @@ public class GameDataManager {
 
   public static List<MiniGameListCfg> getMiniGameListCfgList() {
     return getInstance().getCfgContainer(MiniGameListCfg.class).getCfgBeanList();
+  }
+
+  public static MiningAchievementCfg getMiningAchievementCfg(int key) {
+    return getInstance().getCfgContainer(MiningAchievementCfg.class).getCfgBeanMap().get(key);
+  }
+
+  public static Map<Integer, MiningAchievementCfg> getMiningAchievementCfgMap() {
+    return getInstance().getCfgContainer(MiningAchievementCfg.class).getCfgBeanMap();
+  }
+
+  public static List<MiningAchievementCfg> getMiningAchievementCfgList() {
+    return getInstance().getCfgContainer(MiningAchievementCfg.class).getCfgBeanList();
+  }
+
+  public static MiningBundleShopCfg getMiningBundleShopCfg(int key) {
+    return getInstance().getCfgContainer(MiningBundleShopCfg.class).getCfgBeanMap().get(key);
+  }
+
+  public static Map<Integer, MiningBundleShopCfg> getMiningBundleShopCfgMap() {
+    return getInstance().getCfgContainer(MiningBundleShopCfg.class).getCfgBeanMap();
+  }
+
+  public static List<MiningBundleShopCfg> getMiningBundleShopCfgList() {
+    return getInstance().getCfgContainer(MiningBundleShopCfg.class).getCfgBeanList();
+  }
+
+  public static MiningCellTypeCfg getMiningCellTypeCfg(int key) {
+    return getInstance().getCfgContainer(MiningCellTypeCfg.class).getCfgBeanMap().get(key);
+  }
+
+  public static Map<Integer, MiningCellTypeCfg> getMiningCellTypeCfgMap() {
+    return getInstance().getCfgContainer(MiningCellTypeCfg.class).getCfgBeanMap();
+  }
+
+  public static List<MiningCellTypeCfg> getMiningCellTypeCfgList() {
+    return getInstance().getCfgContainer(MiningCellTypeCfg.class).getCfgBeanList();
+  }
+
+  public static MiningExchangeShopCfg getMiningExchangeShopCfg(int key) {
+    return getInstance().getCfgContainer(MiningExchangeShopCfg.class).getCfgBeanMap().get(key);
+  }
+
+  public static Map<Integer, MiningExchangeShopCfg> getMiningExchangeShopCfgMap() {
+    return getInstance().getCfgContainer(MiningExchangeShopCfg.class).getCfgBeanMap();
+  }
+
+  public static List<MiningExchangeShopCfg> getMiningExchangeShopCfgList() {
+    return getInstance().getCfgContainer(MiningExchangeShopCfg.class).getCfgBeanList();
+  }
+
+  public static MiningMapGenerationCfg getMiningMapGenerationCfg(int key) {
+    return getInstance().getCfgContainer(MiningMapGenerationCfg.class).getCfgBeanMap().get(key);
+  }
+
+  public static Map<Integer, MiningMapGenerationCfg> getMiningMapGenerationCfgMap() {
+    return getInstance().getCfgContainer(MiningMapGenerationCfg.class).getCfgBeanMap();
+  }
+
+  public static List<MiningMapGenerationCfg> getMiningMapGenerationCfgList() {
+    return getInstance().getCfgContainer(MiningMapGenerationCfg.class).getCfgBeanList();
+  }
+
+  public static MiningToolsCfg getMiningToolsCfg(int key) {
+    return getInstance().getCfgContainer(MiningToolsCfg.class).getCfgBeanMap().get(key);
+  }
+
+  public static Map<Integer, MiningToolsCfg> getMiningToolsCfgMap() {
+    return getInstance().getCfgContainer(MiningToolsCfg.class).getCfgBeanMap();
+  }
+
+  public static List<MiningToolsCfg> getMiningToolsCfgList() {
+    return getInstance().getCfgContainer(MiningToolsCfg.class).getCfgBeanList();
   }
 
   public static OfficialAwardsCfg getOfficialAwardsCfg(int key) {

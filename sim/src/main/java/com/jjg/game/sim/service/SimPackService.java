@@ -4,9 +4,11 @@ import com.jjg.game.core.constant.AddType;
 import com.jjg.game.core.constant.Code;
 import com.jjg.game.core.data.CommonResult;
 import com.jjg.game.core.data.ItemOperationResult;
+import com.jjg.game.core.data.PlayerPack;
 import com.jjg.game.core.service.PlayerPackService;
 import com.jjg.game.core.utils.ItemUtils;
 import com.jjg.game.sampledata.GameDataManager;
+import com.jjg.game.sampledata.bean.ItemCfg;
 import com.jjg.game.sim.constant.BuildingOutputType;
 import com.jjg.game.sim.constant.SimConstant;
 import com.jjg.game.sim.dao.SimCasinoDao;
@@ -37,6 +39,8 @@ public class SimPackService {
 
     @Autowired
     private PlayerPackService playerPackService;
+    @Autowired
+    private SimConfigCacheService simConfigCacheService;
     @Autowired
     private SimPlayerGameDao simPlayerGameDao;
     @Autowired
@@ -109,12 +113,6 @@ public class SimPackService {
                 }
             } else if (itemId == SimConstant.Item.ID_EXPOD) {  //曝光度
 
-            } else if (itemId == SimConstant.Item.ID_RESEARCH_POINT) {  //研究点
-                SimBaseData base = ctx.getSimBaseData();
-                base.addResearchPoint(SimConstant.ResearchPoint.NORMAL_TPYE, (int) count);
-            } else if (itemId == SimConstant.Item.ID_RARE_RESEARCH_POINT) {  //稀有研究点
-                SimBaseData base = ctx.getSimBaseData();
-                base.addResearchPoint(SimConstant.ResearchPoint.RARE_TPYE, (int) count);
             } else if (GameDataManager.getMedalListCfg(itemId) != null) {
                 SimBaseData base = ctx.getSimBaseData();
                 base.activeMedalId(itemId);
@@ -127,18 +125,34 @@ public class SimPackService {
         if (casino != null) {
             data.setAwareness(casino.getAwareness());
         }
-        data.setResearchPoint(ctx.getSimBaseData().findResearchPoint(SimConstant.ResearchPoint.NORMAL_TPYE));
-        data.setRareResearchPoint(ctx.getSimBaseData().findResearchPoint(SimConstant.ResearchPoint.RARE_TPYE));
         result.data = data;
         return result;
+    }
+
+    /**
+     * 读取背包中某道具当前数量 (研究点等资源已按 itemId 存于背包)
+     */
+    public long getItemCount(long playerId, int itemId) {
+        PlayerPack pack = getPlayerPack(playerId);
+        return pack == null ? 0 : pack.getItemCount(itemId);
+    }
+
+    public PlayerPack getPlayerPack(long playerId) {
+        return playerPackService.getFromAllDB(playerId);
+    }
+
+    /**
+     * 读取研究点数量: gameType=0 为所有游戏通用的普通研究点, 其余为对应游戏的专属研究点。
+     */
+    public long getResearchPointCount(long playerId, int gameType) {
+        ItemCfg itemCfg = simConfigCacheService.getResearchPointItemCfg(gameType);
+        return itemCfg == null ? 0 : getItemCount(playerId, itemCfg.getId());
     }
 
     private boolean isSimResource(int itemId) {
         return itemId == SimConstant.Item.ID_POWER
                 || itemId == SimConstant.Item.ID_AWARENESS
                 || itemId == SimConstant.Item.ID_EXPOD
-                || itemId == SimConstant.Item.ID_RESEARCH_POINT
-                || itemId == SimConstant.Item.ID_RARE_RESEARCH_POINT
                 || GameDataManager.getMedalListCfg(itemId) != null;
     }
 
@@ -160,15 +174,13 @@ public class SimPackService {
     }
 
     /**
-     * 离线 (玩家不在本节点) 添加道具: sim 特殊资源直接写入持久化数据 (能量/研究点入 SimBaseData,
-     * 知名度入当前场景 SimCasinoData), 其余道具走背包。
+     * 离线 (玩家不在本节点) 添加道具: sim 特殊资源直接写入持久化数据 (能量入 SimBaseData,
+     * 知名度入当前场景 SimCasinoData), 其余道具 (含研究点) 走背包。
      * 注: 若玩家此刻正在其它节点在线, 该节点的内存快照落库可能覆盖此处直写 —— 联盟任务离线发奖
      * 仅 onTaskHelped 触发, 概率低, 暂可接受。
      */
     private void addItemsOffline(long playerId, Map<Integer, Long> items, AddType addType, String desc, boolean notify) {
         int powerAdd = 0;
-        int normalResAdd = 0;
-        int rareResAdd = 0;
         int awarenessAdd = 0;
         Map<Integer, Long> packItems = new HashMap<>(items.size());
         for (Map.Entry<Integer, Long> en : items.entrySet()) {
@@ -179,35 +191,24 @@ public class SimPackService {
             }
             if (itemId == SimConstant.Item.ID_POWER) {
                 powerAdd += (int) count;
-            } else if (itemId == SimConstant.Item.ID_RESEARCH_POINT) {
-                normalResAdd += (int) count;
-            } else if (itemId == SimConstant.Item.ID_RARE_RESEARCH_POINT) {
-                rareResAdd += (int) count;
             } else if (itemId == SimConstant.Item.ID_AWARENESS) {
                 awarenessAdd += (int) count;
             } else if (itemId == SimConstant.Item.ID_EXPOD) {
                 //曝光度无内存承载, 与在线入账一致丢弃
             } else {
+                //研究点等资源已按 itemId 存于背包
                 packItems.merge(itemId, count, Long::sum);
             }
         }
 
-        //能量 / 研究点: 写 SimBaseData; 知名度: 写当前场景 SimCasinoData
-        if (powerAdd > 0 || normalResAdd > 0 || rareResAdd > 0 || awarenessAdd > 0) {
+        //能量 : 写 SimBaseData; 知名度: 写当前场景 SimCasinoData
+        if (powerAdd > 0 || awarenessAdd > 0) {
             SimBaseData base = simPlayerGameDao.findById(playerId).orElse(null);
             if (base == null) {
                 log.warn("离线发放sim资源失败, 无SimBaseData playerId={},items={}", playerId, items);
             } else {
                 if (powerAdd > 0) {
                     base.setPower(base.getPower() + powerAdd);
-                }
-                if (normalResAdd > 0) {
-                    base.addResearchPoint(SimConstant.ResearchPoint.NORMAL_TPYE, normalResAdd);
-                }
-                if (rareResAdd > 0) {
-                    base.addResearchPoint(SimConstant.ResearchPoint.RARE_TPYE, rareResAdd);
-                }
-                if (powerAdd > 0 || normalResAdd > 0 || rareResAdd > 0) {
                     simPlayerGameDao.save(base);
                 }
                 if (awarenessAdd > 0) {

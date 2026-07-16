@@ -86,7 +86,7 @@ public class SimDropService {
         slotsSpinResult.setItemsMap(dropResult);
         slotsSpinResult.setPower(base.getPower());
 
-        slotsSpinResult.setResearchPoints(base.findResearchPoint(SimConstant.ResearchPoint.NORMAL_TPYE));
+        slotsSpinResult.setResearchPoints((int) simPackService.getResearchPointCount(ctx.playerId(), 0));
         result.data = slotsSpinResult;
         return result;
     }

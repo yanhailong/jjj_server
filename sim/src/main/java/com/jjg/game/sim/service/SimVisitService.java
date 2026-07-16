@@ -114,6 +114,8 @@ public class SimVisitService {
     @Autowired
     private PlayerPackService playerPackService;
     @Autowired
+    private SimPackService simPackService;
+    @Autowired
     private NodeManager nodeManager;
     @Autowired
     private ClusterSystem clusterSystem;
@@ -567,8 +569,7 @@ public class SimVisitService {
         SlotsSpinResult data = new SlotsSpinResult();
         data.setItemsMap(Map.of());
         data.setPower(ctx.getSimBaseData() == null ? 0 : ctx.getSimBaseData().getPower());
-        data.setResearchPoints(ctx.getSimBaseData() == null ? 0
-                : ctx.getSimBaseData().findResearchPoint(com.jjg.game.sim.constant.SimConstant.ResearchPoint.NORMAL_TPYE));
+        data.setResearchPoints((int) simPackService.getResearchPointCount(ctx.playerId(), 0));
         return new CommonResult<>(Code.SUCCESS, data);
     }
 

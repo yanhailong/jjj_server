@@ -121,31 +121,6 @@ public class HallRPCController extends CoreRPCController implements GmToHallBrid
 
     @Override
     @RpcCallSetting(processorModKey = "#arg0")
-    public int deductResearchPoint(long playerId, Map<Integer, Integer> deductMap) {
-        if (deductMap == null || deductMap.isEmpty()) {
-            return Code.SUCCESS;
-        }
-        SimPlayerContext ctx = this.simPlayerContextRegistry.getContext(playerId);
-        if (ctx == null) {
-            log.warn("扣除研究点失败，未找到玩家 sim 数据 playerId={}", playerId);
-            return Code.NOT_FOUND;
-        }
-        //先校验
-        for (Map.Entry<Integer, Integer> en : deductMap.entrySet()) {
-            if (ctx.getSimBaseData().findResearchPoint(en.getKey()) < en.getValue()) {
-                log.warn("扣除研究点失败，研究点不足 playerId={},type={},need={}", playerId, en.getKey(), en.getValue());
-                return Code.NOT_ENOUGH;
-            }
-        }
-        //再扣
-        for (Map.Entry<Integer, Integer> en : deductMap.entrySet()) {
-            ctx.getSimBaseData().deductResearchPoint(en.getKey(), en.getValue());
-        }
-        return Code.SUCCESS;
-    }
-
-    @Override
-    @RpcCallSetting(processorModKey = "#arg0")
     public CommonResult<SimSkillsData> addSkillById(long playerId, int gameType, int skillId) {
         ResearchSkillsCfg cfg = GameDataManager.getResearchSkillsCfg(skillId);
         if (cfg == null) {

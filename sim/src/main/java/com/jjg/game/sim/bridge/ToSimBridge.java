@@ -18,13 +18,6 @@ import java.util.Map;
  */
 public interface ToSimBridge extends IGameRpc {
     /**
-     * 扣除研究点
-     *
-     * @return
-     */
-    int deductResearchPoint(long playerId, Map<Integer, Integer> deductMap);
-
-    /**
      * 添加技能
      *
      * @param playerId

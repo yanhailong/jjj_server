@@ -11,6 +11,7 @@ import com.jjg.game.sampledata.GameDataManager;
 import com.jjg.game.sampledata.bean.*;
 import com.jjg.game.sim.constant.SimConstant;
 import com.jjg.game.social.data.SendGiftConfig;
+import org.apache.commons.lang3.StringUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Component;
@@ -86,6 +87,9 @@ public class SimConfigCacheService implements ConfigExcelChangeListener {
     //创建联盟需要消耗的道具
     private Item createAllianceItem;
 
+    //研究点道具 gameType -> ItemCfg
+    private Map<Integer, ItemCfg> researchPointsItemCfgMap = Collections.emptyMap();
+
     public void init() {
         initGuestQualityItems();
     }
@@ -116,6 +120,8 @@ public class SimConfigCacheService implements ConfigExcelChangeListener {
 
         loadAllianceLevelConfig();
         loadAllianceTasks();
+
+        loadItemConfig();
     }
 
     /**
@@ -385,7 +391,7 @@ public class SimConfigCacheService implements ConfigExcelChangeListener {
 
         //联盟每日任务刷新
         GlobalConfigCfg createAllianceCfg = GameDataManager.getGlobalConfigCfg(SimConstant.Common.ALLIANCE_CREATE_ALLIANCE_CFG_ID);
-        if(createAllianceCfg != null){
+        if (createAllianceCfg != null) {
             String[] s = createAllianceCfg.getValue().split("_");
             this.createAllianceItem = new Item(Integer.parseInt(s[0]), Long.parseLong(s[1]));
         }
@@ -426,6 +432,22 @@ public class SimConfigCacheService implements ConfigExcelChangeListener {
         allianceTaskMap = Collections.unmodifiableMap(map);
     }
 
+    private void loadItemConfig() {
+        Map<Integer, ItemCfg> tmpResearchPointsItemCfgMap = new HashMap<>();
+        for (Map.Entry<Integer, ItemCfg> en : GameDataManager.getItemCfgMap().entrySet()) {
+            ItemCfg value = en.getValue();
+            if (value.getItemType() == SimConstant.Item.ITEM_TYPE_RESEARCH_POINTS) {
+                if (StringUtils.isEmpty(value.getTargetCondition())) {
+                    tmpResearchPointsItemCfgMap.put(0, value);
+                } else {
+                    tmpResearchPointsItemCfgMap.put(Integer.parseInt(value.getTargetCondition()), value);
+                }
+            }
+        }
+
+        this.researchPointsItemCfgMap = Collections.unmodifiableMap(tmpResearchPointsItemCfgMap);
+    }
+
     @Override
     public void initSampleCallbackCollector() {
         addInitSampleFileObserveWithCallBack(CasinoStatsSheetCfg.EXCEL_NAME, this::loadCasinoStatsSheetCfg);
@@ -451,6 +473,8 @@ public class SimConfigCacheService implements ConfigExcelChangeListener {
 
         addInitSampleFileObserveWithCallBack(AllianceLevelCfg.EXCEL_NAME, this::loadAllianceLevelConfig);
         addInitSampleFileObserveWithCallBack(TaskCfg.EXCEL_NAME, this::loadAllianceTasks);
+
+        addInitSampleFileObserveWithCallBack(ItemCfg.EXCEL_NAME, this::loadItemConfig);
     }
 
     // ---------------------------------------------------------------------
@@ -705,5 +729,9 @@ public class SimConfigCacheService implements ConfigExcelChangeListener {
 
     public Item getCreateAllianceItem() {
         return createAllianceItem;
+    }
+
+    public ItemCfg getResearchPointItemCfg(int gameType) {
+        return researchPointsItemCfgMap.get(gameType);
     }
 }
