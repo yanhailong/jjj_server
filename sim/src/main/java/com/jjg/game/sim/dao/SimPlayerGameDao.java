@@ -8,6 +8,7 @@ import org.springframework.data.mongodb.core.FindAndReplaceOptions;
 import org.springframework.data.mongodb.core.MongoTemplate;
 import org.springframework.data.mongodb.core.query.Criteria;
 import org.springframework.data.mongodb.core.query.Query;
+import org.springframework.data.mongodb.core.query.Update;
 import org.springframework.data.domain.Sort;
 import org.springframework.stereotype.Repository;
 
@@ -81,6 +82,14 @@ public class SimPlayerGameDao extends MongoBaseDao<SimBaseData, Long> {
             visitMaxPlayerIdExpireTime = now + VISIT_MAX_ID_CACHE_MILLIS;
             return visitMaxPlayerId;
         }
+    }
+
+    /**
+     * 经营信息-完成任务数 +1 (玩家不在本节点在线时的落库兜底)。
+     */
+    public void incrementFinishedTaskCount(long playerId) {
+        mongoTemplate.updateFirst(Query.query(Criteria.where("_id").is(playerId)),
+                new Update().inc("finishedTaskCount", 1), SimBaseData.class);
     }
 
     /**

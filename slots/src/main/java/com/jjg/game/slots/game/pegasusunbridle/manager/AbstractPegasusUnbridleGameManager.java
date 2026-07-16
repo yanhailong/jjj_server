@@ -184,6 +184,7 @@ public abstract class AbstractPegasusUnbridleGameManager extends AbstractSlotsGa
                         poolCfg.getTruePool(), poolCfg.getId(), AddType.SLOTS_JACKPOT_REWARD);
                 if (result.success()) {
                     gameRunInfo.addSmallPoolGold(result.data);
+                    recordJackpotStat(gameRunInfo, poolCfg.getId(), result.data);
                 }
             }
             //最后一次

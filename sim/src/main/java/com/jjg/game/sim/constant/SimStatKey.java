@@ -31,7 +31,7 @@ public interface SimStatKey {
         int WATCH_AD = 6;
         //能量房间 每分钟产量
         int ENERGY_ROOM = 7;
-        //游戏区金币总收益 (SLOT+扑克+捕鱼每分钟产量)
+        //金币收益 (SLOT房间每分钟产量; 扑克/捕鱼房间单列)
         int GOLD_INCOME = 8;
         //兼容旧客户端命名
         int SLOT_ROOM = GOLD_INCOME;

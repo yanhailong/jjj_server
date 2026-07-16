@@ -893,6 +893,7 @@ public abstract class AbstractWealthBankGameManager extends AbstractSlotsGameMan
             //缓存中奖金额,以便计算玩家贡献金额
             playerGameData.addSmallPoolReward(addGold);
             gameRunInfo.addSmallPoolGold(addGold);
+            recordJackpotStat(gameRunInfo, poolId, addGold);
             gameRunInfo.addAllWinGold(gameRunInfo.getSmallPoolGold());
             wealthBankTrainInfo.goldList.add(addGold);
             wealthBankTrainInfo.poolId = poolId;

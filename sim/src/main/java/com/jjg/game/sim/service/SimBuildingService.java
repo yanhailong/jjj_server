@@ -632,11 +632,10 @@ public class SimBuildingService implements SimPlayerTickListener {
                 //能量房间: 休息区 POWER 产量
                 result.merge(SimStatKey.Operation.ENERGY_ROOM, actual.getOrDefault(BuildingOutputType.POWER, 0L), Long::sum);
             } else {
-                //按建筑ID末两位区分: 1~6 SLOT, 7~9 扑克, 10~12 捕鱼
+                //按建筑ID末两位区分: 1~6 SLOT(金币收益), 7~9 扑克, 10~12 捕鱼, 各房间产量互不重叠
                 long gold = actual.getOrDefault(BuildingOutputType.GOLD, 0L);
-                result.merge(SimStatKey.Operation.GOLD_INCOME, gold, Long::sum);
                 int statKey = resolveGameRoomStatKey(areaCfg);
-                if (statKey > 0 && statKey != SimStatKey.Operation.GOLD_INCOME) {
+                if (statKey > 0) {
                     result.merge(statKey, gold, Long::sum);
                 }
             }

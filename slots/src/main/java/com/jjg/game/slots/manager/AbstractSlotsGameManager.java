@@ -1329,6 +1329,7 @@ public abstract class AbstractSlotsGameManager<T extends SlotsPlayerGameData, L 
             }
             playerGameData.addSmallPoolReward(poolValue);
             gameRunInfo.addSmallPoolGold(poolValue);
+            recordJackpotStat(gameRunInfo, poolId, poolValue);
             playerGameData.setPlayer(result.data);
 
             log.info("玩家奖池中奖 playerId = {},gameType = {},roomCfgId = {},poolId = {},poolValue = {}", playerGameData.getPlayerId(), playerGameData.getGameType(), playerGameData.getRoomCfgId(), poolId, poolValue);
@@ -1368,8 +1369,31 @@ public abstract class AbstractSlotsGameManager<T extends SlotsPlayerGameData, L 
 
             playerGameData.addSmallPoolReward(result.data);
             gameRunInfo.addSmallPoolGold(result.data);
+            recordJackpotStat(gameRunInfo, poolId, result.data);
 
             log.info("玩家从单奖池中奖 playerId = {},gameType = {},roomCfgId = {},poolId = {},poolValue = {}", playerGameData.getPlayerId(), playerGameData.getGameType(), playerGameData.getRoomCfgId(), poolId, result.data);
+        }
+    }
+
+    /**
+     * 奖池中奖后按档位记入本次旋转结果 (mini/minor/major/grand), 供 sim 经营信息统计奖池触发次数。
+     * 档位 = poolId 在 BaseInit.PrizePoolIdList 中的下标 (0~3); 不在列表中的奖池不计。
+     */
+    protected void recordJackpotStat(GameRunInfo<?> gameRunInfo, int poolId, long value) {
+        if (gameRunInfo == null || value < 1) {
+            return;
+        }
+        BaseInitCfg baseInitCfg = GameDataManager.getBaseInitCfg(this.gameType);
+        if (baseInitCfg == null || baseInitCfg.getPrizePoolIdList() == null) {
+            return;
+        }
+        switch (baseInitCfg.getPrizePoolIdList().indexOf(poolId)) {
+            case 0 -> gameRunInfo.setMini(gameRunInfo.getMini() + value);
+            case 1 -> gameRunInfo.setMinor(gameRunInfo.getMinor() + value);
+            case 2 -> gameRunInfo.setMajor(gameRunInfo.getMajor() + value);
+            case 3 -> gameRunInfo.setGrand(gameRunInfo.getGrand() + value);
+            default -> {
+            }
         }
     }
 

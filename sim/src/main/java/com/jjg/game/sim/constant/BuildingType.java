@@ -9,10 +9,10 @@ package com.jjg.game.sim.constant;
 public enum BuildingType {
     //游戏区
     GAME(1),
-    //管理区
-    MANAGE(2),
     //休息区
-    REST(3),
+    REST(2),
+    //管理区
+    MANAGE(3),
     //参观区
     TOUR(4);
 
@@ -36,10 +36,10 @@ public enum BuildingType {
                 return GAME;
             }
             case 2 -> {
-                return MANAGE;
+                return REST;
             }
             case 3 -> {
-                return REST;
+                return MANAGE;
             }
             case 4 -> {
                 return TOUR;

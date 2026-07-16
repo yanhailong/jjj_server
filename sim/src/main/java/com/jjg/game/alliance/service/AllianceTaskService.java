@@ -21,6 +21,9 @@ import com.jjg.game.core.utils.ItemUtils;
 import com.jjg.game.sampledata.GameDataManager;
 import com.jjg.game.sampledata.bean.TaskCfg;
 import com.jjg.game.sim.constant.SimConstant;
+import com.jjg.game.sim.dao.SimPlayerGameDao;
+import com.jjg.game.sim.data.SimPlayerContext;
+import com.jjg.game.sim.manager.SimPlayerContextRegistry;
 import com.jjg.game.sim.service.SimConfigCacheService;
 import com.jjg.game.sim.service.SimPackService;
 import com.jjg.game.sim.data.SpinStatInfo;
@@ -78,6 +81,10 @@ public class AllianceTaskService {
     private SocialSender socialSender;
     @Autowired
     private PlayerPackService playerPackService;
+    @Autowired
+    private SimPlayerContextRegistry simPlayerContextRegistry;
+    @Autowired
+    private SimPlayerGameDao simPlayerGameDao;
 
     /**
      * 玩家当前任务快照本地缓存: 进度上报(spin)高频, 不能每次读 Mongo。
@@ -562,6 +569,8 @@ public class AllianceTaskService {
         alliancePlayerDao.pushFinishedTask(playerId, taken, AllianceConst.Cfg.FINISHED_TASK_KEEP);
         int today = TimeHelper.getDayNumerical();
         alliancePlayerDao.incrementTaskFinish(playerId, today);
+        //经营信息: 完成任务数 +1 (在线走内存; 不在本节点则直写库, 与发奖离线兜底同口径)
+        incrementFinishedTaskCount(playerId);
 
         grantTaskRewards(playerId, taken.getAllianceId(), cfg);
 
@@ -572,6 +581,23 @@ public class AllianceTaskService {
         log.info("完成联盟任务 playerId={},cfgId={},allianceId={}",
                 playerId, taken.getCfgId(), taken.getAllianceId());
         return true;
+    }
+
+    /**
+     * 经营信息-完成任务数 +1: 完成路径大多在玩家会话节点触发, 直接累加内存;
+     * 求助完成 (onTaskHelped) 可能发生在其他节点, 兜底直写库。
+     */
+    private void incrementFinishedTaskCount(long playerId) {
+        try {
+            SimPlayerContext ctx = simPlayerContextRegistry.getContext(playerId);
+            if (ctx != null && ctx.getSimBaseData() != null) {
+                ctx.getSimBaseData().incFinishedTaskCount();
+                return;
+            }
+            simPlayerGameDao.incrementFinishedTaskCount(playerId);
+        } catch (Exception e) {
+            log.warn("累加完成任务数失败 playerId={}", playerId, e);
+        }
     }
 
     private void grantTaskRewards(long playerId, long allianceId, TaskCfg cfg) {
