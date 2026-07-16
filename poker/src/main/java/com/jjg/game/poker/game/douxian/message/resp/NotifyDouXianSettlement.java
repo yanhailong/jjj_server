@@ -6,6 +6,7 @@ import com.jjg.game.common.proto.ProtoDesc;
 import com.jjg.game.common.proto.ProtobufMessage;
 import com.jjg.game.poker.game.douxian.constant.DouXianConstant;
 import com.jjg.game.poker.game.douxian.message.bean.DouXianPairSettlementInfo;
+import com.jjg.game.poker.game.douxian.message.bean.DouXianRevealInfo;
 
 import java.util.List;
 
@@ -17,6 +18,8 @@ import java.util.List;
 public class NotifyDouXianSettlement extends AbstractNotice {
     @ProtoDesc("当前回合")
     public int round;
+    @ProtoDesc("本回合所有玩家的完整亮牌信息(含牌面/牌型/灵力值)，结算已发生，不存在偷看问题，前端可以直接用这个渲染亮牌动画，不用再从pairResults里反推牌面")
+    public List<DouXianRevealInfo> playerReveals;
     @ProtoDesc("两两结算结果列表")
     public List<DouXianPairSettlementInfo> pairResults;
 }

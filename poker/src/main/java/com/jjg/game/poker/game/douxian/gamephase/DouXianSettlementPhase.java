@@ -5,9 +5,11 @@ import com.jjg.game.poker.game.common.BasePokerGameController;
 import com.jjg.game.poker.game.common.gamephase.BasePokerPhase;
 import com.jjg.game.poker.game.douxian.constant.DouXianConstant;
 import com.jjg.game.poker.game.douxian.constant.DouXianZone;
+import com.jjg.game.poker.game.douxian.data.DouXianBuilder;
 import com.jjg.game.poker.game.douxian.data.DouXianDataHelper;
 import com.jjg.game.poker.game.douxian.data.DouXianZoneCards;
 import com.jjg.game.poker.game.douxian.message.bean.DouXianPairSettlementInfo;
+import com.jjg.game.poker.game.douxian.message.bean.DouXianRevealInfo;
 import com.jjg.game.poker.game.douxian.message.bean.DouXianSpecialRuleInfo;
 import com.jjg.game.poker.game.douxian.message.bean.DouXianZoneSettlementInfo;
 import com.jjg.game.poker.game.douxian.message.resp.NotifyDouXianSettlement;
@@ -161,8 +163,20 @@ public class DouXianSettlementPhase extends BasePokerPhase<DouXianGameDataVo> {
             gameDataVo.recordRoundChange(playerId, balanceAfter.get(playerId) - before);
         }
 
+        // 结算已经发生，此时把所有玩家的完整牌面一起带上，前端可以直接渲染亮牌动画，
+        // 不用再从pairResults的两两对比数据里反推每个人到底摆了什么牌(selfView=true，
+        // 这里是广播给所有人的"结算后"快照，跟摆牌阶段"只有自己能看全"的隐藏规则不冲突，见DESIGN.md 8.8)
+        List<DouXianRevealInfo> playerReveals = new ArrayList<>();
+        for (Long playerId : activePlayerIds) {
+            DouXianRevealInfo reveal = new DouXianRevealInfo();
+            reveal.playerId = playerId;
+            reveal.zones = DouXianBuilder.buildZonePlacements(playerId, gameDataVo, true);
+            playerReveals.add(reveal);
+        }
+
         NotifyDouXianSettlement notify = new NotifyDouXianSettlement();
         notify.round = round;
+        notify.playerReveals = playerReveals;
         notify.pairResults = pairResults;
         broadcastMsgToRoom(notify);
 
