@@ -122,7 +122,7 @@ public class HallMessageHandler implements GmListener, ChooseWareListener, Choos
                 return;
             }
             //如果游戏状态下架或者已经关闭禁止进入
-            if (!hallService.canJoinGame(req.gameType)) {
+            if (!hallService.canJoinGame(req.gameType, 0)) {
                 res.code = Code.FORBID;
                 playerController.send(res);
                 log.debug("游戏已关闭，选择游戏失败 playerId = {},gameType = {}", playerController.playerId(), req.gameType);
@@ -793,15 +793,14 @@ public class HallMessageHandler implements GmListener, ChooseWareListener, Choos
     /**
      * 加入房间之前检查前置条件
      */
-    private CommonResult<WareHouseConfigInfo> checkBeforeJoinRoom(PlayerController playerController, int gameType, int roomCfgId) {
-
+    private CommonResult<WareHouseConfigInfo> checkBeforeJoinRoom(PlayerController playerController, int gameType, int roomCfgId, int enterType) {
         if (gameType < 1) {
             log.debug("游戏类型错误，选择场次失败 playerId = {},gameType = {}", playerController.playerId(), gameType);
             return new CommonResult<>(Code.PARAM_ERROR);
         }
 
         //如果游戏状态下架或者已经关闭禁止进入
-        if (!hallService.canJoinGame(gameType)) {
+        if (!hallService.canJoinGame(gameType, enterType)) {
             log.debug("游戏已关闭，选择游戏失败 playerId = {},gameType = {}", playerController.playerId(), gameType);
             return new CommonResult<>(Code.GAME_IS_MAINTAIN);
         }
@@ -1258,7 +1257,7 @@ public class HallMessageHandler implements GmListener, ChooseWareListener, Choos
     public void onChooseWare(PlayerController playerController, ReqChooseWare req) {
         ResChooseWare res = new ResChooseWare(HallCode.SUCCESS);
         try {
-            CommonResult<WareHouseConfigInfo> checkRes = checkBeforeJoinRoom(playerController, req.gameType, req.wareId);
+            CommonResult<WareHouseConfigInfo> checkRes = checkBeforeJoinRoom(playerController, req.gameType, req.wareId, req.enterType);
             if (checkRes.code != Code.SUCCESS) {
                 res.code = checkRes.code;
                 playerController.send(res);

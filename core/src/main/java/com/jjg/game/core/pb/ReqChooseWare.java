@@ -12,10 +12,10 @@ import com.jjg.game.common.pb.AbstractMessage;
 @ProtobufMessage(messageType = MessageConst.MessageTypeDef.CORE_MESSAGE_TYPE, cmd = MessageConst.CoreMessage.REQ_CHOOSE_WARE)
 @ProtoDesc("选择游戏场次进入")
 public class ReqChooseWare extends AbstractMessage {
-
     @ProtoDesc("游戏类型")
     public int gameType;
-
     @ProtoDesc("场次id")
     public int wareId;
+    @ProtoDesc("0.正常进入  1.从赛季进入")
+    public int enterType;
 }

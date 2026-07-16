@@ -240,7 +240,10 @@ public class HallService implements ConfigExcelChangeListener, TimerListener {
      * @param gameType
      * @return
      */
-    public boolean canJoinGame(int gameType) {
+    public boolean canJoinGame(int gameType, int enterType) {
+        if (enterType > 0) {
+            return true;
+        }
         GameStatus gameStatus = gameStatusesMap.get(gameType);
         if (Objects.nonNull(gameStatus)) {
             return gameStatus.open() == 1 && gameStatus.status() == 1;
