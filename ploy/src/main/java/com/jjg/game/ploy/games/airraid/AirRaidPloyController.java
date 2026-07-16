@@ -317,6 +317,8 @@ public class AirRaidPloyController extends AbstractMultiPloyController<AirRaidPl
                             continue;
                         }
                         try {
+                            long netWin = calcRewardAfterTax(betData.getWinAmount(), taxRate);
+                            long tax = betData.getWinAmount() - netWin;
                             AirRaidRecord record = new AirRaidRecord();
                             record.setPlayerId(playerId);
                             record.setRoomCfgId(roomCfgId);
@@ -326,6 +328,7 @@ public class AirRaidPloyController extends AbstractMultiPloyController<AirRaidPl
                             record.setCrashMultiplier(crashMul);
                             record.setCashOutMultiplier(betData.getCashOutMultiplier());
                             record.setWinAmount(betData.getWinAmount());
+                            record.setTax(tax);
                             record.setTimestamp(now);
                             recordDao.saveRecord(record);
                             HashMap<String, Object> settlementData = new HashMap<>();
@@ -335,9 +338,10 @@ public class AirRaidPloyController extends AbstractMultiPloyController<AirRaidPl
                             settlementData.put("crashMultiplier", crashMul);
                             settlementData.put("cashOutMultiplier", betData.getCashOutMultiplier());
                             settlementData.put("winAmount", betData.getWinAmount());
+                            settlementData.put("tax", tax);
                             settlementData.put("cashedOut", betData.isCashedOut());
                             settlementData.put("timestamp", now);
-                            sendSettlementDataTrack(playerData, betData.getBetAmount(), calcRewardAfterTax(betData.getWinAmount(), taxRate), settlementData);
+                            sendSettlementDataTrack(playerData, betData.getBetAmount(), netWin, settlementData);
                         } catch (Exception ex) {
                             log.error("AirRaid 保存记录异常 playerId={}, betIndex={}", playerId, e.getKey(), ex);
                         }
@@ -811,6 +815,7 @@ public class AirRaidPloyController extends AbstractMultiPloyController<AirRaidPl
             info.betAmount = r.getBetAmount();
             info.cashOutMultiplier = r.getCashOutMultiplier();
             info.winAmount = r.getWinAmount();
+            info.tax = r.getTax();
             info.timestamp = r.getTimestamp();
             infoList.add(info);
         }

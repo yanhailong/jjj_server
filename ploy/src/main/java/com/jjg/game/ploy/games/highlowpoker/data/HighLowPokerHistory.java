@@ -11,6 +11,8 @@ public class HighLowPokerHistory {
     private List<HighLowHistoryInfo> history;
     //总营收
     private long totalProfit;
+    //税收
+    private long tax;
 
     public List<HighLowHistoryInfo> getHistory() {
         return history;
@@ -26,5 +28,13 @@ public class HighLowPokerHistory {
 
     public void setTotalProfit(long totalProfit) {
         this.totalProfit = totalProfit;
+    }
+
+    public long getTax() {
+        return tax;
+    }
+
+    public void setTax(long tax) {
+        this.tax = tax;
     }
 }

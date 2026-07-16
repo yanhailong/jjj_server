@@ -10,6 +10,7 @@ public class HilloHistory {
     private long bet;
     private int betMode;
     private long balanceAfter;
+    private long tax;
 
     public List<HilloHistoryInfo> getHistory() {
         return history;
@@ -57,5 +58,13 @@ public class HilloHistory {
 
     public void setBalanceAfter(long balanceAfter) {
         this.balanceAfter = balanceAfter;
+    }
+
+    public long getTax() {
+        return tax;
+    }
+
+    public void setTax(long tax) {
+        this.tax = tax;
     }
 }

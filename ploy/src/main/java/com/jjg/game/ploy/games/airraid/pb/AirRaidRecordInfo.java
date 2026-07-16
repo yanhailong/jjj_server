@@ -16,6 +16,8 @@ public class AirRaidRecordInfo {
     public int cashOutMultiplier;
     @ProtoDesc("赢得金额")
     public long winAmount;
+    @ProtoDesc("税收")
+    public long tax;
     @ProtoDesc("时间戳(ms)")
     public long timestamp;
 }

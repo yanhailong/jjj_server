@@ -696,6 +696,8 @@ public class DouXianGameController extends BasePokerGameController<DouXianGameDa
         NotifyDouXianRecharge notify = new NotifyDouXianRecharge();
         notify.playerId = playerId;
         notify.state = 2;
+        notify.diamondCost = cost.diamondCost();
+        notify.goldReward = cost.goldReward();
         broadcastToPlayers(RoomMessageBuilder.newBuilder().toAllPlayer().setData(notify));
         log.info("斗仙牌充值复活成功 playerId:{} 花费钻石:{} 获得金币:{} 复活后余额:{} 还在等待充值的玩家:{}",
                 playerId, cost.diamondCost(), cost.goldReward(), getTransactionItemNum(playerId), gameDataVo.getRechargingPlayerIds());

@@ -69,6 +69,7 @@ public class HighLowPokerController extends AbstractSinglePloyController<HighLow
                 HighLowRecordInfo recordInfo = new HighLowRecordInfo();
                 recordInfo.historyInfos = new ArrayList<>(history.getHistory());
                 recordInfo.totalIncome = history.getTotalProfit();
+                recordInfo.tax = history.getTax();
                 res.historyInfoList.add(recordInfo);
             }
         }
@@ -233,6 +234,7 @@ public class HighLowPokerController extends AbstractSinglePloyController<HighLow
         List<HighLowHistoryInfo> roundHistory = new ArrayList<>(pokerPloyGameData.getHistory());
         highLowPokerHistory.setHistory(roundHistory);
         highLowPokerHistory.setTotalProfit(pokerPloyGameData.getCurrentCoin() - tax - pokerPloyGameData.getLastBet());
+        highLowPokerHistory.setTax(tax);
         HashMap<String, Object> settlementData = new HashMap<>();
         settlementData.put("history", roundHistory);
         settlementData.put("totalProfit", highLowPokerHistory.getTotalProfit());

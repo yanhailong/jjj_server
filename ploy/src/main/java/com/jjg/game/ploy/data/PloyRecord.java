@@ -17,6 +17,8 @@ public abstract class PloyRecord {
     private int roomCfgId;
     //时间
     private long timestamp;
+    //税收
+    private long tax;
 
     public long getPlayerId() {
         return playerId;
@@ -40,5 +42,13 @@ public abstract class PloyRecord {
 
     public void setTimestamp(long timestamp) {
         this.timestamp = timestamp;
+    }
+
+    public long getTax() {
+        return tax;
+    }
+
+    public void setTax(long tax) {
+        this.tax = tax;
     }
 }

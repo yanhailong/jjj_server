@@ -18,4 +18,8 @@ public class NotifyDouXianRecharge extends AbstractNotice {
     public int state;
     @ProtoDesc("充值倒计时结束时间")
     public long overTime;
+    @ProtoDesc("复活需要消耗的钻石数量")
+    public long diamondCost;
+    @ProtoDesc("复活可获得的金币数量")
+    public long goldReward;
 }

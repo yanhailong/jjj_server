@@ -16,4 +16,10 @@ public class LuckyPokerRecordInfo {
     public List<Integer> finalCardIds;
     @ProtoDesc("倍数")
     public int times;
+    @ProtoDesc("下注金额")
+    public long betAmount;
+    @ProtoDesc("赢得金额(税后)")
+    public long winAmount;
+    @ProtoDesc("税收")
+    public long tax;
 }

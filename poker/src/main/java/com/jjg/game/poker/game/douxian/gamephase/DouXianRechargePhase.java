@@ -2,6 +2,7 @@ package com.jjg.game.poker.game.douxian.gamephase;
 
 import com.jjg.game.poker.game.common.gamephase.BasePokerPhase;
 import com.jjg.game.poker.game.douxian.constant.DouXianConstant;
+import com.jjg.game.poker.game.douxian.data.DouXianDataHelper;
 import com.jjg.game.poker.game.douxian.message.resp.NotifyDouXianRecharge;
 import com.jjg.game.poker.game.douxian.room.DouXianGameController;
 import com.jjg.game.poker.game.douxian.room.data.DouXianGameDataVo;
@@ -39,11 +40,16 @@ public class DouXianRechargePhase extends BasePokerPhase<DouXianGameDataVo> {
     public void phaseDoAction() {
         super.phaseDoAction();
         long overTime = System.currentTimeMillis() + DouXianConstant.Time.RECHARGE_TIME;
+        DouXianDataHelper.DouXianRechargeCost cost = DouXianDataHelper.getRechargeCost();
         for (Long playerId : gameDataVo.getRechargingPlayerIds()) {
             NotifyDouXianRecharge notify = new NotifyDouXianRecharge();
             notify.playerId = playerId;
             notify.state = 1;
             notify.overTime = overTime;
+            if (cost != null) {
+                notify.diamondCost = cost.diamondCost();
+                notify.goldReward = cost.goldReward();
+            }
             broadcastMsgToRoom(notify);
         }
         log.info("斗仙牌进入即时充值复活等待 roomCfgId:{} playerIds:{}",
