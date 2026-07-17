@@ -10,6 +10,7 @@ import com.jjg.game.core.constant.Code;
 import com.jjg.game.core.data.CommonResult;
 import com.jjg.game.core.data.PlayerController;
 import com.jjg.game.core.utils.ItemUtils;
+import com.jjg.game.season.data.SeasonFreeSpinResult;
 import com.jjg.game.sim.bridge.ToSimBridge;
 import com.jjg.game.sim.data.SlotsSpinResult;
 import com.jjg.game.sim.data.SpinStatInfo;
@@ -117,6 +118,33 @@ public class SlotsRPCLinkManager {
             if (retryCount == 0) {
                 cancelVisitTrialSpin(playerGameData, trialPermit);
             }
+        }
+    }
+
+    /**
+     * 赛季每日免费局: 扣费前同步向 sim 申请消耗一次免费次数。
+     * 失败/不可达返回 null, 由调用方按正常扣费处理。
+     */
+    public SeasonFreeSpinResult useSeasonFreeSpin(SlotsPlayerGameData playerGameData, int gameType) {
+        try {
+            ClusterClient client = resolveSimClient(playerGameData);
+            if (client == null) {
+                return null;
+            }
+            GameRpcContext rpcContext = GameRpcContext.getContext();
+            RpcReqParameterBuilder previousBuilder = rpcContext.getReqParameterBuilder();
+            try {
+                rpcContext.withReqParameterBuilder(RpcReqParameterBuilder.create()
+                        .addClusterClient(client).setTryMillisPerClient(1000));
+                CommonResult<SeasonFreeSpinResult> result = toSimBridge.useSeasonFreeSpin(
+                        playerGameData.getPlayerId(), gameType);
+                return result == null || !result.success() ? null : result.data;
+            } finally {
+                rpcContext.setReqParameterBuilder(previousBuilder);
+            }
+        } catch (Exception e) {
+            log.error("赛季免费局申请异常 playerId={},gameType={}", playerGameData.getPlayerId(), gameType, e);
+            return null;
         }
     }
 

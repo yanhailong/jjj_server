@@ -41,6 +41,7 @@ public class SeasonPlayerData extends AbstractData {
     private long dailyLossAmount;
     private long dailyPostLimitBet;
     private int dailyGemDropCount;
+    private int dailyFreeGameUsed;
     private long lastMatchTime;
     private Map<Integer, Integer> equippedGems = new HashMap<>();
     private Map<Integer, Integer> shopPurchases = new HashMap<>();
@@ -114,6 +115,7 @@ public class SeasonPlayerData extends AbstractData {
         dailyLossAmount = 0;
         dailyPostLimitBet = 0;
         dailyGemDropCount = 0;
+        dailyFreeGameUsed = 0;
     }
 
     public void addMatchRecord(SeasonMatchRecord record, int limit) {
@@ -188,6 +190,8 @@ public class SeasonPlayerData extends AbstractData {
     public void setDailyPostLimitBet(long dailyPostLimitBet) { this.dailyPostLimitBet = dailyPostLimitBet; }
     public int getDailyGemDropCount() { return dailyGemDropCount; }
     public void setDailyGemDropCount(int dailyGemDropCount) { this.dailyGemDropCount = dailyGemDropCount; }
+    public int getDailyFreeGameUsed() { return dailyFreeGameUsed; }
+    public void setDailyFreeGameUsed(int dailyFreeGameUsed) { this.dailyFreeGameUsed = dailyFreeGameUsed; }
     public long getLastMatchTime() { return lastMatchTime; }
     public void setLastMatchTime(long lastMatchTime) { this.lastMatchTime = lastMatchTime; }
 

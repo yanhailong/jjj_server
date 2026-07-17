@@ -55,4 +55,6 @@ public class SeasonInfo {
     public List<Integer> openminigames;
     @ProtoDesc("赛季：免费游戏次数（进阶赛季、循环赛季）")
     public int freeGameCount;
+    @ProtoDesc("剩余的免费游戏次数")
+    public int remainFreeGameCount;
 }

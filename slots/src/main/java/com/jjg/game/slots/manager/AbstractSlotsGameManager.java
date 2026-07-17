@@ -35,6 +35,8 @@ import com.jjg.game.core.task.param.TaskConditionParam12001;
 import com.jjg.game.core.utils.ItemUtils;
 import com.jjg.game.sampledata.GameDataManager;
 import com.jjg.game.sampledata.bean.*;
+import com.jjg.game.season.data.SeasonFreeSpinResult;
+import com.jjg.game.season.service.SeasonFreeGameService;
 import com.jjg.game.sim.data.SimSkillsData;
 import com.jjg.game.sim.data.SimVisitTrialSession;
 import com.jjg.game.sim.data.SpinStatInfo;
@@ -114,6 +116,8 @@ public abstract class AbstractSlotsGameManager<T extends SlotsPlayerGameData, L 
     protected SlotsRPCLinkManager slotsRPCLinkManager;
     @Autowired
     protected SimVisitQuotaService simVisitQuotaService;
+    @Autowired
+    protected SeasonFreeGameService seasonFreeGameService;
 
     protected AtomicBoolean open = new AtomicBoolean(false);
 
@@ -629,6 +633,46 @@ public abstract class AbstractSlotsGameManager<T extends SlotsPlayerGameData, L 
     }
 
     /**
+     * 赛季每日免费局: 仅当前赛季机台默认下注的普通旋转可用 (提高下注额/客座试玩不享受);
+     * 次数由 sim 按玩家赛季时间每日重置, 这里按系统日缓存"已耗尽"避免多余 RPC。
+     * 消耗成功即视为已授权, RPC 失败按正常扣费处理。
+     *
+     * @return true 表示本次旋转已消耗一次免费次数, 不再扣下注额
+     */
+    protected boolean trySeasonFreeSpin(T gameData, long betValue) {
+        if (!gameData.isSeasonFreeGameCandidate() || gameData.getVisitOwnerId() > 0) {
+            return false;
+        }
+        BaseRoomCfg baseRoomCfg = GameDataManager.getBaseRoomCfg(gameData.getRoomCfgId());
+        //仅默认(最低档)下注享受免费
+        if (baseRoomCfg == null || betValue != oneLineToAllStake(baseRoomCfg.getDefaultBet().getFirst())) {
+            return false;
+        }
+        int today = SeasonFreeGameService.dailyKey(System.currentTimeMillis());
+        if (gameData.getSeasonFreeExhaustedDailyKey() == today) {
+            return false;
+        }
+        SeasonFreeSpinResult result = slotsRPCLinkManager.useSeasonFreeSpin(gameData, this.gameType);
+        if (result == null) {
+            return false;
+        }
+        if (result.isFree()) {
+            if (result.getRemaining() <= 0) {
+                gameData.setSeasonFreeExhaustedDailyKey(today);
+            }
+            log.info("赛季免费局生效, 本次旋转不扣下注额 playerId = {},gameType = {},betValue = {},remaining = {}",
+                    gameData.getPlayerId(), this.gameType, betValue, result.getRemaining());
+            return true;
+        }
+        if (result.getReason() == SeasonFreeSpinResult.REASON_EXHAUSTED) {
+            gameData.setSeasonFreeExhaustedDailyKey(today);
+        } else if (result.getReason() == SeasonFreeSpinResult.REASON_UNAVAILABLE) {
+            gameData.setSeasonFreeGameCandidate(false);
+        }
+        return false;
+    }
+
+    /**
      * 给池子加钱
      *
      * @param gameData
@@ -638,6 +682,12 @@ public abstract class AbstractSlotsGameManager<T extends SlotsPlayerGameData, L 
     protected CommonResult<Pair<Player, BetDivideInfo>> moneyToPool(T gameData, long betValue) {
         SlotsRoomController slotsRoomController = gameData.getSlotsRoomController();
         if (slotsRoomController == null) {
+            //赛季每日免费局: 命中时不扣下注额、不给池子加钱, 返回全 0 的分账信息 (收益照常)
+            PlayerController freeSpinController = gameData.getPlayerController();
+            Player freeSpinPlayer = freeSpinController == null ? null : freeSpinController.getPlayer();
+            if (freeSpinPlayer != null && trySeasonFreeSpin(gameData, betValue)) {
+                return new CommonResult<>(Code.SUCCESS, new Pair<>(freeSpinPlayer, new BetDivideInfo()));
+            }
             CommonResult<Pair<Player, Long>> result = slotsPlayerService.betDeductGold(gameData.getPlayerId(), betValue, true, AddType.SLOTS_BET);
             if (!result.success()) {
                 log.warn("把钱添加到池子失败,扣除玩家金额失败 playerId = {},betValue = {},code = {}", gameData.getPlayerId(), betValue, result.code);
@@ -1054,6 +1104,8 @@ public abstract class AbstractSlotsGameManager<T extends SlotsPlayerGameData, L 
 
             playerGameData.setSkillsMap(simSkillsData == null ? null : simSkillsData.getSkillsMap());
             applyVisitSession(playerGameData, activeVisit ? visitSession : null);
+            playerGameData.setSeasonFreeGameCandidate(seasonFreeGameService.freeGameCandidate(
+                    playerController.playerId(), this.gameType, System.currentTimeMillis()));
             playerGameData.setSimClient(simClusterClient);
             return playerGameData;
         }
@@ -1089,6 +1141,8 @@ public abstract class AbstractSlotsGameManager<T extends SlotsPlayerGameData, L 
 
         playerGameData.setSkillsMap(simSkillsData == null ? null : simSkillsData.getSkillsMap());
         applyVisitSession(playerGameData, activeVisit ? visitSession : null);
+        playerGameData.setSeasonFreeGameCandidate(seasonFreeGameService.freeGameCandidate(
+                playerId, this.gameType, System.currentTimeMillis()));
         playerGameData.setSimClient(simClusterClient);
 
         //保存到缓存中

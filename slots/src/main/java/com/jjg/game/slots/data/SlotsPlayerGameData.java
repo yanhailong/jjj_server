@@ -87,6 +87,12 @@ public class SlotsPlayerGameData {
     protected transient long visitOwnerId;
     @Transient
     protected transient int visitCasinoId;
+    //赛季每日免费局 (仅运行时): 进机台时判定该机台是否为当前进阶/循环赛季的赛季游戏
+    @Transient
+    protected transient boolean seasonFreeGameCandidate;
+    //当日免费次数已耗尽的系统日期 key (yyyyMMdd), 跨天后重新向 sim 申请
+    @Transient
+    protected transient int seasonFreeExhaustedDailyKey;
 
     public long getPlayerId() {
         if (playerId == 0) {
@@ -436,5 +442,21 @@ public class SlotsPlayerGameData {
 
     public void setVisitCasinoId(int visitCasinoId) {
         this.visitCasinoId = visitCasinoId;
+    }
+
+    public boolean isSeasonFreeGameCandidate() {
+        return seasonFreeGameCandidate;
+    }
+
+    public void setSeasonFreeGameCandidate(boolean seasonFreeGameCandidate) {
+        this.seasonFreeGameCandidate = seasonFreeGameCandidate;
+    }
+
+    public int getSeasonFreeExhaustedDailyKey() {
+        return seasonFreeExhaustedDailyKey;
+    }
+
+    public void setSeasonFreeExhaustedDailyKey(int seasonFreeExhaustedDailyKey) {
+        this.seasonFreeExhaustedDailyKey = seasonFreeExhaustedDailyKey;
     }
 }

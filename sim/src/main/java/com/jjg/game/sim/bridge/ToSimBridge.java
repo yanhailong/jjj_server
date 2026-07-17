@@ -2,6 +2,7 @@ package com.jjg.game.sim.bridge;
 
 import com.jjg.game.common.rpc.IGameRpc;
 import com.jjg.game.core.data.CommonResult;
+import com.jjg.game.season.data.SeasonFreeSpinResult;
 import com.jjg.game.season.pb.res.ResSeasonMatch;
 import com.jjg.game.season.pb.res.ResSeasonTrialProgress;
 import com.jjg.game.sim.data.SimSkillsData;
@@ -54,6 +55,11 @@ public interface ToSimBridge extends IGameRpc {
      * 在玩家的 sim owner 节点调整个人赛季测试时间。
      */
     CommonResult<String> seasonGm(long playerId, String[] orders);
+
+    /**
+     * 赛季每日免费局: 扣费前申请消耗一次免费次数 (仅赛季机台默认下注的普通旋转会调用)。
+     */
+    CommonResult<SeasonFreeSpinResult> useSeasonFreeSpin(long playerId, int gameType);
 
     /**
      * 客座赌局每次旋转前授权；普通旋转由 slots 本地直接跳过该 RPC。

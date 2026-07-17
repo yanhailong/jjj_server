@@ -22,7 +22,9 @@ import com.jjg.game.sim.pb.SimPbConverter;
 import com.jjg.game.sim.pb.res.ResSimEnterGame;
 import com.jjg.game.sim.pb.res.ResSimPlayerInfo;
 import com.jjg.game.season.dao.SeasonPlayerDao;
+import com.jjg.game.season.data.SeasonFreeSpinResult;
 import com.jjg.game.season.data.SeasonPlayerData;
+import com.jjg.game.season.service.SeasonFreeGameService;
 import com.jjg.game.season.service.SeasonLifecycleService;
 import com.jjg.game.season.service.SeasonService;
 import com.jjg.game.sim.service.*;
@@ -133,6 +135,8 @@ public class SimManager {
     private SeasonLifecycleService seasonLifecycleService;
     @Autowired
     private SeasonService seasonService;
+    @Autowired
+    private SeasonFreeGameService seasonFreeGameService;
 
 
     /**
@@ -647,6 +651,22 @@ public class SimManager {
             return result;
         } catch (Exception e) {
             log.error("", e);
+            return new CommonResult<>(Code.EXCEPTION);
+        }
+    }
+
+    public CommonResult<SeasonFreeSpinResult> useSeasonFreeSpin(long playerId, int gameType) {
+        try {
+            SimPlayerContext ctx = this.simPlayerContextRegistry.getContext(playerId);
+            if (ctx == null) {
+                ctx = createContextByPlayerId(playerId);
+            }
+            if (ctx == null) {
+                return new CommonResult<>(Code.NOT_FOUND);
+            }
+            return seasonFreeGameService.useFreeGame(ctx, gameType);
+        } catch (Exception e) {
+            log.error("赛季免费局消耗失败 playerId={},gameType={}", playerId, gameType, e);
             return new CommonResult<>(Code.EXCEPTION);
         }
     }

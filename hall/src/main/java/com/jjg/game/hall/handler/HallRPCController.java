@@ -13,6 +13,7 @@ import com.jjg.game.hall.service.HallPlayerService;
 import com.jjg.game.hall.service.HallService;
 import com.jjg.game.sampledata.GameDataManager;
 import com.jjg.game.sampledata.bean.ResearchSkillsCfg;
+import com.jjg.game.season.data.SeasonFreeSpinResult;
 import com.jjg.game.season.pb.res.ResSeasonMatch;
 import com.jjg.game.season.pb.res.ResSeasonTrialProgress;
 import com.jjg.game.season.service.SeasonService;
@@ -183,6 +184,12 @@ public class HallRPCController extends CoreRPCController implements GmToHallBrid
             return new CommonResult<>(Code.NOT_FOUND);
         }
         return seasonService.gmTime(ctx, orders);
+    }
+
+    @Override
+    @RpcCallSetting(processorModKey = "#arg0")
+    public CommonResult<SeasonFreeSpinResult> useSeasonFreeSpin(long playerId, int gameType) {
+        return simManager.useSeasonFreeSpin(playerId, gameType);
     }
 
     @Override
