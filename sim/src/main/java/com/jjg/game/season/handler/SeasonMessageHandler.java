@@ -97,6 +97,16 @@ public class SeasonMessageHandler implements GmListener {
         execute(playerController, ctx -> ctx.send(seasonService.rank(ctx, req.limit)));
     }
 
+    @Command(SeasonConstant.MsgBean.REQ_SEASON_TIER_UP_REWARDS)
+    public void reqSeasonTierUpRewards(PlayerController playerController, ReqSeasonTierUpRewards req) {
+        execute(playerController, ctx -> ctx.send(seasonService.tierUpRewards(ctx)));
+    }
+
+    @Command(SeasonConstant.MsgBean.REQ_SEASON_TIER_SETTLEMENT_REWARDS)
+    public void reqSeasonTierSettlementRewards(PlayerController playerController, ReqSeasonTierSettlementRewards req) {
+        execute(playerController, ctx -> ctx.send(seasonService.tierSettlementRewards(ctx)));
+    }
+
     @Command(SeasonConstant.MsgBean.REQ_SEASON_TRIALS)
     public void reqSeasonTrials(PlayerController playerController, ReqSeasonTrials req) {
         execute(playerController, ctx -> ctx.send(seasonService.trials(ctx)));

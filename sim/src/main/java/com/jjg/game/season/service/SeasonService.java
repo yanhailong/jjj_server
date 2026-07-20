@@ -9,6 +9,7 @@ import com.jjg.game.core.utils.ItemUtils;
 import com.jjg.game.sampledata.bean.SeasonGemCfg;
 import com.jjg.game.sampledata.bean.SeasonShopCfg;
 import com.jjg.game.sampledata.bean.SeasonStartCfg;
+import com.jjg.game.sampledata.bean.SeasonTierCfg;
 import com.jjg.game.sampledata.bean.TaskCfg;
 import com.jjg.game.season.config.SeasonTrialDef;
 import com.jjg.game.season.data.*;
@@ -32,6 +33,7 @@ import java.time.format.DateTimeParseException;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
+import java.util.function.Function;
 
 /**
  * 赛季协议层门面，集中完成领域对象到客户端结构的转换。
@@ -225,6 +227,54 @@ public class SeasonService implements SimPlayerTickListener {
         }
         response.seasonCoin = ctx.getSeasonPlayerData().getSeasonCoin();
         return response;
+    }
+
+    /**
+     * 段位升级奖励列表: 升段时奖励已由 SeasonEconomyService 自动发放, obtained 即已达到该段位。
+     */
+    public ResSeasonTierUpRewards tierUpRewards(SimPlayerContext ctx) {
+        lifecycleService.ensureCurrent(ctx, System.currentTimeMillis());
+        SeasonPlayerData data = ctx.getSeasonPlayerData();
+        ResSeasonTierUpRewards response = new ResSeasonTierUpRewards(Code.SUCCESS);
+        response.tierId = data.getTierId();
+        response.rewards = tierRewardInfos(data, SeasonTierCfg::getRankUpReward);
+        return response;
+    }
+
+    /**
+     * 段位赛季结算奖励列表: 结算时只按最终段位发放, obtained 表示已达到该段位。
+     */
+    public ResSeasonTierSettlementRewards tierSettlementRewards(SimPlayerContext ctx) {
+        lifecycleService.ensureCurrent(ctx, System.currentTimeMillis());
+        SeasonPlayerData data = ctx.getSeasonPlayerData();
+        ResSeasonTierSettlementRewards response = new ResSeasonTierSettlementRewards(Code.SUCCESS);
+        response.tierId = data.getTierId();
+        response.rewards = tierRewardInfos(data, SeasonTierCfg::getSettlementReward);
+        return response;
+    }
+
+    private List<SeasonTierRewardInfo> tierRewardInfos(SeasonPlayerData data,
+                                                       Function<SeasonTierCfg, Map<Integer, Long>> rewardGetter) {
+        List<SeasonTierCfg> tiers = configService.tiers(data.seasonPhase());
+        int currentIndex = -1;
+        for (int index = 0; index < tiers.size(); index++) {
+            if (tiers.get(index).getId() == data.getTierId()) {
+                currentIndex = index;
+                break;
+            }
+        }
+        List<SeasonTierRewardInfo> result = new ArrayList<>(tiers.size());
+        for (int index = 0; index < tiers.size(); index++) {
+            SeasonTierCfg cfg = tiers.get(index);
+            SeasonTierRewardInfo info = new SeasonTierRewardInfo();
+            info.tierId = cfg.getId();
+            info.rankLanguageId = cfg.getRank();
+            Map<Integer, Long> reward = rewardGetter.apply(cfg);
+            info.rewards = reward == null || reward.isEmpty() ? List.of() : ItemUtils.buildItemInfo(reward);
+            info.obtained = index <= currentIndex;
+            result.add(info);
+        }
+        return result;
     }
 
     public ResSeasonMatchHistory history(SimPlayerContext ctx) {

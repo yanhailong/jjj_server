@@ -3,6 +3,7 @@ package com.jjg.game.core.service;
 import com.jjg.game.common.curator.NodeManager;
 import com.jjg.game.common.data.DataSaveCallback;
 import com.jjg.game.common.proto.Pair;
+import com.jjg.game.common.protostuff.PFSession;
 import com.jjg.game.common.redis.RedisLock;
 import com.jjg.game.core.base.gameevent.CurrencyChangeEvent;
 import com.jjg.game.core.base.gameevent.EGameEventType;
@@ -63,10 +64,52 @@ public class AbstractPlayerService {
     protected GameEventManager gameEventManager;
     @Autowired
     protected NodeManager nodeManager;
+    @Autowired
+    protected PlayerSessionService playerSessionService;
 
 
     protected String getLockKey(long playerId) {
         return lockTableName + playerId;
+    }
+
+    /**
+     * 货币变更后同步到本节点在线玩家的内存对象。
+     * <p>
+     * Redis 中的 Player 与 PlayerController 中持有的是不同实例；若不在入账后同步，
+     * 大厅等逻辑用 playerController.getPlayer() 做金币/钻石校验会读到旧值，
+     * 表现为“已到账但需重新登录才能使用”。
+     */
+    protected void syncOnlinePlayerController(Player player) {
+        if (player == null || player instanceof RobotPlayer) {
+            return;
+        }
+        try {
+            PFSession session = playerSessionService.getSession(player.getId());
+            if (session == null || !(session.getReference() instanceof PlayerController playerController)) {
+                return;
+            }
+            Player onlinePlayer = playerController.getPlayer();
+            if (onlinePlayer == null) {
+                playerController.setPlayer(player);
+                return;
+            }
+            if (onlinePlayer == player) {
+                return;
+            }
+            onlinePlayer.setGold(player.getGold());
+            onlinePlayer.setDiamond(player.getDiamond());
+            onlinePlayer.setShell(player.getShell());
+            onlinePlayer.setSafeBoxGold(player.getSafeBoxGold());
+            onlinePlayer.setSafeBoxDiamond(player.getSafeBoxDiamond());
+            onlinePlayer.setLevel(player.getLevel());
+            onlinePlayer.setExp(player.getExp());
+            onlinePlayer.setVipLevel(player.getVipLevel());
+            onlinePlayer.setVipExp(player.getVipExp());
+            onlinePlayer.setStatement(player.getStatement());
+            onlinePlayer.setUpdateTime(player.getUpdateTime());
+        } catch (Exception e) {
+            log.warn("同步在线玩家货币到PlayerController失败 playerId={}", player.getId(), e);
+        }
     }
 
     public Player checkAndSave(long playerId, DataSaveCallback<Player> cbk) {
@@ -198,6 +241,7 @@ public class AbstractPlayerService {
             coreLogger.useDiamond(player, diamondBeforeUpdate.value, addNum, addType, desc);
             result.code = Code.SUCCESS;
             result.data = player;
+            syncOnlinePlayerController(player);
             return result;
         }
         return result;
@@ -245,6 +289,7 @@ public class AbstractPlayerService {
             coreLogger.useShell(player, shellBeforeUpdate.value, addNum, addType, desc);
             result.code = Code.SUCCESS;
             result.data = player;
+            syncOnlinePlayerController(player);
             return result;
         }
         return result;
@@ -288,6 +333,7 @@ public class AbstractPlayerService {
             coreLogger.useSafeBoxDiamond(p, beforeCoin[0], addNum, addType, desc);
             result.code = Code.SUCCESS;
             result.data = p;
+            syncOnlinePlayerController(p);
             return result;
         }
         return result;
@@ -349,6 +395,7 @@ public class AbstractPlayerService {
             if (isNotify) {
                 sendMessageManager.buildMoneyChangeMessage(p, goldNum, diamondNum, shellNum);
             }
+            syncOnlinePlayerController(p);
             return result;
         }
         return result;
@@ -460,6 +507,7 @@ public class AbstractPlayerService {
             coreLogger.useDiamond(player, beforeUpdateGold.value, -num, addType, desc);
             result.code = Code.SUCCESS;
             result.data = player;
+            syncOnlinePlayerController(player);
             return result;
         } else {
             result.code = Code.NOT_ENOUGH;
@@ -519,6 +567,7 @@ public class AbstractPlayerService {
             coreLogger.useShell(player, beforeUpdateShell.value, -num, addType, desc);
             result.code = Code.SUCCESS;
             result.data = player;
+            syncOnlinePlayerController(player);
             return result;
         } else {
             result.code = Code.NOT_ENOUGH;
@@ -568,6 +617,7 @@ public class AbstractPlayerService {
             coreLogger.useSafeBoxDiamond(p, beforeCoin[0], -num, addType, desc);
             result.code = Code.SUCCESS;
             result.data = p;
+            syncOnlinePlayerController(p);
             return result;
         }
         return result;
@@ -725,6 +775,7 @@ public class AbstractPlayerService {
 //                sendMessageManager.buildBaseInfoChangeMessage(p);
                 sendMessageManager.buildGoldChangeMessage(p, addNum);
             }
+            syncOnlinePlayerController(p);
             return result;
         }
         return result;
@@ -773,6 +824,7 @@ public class AbstractPlayerService {
 //                sendMessageManager.buildBaseInfoChangeMessage(p);
                 sendMessageManager.buildGoldChangeMessage(p, addNum);
             }
+            syncOnlinePlayerController(p);
             return result;
         }
 
@@ -826,6 +878,7 @@ public class AbstractPlayerService {
             coreLogger.useGold(p, beforeUpdateGold.value, -num, addType, desc);
             result.code = Code.SUCCESS;
             result.data = p;
+            syncOnlinePlayerController(p);
             return result;
         } else {
             result.code = Code.NOT_ENOUGH;
@@ -876,6 +929,7 @@ public class AbstractPlayerService {
             coreLogger.useSafeBoxGold(p, beforeCoin[0], -num, addType, desc);
             result.code = Code.SUCCESS;
             result.data = p;
+            syncOnlinePlayerController(p);
             return result;
         }
         return result;
@@ -955,6 +1009,7 @@ public class AbstractPlayerService {
             }
             result.code = Code.SUCCESS;
             result.data = p;
+            syncOnlinePlayerController(p);
             return result;
         }
         return result;
@@ -1019,6 +1074,7 @@ public class AbstractPlayerService {
             if (notify) {
                 sendMessageManager.buildGoldChangeMessage(p, -num);
             }
+            syncOnlinePlayerController(p);
             return result;
         }
         return result;
@@ -1226,6 +1282,7 @@ public class AbstractPlayerService {
             coreLogger.transSafeBoxGold(p, beforeCoin[0], beforeCoin[1], gold, addType, null);
             result.code = Code.SUCCESS;
             result.data = p;
+            syncOnlinePlayerController(p);
             return result;
         }
         return result;
@@ -1273,6 +1330,7 @@ public class AbstractPlayerService {
             coreLogger.transSafeBoxDiamond(p, beforeCoin[0], beforeCoin[1], diamond, addType, null);
             result.code = Code.SUCCESS;
             result.data = p;
+            syncOnlinePlayerController(p);
             return result;
         }
         return result;
@@ -1320,6 +1378,7 @@ public class AbstractPlayerService {
             coreLogger.transSafeBoxGold(p, beforeCoin[0], beforeCoin[1], gold, addType, null);
             result.code = Code.SUCCESS;
             result.data = p;
+            syncOnlinePlayerController(p);
             return result;
         }
 
@@ -1368,6 +1427,7 @@ public class AbstractPlayerService {
             coreLogger.transSafeBoxDiamond(p, beforeCoin[0], beforeCoin[1], diamond, addType, null);
             result.code = Code.SUCCESS;
             result.data = p;
+            syncOnlinePlayerController(p);
             return result;
         }
         return result;
