@@ -52,6 +52,10 @@ public class SeasonPlayerData extends AbstractData {
     private long representativeStake;
     private int representativeGameType;
     private SeasonMatchSession activeMatch;
+    //循环赛季对局中掉线的时刻 (赛季时间, 毫秒); 0 表示无掉线标记
+    private long matchOfflineTime;
+    //上赛季结算快照; 跨季后首次请求赛季信息时下发并清除 (切季时生成, startSeason 不得重置)
+    private SeasonSettlement lastSettlement;
     private List<SeasonMatchRecord> matchHistory = new ArrayList<>();
     private List<String> processedMatchIds = new ArrayList<>();
     //上次拉取跨节点待结算记录的时间; 内存态不落库 (登录后首次访问必拉)
@@ -94,6 +98,7 @@ public class SeasonPlayerData extends AbstractData {
         representativeStake = 0;
         representativeGameType = 0;
         activeMatch = null;
+        matchOfflineTime = 0;
         getMatchHistory().clear();
         getProcessedMatchIds().clear();
         rankCacheTime = 0;
@@ -142,6 +147,15 @@ public class SeasonPlayerData extends AbstractData {
             ids.subList(limit, ids.size()).clear();
         }
         return true;
+    }
+
+    /**
+     * 循环赛季对局中掉线时记录离线时刻 (赛季时间); 再次进入赛季时据此判定是否自动补完剩余局。
+     */
+    public void markMatchOffline(long systemTime) {
+        if (activeMatch != null && seasonPhase() == SeasonPhase.LOOP) {
+            matchOfflineTime = Math.addExact(systemTime, gmTimeOffset);
+        }
     }
 
     public SeasonPhase seasonPhase() {
@@ -228,6 +242,10 @@ public class SeasonPlayerData extends AbstractData {
     public void setRepresentativeGameType(int representativeGameType) { this.representativeGameType = representativeGameType; }
     public SeasonMatchSession getActiveMatch() { return activeMatch; }
     public void setActiveMatch(SeasonMatchSession activeMatch) { this.activeMatch = activeMatch; }
+    public long getMatchOfflineTime() { return matchOfflineTime; }
+    public void setMatchOfflineTime(long matchOfflineTime) { this.matchOfflineTime = matchOfflineTime; }
+    public SeasonSettlement getLastSettlement() { return lastSettlement; }
+    public void setLastSettlement(SeasonSettlement lastSettlement) { this.lastSettlement = lastSettlement; }
     public List<SeasonMatchRecord> getMatchHistory() {
         if (matchHistory == null) matchHistory = new ArrayList<>();
         return matchHistory;

@@ -40,6 +40,11 @@ public class SeasonMatchService {
      * 对局超时: 超时后按弃赛处理, 未完成的局按 0 收益补齐结算 (弃赛判负, 防止先看牌不利再放弃重开)。
      */
     private static final long MATCH_TIMEOUT_MILLIS = 30L * 60 * 1000;
+    /**
+     * 循环赛季对局中掉线自动补完阈值: 掉线超过该时长后再次进入赛季,
+     * 剩余局按赛季模拟数据自动补完并结算。
+     */
+    private static final long OFFLINE_AUTO_PLAY_MILLIS = 60L * 1000;
 
     private final SeasonConfigService configService;
     private final SeasonPlayerDao seasonPlayerDao;
@@ -171,22 +176,33 @@ public class SeasonMatchService {
         opponent.setHeadFrameId(robot.getHeadFrameId());
         opponent.setTierId(tierId);
 
-        List<SeasonSimulationDataCfg> cfgs = simConfigCacheService.getSeasonSimulationDataCfgMap().get(phase);
-        if (cfgs != null && !cfgs.isEmpty()) {
-            WeightRandom<SeasonSimulationDataCfg> candidatePool = WeightRandom.create();
-            for (SeasonSimulationDataCfg cfg : cfgs) {
-                if (cfg.getExtractionWeight() > 0) {
-                    candidatePool.add(cfg, cfg.getExtractionWeight());
-                }
-            }
-            SeasonSimulationDataCfg next = candidatePool.next();
+        List<Integer> multipliers = pickSimulationMultipliers(phase);
+        if (multipliers != null) {
             List<Long> representativeSpinWins = new ArrayList<>();
-            for (int num : next.getMultiplier()) {
+            for (int num : multipliers) {
                 representativeSpinWins.add(stake * num);
             }
             opponent.setRepresentativeSpinWins(representativeSpinWins);
         }
         return opponent;
+    }
+
+    /**
+     * 从赛季模拟数据按权重抽取一组倍率 (机器人对手/掉线自动补完共用); 无可用配置时返回 null。
+     */
+    private List<Integer> pickSimulationMultipliers(int phase) {
+        List<SeasonSimulationDataCfg> cfgs = simConfigCacheService.getSeasonSimulationDataCfgMap().get(phase);
+        if (cfgs == null || cfgs.isEmpty()) {
+            return null;
+        }
+        WeightRandom<SeasonSimulationDataCfg> candidatePool = WeightRandom.create();
+        for (SeasonSimulationDataCfg cfg : cfgs) {
+            if (cfg.getExtractionWeight() > 0) {
+                candidatePool.add(cfg, cfg.getExtractionWeight());
+            }
+        }
+        SeasonSimulationDataCfg next = candidatePool.next();
+        return next == null ? null : next.getMultiplier();
     }
 
     /**
@@ -208,6 +224,8 @@ public class SeasonMatchService {
         }
         if (session.getPlayerSpinWins().size() < session.getExpectedSpins()) {
             session.getPlayerSpinWins().add(Math.max(0, statInfo.getWin()));
+            //掉线后回来继续旋转: 视为回归, 清除掉线标记
+            data.setMatchOfflineTime(0);
         }
         if (session.getPlayerSpinWins().size() < session.getExpectedSpins()) {
             return new CommonResult<>(Code.SUCCESS);
@@ -230,7 +248,36 @@ public class SeasonMatchService {
         return null;
     }
 
+    /**
+     * 进入赛季入口调用: 循环赛季对局中掉线超过 {@link #OFFLINE_AUTO_PLAY_MILLIS} 的,
+     * 剩余局按赛季模拟数据自动补完并结算; 未超阈值视为回归, 清除掉线标记后对局继续。
+     *
+     * @return 发生结算时返回结算结果, 否则 null
+     */
+    public SeasonMatchResult settleOfflineMatch(SimPlayerContext ctx, long now) {
+        SeasonPlayerData data = ctx.getSeasonPlayerData();
+        SeasonMatchSession session = data == null ? null : data.getActiveMatch();
+        if (session == null || data.getMatchOfflineTime() <= 0) {
+            return null;
+        }
+        if (!offlineAutoPlayDue(data, now)) {
+            data.setMatchOfflineTime(0);
+            autoSaveService.enqueueSave(data);
+            return null;
+        }
+        return settleOfflineAutoPlay(ctx, session, now).data;
+    }
+
+    private boolean offlineAutoPlayDue(SeasonPlayerData data, long now) {
+        return data.getMatchOfflineTime() > 0
+                && now - data.getMatchOfflineTime() >= OFFLINE_AUTO_PLAY_MILLIS;
+    }
+
     private CommonResult<SeasonMatchResult> settleExpired(SimPlayerContext ctx, SeasonMatchSession session, long now) {
+        //掉线中的对局按自动补完结算, 仅在线弃赛才按 0 收益判负
+        if (offlineAutoPlayDue(ctx.getSeasonPlayerData(), now)) {
+            return settleOfflineAutoPlay(ctx, session, now);
+        }
         log.info("赛季对局超时弃赛结算 playerId={},matchId={},recorded={}",
                 ctx.playerId(), session.getMatchId(), session.getPlayerSpinWins().size());
         while (session.getPlayerSpinWins().size() < session.getExpectedSpins()) {
@@ -239,8 +286,24 @@ public class SeasonMatchService {
         return settle(ctx, session, now);
     }
 
+    private CommonResult<SeasonMatchResult> settleOfflineAutoPlay(SimPlayerContext ctx,
+                                                                  SeasonMatchSession session, long now) {
+        log.info("赛季对局掉线自动补完结算 playerId={},matchId={},recorded={}",
+                ctx.playerId(), session.getMatchId(), session.getPlayerSpinWins().size());
+        List<Integer> multipliers = pickSimulationMultipliers(
+                ctx.getSeasonPlayerData().seasonPhase().ordinal() + 1);
+        List<Long> wins = session.getPlayerSpinWins();
+        while (wins.size() < session.getExpectedSpins()) {
+            int index = wins.size();
+            wins.add(multipliers != null && index < multipliers.size()
+                    ? session.getStake() * multipliers.get(index) : 0L);
+        }
+        return settle(ctx, session, now);
+    }
+
     private CommonResult<SeasonMatchResult> settle(SimPlayerContext ctx, SeasonMatchSession session, long now) {
         SeasonPlayerData data = ctx.getSeasonPlayerData();
+        data.setMatchOfflineTime(0);
         if (!data.markMatchProcessed(session.getMatchId(), HISTORY_LIMIT)) {
             data.setActiveMatch(null);
             return new CommonResult<>(Code.REPEAT_OP);

@@ -78,8 +78,15 @@ public class SeasonService implements SimPlayerTickListener {
 
     public ResSeasonInfo info(SimPlayerContext ctx) {
         ResSeasonInfo response = new ResSeasonInfo(Code.SUCCESS);
-        SeasonSnapshot snapshot = lifecycleService.ensureCurrent(ctx, System.currentTimeMillis());
+        long systemTime = System.currentTimeMillis();
+        SeasonSnapshot snapshot = lifecycleService.ensureCurrent(ctx, systemTime);
         SeasonPlayerData data = ctx.getSeasonPlayerData();
+        //进入赛季视为掉线回归: 循环赛季对局中掉线超时的, 在此按模拟数据自动补完并结算
+        SeasonMatchResult offlineResult = matchService.settleOfflineMatch(
+                ctx, lifecycleService.currentTime(ctx, systemTime));
+        if (offlineResult != null) {
+            socialSender.sendTo(ctx.playerId(), matchNotify(offlineResult));
+        }
         SeasonStartCfg cfg = configService.season(snapshot.seasonId());
         SeasonInfo info = new SeasonInfo();
         info.seasonId = snapshot.seasonId();
@@ -115,8 +122,29 @@ public class SeasonService implements SimPlayerTickListener {
             info.freeGameCount = freeGameService.freeGameCount();
             info.remainFreeGameCount = freeGameService.remainFreeGameCount(data);
         }
+        //跨赛季后首次请求: 下发上赛季结算信息, 下发即清除
+        SeasonSettlement lastSettlement = data.getLastSettlement();
+        if (lastSettlement != null) {
+            response.lastSettlement = settlementInfo(lastSettlement);
+            data.setLastSettlement(null);
+            autoSaveService.enqueueSave(data);
+        }
         response.info = info;
         return response;
+    }
+
+    private SeasonSettlementInfo settlementInfo(SeasonSettlement settlement) {
+        SeasonSettlementInfo info = new SeasonSettlementInfo();
+        info.seasonId = settlement.getSeasonId();
+        info.phase = settlement.getPhase();
+        info.cycleIndex = settlement.getCycleIndex();
+        info.rank = settlement.getRank();
+        info.tierId = settlement.getTierId();
+        info.totalEarnedCoin = settlement.getTotalEarnedCoin();
+        info.rewards = settlement.getRewards().isEmpty()
+                ? List.of() : ItemUtils.buildItemInfo(settlement.getRewards());
+        info.initialCoin = settlement.getInitialCoin();
+        return info;
     }
 
     public ResSeasonShop shop(SimPlayerContext ctx) {

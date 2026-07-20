@@ -15,6 +15,7 @@ import com.jjg.game.sim.listener.SimPlayerTickListener;
 import com.jjg.game.season.dao.SeasonPlayerDao;
 import com.jjg.game.season.data.SeasonPlayerData;
 import com.jjg.game.season.data.SeasonPendingSettlement;
+import com.jjg.game.season.data.SeasonSettlement;
 import com.jjg.game.season.model.SeasonSnapshot;
 import com.jjg.game.sim.service.SimAutoSaveService;
 import org.slf4j.Logger;
@@ -268,6 +269,17 @@ public class SeasonLifecycleService implements SimPlayerTickListener {
         }
         int currencyId = configService.currencyItemId();
         long initialCoin = currencyId == 0 ? 0 : rewards.getOrDefault(currencyId, 0L);
+        //结算快照 (含全部奖励): 跨季后玩家首次请求赛季信息时随 ResSeasonInfo 下发
+        SeasonSettlement settlement = new SeasonSettlement();
+        settlement.setSeasonId(data.getSeasonId());
+        settlement.setPhase(data.seasonPhase().ordinal() + 1);
+        settlement.setCycleIndex(data.getCycleIndex());
+        settlement.setRank(rank);
+        settlement.setTierId(data.getTierId());
+        settlement.setTotalEarnedCoin(data.getTotalEarnedCoin());
+        settlement.setRewards(new HashMap<>(rewards));
+        settlement.setInitialCoin(initialCoin);
+        data.setLastSettlement(settlement);
         rewards.remove(currencyId);
         if (!rewards.isEmpty()) {
             List<Item> items = new ArrayList<>(rewards.size());

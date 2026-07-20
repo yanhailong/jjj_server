@@ -304,6 +304,10 @@ public class SimManager {
         SimPlayerContext ctx = this.simPlayerContextRegistry.getContext(playerId);
         if (ctx != null) {
             ctx.getSimBaseData().setLastOfflineTime(System.currentTimeMillis());
+            //循环赛季对局中掉线: 记录离线时刻, 再次进入赛季时据此自动补完对局
+            if (ctx.getSeasonPlayerData() != null) {
+                ctx.getSeasonPlayerData().markMatchOffline(System.currentTimeMillis());
+            }
             exitSaveData(playerId);
             return true;
         }
