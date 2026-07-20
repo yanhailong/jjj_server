@@ -649,11 +649,13 @@ public class DouXianGameController extends BasePokerGameController<DouXianGameDa
     }
 
     public void reqCancelHosting(long playerId, ReqDouXianCancelHosting req) {
-        if (gameDataVo.getHostingPlayerIds().remove(playerId)) {
-            NotifyDouXianHostingState notify = new NotifyDouXianHostingState();
-            notify.playerId = playerId;
-            notify.hosting = false;
-            broadcastToPlayers(RoomMessageBuilder.newBuilder().toAllPlayer().setData(notify));
+        boolean wasHosting = gameDataVo.getHostingPlayerIds().remove(playerId);
+        // 无论玩家是否处于托管中都要回包，否则客户端在状态不同步时(比如托管已被服务器清除)发这个请求会收不到任何响应
+        NotifyDouXianHostingState notify = new NotifyDouXianHostingState();
+        notify.playerId = playerId;
+        notify.hosting = false;
+        broadcastToPlayers(RoomMessageBuilder.newBuilder().toAllPlayer().setData(notify));
+        if (wasHosting) {
             log.info("斗仙牌玩家取消托管 playerId:{}", playerId);
         }
     }
