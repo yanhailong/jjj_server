@@ -32,4 +32,6 @@ public class AllianceHelpOrderInfo {
     public long createTime;
     @ProtoDesc("我是否已帮助过该单")
     public boolean myHelped;
+    @ProtoDesc("结束时间(ms)")
+    public long endTime;
 }

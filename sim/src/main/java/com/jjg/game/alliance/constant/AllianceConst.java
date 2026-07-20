@@ -163,6 +163,10 @@ public interface AllianceConst {
         int REQ_BATTLE_STAGE_CLAIM = BASE_MSG_PREFIX | 0x5E;
         int RES_BATTLE_STAGE_CLAIM = BASE_MSG_PREFIX | 0x5F;
 
+        //获取求助信息
+        int REQ_GET_HELP_INFO = BASE_MSG_PREFIX | 0x60;
+        int RES_GET_HELP_INFO = BASE_MSG_PREFIX | 0x61;
+
         //----------------- 通知 -----------------
         //联盟通用变更通知 (升级/被踢/解散/审批通过等, 以 type 区分)
         int NOTIFY_ALLIANCE = BASE_MSG_PREFIX | 0x70;

@@ -11,6 +11,7 @@ import com.jjg.game.alliance.pb.AlliancePbConverter;
 import com.jjg.game.alliance.pb.res.NotifyAllianceHelped;
 import com.jjg.game.alliance.pb.res.ResAllianceHelp;
 import com.jjg.game.alliance.pb.res.ResAllianceHelpList;
+import com.jjg.game.alliance.pb.res.ResGetHelpInfo;
 import com.jjg.game.alliance.pb.res.ResOneKeyHelp;
 import com.jjg.game.alliance.pb.res.ResAllianceSeekHelp;
 import com.jjg.game.common.utils.TimeHelper;
@@ -29,6 +30,7 @@ import org.springframework.data.redis.core.StringRedisTemplate;
 import org.springframework.stereotype.Service;
 
 import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
@@ -301,7 +303,7 @@ public class AllianceHelpService {
 
         long notifyValue;
         if (order.getType() == AllianceConst.HelpType.TASK) {
-            taskService.onTaskHelped(order.getOwnerId(), (int)order.getTargetId());
+            taskService.onTaskHelped(order.getOwnerId(), (int) order.getTargetId());
             notifyValue = 1;
         } else {
             long speedupSeconds = globalInt(AllianceConst.Global.SPEEDUP_MINUTES_PER_HELP_ID) * 60L;
@@ -322,6 +324,9 @@ public class AllianceHelpService {
         notify.value = notifyValue;
         socialSender.sendTo(order.getOwnerId(), notify);
 
+        //全盟推送最新订单详情, 供聊天卡片/列表刷新 (含本单刚完成帮助后的进度)
+        broadcastGetHelpInfo(allianceId, order, playerId, now);
+
         allianceDao.removeHelpOrderIfFull(allianceId, order.getOrderId(), order.getMaxHelp());
         //失效放在订单移除之后, 一次广播覆盖占坑与移除两处变更
         if (invalidate) {
@@ -332,9 +337,77 @@ public class AllianceHelpService {
         return Code.SUCCESS;
     }
 
+    /**
+     * 帮助成功后向全盟成员推送 {@link ResGetHelpInfo}, 每人按自身计算 myHelped。
+     * 本地缓存尚未失效时 helpers 可能滞后, 用本次帮助结果叠一份快照再下发。
+     */
+    private void broadcastGetHelpInfo(long allianceId, AllianceHelpOrder order, long helperId, long helpTime) {
+        AllianceData alliance = cacheService.getAlliance(allianceId);
+        if (alliance == null || alliance.getMembers() == null || alliance.getMembers().isEmpty()) {
+            return;
+        }
+        AllianceHelpOrder view = snapshotAfterHelp(order, helperId, helpTime);
+        Player owner = corePlayerService.get(view.getOwnerId());
+        String ownerNick = owner == null ? "" : owner.getNickName();
+        for (Long memberId : alliance.getMembers().keySet()) {
+            if (memberId == null) {
+                continue;
+            }
+            ResGetHelpInfo res = new ResGetHelpInfo(Code.SUCCESS);
+            res.helpOrderInfo = AlliancePbConverter.toHelpOrderInfo(view, ownerNick, memberId);
+            socialSender.sendTo(memberId, res);
+        }
+    }
+
+    /**
+     * 构造"本次帮助已计入"的订单快照, 不改动缓存中的原对象。
+     */
+    private static AllianceHelpOrder snapshotAfterHelp(AllianceHelpOrder order, long helperId, long helpTime) {
+        AllianceHelpOrder view = new AllianceHelpOrder();
+        view.setOrderId(order.getOrderId());
+        view.setType(order.getType());
+        view.setOwnerId(order.getOwnerId());
+        view.setTargetId(order.getTargetId());
+        view.setTargetName(order.getTargetName());
+        view.setCreateTime(order.getCreateTime());
+        view.setMaxHelp(order.getMaxHelp());
+        Map<Long, Long> helpers = order.getHelpers() == null
+                ? new HashMap<>()
+                : new HashMap<>(order.getHelpers());
+        helpers.put(helperId, helpTime);
+        view.setHelpers(helpers);
+        view.setHelpCount(Math.max(order.getHelpCount() + 1, helpers.size()));
+        return view;
+    }
+
     // =====================================================================
-    // 列表
+    // 列表 / 详情
     // =====================================================================
+
+    /**
+     * 按 orderId 查询单条求助订单详情 (聊天卡片刷新等场景)。
+     * 订单不存在、已过期或玩家不在联盟时返回 NOT_FOUND。
+     */
+    public ResGetHelpInfo getHelpInfo(long playerId, long orderId) {
+        ResGetHelpInfo res = new ResGetHelpInfo(Code.SUCCESS);
+        long allianceId = cacheService.getAllianceId(playerId);
+        AllianceData alliance = cacheService.getAlliance(allianceId);
+        if (alliance == null) {
+            res.code = Code.NOT_FOUND;
+            log.warn("获取求助信息失败，未找到联盟信息 playerId={},allianceId={}", playerId, allianceId);
+            return res;
+        }
+        AllianceHelpOrder order = alliance.getHelpOrders().get(orderId);
+        if (order == null || expired(order, System.currentTimeMillis())) {
+            res.code = Code.NOT_FOUND;
+            log.warn("获取求助信息失败，未找到求助信息 playerId={},allianceId={}", playerId, allianceId);
+            return res;
+        }
+        Player owner = corePlayerService.get(order.getOwnerId());
+        res.helpOrderInfo = AlliancePbConverter.toHelpOrderInfo(order,
+                owner == null ? "" : owner.getNickName(), playerId);
+        return res;
+    }
 
     /**
      * 求助订单列表 (顺带惰性清理超时订单)。

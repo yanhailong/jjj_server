@@ -1,5 +1,6 @@
 package com.jjg.game.alliance.pb;
 
+import com.jjg.game.alliance.constant.AllianceConst;
 import com.jjg.game.alliance.data.*;
 import com.jjg.game.alliance.pb.struct.AllianceBrief;
 import com.jjg.game.alliance.pb.struct.AllianceHelpOrderInfo;
@@ -140,6 +141,7 @@ public class AlliancePbConverter {
         info.helped = order.helpedCount();
         info.maxHelp = order.getMaxHelp();
         info.createTime = order.getCreateTime();
+        info.endTime = order.getCreateTime() + AllianceConst.Cfg.HELP_ORDER_VALID_MILLS;
         info.myHelped = order.helpedBy(myId);
         return info;
     }

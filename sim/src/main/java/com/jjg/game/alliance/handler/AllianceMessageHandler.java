@@ -269,6 +269,14 @@ public class AllianceMessageHandler implements GmListener {
         pc.send(helpService.helpList(pc.playerId()));
     }
 
+    /**
+     * 按 orderId 获取求助详情 (只读)
+     */
+    @Command(AllianceConst.MsgBean.REQ_GET_HELP_INFO)
+    public void reqGetHelpInfo(PlayerController pc, ReqGetHelpInfo req) {
+        sendAsync(pc, () -> helpService.getHelpInfo(pc.playerId(), req.orderId));
+    }
+
     // --------------------------- 商店 / 捐献 ---------------------------
 
     /**
