@@ -11,6 +11,8 @@ import java.util.List;
 public class SeasonSettlementInfo {
     @ProtoDesc("赛季配置ID")
     public int seasonId;
+    @ProtoDesc("赛季名称多语言ID")
+    public int nameLanguageId;
     @ProtoDesc("阶段：1新手，2进阶，3循环")
     public int phase;
     @ProtoDesc("循环赛季序号，前置赛季为0")
@@ -27,4 +29,8 @@ public class SeasonSettlementInfo {
     public List<ItemInfo> rewards;
     @ProtoDesc("带入新赛季的初始赛季币")
     public long initialCoin;
+    @ProtoDesc("赛季币返还上限")
+    public long returnCoinMax;
+    @ProtoDesc("本赛季获得的段位徽章 (勋章id, 0表示无)")
+    public int seasonBadge;
 }

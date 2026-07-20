@@ -57,5 +57,7 @@ public interface SeasonConstant {
 
         int REQ_SEASON_TIER_SETTLEMENT_REWARDS = BASE_MSG_PREFIX | 0x1F;
         int RES_SEASON_TIER_SETTLEMENT_REWARDS = BASE_MSG_PREFIX | 0x20;
+
+        int NOTIFY_SEASON_TIER_UP = BASE_MSG_PREFIX | 0x21;
     }
 }

@@ -14,6 +14,7 @@ import com.jjg.game.alliance.pb.res.ResAllianceHelpList;
 import com.jjg.game.alliance.pb.res.ResGetHelpInfo;
 import com.jjg.game.alliance.pb.res.ResOneKeyHelp;
 import com.jjg.game.alliance.pb.res.ResAllianceSeekHelp;
+import com.jjg.game.alliance.pb.struct.AllianceHelpOrderInfo;
 import com.jjg.game.common.utils.TimeHelper;
 import com.jjg.game.core.constant.Code;
 import com.jjg.game.core.data.Player;
@@ -400,6 +401,8 @@ public class AllianceHelpService {
         AllianceHelpOrder order = alliance.getHelpOrders().get(orderId);
         if (order == null || expired(order, System.currentTimeMillis())) {
             res.code = Code.NOT_FOUND;
+            res.helpOrderInfo = new AllianceHelpOrderInfo();
+            res.helpOrderInfo.orderId = orderId;
             log.warn("获取求助信息失败，未找到求助信息 playerId={},allianceId={}", playerId, allianceId);
             return res;
         }

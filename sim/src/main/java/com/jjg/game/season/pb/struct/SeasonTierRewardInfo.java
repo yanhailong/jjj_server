@@ -17,4 +17,6 @@ public class SeasonTierRewardInfo {
     public List<ItemInfo> rewards;
     @ProtoDesc("是否已获得")
     public boolean obtained;
+    @ProtoDesc("该段位获得的徽章 (勋章id, 0表示无)")
+    public int seasonBadge;
 }

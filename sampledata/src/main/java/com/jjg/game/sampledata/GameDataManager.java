@@ -191,6 +191,8 @@ public class GameDataManager {
     containerMap.put(MiningMapGenerationCfg.class, new MiningMapGenerationCfgContainer());
     containerMap.put(MiningToolsCfg.class, new MiningToolsCfgContainer());
     containerMap.put(OfficialAwardsCfg.class, new OfficialAwardsCfgContainer());
+    containerMap.put(PassDetailsCfg.class, new PassDetailsCfgContainer());
+    containerMap.put(PassListCfg.class, new PassListCfgContainer());
     containerMap.put(PiggyBankCfg.class, new PiggyBankCfgContainer());
     containerMap.put(PlayerLevelConfigCfg.class, new PlayerLevelConfigCfgContainer());
     containerMap.put(PlayerLevelPackCfg.class, new PlayerLevelPackCfgContainer());
@@ -1525,6 +1527,30 @@ public class GameDataManager {
 
   public static List<OfficialAwardsCfg> getOfficialAwardsCfgList() {
     return getInstance().getCfgContainer(OfficialAwardsCfg.class).getCfgBeanList();
+  }
+
+  public static PassDetailsCfg getPassDetailsCfg(int key) {
+    return getInstance().getCfgContainer(PassDetailsCfg.class).getCfgBeanMap().get(key);
+  }
+
+  public static Map<Integer, PassDetailsCfg> getPassDetailsCfgMap() {
+    return getInstance().getCfgContainer(PassDetailsCfg.class).getCfgBeanMap();
+  }
+
+  public static List<PassDetailsCfg> getPassDetailsCfgList() {
+    return getInstance().getCfgContainer(PassDetailsCfg.class).getCfgBeanList();
+  }
+
+  public static PassListCfg getPassListCfg(int key) {
+    return getInstance().getCfgContainer(PassListCfg.class).getCfgBeanMap().get(key);
+  }
+
+  public static Map<Integer, PassListCfg> getPassListCfgMap() {
+    return getInstance().getCfgContainer(PassListCfg.class).getCfgBeanMap();
+  }
+
+  public static List<PassListCfg> getPassListCfgList() {
+    return getInstance().getCfgContainer(PassListCfg.class).getCfgBeanList();
   }
 
   public static PiggyBankCfg getPiggyBankCfg(int key) {

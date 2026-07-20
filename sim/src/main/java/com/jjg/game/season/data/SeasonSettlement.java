@@ -19,6 +19,8 @@ public class SeasonSettlement {
     //结算奖励 (含赛季币; 赛季币部分不进邮件, 作为新赛季初始币带入)
     private Map<Integer, Long> rewards = new HashMap<>();
     private long initialCoin;
+    //本赛季获得的段位徽章 (勋章id, 取最终段位的 SeasonBadge; 0 表示无)
+    private int seasonBadge;
 
     public int getSeasonId() { return seasonId; }
     public void setSeasonId(int seasonId) { this.seasonId = seasonId; }
@@ -41,4 +43,6 @@ public class SeasonSettlement {
     public void setRewards(Map<Integer, Long> rewards) { this.rewards = rewards == null ? new HashMap<>() : rewards; }
     public long getInitialCoin() { return initialCoin; }
     public void setInitialCoin(long initialCoin) { this.initialCoin = initialCoin; }
+    public int getSeasonBadge() { return seasonBadge; }
+    public void setSeasonBadge(int seasonBadge) { this.seasonBadge = seasonBadge; }
 }

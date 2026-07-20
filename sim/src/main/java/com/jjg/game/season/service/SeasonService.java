@@ -6,6 +6,7 @@ import com.jjg.game.core.data.PlayerPack;
 import com.jjg.game.core.pb.KVInfo;
 import com.jjg.game.core.service.PlayerPackService;
 import com.jjg.game.core.utils.ItemUtils;
+import com.jjg.game.sampledata.GameDataManager;
 import com.jjg.game.sampledata.bean.SeasonGemCfg;
 import com.jjg.game.sampledata.bean.SeasonShopCfg;
 import com.jjg.game.sampledata.bean.SeasonStartCfg;
@@ -16,6 +17,7 @@ import com.jjg.game.season.data.*;
 import com.jjg.game.season.model.SeasonSnapshot;
 import com.jjg.game.season.pb.res.*;
 import com.jjg.game.season.pb.struct.*;
+import com.jjg.game.sim.constant.SimConstant;
 import com.jjg.game.sim.data.SimPlayerContext;
 import com.jjg.game.sim.data.SpinStatInfo;
 import com.jjg.game.sim.listener.SimPlayerTickListener;
@@ -102,6 +104,7 @@ public class SeasonService implements SimPlayerTickListener {
         info.seasonCoin = data.getSeasonCoin();
         info.totalEarnedCoin = data.getTotalEarnedCoin();
         info.tierId = data.getTierId();
+        info.nextTierNeedCoin = nextTierNeedCoin(data);
         info.dailyMatchCount = data.getDailyMatchCount();
         info.dailyWinAmount = data.getDailyWinAmount();
         info.dailyLossAmount = data.getDailyLossAmount();
@@ -138,6 +141,8 @@ public class SeasonService implements SimPlayerTickListener {
     private SeasonSettlementInfo settlementInfo(SeasonSettlement settlement) {
         SeasonSettlementInfo info = new SeasonSettlementInfo();
         info.seasonId = settlement.getSeasonId();
+        SeasonStartCfg cfg = configService.season(settlement.getSeasonId());
+        info.nameLanguageId = cfg == null ? 0 : cfg.getSeasonName();
         info.phase = settlement.getPhase();
         info.cycleIndex = settlement.getCycleIndex();
         info.rank = settlement.getRank();
@@ -147,6 +152,8 @@ public class SeasonService implements SimPlayerTickListener {
         info.rewards = settlement.getRewards().isEmpty()
                 ? List.of() : ItemUtils.buildItemInfo(settlement.getRewards());
         info.initialCoin = settlement.getInitialCoin();
+        info.returnCoinMax = GameDataManager.getGlobalConfigCfg(SimConstant.Global.ID_RETURN_COIN_MAX).getIntValue();
+        info.seasonBadge = settlement.getSeasonBadge();
         return info;
     }
 
@@ -231,6 +238,22 @@ public class SeasonService implements SimPlayerTickListener {
     }
 
     /**
+     * 升级到下一段位所需的累计赛季币 (下一档 RankRange 下限); 已是最高段位或无下一档时返回 0。
+     */
+    private long nextTierNeedCoin(SeasonPlayerData data) {
+        int next = data.getTierId() + 1;
+        SeasonTierCfg seasonTierCfg = GameDataManager.getSeasonTierCfg(next);
+        if(seasonTierCfg == null){
+            return 0;
+        }
+        Integer allCoin = seasonTierCfg.getRankRange().get(1);
+        if(allCoin == null){
+            return 0;
+        }
+        return allCoin - data.getTotalEarnedCoin();
+    }
+
+    /**
      * 段位升级奖励列表: 升段时奖励已由 SeasonEconomyService 自动发放, obtained 即已达到该段位。
      */
     public ResSeasonTierUpRewards tierUpRewards(SimPlayerContext ctx) {
@@ -273,6 +296,7 @@ public class SeasonService implements SimPlayerTickListener {
             Map<Integer, Long> reward = rewardGetter.apply(cfg);
             info.rewards = reward == null || reward.isEmpty() ? List.of() : ItemUtils.buildItemInfo(reward);
             info.obtained = index <= currentIndex;
+            info.seasonBadge = cfg.getSeasonBadge();
             result.add(info);
         }
         return result;

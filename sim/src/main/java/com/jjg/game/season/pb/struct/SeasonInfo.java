@@ -57,4 +57,6 @@ public class SeasonInfo {
     public int freeGameCount;
     @ProtoDesc("剩余的免费游戏次数")
     public int remainFreeGameCount;
+    @ProtoDesc("升级到下一段位所需的累计赛季币；已是最高段位或无下一档时为0")
+    public long nextTierNeedCoin;
 }

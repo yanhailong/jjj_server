@@ -85,7 +85,7 @@ public class SeasonPlayerData extends AbstractData {
         endTime = snapshot.endTime();
         seasonCoin = Math.max(0, initialCoin);
         totalEarnedCoin = 0;
-        tierId = 0;
+        tierId = 1;
         dailyKey = 0;
         resetDailyCounters();
         lastMatchTime = 0;

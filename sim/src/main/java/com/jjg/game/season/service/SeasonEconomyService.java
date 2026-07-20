@@ -1,10 +1,13 @@
 package com.jjg.game.season.service;
 
 import com.jjg.game.core.constant.AddType;
+import com.jjg.game.core.constant.Code;
 import com.jjg.game.sampledata.bean.SeasonTierCfg;
 import com.jjg.game.sim.data.SimPlayerContext;
 import com.jjg.game.season.data.SeasonPlayerData;
+import com.jjg.game.season.pb.res.NotifySeasonTierUp;
 import com.jjg.game.sim.service.SimPackService;
+import com.jjg.game.social.service.SocialSender;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Service;
@@ -22,10 +25,13 @@ public class SeasonEconomyService {
 
     private final SeasonConfigService configService;
     private final SimPackService simPackService;
+    private final SocialSender socialSender;
 
-    public SeasonEconomyService(SeasonConfigService configService, SimPackService simPackService) {
+    public SeasonEconomyService(SeasonConfigService configService, SimPackService simPackService,
+                                SocialSender socialSender) {
         this.configService = configService;
         this.simPackService = simPackService;
+        this.socialSender = socialSender;
     }
 
     public void addEarnedCoin(SimPlayerContext ctx, long amount) {
@@ -61,7 +67,26 @@ public class SeasonEconomyService {
         for (int index = currentIndex + 1; index <= targetIndex; index++) {
             grantTierReward(ctx, data, tiers.get(index));
         }
+        int oldTierId = data.getTierId();
         data.setTierId(targetTier.getId());
+        NotifySeasonTierUp notify = new NotifySeasonTierUp(Code.SUCCESS);
+        notify.oldTierId = oldTierId;
+        notify.newTierId = targetTier.getId();
+        notify.totalEarnedCoin = data.getTotalEarnedCoin();
+        notify.nextTierNeedCoin = nextTierNeedCoin(tiers, targetIndex);
+        socialSender.sendTo(ctx.playerId(), notify);
+    }
+
+    /**
+     * 下一段位的累计赛季币门槛 (RankRange 下限); 已是最高段位时返回 0。
+     */
+    private long nextTierNeedCoin(List<SeasonTierCfg> tiers, int targetIndex) {
+        int nextIndex = targetIndex + 1;
+        if (nextIndex >= tiers.size()) {
+            return 0L;
+        }
+        List<Integer> range = tiers.get(nextIndex).getRankRange();
+        return range == null || range.isEmpty() ? 0L : range.get(0);
     }
 
     private void grantTierReward(SimPlayerContext ctx, SeasonPlayerData data, SeasonTierCfg tier) {

@@ -27,6 +27,8 @@ public class SeasonTierCfg extends BaseCfgBean {
   protected List<Integer> RankRange;
   /** 晋升奖励 */
   protected Map<Integer,Long> RankUpReward;
+  /** 赛季结算可获得的徽章 */
+  protected int SeasonBadge;
   /** 结算奖励 */
   protected Map<Integer,Long> SettlementReward;
   /** 段位类型 */
@@ -50,6 +52,11 @@ public class SeasonTierCfg extends BaseCfgBean {
   /** 返回晋升奖励 */
   public Map<Integer,Long> getRankUpReward() {
     return RankUpReward;
+  }
+
+  /** 返回赛季结算可获得的徽章 */
+  public int getSeasonBadge() {
+    return SeasonBadge;
   }
 
   /** 返回结算奖励 */

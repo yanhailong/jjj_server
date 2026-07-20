@@ -282,7 +282,13 @@ public class SeasonLifecycleService implements SimPlayerTickListener {
                 .mapToInt(Integer::intValue).sum());
         settlement.setRewards(new HashMap<>(rewards));
         settlement.setInitialCoin(initialCoin);
+        settlement.setSeasonBadge(tier == null ? 0 : tier.getSeasonBadge());
         data.setLastSettlement(settlement);
+        //赛季徽章: 每赛季仅按最终段位授予唯一一枚勋章 (同 ranktype 一枚)
+        if (tier != null && tier.getSeasonBadge() > 0 && ctx.getSimBaseData() != null) {
+            ctx.getSimBaseData().activeMedalId(tier.getSeasonBadge());
+            ctx.setLastSaveTime(0);
+        }
         rewards.remove(currencyId);
         if (!rewards.isEmpty()) {
             List<Item> items = new ArrayList<>(rewards.size());
