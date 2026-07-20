@@ -14,6 +14,8 @@ public class SeasonSettlement {
     private int rank;
     private int tierId;
     private long totalEarnedCoin;
+    //新手试炼累计最高星数 (各关卡最高星求和; 非新手赛季为 0)
+    private int totalTrialStars;
     //结算奖励 (含赛季币; 赛季币部分不进邮件, 作为新赛季初始币带入)
     private Map<Integer, Long> rewards = new HashMap<>();
     private long initialCoin;
@@ -30,6 +32,8 @@ public class SeasonSettlement {
     public void setTierId(int tierId) { this.tierId = tierId; }
     public long getTotalEarnedCoin() { return totalEarnedCoin; }
     public void setTotalEarnedCoin(long totalEarnedCoin) { this.totalEarnedCoin = totalEarnedCoin; }
+    public int getTotalTrialStars() { return totalTrialStars; }
+    public void setTotalTrialStars(int totalTrialStars) { this.totalTrialStars = totalTrialStars; }
     public Map<Integer, Long> getRewards() {
         if (rewards == null) rewards = new HashMap<>();
         return rewards;

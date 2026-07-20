@@ -21,6 +21,8 @@ public class SeasonSettlementInfo {
     public int tierId;
     @ProtoDesc("上赛季累计获得赛季币")
     public long totalEarnedCoin;
+    @ProtoDesc("新手试炼累计最高星数（各关卡最高星求和；非新手赛季为0）")
+    public int totalTrialStars;
     @ProtoDesc("结算奖励；赛季币部分不进邮件，作为新赛季初始币直接带入")
     public List<ItemInfo> rewards;
     @ProtoDesc("带入新赛季的初始赛季币")

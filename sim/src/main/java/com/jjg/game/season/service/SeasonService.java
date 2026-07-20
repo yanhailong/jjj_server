@@ -143,6 +143,7 @@ public class SeasonService implements SimPlayerTickListener {
         info.rank = settlement.getRank();
         info.tierId = settlement.getTierId();
         info.totalEarnedCoin = settlement.getTotalEarnedCoin();
+        info.totalTrialStars = settlement.getTotalTrialStars();
         info.rewards = settlement.getRewards().isEmpty()
                 ? List.of() : ItemUtils.buildItemInfo(settlement.getRewards());
         info.initialCoin = settlement.getInitialCoin();

@@ -270,6 +270,7 @@ public class SeasonLifecycleService implements SimPlayerTickListener {
         int currencyId = configService.currencyItemId();
         long initialCoin = currencyId == 0 ? 0 : rewards.getOrDefault(currencyId, 0L);
         //结算快照 (含全部奖励): 跨季后玩家首次请求赛季信息时随 ResSeasonInfo 下发
+        //须在 startSeason 清空 trialStars 之前采集
         SeasonSettlement settlement = new SeasonSettlement();
         settlement.setSeasonId(data.getSeasonId());
         settlement.setPhase(data.seasonPhase().ordinal() + 1);
@@ -277,6 +278,8 @@ public class SeasonLifecycleService implements SimPlayerTickListener {
         settlement.setRank(rank);
         settlement.setTierId(data.getTierId());
         settlement.setTotalEarnedCoin(data.getTotalEarnedCoin());
+        settlement.setTotalTrialStars(data.getTrialStars().values().stream()
+                .mapToInt(Integer::intValue).sum());
         settlement.setRewards(new HashMap<>(rewards));
         settlement.setInitialCoin(initialCoin);
         data.setLastSettlement(settlement);
