@@ -11,6 +11,7 @@ import com.jjg.game.core.data.Room;
 import com.jjg.game.core.data.RoomPlayer;
 import com.jjg.game.poker.game.blackjack.autohandler.BlackJackRobotHandler;
 import com.jjg.game.poker.game.blackjack.room.BlackJackGameController;
+import com.jjg.game.poker.game.douxian.room.DouXianGameController;
 import com.jjg.game.poker.game.common.data.PlayerSeatInfo;
 import com.jjg.game.poker.game.common.gamephase.BaseWaitReadyPhase;
 import com.jjg.game.poker.game.common.message.reps.NotifyPokerPlayerChange;
@@ -398,6 +399,13 @@ public abstract class BasePokerGameController<T extends BasePokerGameDataVo> ext
                     RobotScheduleUtil.schedule(getRoomController(), freeHandler, freeDelay);
                     // 标记已调度，防止 tryStartGame 重复调度
                     controller.getGameDataVo().getReadyTimerScheduled().add(gameRobotPlayer.getId());
+                }
+                case DouXianGameController controller -> {
+                    // 斗仙牌有等待阶段(仿南方前进)：respRoomInitInfo 末尾会调 tryStartNextGame -> tryStartGame，
+                    // 机器人的"自动准备"调度是在 DouXianGameController#tryStartGame 里统一给所有还没准备/
+                    // 还没被调度过的座上机器人补的，这里不需要单独调度；出牌/弃牌阶段的机器人调度另见
+                    // DouXianPlayCardPhase/DouXianDiscardPhase 的 robotActionOnPhaseStart 钩子。
+                    respRoomInitInfo(playerController);
                 }
                 default -> {
                 }

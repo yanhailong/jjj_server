@@ -155,6 +155,8 @@ public class CoreConst {
         public static final int TO_SOUTH_BLOOD = 300401;
         //南方前进_免费版本
         public static final int TO_SOUTH_FREE = 300402;
+        //斗仙牌
+        public static final int DOU_XIAN = 300800;
         //幸运3d
         public static final int LUCKY_3D = 400100;
         //鸿运扑克

@@ -82,6 +82,10 @@ public interface BackendGMCmd {
     String SET_URL_PREFIX = "setUrlPrefix";
     String GET_URL_PREFIX = "getUrlPrefix";
 
+    //设置协议链接（隐私协议/服务协议）
+    String SET_PROTOCOL_URL = "setProtocolUrl";
+    String GET_PROTOCOL_URL = "getProtocolUrl";
+
     //玩家绑定手机或解绑
     String PLAYER_BIND_PHONE = "playerBindPhone";
     //查询sms配置

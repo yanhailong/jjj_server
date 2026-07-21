@@ -1549,6 +1549,44 @@ public class GMController extends AbstractController {
         }
     }
 
+    /**
+     * 设置协议链接（隐私协议/服务协议）
+     *
+     * @param dto type：1.隐私协议链接  2.服务协议链接
+     * @return
+     */
+    @RequestMapping(BackendGMCmd.SET_PROTOCOL_URL)
+    public WebResult<String> setProtocolUrl(@RequestBody SetProtocolUrlDto dto) {
+        log.info("收到设置协议链接 dto = {}", dto);
+        try {
+            if (StringUtils.isBlank(dto.url()) || (dto.type() != 1 && dto.type() != 2)) {
+                return fail("common.paramerror");
+            }
+            int daoId = dto.type() == 1 ? GameConstant.CommonDaoId.PRIVACY_PROTOCOL_URL : GameConstant.CommonDaoId.SERVICE_PROTOCOL_URL;
+            commonDao.setValue(daoId, dto.url());
+            //通知节点
+            commonChangeNotify(ReloadType.COMMON_CONFIG);
+            return success("common.success");
+        } catch (Exception e) {
+            log.error("", e);
+            return fail("common.exception");
+        }
+    }
+
+    @RequestMapping(BackendGMCmd.GET_PROTOCOL_URL)
+    public WebResult<List<UrlPrefixVo>> getProtocolUrl() {
+        try {
+            List<UrlPrefixVo> list = List.of(
+                    new UrlPrefixVo(1, commonDao.getStrValue(GameConstant.CommonDaoId.PRIVACY_PROTOCOL_URL)),
+                    new UrlPrefixVo(2, commonDao.getStrValue(GameConstant.CommonDaoId.SERVICE_PROTOCOL_URL))
+            );
+            return success("common.success", list);
+        } catch (Exception e) {
+            log.error("", e);
+            return fail("common.exception");
+        }
+    }
+
     @RequestMapping(BackendGMCmd.EXPORT_SLOTS_LIB)
     public WebResult<String> exportSlotsLib(@RequestBody ExportSlotsLib dto) {
         log.info("收到导出结果库的请求 dto = {}", dto);

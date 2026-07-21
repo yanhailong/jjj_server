@@ -80,6 +80,7 @@ public class HilloController extends AbstractSinglePloyController<HilloPloyGameD
                 recordInfo.bet = history.getBet();
                 recordInfo.betMode = history.getBetMode();
                 recordInfo.balanceAfter = history.getBalanceAfter();
+                recordInfo.tax = history.getTax();
                 res.historyInfoList.add(recordInfo);
             }
         }
@@ -681,6 +682,7 @@ public class HilloController extends AbstractSinglePloyController<HilloPloyGameD
         history.setBet(playerGameData.getLastBet());
         history.setBetMode(playerGameData.getCurrentBetMode());
         history.setBalanceAfter(balanceAfter);
+        history.setTax(tax);
         playerGameData.addTotalHistory(history);
         HashMap<String, Object> settlementData = new HashMap<>();
         settlementData.put("history", history.getHistory());

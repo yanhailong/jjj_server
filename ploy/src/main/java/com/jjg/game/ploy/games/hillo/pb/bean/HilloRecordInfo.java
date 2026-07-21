@@ -21,4 +21,6 @@ public class HilloRecordInfo {
     public int betMode;
     @ProtoDesc("结算后余额")
     public long balanceAfter;
+    @ProtoDesc("税收")
+    public long tax;
 }

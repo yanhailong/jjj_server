@@ -17,6 +17,10 @@ public class LuckyPokerRecord extends PloyRecord {
     private PokerRank pokerRank;
     //倍数
     private int times;
+    //下注金额
+    private long betAmount;
+    //赢得金额(税后)
+    private long winAmount;
 
     public List<Integer> getFinalCardIds() {
         return finalCardIds;
@@ -40,5 +44,21 @@ public class LuckyPokerRecord extends PloyRecord {
 
     public void setTimes(int times) {
         this.times = times;
+    }
+
+    public long getBetAmount() {
+        return betAmount;
+    }
+
+    public void setBetAmount(long betAmount) {
+        this.betAmount = betAmount;
+    }
+
+    public long getWinAmount() {
+        return winAmount;
+    }
+
+    public void setWinAmount(long winAmount) {
+        this.winAmount = winAmount;
     }
 }

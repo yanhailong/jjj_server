@@ -17,4 +17,6 @@ public class HighLowRecordInfo {
     public List<HighLowHistoryInfo> historyInfos;
     @ProtoDesc("总营收")
     public long totalIncome;
+    @ProtoDesc("税收")
+    public long tax;
 }

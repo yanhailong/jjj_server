@@ -205,6 +205,8 @@ public interface MessageConst {
         int TO_SOUTH_BLOOD = 0x5A;
         //南方前进-免费
         int TO_SOUTH_FREE = 0x5B;
+        //斗仙牌
+        int DOU_XIAN_TYPE = 0x5C;
     }
 
     interface ToClientConst {
@@ -229,7 +231,7 @@ public interface MessageConst {
         int NOTIFY_SESSION_KICKOUT = BASE_MSG_PREFIX | 0x07;
         int CLUSTER_CONNECT_REGISTER = BASE_MSG_PREFIX | 0x08;
         //广播消息
-        int BROADCAST_MSG = BASE_MSG_PREFIX | 0x9;
+        int BROADCAST_MSG = (MessageTypeDef.SESSION_TYPE << 8) | 0x9;
         // rpc请求消息
         int RPC_REQ_SERVICE_DATA_CARRIER = BASE_MSG_PREFIX | 0x0A;// rpc请求消息
         int RPC_RES_SERVICE_DATA_CARRIER = BASE_MSG_PREFIX | 0x0B;
@@ -258,10 +260,6 @@ public interface MessageConst {
         //选择场次
         int REQ_CHOOSE_WARE = BASE_MSG_PREFIX | 0x3;
         int RES_CHOOSE_WARE = BASE_MSG_PREFIX | 0x4;
-
-        //选择模拟经营游戏
-        int REQ_CHOOSE_SIM = BASE_MSG_PREFIX | 0x5;
-        int RES_CHOOSE_SIM = BASE_MSG_PREFIX | 0x6;
 
         //通知玩家基础信息变化
         int NOTICE_BASE_INFO_CHANGE = BASE_MSG_PREFIX | 0x99;
@@ -384,5 +382,6 @@ public interface MessageConst {
         int NOTICE_GENERATE_TO_SOUTH_LIB = BASE_MSG_PREFIX | 0x16;
         //刷新游戏配置
         int REQ_REFRESH_GLOBAL_CONFIG = BASE_MSG_PREFIX | 0x17;
+
     }
 }

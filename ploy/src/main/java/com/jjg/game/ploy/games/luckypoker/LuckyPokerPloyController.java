@@ -72,6 +72,9 @@ public class LuckyPokerPloyController extends AbstractSinglePloyController<Lucky
             LuckyPokerRecordInfo info = new LuckyPokerRecordInfo();
             info.finalCardIds = record.getFinalCardIds();
             info.times = record.getTimes();
+            info.betAmount = record.getBetAmount();
+            info.winAmount = record.getWinAmount();
+            info.tax = record.getTax();
             res.records.add(info);
         }
         return res;
@@ -391,12 +394,15 @@ public class LuckyPokerPloyController extends AbstractSinglePloyController<Lucky
             record.setFinalCardIds(LuckyPokerUtils.card2Ids(drawResult.data.getFirst()));
             record.setPokerRank(pokerRank);
             record.setTimes(times);
+            record.setBetAmount(playerGameData.getLastBet());
+            record.setWinAmount(value - tax);
+            record.setTax(tax);
             recordDao.saveRecord(record);
 
             //组装返回消息
             res.level = player.getLevel();
             res.exp = player.getExp();
-            res.allWinGold = value;
+            res.allWinGold = value - tax;
             res.allGold = player.getGold();
             res.pokerIds = drawResult.data.getSecond();
             res.pokerRank = pokerRank.rank;
