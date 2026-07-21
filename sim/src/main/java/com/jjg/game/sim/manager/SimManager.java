@@ -75,6 +75,8 @@ public class SimManager {
     private SimAutoSaveService autoSaveService;
     @Autowired
     private SimEventBusManager simEventBusManager;
+    @Autowired
+    private SimGuestService simGuestService;
 
     //玩家状态检查任务句柄
     private volatile Timeout checkPlayerDataTimeout;
@@ -371,14 +373,13 @@ public class SimManager {
 
         //加载玩家数据
         SimBaseData baseData = simPlayerGameDao.findById(playerId).orElse(null);
+        boolean create = false;
         if (baseData == null) {
             baseData = new SimBaseData();
             baseData.setPlayerId(playerId);
             baseData.setPower(10000);
+            create = true;
         }
-
-        //TODO 临时，提审用
-        baseData.setGuide(true);
 
         ctx.setSimBaseData(baseData);
         simMedalService.refreshMedalBonusCache(ctx);
@@ -401,6 +402,14 @@ public class SimManager {
         }
         ctx.setSeasonPlayerData(seasonData);
         seasonLifecycleService.ensureCurrent(ctx, System.currentTimeMillis());
+
+        //TODO 临时，提审用
+        if (create) {
+            baseData.setGuide(true);
+            simGuestService.unlockGuest(ctx, 1001);
+            simGuestService.unlockGuest(ctx, 1002);
+        }
+
         this.simPlayerContextRegistry.putContext(ctx);
         simNodeService.save(playerId, clusterSystem.getNodePath());
         return ctx;
