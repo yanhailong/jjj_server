@@ -125,24 +125,46 @@ public class SimEmployeeService {
                 }
             }
 
+            //新手引导: 不走随机, 固定召唤 NewbieGuideDraw 配置的雇员
+            boolean guide = ctx.getSimBaseData().isGuide();
+            int guideItemId = 0;
+            if (!guide) {
+                EmployeePoolCfg employeePoolCfg = GameDataManager.getEmployeePoolCfg(tmpCfg.getDropItem());
+                if (employeePoolCfg == null || employeePoolCfg.getNewbieGuideDraw() <= 0) {
+                    log.warn("招募雇员失败,新手引导卡池配置异常 playerId={},poolId={}", ctx.playerId(), tmpCfg.getDropItem());
+                    res.code = Code.PARAM_ERROR;
+                    ctx.send(res);
+                    return;
+                }
+                guideItemId = employeePoolCfg.getNewbieGuideDraw();
+            }
+
             Map<Integer, Long> addAllItems = new HashMap<>();
             List<RecruitItemInfo> recruitItems = new ArrayList<>();
 
             Map<Integer, Integer> addEmployee = new HashMap<>();
             for (int i = 0; i < count; i++) {
-                List<Integer> next = poolRand.next();
-                if (next == null || next.size() < 3) {
-                    log.warn("招募雇员失败,卡池掉落配置异常 playerId={},count={},i={}", ctx.playerId(), count, i);
-                    return;
+                int drawItemId;
+                int rewardCount;
+                if (!guide) {
+                    drawItemId = guideItemId;
+                    rewardCount = 1;
+                } else {
+                    List<Integer> next = poolRand.next();
+                    if (next == null || next.size() < 3) {
+                        log.warn("招募雇员失败,卡池掉落配置异常 playerId={},count={},i={}", ctx.playerId(), count, i);
+                        return;
+                    }
+                    drawItemId = next.get(1);
+                    rewardCount = next.get(2);
                 }
 
-                EmployeeProfileCfg profileCfg = configCache.getEmployeeProfileCfgByItemId(next.get(1));
+                EmployeeProfileCfg profileCfg = configCache.getEmployeeProfileCfgByItemId(drawItemId);
                 if (profileCfg == null) {
-                    log.warn("招募雇员失败,根据itemId获取EmployeeProfileCfg失败 playerId={},count={},itemId={},i={}", ctx.playerId(), count, next.get(1), i);
+                    log.warn("招募雇员失败,根据itemId获取EmployeeProfileCfg失败 playerId={},count={},itemId={},i={}", ctx.playerId(), count, drawItemId, i);
                     return;
                 }
 
-                int rewardCount = next.get(2);
                 for (int j = 0; j < rewardCount; j++) {
                     RecruitItemInfo re = new RecruitItemInfo();
                     re.itemId = profileCfg.getDuplicatetoShard().get(0);

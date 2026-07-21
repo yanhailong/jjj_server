@@ -19,8 +19,15 @@ public class EmployeePoolCfg extends BaseCfgBean {
   /** 配置表工作薄名 */
   public static final String SHEET_NAME = "EmployeePool";
 
+  /** 新手引导抽奖 */
+  protected int NewbieGuideDraw;
   /** 权重_道具ID_数量 */
   protected List<List<Integer>> detailedDropItem;
+
+  /** 返回新手引导抽奖 */
+  public int getNewbieGuideDraw() {
+    return NewbieGuideDraw;
+  }
 
   /** 返回权重_道具ID_数量 */
   public List<List<Integer>> getDetailedDropItem() {
