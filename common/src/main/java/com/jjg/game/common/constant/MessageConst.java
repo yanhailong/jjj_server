@@ -231,7 +231,7 @@ public interface MessageConst {
         int NOTIFY_SESSION_KICKOUT = BASE_MSG_PREFIX | 0x07;
         int CLUSTER_CONNECT_REGISTER = BASE_MSG_PREFIX | 0x08;
         //广播消息
-        int BROADCAST_MSG = (MessageTypeDef.SESSION_TYPE << 8) | 0x9;
+        int BROADCAST_MSG = BASE_MSG_PREFIX | 0x9;
         // rpc请求消息
         int RPC_REQ_SERVICE_DATA_CARRIER = BASE_MSG_PREFIX | 0x0A;// rpc请求消息
         int RPC_RES_SERVICE_DATA_CARRIER = BASE_MSG_PREFIX | 0x0B;
@@ -260,6 +260,9 @@ public interface MessageConst {
         //选择场次
         int REQ_CHOOSE_WARE = BASE_MSG_PREFIX | 0x3;
         int RES_CHOOSE_WARE = BASE_MSG_PREFIX | 0x4;
+
+        int REQ_CHOOSE_SIM = BASE_MSG_PREFIX | 0x5;
+        int RES_CHOOSE_SIM = BASE_MSG_PREFIX | 0x6;
 
         //通知玩家基础信息变化
         int NOTICE_BASE_INFO_CHANGE = BASE_MSG_PREFIX | 0x99;
