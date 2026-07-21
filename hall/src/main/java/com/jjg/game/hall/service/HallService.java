@@ -720,7 +720,7 @@ public class HallService implements ConfigExcelChangeListener, TimerListener {
             final long finalSelectItemCount = selectItemCount;
             final long finalUseItemCount = useItemCount;
             itemListenerList.forEach(listener -> {
-                listener.useItem(player, itemId, finalUseItemCount, selectItemId, finalSelectItemCount);
+                listener.useItem(player, itemId, finalUseItemCount, selectItemId, finalSelectItemCount, itemCfg.getGetItem());
             });
         } catch (Exception e) {
             log.error("", e);

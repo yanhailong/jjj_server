@@ -1089,7 +1089,16 @@ public abstract class AbstractSlotsGameManager<T extends SlotsPlayerGameData, L 
         boolean activeVisit = visitSession != null
                 && visitSession.activeFor(playerController.playerId(), this.gameType, System.currentTimeMillis());
         long skillOwnerId = activeVisit ? visitSession.getOwnerId() : playerController.playerId();
-        SimSkillsData simSkillsData = simSkillService.getSkillDataByGameType(skillOwnerId, this.gameType);
+        //走 RPC 取 sim 节点最新技能, 避免 sim 内存改动未到定时落库时进 slots 读到旧值; sim 不可达才回退读库
+        CommonResult<SimSkillsData> skillResult = slotsRPCLinkManager.getSimSkillData(
+                skillOwnerId, this.gameType, playerController.ipAddress());
+        SimSkillsData simSkillsData;
+        if (skillResult != null && skillResult.success()) {
+            simSkillsData = skillResult.data;
+        } else {
+            //sim 节点不可达: 回退直接读库 (可能为定时落库前旧值)
+            simSkillsData = simSkillService.getSkillDataByGameType(skillOwnerId, this.gameType);
+        }
         //获取sim节点
         ClusterClient simClusterClient = simNodeService.getSimClusterClient(playerController.playerId(), playerController.ipAddress());
 

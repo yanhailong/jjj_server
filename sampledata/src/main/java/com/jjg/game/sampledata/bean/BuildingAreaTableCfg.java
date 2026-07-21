@@ -29,8 +29,10 @@ public class BuildingAreaTableCfg extends BaseCfgBean {
   protected int RegionID;
   /** 解锁消耗 */
   protected Map<Integer,Long> UnlockCost;
-  /** 解锁方式 */
+  /** 解锁条件 */
   protected Map<Integer,Integer> UnlockMethod;
+  /** 解锁方式 */
+  protected boolean UnlockType;
   /** 建筑分类 */
   protected int type;
   /** 建筑属性分类 */
@@ -61,9 +63,14 @@ public class BuildingAreaTableCfg extends BaseCfgBean {
     return UnlockCost;
   }
 
-  /** 返回解锁方式 */
+  /** 返回解锁条件 */
   public Map<Integer,Integer> getUnlockMethod() {
     return UnlockMethod;
+  }
+
+  /** 返回解锁方式 */
+  public boolean getUnlockType() {
+    return UnlockType;
   }
 
   /** 返回建筑分类 */

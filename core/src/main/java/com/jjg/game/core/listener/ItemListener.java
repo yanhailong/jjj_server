@@ -2,6 +2,8 @@ package com.jjg.game.core.listener;
 
 import com.jjg.game.core.data.Player;
 
+import java.util.Map;
+
 /**
  * @author 11
  * @date 2026/7/1
@@ -15,5 +17,5 @@ public interface ItemListener {
      * @param useItemCount
      * @param selectItemId
      */
-    void useItem(Player player, int itemId, long useItemCount, int selectItemId, long finalSelectItemCount);
+    void useItem(Player player, int itemId, long useItemCount, int selectItemId, long finalSelectItemCount, Map<Integer, Long> getItemsMap);
 }

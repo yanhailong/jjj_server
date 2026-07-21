@@ -14,6 +14,8 @@ import com.jjg.game.core.data.ExitType;
 import com.jjg.game.core.data.Player;
 import com.jjg.game.core.data.PlayerController;
 import com.jjg.game.core.service.CorePlayerService;
+import com.jjg.game.sampledata.GameDataManager;
+import com.jjg.game.sampledata.bean.VisitorQuestCfg;
 import com.jjg.game.sim.constant.SimConstant;
 import com.jjg.game.sim.dao.*;
 import com.jjg.game.sim.data.*;
@@ -209,7 +211,8 @@ public class SimManager {
             if (purchasedGuestMap != null && !purchasedGuestMap.isEmpty()) {
                 res.purchasedGuests = new ArrayList<>(purchasedGuestMap.size());
                 for (PurchasedGuestData data : purchasedGuestMap.values()) {
-                    res.purchasedGuests.add(SimPbConverter.toGuestInfo(data));
+                    VisitorQuestCfg visitorQuestCfg = GameDataManager.getVisitorQuestCfg(data.getGuestId());
+                    res.purchasedGuests.add(SimPbConverter.toGuestInfo(data, visitorQuestCfg));
                 }
             }
 

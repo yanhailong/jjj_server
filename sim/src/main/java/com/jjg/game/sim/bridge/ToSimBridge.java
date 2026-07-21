@@ -29,6 +29,16 @@ public interface ToSimBridge extends IGameRpc {
     CommonResult<SimSkillsData> addSkillById(long playerId, int gameType, int skillId);
 
     /**
+     * 获取玩家指定游戏的最新技能数据 (在线以 sim 内存态为准, 离线回退读库)。
+     * 供 slots 进游戏时读取, 避免 sim 内存改动未到定时落库导致的脏读。
+     *
+     * @param playerId 技能归属玩家 (客座赌局为房主)
+     * @param gameType 游戏类型
+     * @return data 可能为 null (该游戏无技能数据)
+     */
+    CommonResult<SimSkillsData> getSkillData(long playerId, int gameType);
+
+    /**
      * slots spin
      *
      * @param playerId

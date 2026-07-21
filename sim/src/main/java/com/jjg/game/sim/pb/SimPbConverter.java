@@ -1,6 +1,7 @@
 package com.jjg.game.sim.pb;
 
 import com.jjg.game.core.pb.KVInfo;
+import com.jjg.game.sampledata.bean.VisitorQuestCfg;
 import com.jjg.game.sim.data.*;
 import com.jjg.game.sim.pb.struct.*;
 
@@ -22,9 +23,9 @@ public final class SimPbConverter {
     /**
      * GuestData + destinations → GuestInfo
      */
-    public static GuestInfo toGuestInfo(GuestData guestData, List<DestinationInfo> destinations) {
+    public static GuestInfo toGuestInfo(GuestData guestData, List<DestinationInfo> destinations, VisitorQuestCfg visitorQuestCfg) {
         GuestInfo info = new GuestInfo();
-        info.id = guestData.getId();
+        info.id = visitorQuestCfg.getResource() > 0 ? visitorQuestCfg.getResource() : guestData.getId();
         info.destinations = destinations;
         return info;
     }
@@ -32,9 +33,9 @@ public final class SimPbConverter {
     /**
      * PurchasedGuestData → GuestInfo (uid + 目的地; 用于生成下发 / 重连补发, 目的地已含预生成奖励)
      */
-    public static GuestInfo toGuestInfo(PurchasedGuestData data) {
+    public static GuestInfo toGuestInfo(PurchasedGuestData data, VisitorQuestCfg visitorQuestCfg) {
         GuestInfo info = new GuestInfo();
-        info.id = data.getGuestId();
+        info.id = visitorQuestCfg.getResource() > 0 ? visitorQuestCfg.getResource() : data.getGuestId();
         info.uid = data.getUid();
         if (data.getDestinations() != null && !data.getDestinations().isEmpty()) {
             info.destinations = data.getDestinations().values().stream().toList();

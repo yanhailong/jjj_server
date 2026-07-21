@@ -12,6 +12,7 @@ import com.jjg.game.core.data.PlayerController;
 import com.jjg.game.core.utils.ItemUtils;
 import com.jjg.game.season.data.SeasonFreeSpinResult;
 import com.jjg.game.sim.bridge.ToSimBridge;
+import com.jjg.game.sim.data.SimSkillsData;
 import com.jjg.game.sim.data.SlotsSpinResult;
 import com.jjg.game.sim.data.SpinStatInfo;
 import com.jjg.game.sim.data.VisitTrialSpinPermit;
@@ -118,6 +119,33 @@ public class SlotsRPCLinkManager {
             if (retryCount == 0) {
                 cancelVisitTrialSpin(playerGameData, trialPermit);
             }
+        }
+    }
+
+    /**
+     * 进游戏读取技能: 走 RPC 拿 sim 节点最新技能 (在线取内存态, 离线由 sim 侧回退读库),
+     * sim 节点不可达时返回失败, 由调用方回退本地读库。
+     *
+     * @param skillOwnerId 技能归属玩家 (客座赌局为房主, 普通为玩家自己)
+     */
+    public CommonResult<SimSkillsData> getSimSkillData(long skillOwnerId, int gameType, String ip) {
+        try {
+            ClusterClient client = simNodeService.getSimClusterClient(skillOwnerId, ip);
+            if (client == null) {
+                return new CommonResult<>(Code.NOT_FOUND);
+            }
+            GameRpcContext rpcContext = GameRpcContext.getContext();
+            RpcReqParameterBuilder previousBuilder = rpcContext.getReqParameterBuilder();
+            try {
+                rpcContext.withReqParameterBuilder(RpcReqParameterBuilder.create()
+                        .addClusterClient(client).setTryMillisPerClient(1000));
+                return toSimBridge.getSkillData(skillOwnerId, gameType);
+            } finally {
+                rpcContext.setReqParameterBuilder(previousBuilder);
+            }
+        } catch (Exception e) {
+            log.error("获取sim技能数据异常 skillOwnerId={},gameType={}", skillOwnerId, gameType, e);
+            return new CommonResult<>(Code.EXCEPTION);
         }
     }
 

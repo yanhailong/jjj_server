@@ -29,6 +29,8 @@ public class VisitorQuestCfg extends BaseCfgBean {
   protected Map<Integer,Integer> InteractionWeight;
   /** 游客品质 */
   protected int Quality;
+  /** 资源 */
+  protected int Resource;
   /** 服务能力 */
   protected int ServiceCapacity;
   /** 指定区域 */
@@ -59,6 +61,11 @@ public class VisitorQuestCfg extends BaseCfgBean {
   /** 返回游客品质 */
   public int getQuality() {
     return Quality;
+  }
+
+  /** 返回资源 */
+  public int getResource() {
+    return Resource;
   }
 
   /** 返回服务能力 */

@@ -5,6 +5,7 @@ import com.jjg.game.alliance.service.AllianceCacheService;
 import com.jjg.game.alliance.service.AllianceHelpService;
 import com.jjg.game.core.constant.Code;
 import com.jjg.game.sampledata.GameDataManager;
+import com.jjg.game.sampledata.bean.BuildingAreaTableCfg;
 import com.jjg.game.sampledata.bean.BuildingUpgradeTableCfg;
 import com.jjg.game.sampledata.bean.CasinoListCfg;
 import com.jjg.game.sampledata.bean.CasinoStatsSheetCfg;
@@ -266,6 +267,9 @@ public class SimCasinoService {
             casino.setCasinoLevel(statsCfg.getLevel());
         }
 
+        //自动解锁: UnlockType=false 且无解锁条件(UnlockMethod) 的建筑, 创建场景时直接以初始等级解锁
+        autoUnlockBuildings(casino, casinoId);
+
         updateCasinoUnlock(ctx, casinoId, INITIAL_BUILDING_LEVEL);
         simSkillService.initUnlock(ctx, casinoId);
         ctx.getSimBaseData().addAllLevel(casino.getCasinoLevel());
@@ -273,6 +277,30 @@ public class SimCasinoService {
         log.info("创建新场景 playerId={},casinoId={},statsId={},buildingCount={}", ctx.playerId(), casinoId, statsId,
                 casino.getBuildingData() == null ? 0 : casino.getBuildingData().size());
         return casino;
+    }
+
+    /**
+     * 自动解锁场景内无需条件的建筑: UnlockType=false 且 UnlockMethod 为空的建筑,
+     * 创建场景时即以初始等级放入 (存在于 buildingData 中即视为已解锁)。
+     *
+     * @param casinoId 场景id (= BuildingAreaTableCfg.RegionID)
+     */
+    private void autoUnlockBuildings(SimCasinoData casino, int casinoId) {
+        for (BuildingAreaTableCfg cfg : GameDataManager.getBuildingAreaTableCfgList()) {
+            if (cfg.getRegionID() != casinoId) {
+                continue;
+            }
+            if (cfg.getUnlockType()) {
+                continue;
+            }
+            if (cfg.getUnlockMethod() != null && !cfg.getUnlockMethod().isEmpty()) {
+                continue;
+            }
+            BuildingData data = new BuildingData();
+            data.setId(cfg.getId());
+            data.setLevel(INITIAL_BUILDING_LEVEL);
+            casino.putBuilding(data);
+        }
     }
 
     /**

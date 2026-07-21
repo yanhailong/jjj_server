@@ -148,6 +148,18 @@ public class HallRPCController extends CoreRPCController implements GmToHallBrid
 
     @Override
     @RpcCallSetting(processorModKey = "#arg0")
+    public CommonResult<SimSkillsData> getSkillData(long playerId, int gameType) {
+        SimPlayerContext ctx = this.simPlayerContextRegistry.getContext(playerId);
+        if (ctx != null) {
+            //在线: 以内存态为准 (定时落库前内存可能比 DB 新); 该游戏无技能返回 null 属正常
+            return new CommonResult<>(Code.SUCCESS, ctx.getSkillData(gameType));
+        }
+        //离线: sim 内存无数据, 回退读库
+        return new CommonResult<>(Code.SUCCESS, simSkillService.getSkillDataByGameType(playerId, gameType));
+    }
+
+    @Override
+    @RpcCallSetting(processorModKey = "#arg0")
     public CommonResult<SlotsSpinResult> onSlotsSpin(long playerId, int gameType, int winTimes, boolean changeNode,
                                                     SpinStatInfo statInfo, VisitTrialSpinPermit trialPermit) {
         return simManager.onSlotsSpin(playerId, gameType, winTimes, changeNode, statInfo, trialPermit);

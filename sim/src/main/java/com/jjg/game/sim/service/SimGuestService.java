@@ -264,7 +264,7 @@ public class SimGuestService implements SimPlayerTickListener, ItemListener {
             //经营信息: 招商生成一名高级游客即累计一次, 与该游客的目的地数量无关
             ctx.getSimBaseData().addReceptionCount(1);
 
-            res.guests.add(SimPbConverter.toGuestInfo(data));
+            res.guests.add(SimPbConverter.toGuestInfo(data, visitorQuestCfg));
             //累加经验
             guest.addExp(configCache.getVisitorLevelCfgMap());
         }
@@ -443,7 +443,7 @@ public class SimGuestService implements SimPlayerTickListener, ItemListener {
 
         ctx.getCurrentCasino().setLastGenerateTime(now);
         ctx.getCurrentCasino().recordGenerate(now, SimConstant.Common.CAPACITY_WINDOW_MS);
-        return SimPbConverter.toGuestInfo(guest, destinations);
+        return SimPbConverter.toGuestInfo(guest, destinations, visitorQuestCfg);
     }
 
     /**
@@ -1052,41 +1052,67 @@ public class SimGuestService implements SimPlayerTickListener, ItemListener {
     }
 
     @Override
-    public void useItem(Player player, int itemId, long useItemCount, int selectItemId, long finalSelectItemCount) {
+    public void useItem(Player player, int itemId, long useItemCount, int selectItemId, long finalSelectItemCount, Map<Integer, Long> getItemsMap) {
         try {
-            if (selectItemId < 1) {
-                return;
-            }
-            VisitorQuestCfg cfg = null;
-            if (itemId == SimConstant.Item.ID_BATCH_GENERATE_SPECIFY_ID_GUEST) {
-                cfg = configCache.getVisitorQuestCfgByItemId(selectItemId);
-            } else if (itemId == SimConstant.Item.ID_BATCH_GENERATE_SPECIFY_QUALITY_GUEST) {
-                Integer qulity = configCache.queryGuestQuality(selectItemId);
-                if (qulity != null) {
-                    List<VisitorQuestCfg> tmpList = configCache.getVisitorQuestCfgList(qulity);
-                    if (tmpList == null || tmpList.isEmpty()) {
-                        return;
+            if (selectItemId > 0) {
+                VisitorQuestCfg cfg = null;
+                if (itemId == SimConstant.Item.ID_BATCH_GENERATE_SPECIFY_ID_GUEST) {
+                    cfg = configCache.getVisitorQuestCfgByItemId(selectItemId);
+                } else if (itemId == SimConstant.Item.ID_BATCH_GENERATE_SPECIFY_QUALITY_GUEST) {
+                    Integer qulity = configCache.queryGuestQuality(selectItemId);
+                    if (qulity != null) {
+                        List<VisitorQuestCfg> tmpList = configCache.getVisitorQuestCfgList(qulity);
+                        if (tmpList == null || tmpList.isEmpty()) {
+                            return;
+                        }
+                        cfg = RandomUtils.randomEle(tmpList);
                     }
-                    cfg = RandomUtils.randomEle(tmpList);
+                } else {
+                    return;
                 }
-            } else {
-                return;
-            }
 
-            if (cfg == null) {
-                return;
-            }
+                if (cfg == null) {
+                    return;
+                }
 
-            SimPlayerContext context = this.simPlayerContextRegistry.getContext(player.getId());
-            if (context == null) {
-                log.warn("使用道具后生成游客失败，获取context 失败 playerId={}", player.getId());
-                return;
-            }
+                SimPlayerContext context = this.simPlayerContextRegistry.getContext(player.getId());
+                if (context == null) {
+                    log.warn("使用道具后生成游客失败，获取context 失败 playerId={}", player.getId());
+                    return;
+                }
 
-            if (itemId == SimConstant.Item.ID_BATCH_GENERATE_SPECIFY_ID_GUEST) {
-                batchGenerateSpecifyIdGuest(context, cfg.getId(), (int) finalSelectItemCount);
-            } else {
-                batchGenerateSpecifyQualityGuest(context, cfg.getQuality(), (int) finalSelectItemCount);
+                if (itemId == SimConstant.Item.ID_BATCH_GENERATE_SPECIFY_ID_GUEST) {
+                    batchGenerateSpecifyIdGuest(context, cfg.getId(), (int) finalSelectItemCount);
+                } else {
+                    batchGenerateSpecifyQualityGuest(context, cfg.getQuality(), (int) finalSelectItemCount);
+                }
+            } else if (getItemsMap != null && !getItemsMap.isEmpty()) {
+                SimPlayerContext context = this.simPlayerContextRegistry.getContext(player.getId());
+                if (context == null) {
+                    log.warn("使用道具后生成游客失败，获取context 失败 playerId={}", player.getId());
+                    return;
+                }
+
+                for (Map.Entry<Integer, Long> en : getItemsMap.entrySet()) {
+                    int getItemId = en.getKey();
+                    int count = (int) (en.getValue() * useItemCount);
+                    if (count <= 0) {
+                        continue;
+                    }
+
+                    //品质道具 -> 生成对应品质的随机游客
+                    Integer quality = configCache.queryGuestQuality(getItemId);
+                    if (quality != null) {
+                        batchGenerateSpecifyQualityGuest(context, quality, count);
+                        continue;
+                    }
+
+                    //游客卡道具 -> 生成指定游客
+                    VisitorQuestCfg cfg = configCache.getVisitorQuestCfgByItemId(getItemId);
+                    if (cfg != null) {
+                        batchGenerateSpecifyIdGuest(context, cfg.getId(), count);
+                    }
+                }
             }
         } catch (Exception e) {
             log.error("", e);
