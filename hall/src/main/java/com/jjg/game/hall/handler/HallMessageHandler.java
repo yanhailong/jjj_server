@@ -1283,12 +1283,12 @@ public class HallMessageHandler implements GmListener, ChooseWareListener, Choos
             //是不是slots游戏
             int majorType = CommonUtil.getMajorTypeByGameType(req.gameType);
             if (majorType == CoreConst.GameMajorType.SLOTS) {
-                res.code = hallRoomService.enterGameNode(playerController, req.wareId);
+                res.code = hallRoomService.enterGameNode(playerController, req.wareId, req.enterType);
             } else if (majorType == CoreConst.GameMajorType.TABLE || majorType == CoreConst.GameMajorType.POKER) {
                 // 进入大厅加入房间的逻辑
                 res.code = hallRoomService.enterRoomNode(playerController, req.wareId);
             } else if (majorType == CoreConst.GameMajorType.PLOY) {
-                res.code = hallRoomService.enterGameNode(playerController, req.wareId);
+                res.code = hallRoomService.enterGameNode(playerController, req.wareId, req.enterType);
             } else {
                 res.code = Code.PARAM_ERROR;
             }

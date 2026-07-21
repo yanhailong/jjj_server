@@ -206,6 +206,24 @@ public class HallRPCController extends CoreRPCController implements GmToHallBrid
 
     @Override
     @RpcCallSetting(processorModKey = "#arg0")
+    public CommonResult<Long> getSeasonCoin(long playerId) {
+        return simManager.getSeasonCoin(playerId);
+    }
+
+    @Override
+    @RpcCallSetting(processorModKey = "#arg0")
+    public CommonResult<Long> deductSeasonCoin(long playerId, long amount, long transactionId) {
+        return simManager.deductSeasonCoin(playerId, amount, transactionId);
+    }
+
+    @Override
+    @RpcCallSetting(processorModKey = "#arg0")
+    public CommonResult<Long> addSeasonCoin(long playerId, long amount, long transactionId) {
+        return simManager.addSeasonCoin(playerId, amount, transactionId);
+    }
+
+    @Override
+    @RpcCallSetting(processorModKey = "#arg0")
     public CommonResult<VisitTrialSpinPermit> prepareVisitTrialSpin(long playerId, int gameType) {
         return simManager.prepareVisitTrialSpin(playerId, gameType);
     }

@@ -210,7 +210,11 @@ public abstract class AbstractWealthGodGameManager extends AbstractSlotsGameMana
         }
         Player player = playerController.getPlayer();
         long playerId = playerController.playerId();
-        CommonResult<Long> slotsRewardPool = slotsPoolDao.rewardByRatioFromSmallPool(playerId, this.gameType, player.getRoomCfgId(), poolCfg.getTruePool(), poolId, AddType.SLOTS_JACKPOT_REWARD);
+        //赛季币/金币统一收口, 内部按 seasonCurrency 分流; gameData 缺失时回退直连 DAO(金币)
+        var playerGameData = getPlayerGameData(playerId);
+        CommonResult<Long> slotsRewardPool = playerGameData == null
+                ? slotsPoolDao.rewardByRatioFromSmallPool(playerId, this.gameType, player.getRoomCfgId(), poolCfg.getTruePool(), poolId, AddType.SLOTS_JACKPOT_REWARD)
+                : rewardByRatioSmallPoolCurrency(playerGameData, poolCfg.getTruePool(), poolId, AddType.SLOTS_JACKPOT_REWARD);
         if (slotsRewardPool != null) {
             return slotsRewardPool.data;
         }

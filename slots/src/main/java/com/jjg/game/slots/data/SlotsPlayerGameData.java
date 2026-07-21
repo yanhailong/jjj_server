@@ -93,6 +93,12 @@ public class SlotsPlayerGameData {
     //当日免费次数已耗尽的系统日期 key (yyyyMMdd), 跨天后重新向 sim 申请
     @Transient
     protected transient int seasonFreeExhaustedDailyKey;
+    //从赛季进入 (enterType=1): 本次会话下注/结算使用赛季币而非金币, 池子共用不区分货币
+    @Transient
+    protected transient boolean seasonCurrency;
+    //最近一次已知的赛季币余额 (由 sim 扣/发 RPC 返回), 用于响应中 allGold/beforeGold/afterGold 展示
+    @Transient
+    protected transient long seasonCoinBalance;
 
     public long getPlayerId() {
         if (playerId == 0) {
@@ -458,5 +464,21 @@ public class SlotsPlayerGameData {
 
     public void setSeasonFreeExhaustedDailyKey(int seasonFreeExhaustedDailyKey) {
         this.seasonFreeExhaustedDailyKey = seasonFreeExhaustedDailyKey;
+    }
+
+    public boolean isSeasonCurrency() {
+        return seasonCurrency;
+    }
+
+    public void setSeasonCurrency(boolean seasonCurrency) {
+        this.seasonCurrency = seasonCurrency;
+    }
+
+    public long getSeasonCoinBalance() {
+        return seasonCoinBalance;
+    }
+
+    public void setSeasonCoinBalance(long seasonCoinBalance) {
+        this.seasonCoinBalance = seasonCoinBalance;
     }
 }

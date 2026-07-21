@@ -132,7 +132,7 @@ public abstract class AbstractLuckyMouseGameManager extends AbstractSlotsGameMan
         if (resultLib.getJackpotId() > 0) {
             PoolCfg poolCfg = GameDataManager.getPoolCfg(resultLib.getJackpotId());
             //检查是否中大奖
-            CommonResult<Long> result = slotsPoolDao.rewardByRatioFromSmallPool(playerGameData.getPlayerId(), this.gameType, playerGameData.getRoomCfgId(),
+            CommonResult<Long> result = rewardByRatioSmallPoolCurrency(playerGameData,
                     poolCfg.getTruePool(), poolCfg.getId(), AddType.SLOTS_JACKPOT_REWARD);
             if (result.success()) {
                 gameRunInfo.addSmallPoolGold(result.data);

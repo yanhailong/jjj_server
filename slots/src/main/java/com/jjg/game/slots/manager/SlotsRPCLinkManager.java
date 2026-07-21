@@ -177,6 +177,94 @@ public class SlotsRPCLinkManager {
     }
 
     /**
+     * 只读查询赛季币余额 (无副作用, 无幂等/重试需求): 进游戏首帧展示用。sim 不可达返回失败。
+     */
+    public CommonResult<Long> getSeasonCoin(SlotsPlayerGameData playerGameData) {
+        ClusterClient client = resolveSimClient(playerGameData);
+        if (client == null) {
+            return new CommonResult<>(Code.NOT_FOUND);
+        }
+        GameRpcContext rpcContext = GameRpcContext.getContext();
+        RpcReqParameterBuilder previousBuilder = rpcContext.getReqParameterBuilder();
+        try {
+            rpcContext.withReqParameterBuilder(RpcReqParameterBuilder.create()
+                    .addClusterClient(client).setTryMillisPerClient(1000));
+            CommonResult<Long> result = toSimBridge.getSeasonCoin(playerGameData.getPlayerId());
+            return result == null ? new CommonResult<>(Code.EXCEPTION) : result;
+        } catch (Exception e) {
+            log.error("赛季币余额查询RPC异常 playerId={}", playerGameData.getPlayerId(), e);
+            return new CommonResult<>(Code.EXCEPTION);
+        } finally {
+            rpcContext.setReqParameterBuilder(previousBuilder);
+        }
+    }
+
+    /**
+     * 从赛季进入的 slots 下注: 同步向 sim 扣除赛季币, 按 txnId 幂等; 传输失败(EXCEPTION)用同一 txnId 重试一次
+     * (若首次已提交, 重试凭 txnId 幂等返回已扣余额, 避免超时误判导致丢币)。
+     * 成功时 data 为最新余额; 余额不足返回 {@link Code#NOT_ENOUGH}。
+     */
+    public CommonResult<Long> deductSeasonCoin(SlotsPlayerGameData playerGameData, long amount) {
+        long txnId = nextTxnId();
+        CommonResult<Long> result = seasonCoinCall(playerGameData,
+                t -> toSimBridge.deductSeasonCoin(playerGameData.getPlayerId(), amount, t), txnId, "扣除");
+        if (result.code != Code.EXCEPTION) {
+            return result;
+        }
+        return seasonCoinCall(playerGameData,
+                t -> toSimBridge.deductSeasonCoin(playerGameData.getPlayerId(), amount, t), txnId, "扣除重试");
+    }
+
+    /**
+     * 从赛季进入的 slots 中奖: 同步向 sim 增加赛季币, 按 txnId 幂等; 传输失败(EXCEPTION)用同一 txnId 重试一次
+     * (若首次已提交, 重试凭 txnId 幂等确认, 避免超时误判导致漏发或凭空回补池)。
+     * 成功时 data 为最新余额。
+     */
+    public CommonResult<Long> addSeasonCoin(SlotsPlayerGameData playerGameData, long amount) {
+        long txnId = nextTxnId();
+        CommonResult<Long> result = seasonCoinCall(playerGameData,
+                t -> toSimBridge.addSeasonCoin(playerGameData.getPlayerId(), amount, t), txnId, "增加");
+        if (result.code != Code.EXCEPTION) {
+            return result;
+        }
+        return seasonCoinCall(playerGameData,
+                t -> toSimBridge.addSeasonCoin(playerGameData.getPlayerId(), amount, t), txnId, "增加重试");
+    }
+
+    /**
+     * 单次赛季币结算 RPC: 解析 sim 节点并调用; sim 不可达/异常/空返回统一按 EXCEPTION(可重试)处理,
+     * 业务码(SUCCESS/NOT_ENOUGH/NOT_FOUND)原样返回。
+     */
+    private CommonResult<Long> seasonCoinCall(SlotsPlayerGameData playerGameData,
+                                              java.util.function.LongFunction<CommonResult<Long>> rpc,
+                                              long txnId, String action) {
+        ClusterClient client = resolveSimClient(playerGameData);
+        if (client == null) {
+            return new CommonResult<>(Code.EXCEPTION);
+        }
+        GameRpcContext rpcContext = GameRpcContext.getContext();
+        RpcReqParameterBuilder previousBuilder = rpcContext.getReqParameterBuilder();
+        try {
+            rpcContext.withReqParameterBuilder(RpcReqParameterBuilder.create()
+                    .addClusterClient(client).setTryMillisPerClient(1000));
+            CommonResult<Long> result = rpc.apply(txnId);
+            return result == null ? new CommonResult<>(Code.EXCEPTION) : result;
+        } catch (Exception e) {
+            log.error("赛季币{}RPC异常 playerId={},txnId={}", action, playerGameData.getPlayerId(), txnId, e);
+            return new CommonResult<>(Code.EXCEPTION);
+        } finally {
+            rpcContext.setReqParameterBuilder(previousBuilder);
+        }
+    }
+
+    /**
+     * 生成非 0 的幂等结算 id; 首发与重试复用同一 id, sim 侧凭此去重。
+     */
+    private long nextTxnId() {
+        return ThreadLocalRandom.current().nextLong() | 1L;
+    }
+
+    /**
      * 普通旋转不发 RPC；只有进入 slots 时绑定了客座会话才同步向 sim 申请许可。
      */
     public CommonResult<VisitTrialSpinPermit> prepareVisitTrialSpin(SlotsPlayerGameData playerGameData,

@@ -61,7 +61,7 @@ public class HallRoomService implements IConsoleReceiver {
      * @param roomCfgId
      * @return
      */
-    public int enterGameNode(PlayerController playerController, int roomCfgId) {
+    public int enterGameNode(PlayerController playerController, int roomCfgId, int enterType) {
         WarehouseCfg warehouseCfg = GameDataManager.getWarehouseCfg(roomCfgId);
         if (warehouseCfg == null) {
             log.error("配置表异常，未在房间表（warehouse.xlsx）中找到房间配置表ID: {}", roomCfgId);
@@ -76,7 +76,7 @@ public class HallRoomService implements IConsoleReceiver {
             return Code.NOT_FOUND;
         }
 
-        playerSessionService.changeGameType(playerController.playerId(), gameType, roomCfgId);
+        playerSessionService.changeGameType(playerController.playerId(), gameType, roomCfgId, enterType);
         clusterSystem.switchNode(playerController.getSession(), marsNode);
         return Code.SUCCESS;
     }

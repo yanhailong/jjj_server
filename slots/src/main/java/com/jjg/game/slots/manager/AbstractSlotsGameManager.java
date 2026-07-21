@@ -33,6 +33,7 @@ import com.jjg.game.core.task.param.TaskConditionParam10001;
 import com.jjg.game.core.task.param.TaskConditionParam10003;
 import com.jjg.game.core.task.param.TaskConditionParam12001;
 import com.jjg.game.core.utils.ItemUtils;
+import com.jjg.game.core.utils.PropUtil;
 import com.jjg.game.sampledata.GameDataManager;
 import com.jjg.game.sampledata.bean.*;
 import com.jjg.game.season.data.SeasonFreeSpinResult;
@@ -673,6 +674,90 @@ public abstract class AbstractSlotsGameManager<T extends SlotsPlayerGameData, L 
     }
 
     /**
+     * 从赛季进入的下注: 同步 RPC 扣除赛季币, 成功后刷新本地余额缓存 (用于响应展示)。
+     * 返回 code=SUCCESS 表示扣除成功; 余额不足返回 NOT_ENOUGH, sim 不可达返回失败。
+     */
+    protected CommonResult<Long> seasonDeduct(T gameData, long amount) {
+        long before = gameData.getSeasonCoinBalance();
+        CommonResult<Long> result = slotsRPCLinkManager.deductSeasonCoin(gameData, amount);
+        if (result.success() && result.data != null) {
+            gameData.setSeasonCoinBalance(result.data);
+            log.info("赛季币结算 type=bet,playerId={},gameType={},roomCfgId={},currency=season,amount={},before={},after={}",
+                    gameData.getPlayerId(), this.gameType, gameData.getRoomCfgId(), amount, before, result.data);
+        }
+        return result;
+    }
+
+    /**
+     * 从赛季进入的中奖: 先经 RPC 给玩家发赛季币(幂等+超时重试), 成功后刷新本地余额缓存。
+     * 采用"先发币、后扣池"(credit-first): 发放失败即不扣池、不算中奖, 无需反向 increment 回补,
+     * 从根本上避免超时回补造成的凭空增发与假池被破坏。返回 true 表示发放成功。
+     */
+    protected boolean seasonReward(T gameData, long amount) {
+        long before = gameData.getSeasonCoinBalance();
+        CommonResult<Long> result = slotsRPCLinkManager.addSeasonCoin(gameData, amount);
+        if (!result.success() || result.data == null) {
+            log.warn("赛季币发放失败 playerId={},gameType={},roomCfgId={},amount={},code={}",
+                    gameData.getPlayerId(), this.gameType, gameData.getRoomCfgId(), amount, result.code);
+            return false;
+        }
+        gameData.setSeasonCoinBalance(result.data);
+        log.info("赛季币结算 type=reward,playerId={},gameType={},roomCfgId={},currency=season,amount={},before={},after={}",
+                gameData.getPlayerId(), this.gameType, gameData.getRoomCfgId(), amount, before, result.data);
+        return true;
+    }
+
+    /**
+     * 从标准池扣数值并给玩家发钱: 赛季币走 RPC(credit-first), 否则金币走 addGold。池子共用不区分货币。
+     * 成功时 data 为最新玩家对象(赛季模式返回当前玩家, 余额已刷新到 gameData); 供直接调用 DAO 的玩法复用。
+     */
+    protected CommonResult<Player> rewardBigPoolCurrency(T playerGameData, long value, AddType addType) {
+        if (playerGameData.isSeasonCurrency()) {
+            if (value < 1 || !seasonReward(playerGameData, value)) {
+                return new CommonResult<>(Code.FAIL);
+            }
+            //发币成功后再扣池(redis 可靠), 无回补
+            slotsPoolDao.addToBigPool(this.gameType, playerGameData.getRoomCfgId(), -value);
+            return new CommonResult<>(Code.SUCCESS, playerGameData.getPlayer());
+        }
+        return slotsPoolDao.rewardFromBigPool(playerGameData.getPlayerId(), this.gameType, playerGameData.getRoomCfgId(), value, addType);
+    }
+
+    /**
+     * 从小池(固定值)扣数值并给玩家发钱: 赛季币走 RPC(credit-first), 否则金币走 addGold。
+     * 成功时 data 为最新玩家对象; 供直接调用 DAO 的玩法复用。
+     */
+    protected CommonResult<Player> rewardSmallPoolCurrency(T playerGameData, long value, int poolId, AddType addType) {
+        if (playerGameData.isSeasonCurrency()) {
+            if (value < 1 || !seasonReward(playerGameData, value)) {
+                return new CommonResult<>(Code.FAIL);
+            }
+            slotsPoolDao.addToSmallPool(this.gameType, playerGameData.getRoomCfgId(), -value);
+            slotsPoolDao.updatePoolCD(poolId);
+            return new CommonResult<>(Code.SUCCESS, playerGameData.getPlayer());
+        }
+        return slotsPoolDao.rewardFromSmallPool(playerGameData.getPlayerId(), this.gameType, playerGameData.getRoomCfgId(), value, poolId, addType, poolId + "");
+    }
+
+    /**
+     * 从小池(按占比)扣数值并给玩家发钱: 赛季币走 RPC(credit-first), 否则金币走 addGold。
+     * 成功时 data 为本次中奖值; 统一收口所有 rewardByRatioFromSmallPool 直连 DAO 的玩法。
+     */
+    protected CommonResult<Long> rewardByRatioSmallPoolCurrency(T playerGameData, int ratio, int poolId, AddType addType) {
+        if (playerGameData.isSeasonCurrency()) {
+            Number poolNum = slotsPoolDao.getSmallPoolByRoomCfgId(this.gameType, playerGameData.getRoomCfgId());
+            long value = poolNum == null ? 0 : PropUtil.calProp(ratio, poolNum.longValue());
+            if (value < 1 || !seasonReward(playerGameData, value)) {
+                return new CommonResult<>(Code.FAIL);
+            }
+            slotsPoolDao.addToSmallPool(this.gameType, playerGameData.getRoomCfgId(), -value);
+            slotsPoolDao.updatePoolCD(poolId);
+            return new CommonResult<>(Code.SUCCESS, value);
+        }
+        return slotsPoolDao.rewardByRatioFromSmallPool(playerGameData.getPlayerId(), this.gameType, playerGameData.getRoomCfgId(), ratio, poolId, addType);
+    }
+
+    /**
      * 给池子加钱
      *
      * @param gameData
@@ -688,38 +773,68 @@ public abstract class AbstractSlotsGameManager<T extends SlotsPlayerGameData, L 
             if (freeSpinPlayer != null && trySeasonFreeSpin(gameData, betValue)) {
                 return new CommonResult<>(Code.SUCCESS, new Pair<>(freeSpinPlayer, new BetDivideInfo()));
             }
-            CommonResult<Pair<Player, Long>> result = slotsPlayerService.betDeductGold(gameData.getPlayerId(), betValue, true, AddType.SLOTS_BET);
-            if (!result.success()) {
-                log.warn("把钱添加到池子失败,扣除玩家金额失败 playerId = {},betValue = {},code = {}", gameData.getPlayerId(), betValue, result.code);
-                return new CommonResult<>(result.code);
-            }
-
-            Player player = result.data.getFirst();
-            PlayerExecutorGroupDisruptor.getDefaultExecutor().tryPublish(player.getId(), 0, new BaseHandler<String>() {
-                @Override
-                public void action() {
-                    activityManager.addActivityProgress(player, ActivityTargetType.getTagetKey(ActivityTargetType.BET, ActivityTargetType.EFFECTIVE_BET), betValue, ItemUtils.getGoldItemId());
-                    activityManager.addPlayerActivityProgress(player, ActivityTargetType.getTagetKey(ActivityTargetType.BET, ActivityTargetType.EFFECTIVE_BET), betValue, ItemUtils.getGoldItemId());
-                    // 触发有效流水事件
-                    gameEventManager.triggerEvent(new PlayerEffectiveFlowingEvent(player, gameData.getRoomCfgId(), betValue, 0));
+            Player player;
+            if (gameData.isSeasonCurrency()) {
+                //从赛季进入: 扣赛季币 (同步 RPC 到 sim), 池子共用不区分货币; 余额不足/sim不可达则拒绝本次旋转
+                CommonResult<Long> deductResult = seasonDeduct(gameData, betValue);
+                if (!deductResult.success()) {
+                    log.warn("扣除赛季币失败,拒绝本次旋转 playerId = {},betValue = {},code = {}", gameData.getPlayerId(), betValue, deductResult.code);
+                    return new CommonResult<>(deductResult.code);
                 }
-            }.setHandlerParamWithSelf("goldToPool"));
-            //触发任务
-            taskManager.trigger(player.getId(), TaskConstant.ConditionType.PLAYER_BET_ALL, () -> {
-                TaskConditionParam12001 param = new TaskConditionParam12001();
-                param.setGameId(getGameType());
-                param.setAddValue(betValue);
-                return param;
-            }, false);
-            //触发下注
-            taskManager.trigger(player.getId(), TaskConstant.ConditionType.BET_COUNT, () -> {
-                TaskConditionParam10001 param = new TaskConditionParam10001();
-                param.setAddValue(betValue);
-                param.setGameId(getGameType());
-                return param;
-            }, false);
+                final Player p = gameData.getPlayer();
+                if (p == null) {
+                    return new CommonResult<>(Code.FAIL);
+                }
+                //赛季币不计入金币道具的活动/有效流水; 仅触发货币无关的下注/局数任务
+                taskManager.trigger(p.getId(), TaskConstant.ConditionType.PLAYER_BET_ALL, () -> {
+                    TaskConditionParam12001 param = new TaskConditionParam12001();
+                    param.setGameId(getGameType());
+                    param.setAddValue(betValue);
+                    return param;
+                }, false);
+                taskManager.trigger(p.getId(), TaskConstant.ConditionType.BET_COUNT, () -> {
+                    TaskConditionParam10001 param = new TaskConditionParam10001();
+                    param.setAddValue(betValue);
+                    param.setGameId(getGameType());
+                    return param;
+                }, false);
+                player = p;
+                log.info("玩家扣除赛季币成功 playerId = {},reduce = {},afterSeasonCoin = {}", gameData.getPlayerId(), betValue, gameData.getSeasonCoinBalance());
+            } else {
+                CommonResult<Pair<Player, Long>> result = slotsPlayerService.betDeductGold(gameData.getPlayerId(), betValue, true, AddType.SLOTS_BET);
+                if (!result.success()) {
+                    log.warn("把钱添加到池子失败,扣除玩家金额失败 playerId = {},betValue = {},code = {}", gameData.getPlayerId(), betValue, result.code);
+                    return new CommonResult<>(result.code);
+                }
+
+                final Player p = result.data.getFirst();
+                PlayerExecutorGroupDisruptor.getDefaultExecutor().tryPublish(p.getId(), 0, new BaseHandler<String>() {
+                    @Override
+                    public void action() {
+                        activityManager.addActivityProgress(p, ActivityTargetType.getTagetKey(ActivityTargetType.BET, ActivityTargetType.EFFECTIVE_BET), betValue, ItemUtils.getGoldItemId());
+                        activityManager.addPlayerActivityProgress(p, ActivityTargetType.getTagetKey(ActivityTargetType.BET, ActivityTargetType.EFFECTIVE_BET), betValue, ItemUtils.getGoldItemId());
+                        // 触发有效流水事件
+                        gameEventManager.triggerEvent(new PlayerEffectiveFlowingEvent(p, gameData.getRoomCfgId(), betValue, 0));
+                    }
+                }.setHandlerParamWithSelf("goldToPool"));
+                //触发任务
+                taskManager.trigger(p.getId(), TaskConstant.ConditionType.PLAYER_BET_ALL, () -> {
+                    TaskConditionParam12001 param = new TaskConditionParam12001();
+                    param.setGameId(getGameType());
+                    param.setAddValue(betValue);
+                    return param;
+                }, false);
+                //触发下注
+                taskManager.trigger(p.getId(), TaskConstant.ConditionType.BET_COUNT, () -> {
+                    TaskConditionParam10001 param = new TaskConditionParam10001();
+                    param.setAddValue(betValue);
+                    param.setGameId(getGameType());
+                    return param;
+                }, false);
+                player = p;
+                log.info("玩家扣除金币成功 playerId = {},reduceGold = {},afterGold = {}", gameData.getPlayerId(), betValue, p.getGold());
+            }
             BigDecimal bet = BigDecimal.valueOf(betValue);
-            log.info("玩家扣除金币成功 playerId = {},reduceGold = {},afterGold = {}", gameData.getPlayerId(), betValue, result.data.getFirst().getGold());
 
             BaseRoomCfg baseRoomCfg = GameDataManager.getBaseRoomCfg(gameData.getRoomCfgId());
             //给标准池子加钱
@@ -754,7 +869,7 @@ public abstract class AbstractSlotsGameManager<T extends SlotsPlayerGameData, L 
             if (tax < 1) {
                 log.warn("tax 小于1， gameType = {},roomCfgId = {},betValue = {},toBigPoolGold = {},toSmallPoolGold = {}", gameData.getGameType(), gameData.getRoomCfgId(), betValue, toBigPoolGold, toSmallPoolGold);
             }
-            commonResult.data = new Pair<>(result.data.getFirst(), betDivideInfo);
+            commonResult.data = new Pair<>(player, betDivideInfo);
             return commonResult;
         } else if (slotsRoomController.getRoom().getType() == RoomType.SLOTS_TEAM_UP_ROOM) { //slots好友房
             return roomMoneyToPool(gameData, betValue);
@@ -1312,6 +1427,16 @@ public abstract class AbstractSlotsGameManager<T extends SlotsPlayerGameData, L 
         }
 
         if (playerGameData.getRoomType() == null) {
+            if (playerGameData.isSeasonCurrency()) {
+                //从赛季进入(credit-first): 先给玩家发赛季币(幂等RPC), 成功后再扣奖池(货币无关); 失败则不扣池、不算中奖
+                if (!seasonReward(playerGameData, addGold)) {
+                    gameRunInfo.setCode(Code.FAIL);
+                    return gameRunInfo;
+                }
+                slotsPoolDao.addToBigPool(this.gameType, playerGameData.getRoomCfgId(), -addGold);
+                gameRunInfo.setAllWinGold(addGold);
+                return gameRunInfo;
+            }
             CommonResult<Player> result = slotsPoolDao.rewardFromBigPool(playerGameData.getPlayerId(), this.gameType, playerGameData.getRoomCfgId(), addGold, addType);
             if (!result.success()) {
                 log.warn("给玩家添加金币失败 gameType = {},addValue = {}", this.gameType, addGold);
@@ -1384,6 +1509,19 @@ public abstract class AbstractSlotsGameManager<T extends SlotsPlayerGameData, L 
                 continue;
             }
 
+            if (playerGameData.isSeasonCurrency()) {
+                //从赛季进入(credit-first): 先发赛季币, 成功后再扣小池(货币无关); 失败则不扣池、不算中奖
+                if (!seasonReward(playerGameData, poolValue)) {
+                    return;
+                }
+                slotsPoolDao.addToSmallPool(this.gameType, playerGameData.getRoomCfgId(), -poolValue);
+                slotsPoolDao.updatePoolCD(poolId);
+                playerGameData.addSmallPoolReward(poolValue);
+                gameRunInfo.addSmallPoolGold(poolValue);
+                recordJackpotStat(gameRunInfo, poolId, poolValue);
+                continue;
+            }
+
             //给玩家加钱
             CommonResult<Player> result = slotsPoolDao.rewardFromSmallPool(playerGameData.getPlayerId(), this.gameType, playerGameData.getRoomCfgId(), poolValue, poolId, AddType.SLOTS_TRAIN, poolId + "");
             if (!result.success()) {
@@ -1422,9 +1560,8 @@ public abstract class AbstractSlotsGameManager<T extends SlotsPlayerGameData, L 
                 continue;
             }
 
-            //检查是否中大奖
-            CommonResult<Long> result = slotsPoolDao.rewardByRatioFromSmallPool(playerGameData.getPlayerId(), this.gameType, playerGameData.getRoomCfgId(),
-                    poolCfg.getTruePool(), poolCfg.getId(), AddType.SLOTS_JACKPOT_REWARD);
+            //检查是否中大奖 (赛季币/金币统一收口, 内部按 seasonCurrency 分流)
+            CommonResult<Long> result = rewardByRatioSmallPoolCurrency(playerGameData, poolCfg.getTruePool(), poolCfg.getId(), AddType.SLOTS_JACKPOT_REWARD);
             if (!result.success()) {
                 log.warn("从小池子扣除，并给玩家加钱失败2 code = {}", result.code);
                 return;
@@ -2187,6 +2324,11 @@ public abstract class AbstractSlotsGameManager<T extends SlotsPlayerGameData, L 
     }
 
     public long getMoneyByItemId(WarehouseCfg warehouseCfg, Player player) {
+        //从赛季进入的 slots: 展示赛季币余额, 而非金币/钻石 (allGold/beforeGold/afterGold 复用同一字段)
+        T gameData = getPlayerGameData(player.getId());
+        if (gameData != null && gameData.isSeasonCurrency()) {
+            return gameData.getSeasonCoinBalance();
+        }
         if (warehouseCfg.getTransactionItemId() == ItemUtils.getDiamondItemId()) {
             return player.getDiamond();
         }

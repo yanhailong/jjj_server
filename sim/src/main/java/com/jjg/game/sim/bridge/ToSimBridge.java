@@ -72,6 +72,23 @@ public interface ToSimBridge extends IGameRpc {
     CommonResult<SeasonFreeSpinResult> useSeasonFreeSpin(long playerId, int gameType);
 
     /**
+     * 只读查询玩家当前赛季币余额 (无副作用)。成功时 data 为余额; 不在赛季返回 NOT_FOUND。
+     */
+    CommonResult<Long> getSeasonCoin(long playerId);
+
+    /**
+     * 从赛季进入的 slots 下注: 扣除玩家赛季币。按 transactionId 幂等 (超时重试同一 id 不重复扣)。
+     * 余额不足返回 {@link com.jjg.game.core.constant.Code#NOT_ENOUGH}; 成功时 data 为扣除后的最新余额。
+     */
+    CommonResult<Long> deductSeasonCoin(long playerId, long amount, long transactionId);
+
+    /**
+     * 从赛季进入的 slots 中奖: 给玩家增加赛季币 (仅加余额, 不计入段位累计)。
+     * 按 transactionId 幂等 (超时重试同一 id 不重复发); 成功时 data 为增加后的最新余额。
+     */
+    CommonResult<Long> addSeasonCoin(long playerId, long amount, long transactionId);
+
+    /**
      * 客座赌局每次旋转前授权；普通旋转由 slots 本地直接跳过该 RPC。
      */
     CommonResult<VisitTrialSpinPermit> prepareVisitTrialSpin(long playerId, int gameType);

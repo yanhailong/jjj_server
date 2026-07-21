@@ -8,6 +8,8 @@ import org.slf4j.LoggerFactory;
 
 import java.util.ArrayDeque;
 import java.util.HashMap;
+import java.util.Iterator;
+import java.util.LinkedHashMap;
 import java.util.Map;
 
 /**
@@ -46,6 +48,10 @@ public class SimPlayerContext {
     //近期已处理的旋转 RPC 幂等 id (内存态; 防 slots 超时重试双计, 同玩家 RPC 串行执行无需加锁)
     private final ArrayDeque<Long> recentSpinIds = new ArrayDeque<>();
     private static final int RECENT_SPIN_ID_MAX = 16;
+
+    //赛季币结算幂等账本 (txnId -> 结算后余额; 内存态; 防扣/发赛季币的超时重试重复应用, 同玩家 RPC 串行无需加锁)
+    private final LinkedHashMap<Long, Long> recentSeasonTxns = new LinkedHashMap<>();
+    private static final int RECENT_SEASON_TXN_MAX = 64;
 
     //上次落库检查时间 (ms; 业务置 0 可强制下个 tick 立即检查落库)
     private long lastSaveTime;
@@ -195,6 +201,29 @@ public class SimPlayerContext {
             recentSpinIds.removeFirst();
         }
         return true;
+    }
+
+    /**
+     * 赛季币结算幂等: 命中则返回该 txnId 已提交后的余额, 未命中(含 txnId=0)返回 null。
+     * 供 slots 超时重试同一 txnId 时避免重复扣/发。
+     */
+    public Long seasonTxnResult(long txnId) {
+        return txnId == 0 ? null : recentSeasonTxns.get(txnId);
+    }
+
+    /**
+     * 记录一次赛季币结算结果 (txnId -> 结算后余额), 超出容量按插入顺序淘汰最旧。
+     */
+    public void recordSeasonTxn(long txnId, long balance) {
+        if (txnId == 0) {
+            return;
+        }
+        recentSeasonTxns.put(txnId, balance);
+        if (recentSeasonTxns.size() > RECENT_SEASON_TXN_MAX) {
+            Iterator<Long> it = recentSeasonTxns.keySet().iterator();
+            it.next();
+            it.remove();
+        }
     }
 
     public long getLastSaveTime() {

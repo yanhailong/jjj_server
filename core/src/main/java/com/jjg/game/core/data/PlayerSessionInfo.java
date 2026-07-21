@@ -23,6 +23,8 @@ public class PlayerSessionInfo {
     private boolean isReconnect;
     //创建时间
     private int createTime;
+    //进入方式 0.正常进入  1.从赛季进入(slots使用赛季币下注/结算)
+    private int enterType;
 
     public long getPlayerId() {
         return playerId;
@@ -94,5 +96,13 @@ public class PlayerSessionInfo {
 
     public void setCreateTime(int createTime) {
         this.createTime = createTime;
+    }
+
+    public int getEnterType() {
+        return enterType;
+    }
+
+    public void setEnterType(int enterType) {
+        this.enterType = enterType;
     }
 }

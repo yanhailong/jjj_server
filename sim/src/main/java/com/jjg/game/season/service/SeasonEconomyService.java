@@ -52,6 +52,32 @@ public class SeasonEconomyService {
         return true;
     }
 
+    /**
+     * 从赛季进入的 slots 下注扣币: amount<=0 只读当前余额; 余额不足返回 -1; 成功返回扣后余额。
+     */
+    public long spendForSlots(SeasonPlayerData data, long amount) {
+        if (amount <= 0) {
+            return data.getSeasonCoin();
+        }
+        if (data.getSeasonCoin() < amount) {
+            return -1;
+        }
+        data.setSeasonCoin(data.getSeasonCoin() - amount);
+        return data.getSeasonCoin();
+    }
+
+    /**
+     * 从赛季进入的 slots 中奖加币: 仅增加可用余额, 不计入 totalEarnedCoin/段位
+     * (段位由 PK 匹配驱动; 排行榜按 seasonCoin 余额排序, 中奖自然体现)。
+     * amount<=0 只读当前余额; 返回加后余额。
+     */
+    public long addSlotsWinCoin(SeasonPlayerData data, long amount) {
+        if (amount > 0) {
+            data.setSeasonCoin(Math.addExact(data.getSeasonCoin(), amount));
+        }
+        return data.getSeasonCoin();
+    }
+
     private void updateTier(SimPlayerContext ctx) {
         SeasonPlayerData data = ctx.getSeasonPlayerData();
         SeasonTierCfg targetTier = configService.tierFor(data.seasonPhase(), data.getTotalEarnedCoin());

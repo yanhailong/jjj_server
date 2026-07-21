@@ -26,6 +26,7 @@ import com.jjg.game.sim.pb.res.ResSimPlayerInfo;
 import com.jjg.game.season.dao.SeasonPlayerDao;
 import com.jjg.game.season.data.SeasonFreeSpinResult;
 import com.jjg.game.season.data.SeasonPlayerData;
+import com.jjg.game.season.service.SeasonEconomyService;
 import com.jjg.game.season.service.SeasonFreeGameService;
 import com.jjg.game.season.service.SeasonLifecycleService;
 import com.jjg.game.season.service.SeasonService;
@@ -139,6 +140,8 @@ public class SimManager {
     private SeasonService seasonService;
     @Autowired
     private SeasonFreeGameService seasonFreeGameService;
+    @Autowired
+    private SeasonEconomyService economyService;
 
 
     /**
@@ -675,6 +678,86 @@ public class SimManager {
         } catch (Exception e) {
             log.error("赛季免费局消耗失败 playerId={},gameType={}", playerId, gameType, e);
             return new CommonResult<>(Code.EXCEPTION);
+        }
+    }
+
+    public CommonResult<Long> getSeasonCoin(long playerId) {
+        try {
+            SimPlayerContext ctx = this.simPlayerContextRegistry.getContext(playerId);
+            if (ctx == null) {
+                ctx = createContextByPlayerId(playerId);
+            }
+            if (ctx == null || ctx.getSeasonPlayerData() == null) {
+                return new CommonResult<>(Code.NOT_FOUND);
+            }
+            return new CommonResult<>(Code.SUCCESS, ctx.getSeasonPlayerData().getSeasonCoin());
+        } catch (Exception e) {
+            log.error("赛季币余额查询失败 playerId={}", playerId, e);
+            return new CommonResult<>(Code.EXCEPTION);
+        }
+    }
+
+    public CommonResult<Long> deductSeasonCoin(long playerId, long amount, long transactionId) {
+        try {
+            SimPlayerContext ctx = this.simPlayerContextRegistry.getContext(playerId);
+            if (ctx == null) {
+                ctx = createContextByPlayerId(playerId);
+            }
+            if (ctx == null || ctx.getSeasonPlayerData() == null) {
+                return new CommonResult<>(Code.NOT_FOUND);
+            }
+            //幂等: 超时重试同一 txnId 直接返回已提交的余额, 不重复扣
+            Long done = ctx.seasonTxnResult(transactionId);
+            if (done != null) {
+                return new CommonResult<>(Code.SUCCESS, done);
+            }
+            long balance = economyService.spendForSlots(ctx.getSeasonPlayerData(), amount);
+            if (balance < 0) {
+                return new CommonResult<>(Code.NOT_ENOUGH);
+            }
+            //先记账本再落库: 内存态为准, 落库 best-effort (异常不回滚内存、不影响返回)
+            ctx.recordSeasonTxn(transactionId, balance);
+            bestEffortSave(ctx.getSeasonPlayerData());
+            return new CommonResult<>(Code.SUCCESS, balance);
+        } catch (Exception e) {
+            log.error("赛季币扣除失败 playerId={},amount={},txnId={}", playerId, amount, transactionId, e);
+            return new CommonResult<>(Code.EXCEPTION);
+        }
+    }
+
+    public CommonResult<Long> addSeasonCoin(long playerId, long amount, long transactionId) {
+        try {
+            SimPlayerContext ctx = this.simPlayerContextRegistry.getContext(playerId);
+            if (ctx == null) {
+                ctx = createContextByPlayerId(playerId);
+            }
+            if (ctx == null || ctx.getSeasonPlayerData() == null) {
+                return new CommonResult<>(Code.NOT_FOUND);
+            }
+            //幂等: 超时重试同一 txnId 直接返回已提交的余额, 不重复发
+            Long done = ctx.seasonTxnResult(transactionId);
+            if (done != null) {
+                return new CommonResult<>(Code.SUCCESS, done);
+            }
+            long balance = economyService.addSlotsWinCoin(ctx.getSeasonPlayerData(), amount);
+            ctx.recordSeasonTxn(transactionId, balance);
+            bestEffortSave(ctx.getSeasonPlayerData());
+            return new CommonResult<>(Code.SUCCESS, balance);
+        } catch (Exception e) {
+            log.error("赛季币增加失败 playerId={},amount={},txnId={}", playerId, amount, transactionId, e);
+            return new CommonResult<>(Code.EXCEPTION);
+        }
+    }
+
+    /**
+     * 内存态已变更后的 best-effort 落库: 落库异常仅记录, 不回滚内存、不影响接口返回
+     * (sim 内存为权威态, 周期性全量落库会兜底持久化)。
+     */
+    private void bestEffortSave(com.jjg.game.season.data.SeasonPlayerData data) {
+        try {
+            autoSaveService.enqueueSave(data);
+        } catch (Exception e) {
+            log.error("赛季币变更落库入队失败(内存已提交, 待周期落库兜底) playerId={}", data.getPlayerId(), e);
         }
     }
 

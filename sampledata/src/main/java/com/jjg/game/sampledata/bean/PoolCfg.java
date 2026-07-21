@@ -19,6 +19,8 @@ public class PoolCfg extends BaseCfgBean {
   /** 配置表工作薄名 */
   public static final String SHEET_NAME = "Pool";
 
+  /** 真奖池奖金倍数上限 */
+  protected int MaxMultiple;
   /** 中奖表现延迟时间 */
   protected int delayTime;
   /** 假奖池初始值倍率 */
@@ -33,6 +35,11 @@ public class PoolCfg extends BaseCfgBean {
   protected int poolProp;
   /** 真奖池奖金万分比 */
   protected int truePool;
+
+  /** 返回真奖池奖金倍数上限 */
+  public int getMaxMultiple() {
+    return MaxMultiple;
+  }
 
   /** 返回中奖表现延迟时间 */
   public int getDelayTime() {

@@ -172,7 +172,7 @@ public abstract class AbstractDollarExpressGameManager extends AbstractSlotsGame
             Player player = null;
             //3次中奖金币
             if (allAddGold > 0) {
-                CommonResult<Player> result = slotsPoolDao.rewardFromBigPool(playerGameData.getPlayerId(), playerGameData.getGameType(), playerGameData.getRoomCfgId(), allAddGold, AddType.SLOTS_INVEST_REWARD);
+                CommonResult<Player> result = rewardBigPoolCurrency(playerGameData, allAddGold, AddType.SLOTS_INVEST_REWARD);
                 if (!result.success()) {
                     gameRunInfo.setCode(result.code);
                     return gameRunInfo;
@@ -859,7 +859,7 @@ public abstract class AbstractDollarExpressGameManager extends AbstractSlotsGame
             long addGold = calPoolValue(playerGameData.getAllBetScore(), poolCfg.getGrowthRate(), poolCfg.getFakePoolInitTimes(), poolCfg.getFakePoolMax(), allDelayTime);
 
             //给玩家加钱
-            CommonResult<Player> result = slotsPoolDao.rewardFromSmallPool(playerGameData.getPlayerId(), this.gameType, playerGameData.getRoomCfgId(), addGold, poolId, AddType.SLOTS_TRAIN, poolId + "");
+            CommonResult<Player> result = rewardSmallPoolCurrency(playerGameData, addGold, poolId, AddType.SLOTS_TRAIN);
             if (!result.success()) {
                 log.warn("从小池子扣除，并给玩家加钱失败 code = {}", result.code);
                 break;

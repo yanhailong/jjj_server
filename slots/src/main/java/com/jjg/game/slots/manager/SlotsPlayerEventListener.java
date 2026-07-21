@@ -42,6 +42,8 @@ public class SlotsPlayerEventListener implements SessionEnterListener, SessionCl
     private SlotsFactoryManager slotsFactoryManager;
     @Autowired
     private PlayerSessionTokenDao playerSessionTokenDao;
+    @Autowired
+    private SlotsRPCLinkManager slotsRPCLinkManager;
 
     @Autowired
     private SlotsRoomManager slotsRoomManager;
@@ -124,6 +126,8 @@ public class SlotsPlayerEventListener implements SessionEnterListener, SessionCl
                 taskManager.loadTaskData(player.getId());
                 //创建 PlayerGameData
                 gameManager.createPlayerGameData(playerController);
+                //从赛季进入(enterType=1): 本次会话下注/结算使用赛季币, 并拉取初始余额用于展示
+                markSeasonCurrency(playerController, playerSessionInfo, gameManager);
                 //大厅非重连会检查一次，这里再检查一次
                 rechargeService.loadOfflineRecharge(player.getId());
             }
@@ -170,6 +174,25 @@ public class SlotsPlayerEventListener implements SessionEnterListener, SessionCl
         });
         logger.enterGame(player, player.getGameType(), player.getRoomCfgId(), player.getDeviceType());
         log.debug("玩家进入好友房slots 游戏 playerId = {},gameType = {},roomId = {}", player.getId(), player.getGameType(), player.getRoomId());
+    }
+
+    /**
+     * 从赛季进入(enterType=1)时标记本次会话使用赛季币, 并只读拉取当前赛季币余额用于首个响应展示。
+     */
+    private void markSeasonCurrency(PlayerController playerController, PlayerSessionInfo playerSessionInfo, AbstractSlotsGameManager gameManager) {
+        if (playerSessionInfo == null || playerSessionInfo.getEnterType() != 1) {
+            return;
+        }
+        SlotsPlayerGameData gameData = gameManager.getPlayerGameData(playerController);
+        if (gameData == null) {
+            return;
+        }
+        gameData.setSeasonCurrency(true);
+        //只读拉取当前赛季币余额用于首帧展示; 失败则由首次 spin 结算结果刷新
+        CommonResult<Long> balance = slotsRPCLinkManager.getSeasonCoin(gameData);
+        if (balance.success() && balance.data != null) {
+            gameData.setSeasonCoinBalance(balance.data);
+        }
     }
 
     /**
