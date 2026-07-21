@@ -53,6 +53,10 @@ import com.jjg.game.sampledata.bean.AvatarCfg;
 import com.jjg.game.sampledata.bean.GlobalConfigCfg;
 import com.jjg.game.sampledata.bean.ItemCfg;
 import com.jjg.game.sampledata.bean.WarehouseCfg;
+import com.jjg.game.sim.data.SimItemOperationResult;
+import com.jjg.game.sim.data.SimPlayerContext;
+import com.jjg.game.sim.manager.SimPlayerContextRegistry;
+import com.jjg.game.sim.service.SimPackService;
 import org.apache.commons.lang3.StringUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -104,6 +108,10 @@ public class HallMessageHandler implements GmListener, ChooseWareListener, Choos
     private SharePromoteRewardService sharePromoteService;
     @Autowired
     private RedeemCodeService redeemCodeService;
+    @Autowired
+    private SimPackService simPackService;
+    @Autowired
+    private SimPlayerContextRegistry simPlayerContextRegistry;
 
     /**
      * 进入游戏
@@ -1167,7 +1175,7 @@ public class HallMessageHandler implements GmListener, ChooseWareListener, Choos
             //发送奖励
             GlobalConfigCfg globalConfigCfg = GameDataManager.getGlobalConfigCfg(50);
             if (globalConfigCfg != null && StringUtils.isNotEmpty(globalConfigCfg.getValue())) {
-                String[] split = StringUtils.split(globalConfigCfg.getValue(), ";");
+                String[] split = StringUtils.split(globalConfigCfg.getValue(), "|");
                 Map<Integer, Long> rewards = new HashMap<>();
                 for (String string : split) {
                     String[] itemInfo = StringUtils.split(string, "_");
@@ -1175,7 +1183,15 @@ public class HallMessageHandler implements GmListener, ChooseWareListener, Choos
                         rewards.put(Integer.valueOf(itemInfo[0]), Long.valueOf(itemInfo[1]));
                     }
                 }
-                CommonResult<ItemOperationResult> addItems = playerPackService.addItems(playerController.playerId(), rewards, AddType.PLAYER_REGISTER);
+
+                SimPlayerContext context = simPlayerContextRegistry.getContext(playerController.playerId());
+                if(context == null){
+                    log.warn("获取新手奖励时，获取SimPlayerContext失败 playerId = {}", playerController.playerId());
+                    playerController.send(res);
+                    res.code = Code.NOT_FOUND;
+                    return;
+                }
+                CommonResult<SimItemOperationResult> addItems = simPackService.addItems(context, rewards, AddType.PLAYER_REGISTER,null,true);
                 if (!addItems.success()) {
                     log.error("玩家领取注册奖励失败 playerId:{}", playerController.playerId());
                 }
