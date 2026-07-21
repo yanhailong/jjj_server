@@ -63,6 +63,7 @@ public class SeasonConfigService {
     }
 
     public List<SeasonDefinition> definitions() {
+        //含 SeasonDuration=0 的赛季一并下发, 跳过逻辑由 SeasonTimeline 统一处理
         return startConfigs().stream()
                 .map(cfg -> new SeasonDefinition(cfg.getId(), cfg.getSeasonDuration(), cfg.getLoopSequence()))
                 .toList();

@@ -91,17 +91,22 @@ public class SeasonTimeline {
         List<SeasonDefinition> introductory = new ArrayList<>();
         List<SeasonDefinition> loop = new ArrayList<>();
         for (SeasonDefinition definition : definitions) {
-            if (definition == null || definition.durationDays() <= 0) {
-                throw new IllegalArgumentException("赛季持续时间必须大于 0");
+            if (definition == null || definition.durationDays() < 0) {
+                throw new IllegalArgumentException("赛季持续时间不能为负");
             }
+            // SeasonDuration=0 表示跳过该赛季:
+            // 前置赛季保留占位, resolve 按 0 天穿过, 从而进入下一个前置/循环赛季且保持相位次序;
+            // 循环赛季直接剔除, 使循环序号连续并避免循环总时长为 0。
             if (definition.loopSequence() > 0) {
-                loop.add(definition);
+                if (definition.durationDays() > 0) {
+                    loop.add(definition);
+                }
             } else {
                 introductory.add(definition);
             }
         }
         if (introductory.size() < 2 || loop.isEmpty()) {
-            throw new IllegalArgumentException("赛季配置必须包含两个前置赛季和至少一个循环赛季");
+            throw new IllegalArgumentException("赛季配置必须包含两个前置赛季和至少一个有效循环赛季");
         }
         loop.sort(Comparator.comparingInt(SeasonDefinition::loopSequence));
         for (int i = 1; i < loop.size(); i++) {
