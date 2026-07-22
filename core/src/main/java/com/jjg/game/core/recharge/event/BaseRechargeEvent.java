@@ -12,6 +12,7 @@ import com.jjg.game.core.data.Order;
 import com.jjg.game.core.data.Player;
 import com.jjg.game.core.task.manager.TaskManager;
 import com.jjg.game.core.task.param.DefaultTaskConditionParam;
+import com.jjg.game.core.task.param.TaskConditionParamRecharge;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Component;
@@ -66,7 +67,9 @@ public class BaseRechargeEvent implements GameEventListener {
             log.error("充值累计统计异常 playerId = {},orderId = {}", orderPlayerId, newOlder.getId(), e);
         }
         Supplier<DefaultTaskConditionParam> paramSupplier = () -> {
-            DefaultTaskConditionParam param = new DefaultTaskConditionParam();
+            TaskConditionParamRecharge param = new TaskConditionParamRecharge();
+            // condition 11001/11002 的“渠道”均指支付渠道，与充值流水落库字段保持一致。
+            param.setChannelId(newOlder.getPayChannel());
             param.setAddValue(orderPrice.multiply(BigDecimal.valueOf(100)).longValue());
             return param;
         };

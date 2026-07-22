@@ -1,6 +1,5 @@
 package com.jjg.game.alliance.service;
 
-import com.jjg.game.alliance.constant.AllianceConst;
 import com.jjg.game.alliance.dao.AlliancePlayerDao;
 import com.jjg.game.alliance.data.AllianceData;
 import com.jjg.game.alliance.data.AlliancePlayerData;
@@ -122,7 +121,7 @@ public class AllianceDonateService {
         assetService.grantContribution(playerId, cfg.getRewardContribution(), cfg.getRewardReputation(), allianceId);
         long newReputation = assetService.grantReputation(allianceId, cfg.getRewardReputation());
         if(count != null && count > 0){
-            allianceEventService.onEvent(playerId, AllianceConst.TaskConditionType.DONATE_TIMES, count, 1);
+            allianceEventService.onDonate(playerId, count);
         }
 
         res.rewardContribution = cfg.getRewardContribution();

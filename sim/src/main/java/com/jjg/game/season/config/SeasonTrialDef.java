@@ -1,5 +1,8 @@
 package com.jjg.game.season.config;
 
+import com.jjg.game.core.base.condition.numeric.ConditionRuleRegistry;
+import com.jjg.game.core.base.condition.numeric.ConditionSpec;
+import com.jjg.game.core.base.condition.numeric.PreparedCondition;
 import com.jjg.game.sampledata.bean.TaskCfg;
 
 import java.util.List;
@@ -17,11 +20,21 @@ import java.util.List;
  * @param rechargeChannel 11002 充值渠道 (0=全部)
  * @param starTargets    1/2/3 星目标值 (升序)
  * @param starTasks      1/2/3 星对应的任务配置行 (奖励/描述等取自配置)
+ * @param condition      已校验的通用条件，挑战热路径直接复用
  */
 public record SeasonTrialDef(int trialId, int day, int conditionId, int gameType, int windowSpins,
-                             long param, int rechargeChannel, long[] starTargets, List<TaskCfg> starTasks) {
+                             long param, int rechargeChannel, long[] starTargets, List<TaskCfg> starTasks,
+                             PreparedCondition condition) {
 
     public static final int STAR_COUNT = 3;
+
+    /** 兼容原有构造签名；配置服务会传入已准备的 condition，避免生产路径重复构建。 */
+    public SeasonTrialDef(int trialId, int day, int conditionId, int gameType, int windowSpins,
+                          long param, int rechargeChannel, long[] starTargets, List<TaskCfg> starTasks) {
+        this(trialId, day, conditionId, gameType, windowSpins, param, rechargeChannel,
+                starTargets, starTasks, prepareLegacy(conditionId, gameType, windowSpins,
+                        param, rechargeChannel, starTargets));
+    }
 
     /**
      * 是否被动判定型 (累计充值, 无挑战窗口, 开面板时惰性判定)
@@ -48,5 +61,22 @@ public record SeasonTrialDef(int trialId, int day, int conditionId, int gameType
      */
     public long topTarget() {
         return starTargets[starTargets.length - 1];
+    }
+
+    private static PreparedCondition prepareLegacy(int conditionId, int gameType, int windowSpins,
+                                                     long param, int rechargeChannel, long[] targets) {
+        if (targets == null || targets.length == 0) {
+            throw new IllegalArgumentException("season trial must contain at least one target");
+        }
+        long target = targets[0];
+        List<Long> values = switch (conditionId) {
+            case 11002 -> List.of(11002L, (long) rechargeChannel, target);
+            case 12602, 12603, 12605 -> List.of((long) conditionId, (long) gameType,
+                    (long) windowSpins, param, target);
+            case 12601, 12604, 12606 -> List.of((long) conditionId, (long) gameType,
+                    (long) windowSpins, target);
+            default -> throw new IllegalArgumentException("unsupported season trial condition id: " + conditionId);
+        };
+        return ConditionRuleRegistry.standard().prepare(ConditionSpec.from(values));
     }
 }

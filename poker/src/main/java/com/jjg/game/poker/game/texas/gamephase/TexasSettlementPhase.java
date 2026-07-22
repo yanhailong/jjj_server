@@ -422,8 +422,8 @@ public class TexasSettlementPhase extends BaseSettlementPhase<TexasGameDataVo> {
                 if (info.betValue > 0) {
                     poolLoseValue += info.betValue + texasSaveHistory.getTotalTax().getOrDefault(info.playerId, 0L);
                     //触发任务
-                    gameController.triggerSettlementAction(gamePlayer.getId(), gameController.getRoom().getGameType(), 0,
-                            info.betValue, gameController.getGameTransactionItemId());
+                    gameController.triggerSettlementAction(gamePlayer.getId(), gameController.getRoom().getGameType(),
+                            0, betValue, info.betValue, gameController.getGameTransactionItemId());
                 } else {
                     poolWinValue += Math.abs(info.betValue);
                 }

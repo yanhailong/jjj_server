@@ -356,8 +356,8 @@ public class BlackJackSettlementPhase extends BaseSettlementPhase<BlackJackGameD
             //增加个人
             if (income > 0) {
                 //触发任务
-                gameController.triggerSettlementAction(gamePlayer.getId(), gameController.getRoom().getGameType(), 0,
-                        income, gameController.getGameTransactionItemId());
+                gameController.triggerSettlementAction(gamePlayer.getId(), gameController.getRoom().getGameType(),
+                        0, totalBet, income, gameController.getGameTransactionItemId());
             }
             gameController.dealIncome(gamePlayer, income);
         }

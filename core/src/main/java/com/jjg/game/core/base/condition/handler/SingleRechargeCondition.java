@@ -2,8 +2,11 @@ package com.jjg.game.core.base.condition.handler;
 
 import com.jjg.game.core.base.condition.ConditionContext;
 import com.jjg.game.core.base.condition.MatchResultData;
-import com.jjg.game.core.base.condition.data.PlayerRecharge;
 import com.jjg.game.core.base.condition.event.PlayerRechargeEvent;
+import com.jjg.game.core.base.condition.numeric.ConditionRuleRegistry;
+import com.jjg.game.core.base.condition.numeric.ConditionSpec;
+import com.jjg.game.core.base.condition.numeric.ConditionUpdate;
+import com.jjg.game.core.base.condition.numeric.PreparedCondition;
 import com.jjg.game.core.base.gameevent.EGameEventType;
 import com.jjg.game.core.dao.CountDao;
 import com.jjg.game.sampledata.GameDataManager;
@@ -13,16 +16,14 @@ import org.springframework.stereotype.Component;
 import java.math.BigDecimal;
 import java.util.List;
 
-/**
- * 11001_单次充值大于等于金额_次数_渠道ID(0=默认所有)
- *
- * @author lm
- * @date 2026/1/14 10:35
- */
+/** 11001：单次充值达到金额和渠道要求的累计次数。 */
 @Component
-public class SingleRechargeCondition extends BaseRedisCondition<PlayerRecharge> {
-    protected SingleRechargeCondition(CountDao countDao) {
+public class SingleRechargeCondition extends BaseRedisCondition<PreparedCondition> {
+    private final ConditionRuleRegistry conditionRules;
+
+    protected SingleRechargeCondition(CountDao countDao, ConditionRuleRegistry conditionRules) {
         super(countDao);
+        this.conditionRules = conditionRules;
     }
 
     @Override
@@ -35,54 +36,42 @@ public class SingleRechargeCondition extends BaseRedisCondition<PlayerRecharge> 
         return EGameEventType.RECHARGE;
     }
 
-    public boolean matchCheck(PlayerRechargeEvent event, PlayerRecharge config) {
-        return (config.channelId() == 0 || event.getChannelId() == config.channelId());
-
+    @Override
+    public PreparedCondition parse(List<String> args) {
+        return conditionRules.prepare(ConditionSpec.from(11001, args));
     }
 
     @Override
-    public PlayerRecharge parse(List<String> args) {
-        String amount = args.getFirst();
-        String times = args.get(1);
-        String channel = args.get(2);
-        return new PlayerRecharge(Integer.parseInt(times), Integer.parseInt(channel), new BigDecimal(amount));
-    }
-
-    @Override
-    public MatchResultData match(ConditionContext ctx, PlayerRecharge config) {
+    public MatchResultData match(ConditionContext ctx, PreparedCondition config) {
         BigDecimal count = countDao.getCount(getFeatureId(ctx), getCustomId(ctx));
-        if (count.intValue() >= config.times()) {
+        return count.longValue() >= config.target()
+                ? MatchResultData.match()
+                : MatchResultData.notMatch(getErrorCode(), config.target(), count.longValue());
+    }
+
+    @Override
+    public MatchResultData addProgress(ConditionContext ctx, PreparedCondition config) {
+        if (!(ctx.event() instanceof PlayerRechargeEvent event)) {
+            return match(ctx, config);
+        }
+        BigDecimal current = countDao.getCount(getFeatureId(ctx), getCustomId(ctx));
+        if (current.longValue() >= config.target()) {
             return MatchResultData.match();
         }
-        return MatchResultData.notMatch(getErrorCode(), config.times(), count.intValue());
-    }
-
-    @Override
-    public MatchResultData addProgress(ConditionContext ctx, PlayerRecharge config) {
-        if (ctx.event() instanceof PlayerRechargeEvent event && matchCheck(event, config)) {
-            String customId = getCustomId(ctx);
-            String featureId = getFeatureId(ctx);
-            BigDecimal count = countDao.getCount(featureId, customId);
-            if (count.intValue() >= config.times()) {
-                return MatchResultData.match();
-            }
-            if (event.getAmount().compareTo(config.amount()) >= 0) {
-                BigDecimal add = countDao.incrBy(ctx.player().getId(), featureId, customId, BigDecimal.ONE);
-                if (add.intValue() >= config.times()) {
-                    return MatchResultData.match();
-                }
-            }
-            return MatchResultData.notMatch(getErrorCode(), config.times(), count.intValue());
+        ConditionUpdate update = config.evaluate(LegacyConditionEventAdapter.recharge(event));
+        if (!update.matched() || update.value() <= 0) {
+            return MatchResultData.notMatch(getErrorCode(), config.target(), current.longValue());
         }
-        return match(ctx, config);
+        BigDecimal total = countDao.incrBy(ctx.player().getId(), getFeatureId(ctx), getCustomId(ctx),
+                BigDecimal.valueOf(update.value()));
+        return total.longValue() >= config.target()
+                ? MatchResultData.match()
+                : MatchResultData.notMatch(getErrorCode(), config.target(), total.longValue());
     }
 
     @Override
     public int getErrorCode() {
         ConditionCfg conditionCfg = GameDataManager.getConditionCfg(11001);
-        if (conditionCfg != null) {
-            return conditionCfg.getLanguageID();
-        }
-        return 0;
+        return conditionCfg == null ? 0 : conditionCfg.getLanguageID();
     }
 }

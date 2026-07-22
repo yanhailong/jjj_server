@@ -1,12 +1,12 @@
 package com.jjg.game.core.task.condition;
 
+import com.jjg.game.core.base.condition.numeric.ConditionRuleRegistry;
+import com.jjg.game.core.base.condition.numeric.ConditionUpdate;
+import com.jjg.game.core.base.condition.numeric.PreparedCondition;
 import com.jjg.game.core.constant.TaskConstant;
-import com.jjg.game.core.task.db.TaskData;
 import com.jjg.game.core.task.db.TaskDetail;
-import com.jjg.game.core.task.param.DefaultTaskConditionParam;
+import com.jjg.game.core.task.param.TaskConditionParamRecharge;
 import com.jjg.game.sampledata.bean.TaskCfg;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Component;
 
 import java.util.Map;
@@ -15,9 +15,12 @@ import java.util.Map;
  * 单笔充值条件
  */
 @Component
-public class TaskCondition11001 extends AbstractTaskCondition<DefaultTaskConditionParam> {
+public class TaskCondition11001 extends AbstractTaskCondition<TaskConditionParamRecharge> {
+    private final TaskConditionCache conditions;
 
-    private final Logger log = LoggerFactory.getLogger(TaskCondition11001.class);
+    public TaskCondition11001(ConditionRuleRegistry conditionRules) {
+        this.conditions = new TaskConditionCache(conditionRules);
+    }
 
     /**
      * 获取任务的条件ID。
@@ -35,15 +38,9 @@ public class TaskCondition11001 extends AbstractTaskCondition<DefaultTaskConditi
      * @return 如果满足增加任务进度的条件，返回true；否则返回false。
      */
     @Override
-    protected boolean checkAddProgress(TaskCfg taskCfg, TaskDetail taskDetail, DefaultTaskConditionParam param) {
-        try {
-            long resultValue = param.getAddValue();
-            long compareValue = taskCfg.getTaskConditionId().get(1);
-            return resultValue >= compareValue;
-        } catch (Exception e) {
-            log.error("", e);
-        }
-        return false;
+    protected boolean checkAddProgress(TaskCfg taskCfg, TaskDetail taskDetail, TaskConditionParamRecharge param) {
+        ConditionUpdate update = condition(taskCfg).evaluate(param.conditionEvent());
+        return update.matched() && update.value() > 0;
     }
 
     /**
@@ -54,13 +51,17 @@ public class TaskCondition11001 extends AbstractTaskCondition<DefaultTaskConditi
      */
     @Override
     protected Long getCompareValue(TaskCfg taskCfg) {
-        return taskCfg.getTaskConditionId().get(2);
+        return condition(taskCfg).target();
     }
 
     @Override
-    protected void addProgress(long playerId, TaskCfg taskCfg, TaskDetail taskDetail, DefaultTaskConditionParam param) {
+    protected void addProgress(long playerId, TaskCfg taskCfg, TaskDetail taskDetail, TaskConditionParamRecharge param) {
         Map<Integer, Long> taskDataProgress = taskDetail.getProgress();
         //每次只+1
         taskDataProgress.merge(taskCfg.getTaskConditionId().getFirst().intValue(), 1L, Long::sum);
+    }
+
+    private PreparedCondition condition(TaskCfg taskCfg) {
+        return conditions.get(taskCfg);
     }
 }

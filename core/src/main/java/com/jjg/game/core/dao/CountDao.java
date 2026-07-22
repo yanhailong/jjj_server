@@ -253,6 +253,22 @@ public class CountDao {
         return RedisUtils.fromLong(newVal);
     }
 
+    /**
+     * 原子保留较大计数。用于“单局最高赢奖/最大深度”等 MAX 型条件；CAS 保证跨节点并发时
+     * 不会被较小值覆盖，并沿用玩家 Redis key 索引清理机制。
+     */
+    public BigDecimal max(long playerId, String featureId, String customId, BigDecimal candidate) {
+        String key = getKey(featureId, customId);
+        long candidateLong = RedisUtils.toLong(candidate);
+        RAtomicLong atomicLong = redissonClient.getAtomicLong(key);
+        long current = atomicLong.get();
+        while (candidateLong > current && !atomicLong.compareAndSet(current, candidateLong)) {
+            current = atomicLong.get();
+        }
+        playerKeyIndex.add(playerId, key);
+        return RedisUtils.fromLong(Math.max(current, candidateLong));
+    }
+
 
     /**
      * 原子批量自增（两位小数）

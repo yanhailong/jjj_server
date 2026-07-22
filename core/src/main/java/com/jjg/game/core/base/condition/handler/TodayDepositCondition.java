@@ -3,8 +3,11 @@ package com.jjg.game.core.base.condition.handler;
 import com.jjg.game.common.utils.TimeHelper;
 import com.jjg.game.core.base.condition.ConditionContext;
 import com.jjg.game.core.base.condition.MatchResultData;
-import com.jjg.game.core.base.condition.data.PlayerRecharge;
 import com.jjg.game.core.base.condition.event.PlayerRechargeEvent;
+import com.jjg.game.core.base.condition.numeric.ConditionRuleRegistry;
+import com.jjg.game.core.base.condition.numeric.ConditionSpec;
+import com.jjg.game.core.base.condition.numeric.ConditionUpdate;
+import com.jjg.game.core.base.condition.numeric.PreparedCondition;
 import com.jjg.game.core.base.gameevent.EGameEventType;
 import com.jjg.game.core.dao.CountDao;
 import com.jjg.game.sampledata.GameDataManager;
@@ -16,20 +19,15 @@ import org.springframework.stereotype.Component;
 import java.math.BigDecimal;
 import java.util.List;
 
-/**
- * 11003 个人今日累计充值
- *
- * @author lm
- * @date 2026/1/14 13:48
- */
+/** 11003：个人当日累计充值。Redis 只负责按自然日保存累计值。 */
 @Component
-public class TodayDepositCondition extends BaseRedisCondition<PlayerRecharge> {
-
-
+public class TodayDepositCondition extends BaseRedisCondition<PreparedCondition> {
     private static final Logger log = LoggerFactory.getLogger(TodayDepositCondition.class);
+    private final ConditionRuleRegistry conditionRules;
 
-    protected TodayDepositCondition(CountDao countDao) {
+    protected TodayDepositCondition(CountDao countDao, ConditionRuleRegistry conditionRules) {
         super(countDao);
+        this.conditionRules = conditionRules;
     }
 
     @Override
@@ -43,64 +41,59 @@ public class TodayDepositCondition extends BaseRedisCondition<PlayerRecharge> {
     }
 
     @Override
-    public PlayerRecharge parse(List<String> args) {
-        String amount = args.getFirst();
-        String channelId = args.get(1);
-        return new PlayerRecharge(0, Integer.parseInt(channelId), new BigDecimal(amount));
-    }
-
-    public boolean matchCheck(PlayerRechargeEvent event, PlayerRecharge config) {
-        return config.channelId() == 0 || event.getChannelId() == config.channelId();
+    public PreparedCondition parse(List<String> args) {
+        return conditionRules.prepare(ConditionSpec.from(11003, args));
     }
 
     @Override
-    public MatchResultData match(ConditionContext ctx, PlayerRecharge config) {
-        String customId = String.valueOf(ctx.player().getId()) + TimeHelper.getCurrentDateZeroSecondTime();
-        BigDecimal count = countDao.getCount(getFeatureId(ctx), customId);
-        if (count.compareTo(config.amount()) >= 0) {
+    public MatchResultData match(ConditionContext ctx, PreparedCondition config) {
+        BigDecimal count = countDao.getCount(getFeatureId(ctx), dailyCustomId(ctx.player().getId()));
+        return count.compareTo(BigDecimal.valueOf(config.target())) >= 0
+                ? MatchResultData.match()
+                : MatchResultData.notMatch(getErrorCode(), BigDecimal.valueOf(config.target()), count);
+    }
+
+    @Override
+    public MatchResultData addProgress(ConditionContext ctx, PreparedCondition config) {
+        if (!(ctx.event() instanceof PlayerRechargeEvent event) || event.getAmount() == null) {
+            return match(ctx, config);
+        }
+        BigDecimal current = countDao.getCount(getFeatureId(ctx), dailyCustomId(ctx.player().getId()));
+        if (current.compareTo(BigDecimal.valueOf(config.target())) >= 0) {
             return MatchResultData.match();
         }
-        return MatchResultData.notMatch(getErrorCode(), config.amount(), count);
+        ConditionUpdate update = config.evaluate(LegacyConditionEventAdapter.recharge(event));
+        if (!update.matched() || update.value() <= 0) {
+            return MatchResultData.notMatch(getErrorCode(), BigDecimal.valueOf(config.target()), current);
+        }
+        BigDecimal total = countDao.incrementWithoutExpireRefresh(getFeatureId(ctx),
+                dailyCustomId(ctx.player().getId()), event.getAmount(), TimeHelper.DAY_SECOND);
+        return total.compareTo(BigDecimal.valueOf(config.target())) >= 0
+                ? MatchResultData.match()
+                : MatchResultData.notMatch(getErrorCode(), BigDecimal.valueOf(config.target()), total);
     }
 
     @Override
-    public MatchResultData addProgress(ConditionContext ctx, PlayerRecharge config) {
-        if (ctx.event() instanceof PlayerRechargeEvent event && matchCheck(event, config)) {
-            String customId = String.valueOf(ctx.player().getId()) + TimeHelper.getCurrentDateZeroSecondTime();
-            String featureId = getFeatureId(ctx);
-            BigDecimal count = countDao.getCount(featureId, customId);
-            if (count.compareTo(config.amount()) >= 0) {
-                return MatchResultData.match();
-            }
-            count = countDao.incrementWithoutExpireRefresh(featureId, customId, event.getAmount(), TimeHelper.DAY_SECOND);
-            if (count.compareTo(config.amount()) >= 0) {
-                return MatchResultData.match();
-            }
-            return MatchResultData.notMatch(getErrorCode(), config.amount(), count);
+    public void addBaseProgress(long playerId, BigDecimal addValue) {
+        BigDecimal count = countDao.incrementWithoutExpireRefresh(type(), dailyCustomId(playerId),
+                addValue, TimeHelper.DAY_SECOND);
+        if (count.compareTo(BigDecimal.ZERO) == 0) {
+            log.error("增加每日充值进度失败 playerId={} addValue={}", playerId, addValue.toPlainString());
         }
-        return match(ctx, config);
+    }
+
+    @Override
+    public void delete(ConditionContext ctx, PreparedCondition config) {
+        //自然日计数由 TTL 管理，不因单个活动删除而清空。
+    }
+
+    private static String dailyCustomId(long playerId) {
+        return String.valueOf(playerId) + TimeHelper.getCurrentDateZeroSecondTime();
     }
 
     @Override
     public int getErrorCode() {
         ConditionCfg conditionCfg = GameDataManager.getConditionCfg(11003);
-        if (conditionCfg != null) {
-            return conditionCfg.getLanguageID();
-        }
-        return 0;
-    }
-
-    @Override
-    public void addBaseProgress(long playerId, BigDecimal addValue) {
-        String customId = String.valueOf(playerId) + TimeHelper.getCurrentDateZeroSecondTime();
-        String featureId = type();
-        BigDecimal count = countDao.incrementWithoutExpireRefresh(featureId, customId, addValue, TimeHelper.DAY_SECOND);
-        if (count.compareTo(BigDecimal.ZERO) == 0) {
-            log.error("添加每日充值进度失败 playerId={} addValue={}", playerId, addValue.toPlainString());
-        }
-    }
-
-    @Override
-    public void delete(ConditionContext ctx, PlayerRecharge config) {
+        return conditionCfg == null ? 0 : conditionCfg.getLanguageID();
     }
 }

@@ -1,27 +1,16 @@
 package com.jjg.game.core.base.condition.handler;
 
-import com.jjg.game.core.base.condition.ConditionContext;
-import com.jjg.game.core.base.condition.MatchResultData;
-import com.jjg.game.core.base.condition.data.PlayerEffective;
-import com.jjg.game.core.base.condition.event.BetEvent;
+import com.jjg.game.core.base.condition.numeric.ConditionRuleRegistry;
 import com.jjg.game.core.dao.CountDao;
 import com.jjg.game.sampledata.GameDataManager;
 import com.jjg.game.sampledata.bean.ConditionCfg;
 import org.springframework.stereotype.Component;
 
-import java.util.List;
-
-/**
- * 12005_每累计达到有效流水时触发|指定范围内游戏类型可多个类型
- *
- * @author lm
- * @date 2026/1/14 13:48
- */
+/** 12005：仅统计指定游戏类型的有效押注。 */
 @Component
 public class GameTypeDropCondition extends BaseEffectiveCondition {
-
-    public GameTypeDropCondition(CountDao countDao) {
-        super(countDao);
+    public GameTypeDropCondition(CountDao countDao, ConditionRuleRegistry conditionRules) {
+        super(countDao, conditionRules, 12005);
     }
 
     @Override
@@ -30,31 +19,8 @@ public class GameTypeDropCondition extends BaseEffectiveCondition {
     }
 
     @Override
-    public boolean matchCheck(BetEvent e, PlayerEffective config) {
-        return config.ids().contains(e.getGameType()) || config.ids().getFirst() == 0;
-    }
-
-    @Override
-    public PlayerEffective parse(List<String> args) {
-        return baseParse(args);
-    }
-
-    @Override
-    public MatchResultData match(ConditionContext ctx, PlayerEffective config) {
-        return MatchResultData.unknown();
-    }
-
-    @Override
-    public MatchResultData addProgress(ConditionContext ctx, PlayerEffective config) {
-        return baseMatch(ctx, config);
-    }
-
-    @Override
     public int getErrorCode() {
         ConditionCfg conditionCfg = GameDataManager.getConditionCfg(12005);
-        if (conditionCfg != null) {
-            return conditionCfg.getLanguageID();
-        }
-        return 0;
+        return conditionCfg == null ? 0 : conditionCfg.getLanguageID();
     }
 }

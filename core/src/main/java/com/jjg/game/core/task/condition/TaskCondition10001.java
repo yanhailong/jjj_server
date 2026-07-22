@@ -1,12 +1,14 @@
 package com.jjg.game.core.task.condition;
 
+import com.jjg.game.core.base.condition.numeric.ConditionRuleRegistry;
+import com.jjg.game.core.base.condition.numeric.ConditionUpdate;
+import com.jjg.game.core.base.condition.numeric.PreparedCondition;
 import com.jjg.game.core.constant.TaskConstant;
 import com.jjg.game.core.task.db.TaskDetail;
 import com.jjg.game.core.task.param.TaskConditionParam10001;
 import com.jjg.game.sampledata.bean.TaskCfg;
 import org.springframework.stereotype.Component;
 
-import java.util.List;
 import java.util.Map;
 
 /**
@@ -14,6 +16,12 @@ import java.util.Map;
  */
 @Component
 public class TaskCondition10001 extends AbstractTaskCondition<TaskConditionParam10001> {
+    private final TaskConditionCache conditions;
+
+    public TaskCondition10001(ConditionRuleRegistry conditionRules) {
+        this.conditions = new TaskConditionCache(conditionRules);
+    }
+
     /**
      * 获取任务的条件ID。
      */
@@ -24,15 +32,8 @@ public class TaskCondition10001 extends AbstractTaskCondition<TaskConditionParam
 
     @Override
     protected boolean checkAddProgress(TaskCfg taskCfg, TaskDetail taskDetail, TaskConditionParam10001 param) {
-        List<Long> conditionId = taskCfg.getTaskConditionId();
-        long gameId = conditionId.get(1);
-        long checkValue = conditionId.get(2);
-        if (gameId > 0) {
-            if (param.getGameId() != gameId) {
-                return false;
-            }
-        }
-        return checkValue <= param.getAddValue();
+        ConditionUpdate update = condition(taskCfg).evaluate(param.conditionEvent());
+        return update.matched() && update.value() > 0;
     }
 
     /**
@@ -43,7 +44,7 @@ public class TaskCondition10001 extends AbstractTaskCondition<TaskConditionParam
      */
     @Override
     protected Long getCompareValue(TaskCfg taskCfg) {
-        return taskCfg.getTaskConditionId().get(3);
+        return condition(taskCfg).target();
     }
 
     /**
@@ -54,5 +55,9 @@ public class TaskCondition10001 extends AbstractTaskCondition<TaskConditionParam
         Map<Integer, Long> taskDataProgress = taskDetail.getProgress();
         //下注次数 每次只+1
         taskDataProgress.merge(taskCfg.getTaskConditionId().getFirst().intValue(), 1L, Long::sum);
+    }
+
+    private PreparedCondition condition(TaskCfg taskCfg) {
+        return conditions.get(taskCfg);
     }
 }

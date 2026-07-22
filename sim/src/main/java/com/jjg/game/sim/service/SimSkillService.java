@@ -1,7 +1,6 @@
 package com.jjg.game.sim.service;
 
 import com.alibaba.fastjson.JSON;
-import com.jjg.game.alliance.constant.AllianceConst;
 import com.jjg.game.alliance.service.AllianceEventService;
 import com.jjg.game.common.pb.ItemInfo;
 import com.jjg.game.core.constant.AddType;
@@ -175,7 +174,7 @@ public class SimSkillService extends AbstractSkillService implements ConfigExcel
             if (newLevelCfg.getResearchPoints() == null || newLevelCfg.getResearchPoints().isEmpty()) {
                 skillData.changeSkillLevel(skillPropId, newLevelCfg.getGrade());
                 //联盟任务: 技能研究次数 (param=游戏类型, 供 0=任意/指定游戏 过滤)
-                allianceEventService.onEvent(ctx.playerId(), AllianceConst.TaskConditionType.SKILL_RESEARCH_TIMES, gameType, 1);
+                allianceEventService.onGameResearch(ctx.playerId(), gameType);
                 log.warn("该技能等级升级无需研究点，升级技能成功 playerId={},propId={},newLevelCfgId={}", skillData.getPlayerId(), skillPropId, newLevelCfg.getId());
                 res.code = Code.SUCCESS;
                 ctx.send(res);
@@ -204,7 +203,7 @@ public class SimSkillService extends AbstractSkillService implements ConfigExcel
             }
             skillData.changeSkillLevel(skillPropId, newLevelCfg.getGrade());
             //联盟任务: 技能研究次数 (param=游戏类型, 供 0=任意/指定游戏 过滤)
-            allianceEventService.onEvent(ctx.playerId(), AllianceConst.TaskConditionType.SKILL_RESEARCH_TIMES, gameType, 1);
+            allianceEventService.onGameResearch(ctx.playerId(), gameType);
 
             res.gameType = gameType;
             res.skillId = skillPropId;

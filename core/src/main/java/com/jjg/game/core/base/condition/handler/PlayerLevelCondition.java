@@ -3,6 +3,11 @@ package com.jjg.game.core.base.condition.handler;
 import com.jjg.game.core.base.condition.ConditionContext;
 import com.jjg.game.core.base.condition.ConditionHandler;
 import com.jjg.game.core.base.condition.MatchResultData;
+import com.jjg.game.core.base.condition.numeric.ConditionRuleRegistry;
+import com.jjg.game.core.base.condition.numeric.ConditionSpec;
+import com.jjg.game.core.base.condition.numeric.ConditionUpdate;
+import com.jjg.game.core.base.condition.numeric.PreparedCondition;
+import com.jjg.game.core.base.condition.numeric.StateConditionEvent;
 import com.jjg.game.core.base.gameevent.EGameEventType;
 import com.jjg.game.sampledata.GameDataManager;
 import com.jjg.game.sampledata.bean.ConditionCfg;
@@ -16,7 +21,12 @@ import java.util.List;
  * @date 2026/1/14 10:35
  */
 @Component
-public class PlayerLevelCondition implements ConditionHandler<Integer> {
+public class PlayerLevelCondition implements ConditionHandler<PreparedCondition> {
+    private final ConditionRuleRegistry conditionRules;
+
+    public PlayerLevelCondition(ConditionRuleRegistry conditionRules) {
+        this.conditionRules = conditionRules;
+    }
 
     @Override
     public String type() {
@@ -29,18 +39,22 @@ public class PlayerLevelCondition implements ConditionHandler<Integer> {
     }
 
     @Override
-    public Integer parse(List<String> args) {
-        return Integer.parseInt(args.getFirst());
+    public PreparedCondition parse(List<String> args) {
+        return conditionRules.prepare(ConditionSpec.from(1, args));
     }
 
     @Override
-    public MatchResultData match(ConditionContext ctx, Integer level) {
-        boolean b = ctx.player().getLevel() >= level;
-        return b ? MatchResultData.match() : MatchResultData.notMatch(getErrorCode(), level, ctx.player().getLevel());
+    public MatchResultData match(ConditionContext ctx, PreparedCondition config) {
+        int level = ctx.player().getLevel();
+        ConditionUpdate update = config.evaluate(
+                new StateConditionEvent(StateConditionEvent.Type.PLAYER_LEVEL, 0, level, 0));
+        return update.completed(update.apply(0))
+                ? MatchResultData.match()
+                : MatchResultData.notMatch(getErrorCode(), config.target(), level);
     }
 
     @Override
-    public MatchResultData addProgress(ConditionContext ctx, Integer config) {
+    public MatchResultData addProgress(ConditionContext ctx, PreparedCondition config) {
         return MatchResultData.unknown();
     }
 

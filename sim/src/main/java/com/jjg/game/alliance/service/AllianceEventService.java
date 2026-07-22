@@ -1,19 +1,25 @@
 package com.jjg.game.alliance.service;
 
-import com.jjg.game.sim.data.SpinStatInfo;
+import com.jjg.game.core.base.condition.numeric.ActionConditionEvent;
+import com.jjg.game.core.base.condition.numeric.ConditionEvent;
+import com.jjg.game.core.base.condition.numeric.GameConditionEvent;
+import com.jjg.game.core.base.condition.numeric.RechargeConditionEvent;
+import com.jjg.game.sim.data.SimPlayerContext;
+import com.jjg.game.sim.manager.SimPlayerContextRegistry;
+import com.jjg.game.sim.service.SimConditionEventFactory;
+import com.jjg.game.sim.service.SimTaskService;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 
 /**
- * 联盟事件门面 —— 其他系统接入联盟的唯一上报入口 (核心扩展点)。
+ * sim 玩法条件事件门面（保留原类名以兼容现有调用方）。
  * <p>
- * 任何玩法产生的玩家行为 (slots 旋转/赚金币/中奖/消耗体力/未来新玩法) 调用本类即可同时驱动:
- * 联盟任务进度 + 联盟对决积分掉落。任务条件类型来自 task.xlsx 的 taskConditionId 首位。
+ * 玩法只上报建筑升级、抽卡、充值等事实事件，本类同步投递给 sim 主线/成就和联盟任务；
+ * 条件 id 只存在于 task 配置与 core 规则注册表中。slots 旋转额外驱动联盟对决积分掉落。
  * <p>
- * 全部方法不抛异常 (内部吞掉并打日志), 保证联盟侧故障不影响游戏主流程;
- * 高频路径在 {@code AllianceTaskService}/{@code AllianceBattleService} 内有本地缓存短路。
+ * 两个任务消费者分别隔离异常，任一侧故障不影响玩法主流程；联盟高频路径先经本地任务缓存短路。
  *
  * @author 11
  * @date 2026/6/11
@@ -26,40 +32,123 @@ public class AllianceEventService {
     private AllianceTaskService taskService;
     @Autowired
     private AllianceBattleService battleService;
+    @Autowired
+    private SimTaskService simTaskService;
+    @Autowired
+    private SimPlayerContextRegistry simPlayerContextRegistry;
+
+    /** 通用扩展入口：业务只上报事实事件，具体 condition id 由当前任务配置决定。 */
+    public void onConditionEvent(long playerId, ConditionEvent event) {
+        try {
+            taskService.onConditionEvent(playerId, event);
+        } catch (Exception e) {
+            log.error("联盟任务条件事件处理失败 playerId={},event={}", playerId, event, e);
+        }
+        try {
+            SimPlayerContext ctx = simPlayerContextRegistry.getContext(playerId);
+            if (ctx != null) {
+                simTaskService.onConditionEvent(ctx, event);
+            }
+        } catch (Exception e) {
+            log.error("sim 任务条件事件处理失败 playerId={},event={}", playerId, event, e);
+        }
+    }
+
+    public void onBuildingUpgrade(long playerId, int buildingId, int level) {
+        onConditionEvent(playerId, new ActionConditionEvent(ActionConditionEvent.Type.BUILDING_UPGRADE,
+                buildingId, 0, 0, 1, 0, false));
+        onConditionEvent(playerId, new ActionConditionEvent(ActionConditionEvent.Type.BUILDING_LEVEL,
+                buildingId, 0, level, 1, 0, false));
+    }
+
+    public void onCardPoolDraw(long playerId, int poolId, long count) {
+        onConditionEvent(playerId, new ActionConditionEvent(ActionConditionEvent.Type.CARD_POOL_DRAW,
+                poolId, 0, 0, count, 0, false));
+    }
+
+    public void onGameResearch(long playerId, int gameType) {
+        onConditionEvent(playerId, new ActionConditionEvent(ActionConditionEvent.Type.GAME_RESEARCH,
+                gameType, 0, 0, 1, 0, false));
+    }
+
+    public void onEmployeeRecruit(long playerId, int professionId, long count) {
+        onConditionEvent(playerId, new ActionConditionEvent(ActionConditionEvent.Type.EMPLOYEE_RECRUIT,
+                professionId, 0, 0, count, 0, false));
+    }
+
+    public void onGuestRecruit(long playerId, boolean paid, long count) {
+        onConditionEvent(playerId, new ActionConditionEvent(ActionConditionEvent.Type.GUEST_RECRUIT,
+                0, 0, 0, count, 0, paid));
+    }
+
+    public void onDonate(long playerId, long amount) {
+        onConditionEvent(playerId, new ActionConditionEvent(ActionConditionEvent.Type.ALLIANCE_DONATE,
+                0, 0, amount, 1, 0, false));
+    }
+
+    public void onRecharge(long playerId, int channelId, long amount) {
+        onConditionEvent(playerId, new RechargeConditionEvent(channelId, amount));
+    }
 
     /**
-     * 通用事件上报: 驱动联盟任务进度。
-     *
-     * @param conditionId task.xlsx 的 taskConditionId 首位
-     * @param param       事件参数
-     * @param value       增量
+     * 兼容现有跨节点 RPC 的旧数值协议。协议暂不改动，进入 hall 后立即转换为统一事实事件；
+     * 新业务应直接使用上面的事实事件方法。
      */
     public void onEvent(long playerId, int conditionId, long param, long value) {
+        switch (conditionId) {
+            case 12206 -> onAllianceConditionEvent(playerId,
+                    new ActionConditionEvent(ActionConditionEvent.Type.BUILDING_UPGRADE,
+                            (int) param, 0, 0, 1, 0, false));
+            case 12301 -> onAllianceConditionEvent(playerId,
+                    SimConditionEventFactory.fromGameResult(0, Long.MAX_VALUE, 0, param));
+            case 12302 -> onAllianceConditionEvent(playerId,
+                    SimConditionEventFactory.fromGameResult((int) param, Long.MAX_VALUE, 0, 0));
+            case 12303 -> onAllianceConditionEvent(playerId,
+                    new ActionConditionEvent(ActionConditionEvent.Type.CARD_POOL_DRAW,
+                            (int) param, 0, 0, value, 0, false));
+            case 12304 -> onAllianceConditionEvent(playerId,
+                    new ActionConditionEvent(ActionConditionEvent.Type.GAME_RESEARCH,
+                            (int) param, 0, 0, 1, 0, false));
+            case 12305 -> onAllianceConditionEvent(playerId,
+                    new ActionConditionEvent(ActionConditionEvent.Type.ALLIANCE_DONATE,
+                            0, 0, param, value, 0, false));
+            case 12306 -> onAllianceConditionEvent(playerId,
+                    SimConditionEventFactory.fromGameResult((int) param, Long.MAX_VALUE, value, 0));
+            case 12307 -> onAllianceConditionEvent(playerId, new RechargeConditionEvent((int) param, value));
+            default -> log.warn("联盟事件使用了不支持的旧条件 id playerId={},conditionId={}", playerId, conditionId);
+        }
+    }
+
+    /** 兼容原有 GM 命令入口，复用跨节点旧协议适配器。 */
+    public void onGmEvent(long playerId, int conditionId, long param, long value) {
+        onEvent(playerId, conditionId, param, value);
+    }
+
+    private void onAllianceConditionEvent(long playerId, ConditionEvent event) {
         try {
-            taskService.onProgress(playerId, conditionId, param, value);
+            taskService.onConditionEvent(playerId, event);
         } catch (Exception e) {
-            log.error("联盟事件处理失败 playerId={},conditionId={},param={},value={}", playerId, conditionId, param, value, e);
+            log.error("联盟旧协议事件处理失败 playerId={},event={}", playerId, event, e);
         }
     }
 
     /**
      * slots 旋转联动入口 (sim 在 SimManager.onSlotsSpin 处调用):
-     * 消耗体力 + 中奖倍数 两类任务进度 + 对决积分掉落。
-     * 赚金币类任务因旋转链路无金币值, 由游戏节点经 ToAllianceBridge 单独上报。
+     * 同一个不可变事件驱动当前联盟任务，消耗体力额外驱动对决积分掉落。
      *
-     * @param gameType  slots 玩法类型
-     * @param winTimes  本次中奖倍数
      * @param costPower 本次消耗体力
+     * @param event     已由 SimConditionEventFactory 构造的旋转事实
      */
-    public void onSpin(long playerId, int gameType, int winTimes, int costPower, SpinStatInfo statInfo) {
+    public void onSpin(long playerId, int costPower, GameConditionEvent event) {
         try {
             if (costPower > 0) {
                 //需求: 任意常规玩法消耗体力均有概率掉落对决积分
                 battleService.onPowerConsumed(playerId, costPower);
             }
-            taskService.onSpin(playerId, gameType, winTimes, costPower, statInfo);
+            taskService.onConditionEvent(playerId, event);
         } catch (Exception e) {
-            log.error("联盟spin联动失败 playerId={},gameType={},winTimes={}", playerId, gameType, winTimes, e);
+            log.error("联盟spin联动失败 playerId={},gameType={},multiple={}",
+                    playerId, event == null ? 0 : event.gameType(), event == null ? 0 : event.multiple(), e);
         }
     }
 

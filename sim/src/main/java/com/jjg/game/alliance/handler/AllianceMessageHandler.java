@@ -388,7 +388,7 @@ public class AllianceMessageHandler implements GmListener {
                 reqTaskList(pc, null);
             } else if ("allianceEvent".equalsIgnoreCase(cmd)) {
                 //模拟事件上报: allianceEvent <conditionId> <param> <value>
-                eventService.onEvent(pc.playerId(), Integer.parseInt(gmOrders[1]),
+                eventService.onGmEvent(pc.playerId(), Integer.parseInt(gmOrders[1]),
                         Long.parseLong(gmOrders[2]), Long.parseLong(gmOrders[3]));
             } else if ("allianceBattleTick".equalsIgnoreCase(cmd)) {
                 //联调: 立即触发一次对决状态机推进

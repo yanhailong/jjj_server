@@ -1,5 +1,11 @@
 package com.jjg.game.sim.data;
 
+import com.jjg.game.core.base.condition.numeric.ConditionRuleRegistry;
+import com.jjg.game.core.base.condition.numeric.ConditionSpec;
+import com.jjg.game.core.base.condition.numeric.PreparedCondition;
+
+import java.util.List;
+
 /**
  * 多人协作任务规则 (由 task.xlsx 的 taskConditionId 与人数/时限字段解析而来)。
  * <p>
@@ -15,10 +21,32 @@ package com.jjg.game.sim.data;
  * @param minMembers      开始游戏所需最少总人数 (含房主, 最低 1)
  * @param maxMembers      房间总人数上限 (含房主)
  * @param durationMinutes 任务时限(分, 0=不限); 开始后超时未完成判定失败, 兜底成员挂机导致房间悬挂
+ * @param condition       已在配置加载阶段校验的通用条件，slots 热路径直接复用
  * @author 11
  * @date 2026/7/6
  */
 public record CoopTaskRule(int taskId, int conditionId, int gameType, int spinBudget,
                            int modeId, long modeCount, int minMembers, int maxMembers,
-                           int durationMinutes) {
+                           int durationMinutes, PreparedCondition condition) {
+
+    /**
+     * 保留旧构造签名，兼容现有测试和节点滚动升级期间的本地调用；生产配置使用完整构造器。
+     */
+    public CoopTaskRule(int taskId, int conditionId, int gameType, int spinBudget,
+                        int modeId, long modeCount, int minMembers, int maxMembers,
+                        int durationMinutes) {
+        this(taskId, conditionId, gameType, spinBudget, modeId, modeCount, minMembers, maxMembers,
+                durationMinutes, prepareLegacy(conditionId, gameType, spinBudget, modeId, modeCount));
+    }
+
+    private static PreparedCondition prepareLegacy(int conditionId, int gameType, int spinBudget,
+                                                     int modeId, long target) {
+        List<Long> values = switch (conditionId) {
+            case 12501, 12503 -> List.of((long) conditionId, (long) gameType, (long) spinBudget,
+                    (long) modeId, target);
+            case 12502, 12504 -> List.of((long) conditionId, (long) gameType, (long) spinBudget, target);
+            default -> throw new IllegalArgumentException("unsupported coop condition id: " + conditionId);
+        };
+        return ConditionRuleRegistry.standard().prepare(ConditionSpec.from(values));
+    }
 }

@@ -1,5 +1,8 @@
 package com.jjg.game.sim.service;
 
+import com.jjg.game.core.base.condition.numeric.ConditionRuleRegistry;
+import com.jjg.game.core.base.condition.numeric.ConditionSpec;
+import com.jjg.game.core.base.condition.numeric.PreparedCondition;
 import com.jjg.game.alliance.data.AllianceRefreshTaskConfig;
 import com.jjg.game.alliance.data.DonateCfg;
 import com.jjg.game.common.utils.WeightRandom;
@@ -14,6 +17,7 @@ import com.jjg.game.social.data.SendGiftConfig;
 import org.apache.commons.lang3.StringUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Component;
 
 import java.text.NumberFormat;
@@ -79,8 +83,10 @@ public class SimConfigCacheService implements ConfigExcelChangeListener {
 
     //联盟等级
     private Map<Integer, AllianceLevelCfg> allianceLevelCfgMap;
-    private List<TaskCfg> allianceTasks;
-    private Map<Integer, TaskCfg> allianceTaskMap;
+    // 热更新时整体替换不可变快照；volatile 保证配置线程向玩家业务线程安全发布。
+    private volatile List<TaskCfg> allianceTasks;
+    private volatile Map<Integer, TaskCfg> allianceTaskMap;
+    private volatile Map<Integer, PreparedCondition> allianceTaskConditionMap;
     //联盟捐献配置
     private DonateCfg allianceDonateCfg;
     //联盟刷新任务配置
@@ -93,6 +99,13 @@ public class SimConfigCacheService implements ConfigExcelChangeListener {
 
     //赛季匹配模拟数据
     private Map<Integer, List<SeasonSimulationDataCfg>> seasonSimulationDataCfgMap;
+
+    private final ConditionRuleRegistry conditionRules;
+
+    @Autowired
+    public SimConfigCacheService(ConditionRuleRegistry conditionRules) {
+        this.conditionRules = conditionRules;
+    }
 
     public void init() {
         initGuestQualityItems();
@@ -423,18 +436,30 @@ public class SimConfigCacheService implements ConfigExcelChangeListener {
         if (all == null || all.isEmpty()) {
             allianceTasks = Collections.emptyList();
             allianceTaskMap = Collections.emptyMap();
+            allianceTaskConditionMap = Collections.emptyMap();
             return;
         }
         List<TaskCfg> tasks = new ArrayList<>();
         Map<Integer, TaskCfg> map = new HashMap<>();
+        Map<Integer, PreparedCondition> conditionMap = new HashMap<>();
         for (TaskCfg cfg : all) {
             if (cfg != null && cfg.getTaskType() == TaskConstant.TaskType.ALLIANCE) {
+                PreparedCondition condition;
+                try {
+                    condition = conditionRules.prepare(ConditionSpec.from(cfg.getTaskConditionId()));
+                } catch (IllegalArgumentException e) {
+                    log.warn("联盟任务条件配置非法, 不入池 taskId={},condition={},error={}",
+                            cfg.getId(), cfg.getTaskConditionId(), e.getMessage());
+                    continue;
+                }
                 tasks.add(cfg);
                 map.put(cfg.getId(), cfg);
+                conditionMap.put(cfg.getId(), condition);
             }
         }
         allianceTasks = Collections.unmodifiableList(tasks);
         allianceTaskMap = Collections.unmodifiableMap(map);
+        allianceTaskConditionMap = Collections.unmodifiableMap(conditionMap);
     }
 
     private void loadItemConfig() {
@@ -717,6 +742,10 @@ public class SimConfigCacheService implements ConfigExcelChangeListener {
             return null;
         }
         return this.allianceTaskMap.get(cfgId);
+    }
+
+    public PreparedCondition getAllianceTaskCondition(int cfgId) {
+        return allianceTaskConditionMap == null ? null : allianceTaskConditionMap.get(cfgId);
     }
 
     public List<TaskCfg> randomAllianceTasks(int n, Set<Integer> exclude) {

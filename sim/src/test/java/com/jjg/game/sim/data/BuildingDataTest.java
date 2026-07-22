@@ -5,7 +5,6 @@ import org.junit.jupiter.api.Test;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 
 class BuildingDataTest {
-
     @Test
     void applySpeedupSecondsReducesUpgradeCd() {
         BuildingData data = new BuildingData();
@@ -41,4 +40,5 @@ class BuildingDataTest {
         assertEquals(0, reducedSeconds);
         assertEquals(now, data.getCdEndTime());
     }
+
 }

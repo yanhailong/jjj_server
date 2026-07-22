@@ -1,7 +1,11 @@
 package com.jjg.game.core.task.condition;
 
+import com.jjg.game.core.base.condition.numeric.ConditionRuleRegistry;
+import com.jjg.game.core.base.condition.numeric.ConditionUpdate;
+import com.jjg.game.core.base.condition.numeric.PreparedCondition;
 import com.jjg.game.core.constant.TaskConstant;
-import com.jjg.game.core.task.param.DefaultTaskConditionParam;
+import com.jjg.game.core.task.db.TaskDetail;
+import com.jjg.game.core.task.param.TaskConditionParamRecharge;
 import com.jjg.game.sampledata.bean.TaskCfg;
 import org.springframework.stereotype.Component;
 
@@ -9,7 +13,12 @@ import org.springframework.stereotype.Component;
  * 累计充值条件
  */
 @Component
-public class TaskCondition11002 extends AbstractTaskCondition<DefaultTaskConditionParam> {
+public class TaskCondition11002 extends AbstractTaskCondition<TaskConditionParamRecharge> {
+    private final TaskConditionCache conditions;
+
+    public TaskCondition11002(ConditionRuleRegistry conditionRules) {
+        this.conditions = new TaskConditionCache(conditionRules);
+    }
 
     /**
      * 获取任务的条件ID。
@@ -17,6 +26,12 @@ public class TaskCondition11002 extends AbstractTaskCondition<DefaultTaskConditi
     @Override
     protected int getConditionId() {
         return TaskConstant.ConditionType.PLAYER_SUM_PAY;
+    }
+
+    @Override
+    protected boolean checkAddProgress(TaskCfg taskCfg, TaskDetail taskDetail, TaskConditionParamRecharge param) {
+        ConditionUpdate update = condition(taskCfg).evaluate(param.conditionEvent());
+        return update.matched() && update.value() > 0;
     }
 
     /**
@@ -27,7 +42,10 @@ public class TaskCondition11002 extends AbstractTaskCondition<DefaultTaskConditi
      */
     @Override
     protected Long getCompareValue(TaskCfg taskCfg) {
-        return taskCfg.getTaskConditionId().get(1);
+        return condition(taskCfg).target();
     }
 
+    private PreparedCondition condition(TaskCfg taskCfg) {
+        return conditions.get(taskCfg);
+    }
 }

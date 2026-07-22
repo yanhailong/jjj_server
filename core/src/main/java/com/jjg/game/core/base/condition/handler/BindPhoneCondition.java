@@ -3,8 +3,11 @@ package com.jjg.game.core.base.condition.handler;
 import com.jjg.game.core.base.condition.ConditionContext;
 import com.jjg.game.core.base.condition.ConditionHandler;
 import com.jjg.game.core.base.condition.MatchResultData;
-import com.jjg.game.core.base.condition.data.UserItem;
-import com.jjg.game.core.base.condition.event.UserItemEvent;
+import com.jjg.game.core.base.condition.numeric.ConditionRuleRegistry;
+import com.jjg.game.core.base.condition.numeric.ConditionSpec;
+import com.jjg.game.core.base.condition.numeric.ConditionUpdate;
+import com.jjg.game.core.base.condition.numeric.PreparedCondition;
+import com.jjg.game.core.base.condition.numeric.StateConditionEvent;
 import com.jjg.game.core.base.gameevent.EGameEventType;
 import com.jjg.game.core.constant.Code;
 import com.jjg.game.core.dao.AccountDao;
@@ -24,11 +27,13 @@ import java.util.List;
  * @date 2026/1/14 13:48
  */
 @Component
-public class BindPhoneCondition implements ConditionHandler<Integer> {
+public class BindPhoneCondition implements ConditionHandler<PreparedCondition> {
     private final AccountDao accountDao;
+    private final ConditionRuleRegistry conditionRules;
 
-    public BindPhoneCondition(AccountDao accountDao) {
+    public BindPhoneCondition(AccountDao accountDao, ConditionRuleRegistry conditionRules) {
         this.accountDao = accountDao;
+        this.conditionRules = conditionRules;
     }
 
     @Override
@@ -42,24 +47,22 @@ public class BindPhoneCondition implements ConditionHandler<Integer> {
     }
 
     @Override
-    public Integer parse(List<String> args) {
-        return 0;
-    }
-
-    public boolean matchCheck(UserItemEvent event, UserItem config) {
-        return event.getItemId() == config.itemId();
+    public PreparedCondition parse(List<String> args) {
+        return conditionRules.prepare(ConditionSpec.from(4, args));
     }
 
     @Override
-    public MatchResultData match(ConditionContext ctx, Integer config) {
+    public MatchResultData match(ConditionContext ctx, PreparedCondition config) {
         Account account = accountDao.queryAccountByPlayerId(ctx.player().getId());
         if (account == null) {
             return MatchResultData.notMatch(Code.SUCCESS);
         }
-        if (StringUtils.isNotEmpty(account.getThirdAccount(LoginType.PHONE))) {
-            return MatchResultData.match();
-        }
-        return MatchResultData.notMatch(getErrorCode());
+        long bound = StringUtils.isNotEmpty(account.getThirdAccount(LoginType.PHONE)) ? 1 : 0;
+        ConditionUpdate update = config.evaluate(
+                new StateConditionEvent(StateConditionEvent.Type.PHONE_BOUND, 0, bound, 0));
+        return update.completed(update.apply(0))
+                ? MatchResultData.match()
+                : MatchResultData.notMatch(getErrorCode(), config.target(), bound);
     }
 
     public MatchResultData match(Long playerId) {
@@ -73,7 +76,7 @@ public class BindPhoneCondition implements ConditionHandler<Integer> {
         return MatchResultData.notMatch(getErrorCode());
     }
     @Override
-    public MatchResultData addProgress(ConditionContext ctx, Integer config) {
+    public MatchResultData addProgress(ConditionContext ctx, PreparedCondition config) {
         return MatchResultData.unknown();
     }
 

@@ -1,6 +1,5 @@
 package com.jjg.game.alliance.service;
 
-import com.jjg.game.alliance.constant.AllianceConst;
 import com.jjg.game.core.base.gameevent.EGameEventType;
 import com.jjg.game.core.base.gameevent.GameEvent;
 import com.jjg.game.core.base.gameevent.GameEventListener;
@@ -44,8 +43,7 @@ public class AllianceRechargeEventListener implements GameEventListener {
         if (amountCents <= 0) {
             return;
         }
-        allianceEventService.onEvent(order.getPlayerId(), AllianceConst.TaskConditionType.RECHARGE_AMOUNT,
-                order.getPayChannel(), amountCents);
+        allianceEventService.onRecharge(order.getPlayerId(), order.getPayChannel(), amountCents);
     }
 
     @Override

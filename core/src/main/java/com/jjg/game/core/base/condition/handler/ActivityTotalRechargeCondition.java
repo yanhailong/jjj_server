@@ -3,8 +3,12 @@ package com.jjg.game.core.base.condition.handler;
 import com.jjg.game.core.base.condition.ConditionContext;
 import com.jjg.game.core.base.condition.ConditionHandler;
 import com.jjg.game.core.base.condition.MatchResultData;
-import com.jjg.game.core.base.condition.data.PlayerRecharge;
 import com.jjg.game.core.base.condition.event.TimeEvent;
+import com.jjg.game.core.base.condition.numeric.ConditionRuleRegistry;
+import com.jjg.game.core.base.condition.numeric.ConditionSpec;
+import com.jjg.game.core.base.condition.numeric.ConditionUpdate;
+import com.jjg.game.core.base.condition.numeric.PreparedCondition;
+import com.jjg.game.core.base.condition.numeric.RechargeConditionEvent;
 import com.jjg.game.core.base.gameevent.EGameEventType;
 import com.jjg.game.core.dao.PlayerRechargeFlowDao;
 import com.jjg.game.sampledata.GameDataManager;
@@ -15,18 +19,21 @@ import java.math.BigDecimal;
 import java.util.List;
 
 /**
- * 11002 活动总充值 要求金额_渠道ID(0=默认所有)
+ * 11002 活动总充值 渠道ID(0=默认所有)_要求金额
  *
  * @author lm
  * @date 2026/1/14 10:35
  */
 @Component
-public class ActivityTotalRechargeCondition implements ConditionHandler<PlayerRecharge> {
+public class ActivityTotalRechargeCondition implements ConditionHandler<PreparedCondition> {
 
     private final PlayerRechargeFlowDao playerRechargeFlowDao;
+    private final ConditionRuleRegistry conditionRules;
 
-    public ActivityTotalRechargeCondition(PlayerRechargeFlowDao playerRechargeFlowDao) {
+    public ActivityTotalRechargeCondition(PlayerRechargeFlowDao playerRechargeFlowDao,
+                                           ConditionRuleRegistry conditionRules) {
         this.playerRechargeFlowDao = playerRechargeFlowDao;
+        this.conditionRules = conditionRules;
     }
 
 
@@ -41,29 +48,30 @@ public class ActivityTotalRechargeCondition implements ConditionHandler<PlayerRe
     }
 
     @Override
-    public PlayerRecharge parse(List<String> args) {
-        String amount = args.getFirst();
-        String channel = args.get(1);
-        return new PlayerRecharge(0, Integer.parseInt(channel), new BigDecimal(amount));
+    public PreparedCondition parse(List<String> args) {
+        return conditionRules.prepare(ConditionSpec.from(11002, args));
     }
 
     @Override
-    public MatchResultData match(ConditionContext ctx, PlayerRecharge config) {
+    public MatchResultData match(ConditionContext ctx, PreparedCondition config) {
         if (ctx.event() instanceof TimeEvent event) {
             long startTime = event.getStartTime();
             long endTime = event.getEndTime();
+            int channelId = config.spec().intParameter(0);
             BigDecimal total = playerRechargeFlowDao.sumAmountByPlayerIdAndTimeRange(
-                    ctx.player().getId(), config.channelId(), startTime, endTime);
-            if (total.compareTo(config.amount()) >= 0) {
+                    ctx.player().getId(), channelId, startTime, endTime);
+            long amount = LegacyConditionEventAdapter.toNonNegativeLong(total);
+            ConditionUpdate update = config.evaluate(new RechargeConditionEvent(channelId, amount));
+            if (update.completed(update.apply(0))) {
                 return MatchResultData.match();
             }
-            return MatchResultData.notMatch(getErrorCode(), config.amount(), total);
+            return MatchResultData.notMatch(getErrorCode(), BigDecimal.valueOf(config.target()), total);
         }
-        return MatchResultData.notMatch(getErrorCode(), config.amount(), BigDecimal.ZERO);
+        return MatchResultData.notMatch(getErrorCode(), BigDecimal.valueOf(config.target()), BigDecimal.ZERO);
     }
 
     @Override
-    public MatchResultData addProgress(ConditionContext ctx, PlayerRecharge config) {
+    public MatchResultData addProgress(ConditionContext ctx, PreparedCondition config) {
         return match(ctx, config);
     }
 

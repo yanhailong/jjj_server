@@ -1,18 +1,25 @@
 package com.jjg.game.core.task.condition;
 
+import com.jjg.game.core.base.condition.numeric.ConditionRuleRegistry;
+import com.jjg.game.core.base.condition.numeric.ConditionUpdate;
+import com.jjg.game.core.base.condition.numeric.PreparedCondition;
 import com.jjg.game.core.constant.TaskConstant;
 import com.jjg.game.core.task.db.TaskDetail;
 import com.jjg.game.core.task.param.TaskConditionParam12001;
 import com.jjg.game.sampledata.bean.TaskCfg;
 import org.springframework.stereotype.Component;
 
-import java.util.List;
-
 /**
  * 有效下注
  */
 @Component
 public class TaskCondition12001 extends AbstractTaskCondition<TaskConditionParam12001> {
+    private final TaskConditionCache conditions;
+
+    public TaskCondition12001(ConditionRuleRegistry conditionRules) {
+        this.conditions = new TaskConditionCache(conditionRules);
+    }
+
     /**
      * 获取任务的条件ID。
      */
@@ -23,12 +30,8 @@ public class TaskCondition12001 extends AbstractTaskCondition<TaskConditionParam
 
     @Override
     protected boolean checkAddProgress(TaskCfg taskCfg, TaskDetail taskDetail, TaskConditionParam12001 param) {
-        List<Long> conditionId = taskCfg.getTaskConditionId();
-        long gameId = conditionId.get(1);
-        if (gameId > 0) {
-            return param.getGameId() == gameId;
-        }
-        return true;
+        ConditionUpdate update = condition(taskCfg).evaluate(param.conditionEvent());
+        return update.matched() && update.value() > 0;
     }
 
     /**
@@ -39,7 +42,10 @@ public class TaskCondition12001 extends AbstractTaskCondition<TaskConditionParam
      */
     @Override
     protected Long getCompareValue(TaskCfg taskCfg) {
-        return taskCfg.getTaskConditionId().get(2);
+        return condition(taskCfg).target();
     }
 
+    private PreparedCondition condition(TaskCfg taskCfg) {
+        return conditions.get(taskCfg);
+    }
 }

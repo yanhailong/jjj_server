@@ -3,8 +3,11 @@ package com.jjg.game.core.base.condition.handler;
 import com.jjg.game.core.base.condition.ConditionContext;
 import com.jjg.game.core.base.condition.ConditionHandler;
 import com.jjg.game.core.base.condition.MatchResultData;
-import com.jjg.game.core.base.condition.data.PlayerBet;
 import com.jjg.game.core.base.condition.event.BetEvent;
+import com.jjg.game.core.base.condition.numeric.ConditionRuleRegistry;
+import com.jjg.game.core.base.condition.numeric.ConditionSpec;
+import com.jjg.game.core.base.condition.numeric.ConditionUpdate;
+import com.jjg.game.core.base.condition.numeric.PreparedCondition;
 import com.jjg.game.core.base.gameevent.EGameEventType;
 import com.jjg.game.sampledata.GameDataManager;
 import com.jjg.game.sampledata.bean.ConditionCfg;
@@ -19,7 +22,12 @@ import java.util.List;
  * @date 2026/1/14 13:48
  */
 @Component
-public class PlayGameWinMoneyCondition implements ConditionHandler<PlayerBet> {
+public class PlayGameWinMoneyCondition implements ConditionHandler<PreparedCondition> {
+    private final ConditionRuleRegistry conditionRules;
+
+    public PlayGameWinMoneyCondition(ConditionRuleRegistry conditionRules) {
+        this.conditionRules = conditionRules;
+    }
 
     @Override
     public String type() {
@@ -31,13 +39,8 @@ public class PlayGameWinMoneyCondition implements ConditionHandler<PlayerBet> {
         return null;
     }
 
-    public boolean matchCheck(BetEvent e, PlayerBet config) {
-        return (config.gameType() == 0 || config.gameType() == e.getGameType())
-                && e.getItemId() == config.itemId();
-    }
-
     @Override
-    public MatchResultData addProgress(ConditionContext ctx, PlayerBet config) {
+    public MatchResultData addProgress(ConditionContext ctx, PreparedCondition config) {
         return MatchResultData.unknown();
     }
 
@@ -51,24 +54,22 @@ public class PlayGameWinMoneyCondition implements ConditionHandler<PlayerBet> {
     }
 
     @Override
-    public PlayerBet parse(List<String> args) {
-        String gameType = args.getFirst();
-        String needBet = args.get(1);
-        String times = args.get(2);
-        String win = args.get(3);
-        String itemId = args.get(4);
-        return new PlayerBet(Integer.parseInt(gameType), Integer.parseInt(needBet), Integer.parseInt(times), Integer.parseInt(itemId), Integer.parseInt(win));
+    public PreparedCondition parse(List<String> args) {
+        return conditionRules.prepare(ConditionSpec.from(10003, args));
     }
 
     @Override
-    public MatchResultData match(ConditionContext ctx, PlayerBet config) {
-        if (ctx.event() instanceof BetEvent e && matchCheck(e, config)) {
-                if (e.getBetAmount() >= config.achievedProcess() && e.getWinAmount() >= config.winCount()) {
-                    return MatchResultData.match();
-                } else {
-                    return MatchResultData.notMatch(getErrorCode());
-                }
+    public MatchResultData match(ConditionContext ctx, PreparedCondition config) {
+        if (!(ctx.event() instanceof BetEvent event)) {
+            return MatchResultData.unknown();
         }
-        return MatchResultData.unknown();
+        ConditionUpdate update = config.evaluate(LegacyConditionEventAdapter.game(event));
+        if (!update.matched()) {
+            //旧表达式树把游戏/货币不相关的事件视为 UNKNOWN，让同一表达式中的其他事件条件继续处理。
+            return MatchResultData.unknown();
+        }
+        return update.completed(update.apply(0))
+                ? MatchResultData.match()
+                : MatchResultData.notMatch(getErrorCode(), config.target(), update.value());
     }
 }

@@ -1,7 +1,6 @@
 package com.jjg.game.sim.service;
 
 import cn.hutool.core.lang.Snowflake;
-import com.jjg.game.alliance.constant.AllianceConst;
 import com.jjg.game.alliance.service.AllianceEventService;
 import com.jjg.game.common.pb.ItemInfo;
 import com.jjg.game.common.utils.RandomUtils;
@@ -890,7 +889,9 @@ public class SimGuestService implements SimPlayerTickListener, ItemListener {
 
             res.shardInfos = recruitItems;
             //联盟任务: 卡池抽奖次数 (param=卡池ID, 供 0=任意/指定卡池 过滤; 10 连计为 10 次)
-            allianceEventService.onEvent(ctx.playerId(), AllianceConst.TaskConditionType.POOL_DRAW_TIMES, tmpCfg.getId(), count);
+            allianceEventService.onCardPoolDraw(ctx.playerId(), tmpCfg.getId(), count);
+            allianceEventService.onGuestRecruit(ctx.playerId(),
+                    tmpCfg.getDrawCost() != null && !tmpCfg.getDrawCost().isEmpty(), count);
             log.info("招募游客成功 playerId={},count={},newEmployee={},addAllItems={}", ctx.playerId(), count, addGuest, addAllItems);
         } catch (Exception e) {
             log.error("", e);

@@ -10,6 +10,8 @@ import com.jjg.game.common.protostuff.MessageUtil;
 import com.jjg.game.common.protostuff.PFMessage;
 import com.jjg.game.core.constant.AddType;
 import com.jjg.game.core.constant.Code;
+import com.jjg.game.core.base.condition.numeric.ConditionUpdate;
+import com.jjg.game.core.base.condition.numeric.GameConditionEvent;
 import com.jjg.game.core.data.CommonResult;
 import com.jjg.game.core.data.ItemOperationResult;
 import com.jjg.game.core.data.Player;
@@ -48,6 +50,7 @@ import org.springframework.stereotype.Component;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.Executors;
 import java.util.concurrent.ScheduledExecutorService;
@@ -522,8 +525,15 @@ public class CoopRoomManager {
                 member.setSpinUsed(member.getSpinUsed() + 1);
 
                 CoopTaskRule rule = room.getRule();
-                long progressDelta = CoopTaskProgressPolicy.delta(rule, statusBefore, gameRunInfo);
-                room.setSharedProgress(CoopTaskProgressPolicy.addSaturated(room.getSharedProgress(), progressDelta));
+                GameConditionEvent conditionEvent = new GameConditionEvent(
+                        gameType, gameType, 0, 0, 0,
+                        gameRunInfo.getStake(), gameRunInfo.getAllWinGold(), gameRunInfo.getAllWinTimes(),
+                        true, statusBefore == SlotsConst.Status.NORMAL, 0, 0, 0,
+                        gameRunInfo.getResultLib() == null || gameRunInfo.getResultLib().getLibTypeSet() == null
+                                ? Set.of() : Set.copyOf(gameRunInfo.getResultLib().getLibTypeSet()),
+                        List.of(), Map.of());
+                ConditionUpdate update = rule.condition().evaluate(conditionEvent);
+                room.setSharedProgress(update.apply(room.getSharedProgress()));
 
                 boolean quotaExhausted = allQuotaExhausted(room);
                 if (quotaExhausted && room.getSharedProgress() >= rule.modeCount()) {

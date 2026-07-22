@@ -31,6 +31,7 @@ import com.jjg.game.season.service.SeasonFreeGameService;
 import com.jjg.game.season.service.SeasonLifecycleService;
 import com.jjg.game.season.service.SeasonService;
 import com.jjg.game.sim.service.*;
+import com.jjg.game.core.base.condition.numeric.GameConditionEvent;
 import io.netty.util.Timeout;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -639,6 +640,8 @@ public class SimManager {
             }
 
             boolean visitTrial = trialPermit != null && trialPermit.isTrial();
+            GameConditionEvent conditionEvent = SimConditionEventFactory.fromSpin(
+                    gameType, winTimes, SimConstant.Common.SPIN_COST_POWER, statInfo);
             //普通旋转沿用原语义：即使掉落失败也计入统计。试玩需要先通过 permit 幂等结算，避免 RPC 重试重复计数。
             if (!visitTrial) {
                 simStatsService.recordSpin(ctx.getSimBaseData(), gameType, statInfo);
@@ -650,7 +653,7 @@ public class SimManager {
                 log.warn("slots 联动失败, onSpin执行失败 playerId={},gameType={},winTimes={},code={}", playerId, gameType, winTimes, result.code);
                 //真实旋转已发生: 掉落失败也照常推进赛季联动 (试炼窗口/对局按实际旋转局数计)
                 if (!visitTrial) {
-                    seasonService.onSpin(ctx, gameType, statInfo);
+                    seasonService.onSpin(ctx, gameType, statInfo, statInfo == null ? null : conditionEvent);
                 }
                 return result;
             }
@@ -659,13 +662,13 @@ public class SimManager {
             }
 
             //联盟联动: 消耗体力/中奖倍数 -> 任务进度 + 对决积分掉落 (内部吞异常, 不影响主流程)
-            allianceEventService.onSpin(playerId, gameType, winTimes, SimConstant.Common.SPIN_COST_POWER, statInfo);
+            allianceEventService.onSpin(playerId, SimConstant.Common.SPIN_COST_POWER, conditionEvent);
 
             //主线/成就任务联动: 旋转次数 + 累积投注 (内部吞异常, 不影响主流程)
-            simTaskService.onSpin(ctx, gameType, statInfo);
+            simTaskService.onConditionEvent(ctx, conditionEvent);
             //赛季联动: 宝石掉落/试炼窗口/对局结算 (内部吞异常, 不影响主流程)
             if (!visitTrial) {
-                seasonService.onSpin(ctx, gameType, statInfo);
+                seasonService.onSpin(ctx, gameType, statInfo, statInfo == null ? null : conditionEvent);
             }
             return result;
         } catch (Exception e) {

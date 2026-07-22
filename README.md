@@ -6,7 +6,7 @@
 Nginx:负载均衡，流量进行分发
 account：账号服务器，负责账号的注册和登录。client 通过http进行注册或者登录成功后，返回token和游戏服务器的地址
 gate：网关服务器，负责与 client 保持连接，并且根据不同的业务场景将 client 的请求数据转发到其他服务
-hall：大厅服务器，负责大厅业务场景逻辑
+hall：大厅服务器，负责大厅业务场景逻辑，模拟经营大厅
 game：子游戏
 gm：gm服务器，负责接受后台请求，处理与游戏相关的业务逻辑
 recharge: 充值服务器，负责接受充值回调
@@ -26,7 +26,7 @@ common: 基础设施，比如创建nettyserver，集群节点发现与分配，�
 core: hall和game共有的模块，比如player对象
 room: 房间模块
 activity: 活动模块
-sampledata: 配置表模块
+sampledata: 配置表模块,是由工具自动生成的代码
 sim: 模拟经营游戏
 
 gate：网关服务器

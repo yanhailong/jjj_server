@@ -1,11 +1,17 @@
 package com.jjg.game.sim.service;
 
+import com.jjg.game.core.base.condition.numeric.ConditionRuleRegistry;
+import com.jjg.game.core.base.condition.numeric.ConditionSpec;
+import com.jjg.game.core.base.condition.numeric.PreparedCondition;
+import com.jjg.game.core.base.condition.numeric.StateConditionEvent;
 import com.jjg.game.core.constant.TaskConstant;
 import com.jjg.game.core.listener.ConfigExcelChangeListener;
 import com.jjg.game.sampledata.GameDataManager;
 import com.jjg.game.sampledata.bean.TaskCfg;
+import com.jjg.game.sampledata.bean.ConditionCfg;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Component;
 
 import java.util.ArrayList;
@@ -47,14 +53,30 @@ public class SimTaskConfigService implements ConfigExcelChangeListener {
      */
     private volatile Map<Integer, Integer> nextIndex = Collections.emptyMap();
 
+    /** 任务 id -> 已校验条件及兼容旧数据的 Redis featureId。 */
+    private volatile Map<Integer, TaskConditionDef> conditions = Collections.emptyMap();
+
+    private final ConditionRuleRegistry conditionRules;
+
+    public SimTaskConfigService() {
+        this(ConditionRuleRegistry.standard());
+    }
+
+    @Autowired
+    public SimTaskConfigService(ConditionRuleRegistry conditionRules) {
+        this.conditionRules = conditionRules;
+    }
+
     @Override
     public void initSampleCallbackCollector() {
-        addInitSampleFileObserveWithCallBack(TaskCfg.EXCEL_NAME, this::loadChains);
+        addInitSampleFileObserveWithCallBack(TaskCfg.EXCEL_NAME, this::loadChains)
+                .addInitSampleFileObserveWithCallBack(ConditionCfg.EXCEL_NAME, this::loadChains);
     }
 
     @Override
     public void changeSampleCallbackCollector() {
-        addChangeSampleFileObserveWithCallBack(TaskCfg.EXCEL_NAME, this::loadChains);
+        addChangeSampleFileObserveWithCallBack(TaskCfg.EXCEL_NAME, this::loadChains)
+                .addChangeSampleFileObserveWithCallBack(ConditionCfg.EXCEL_NAME, this::loadChains);
     }
 
     /**
@@ -68,7 +90,31 @@ public class SimTaskConfigService implements ConfigExcelChangeListener {
         }
         List<TaskCfg> mains = new ArrayList<>();
         Map<Integer, List<TaskCfg>> groups = new HashMap<>();
+        Map<Integer, TaskConditionDef> tmpConditions = new HashMap<>();
         for (TaskCfg cfg : all) {
+            if (cfg.getTaskType() != TaskConstant.TaskType.MAIN_LINE
+                    && cfg.getTaskType() != TaskConstant.TaskType.ACHIEVEMENT) {
+                continue;
+            }
+            PreparedCondition prepared;
+            try {
+                prepared = conditionRules.prepare(ConditionSpec.from(cfg.getTaskConditionId()));
+            } catch (IllegalArgumentException e) {
+                log.warn("sim 任务条件配置非法, 不加入任务链 taskId={},condition={},error={}",
+                        cfg.getId(), cfg.getTaskConditionId(), e.getMessage());
+                continue;
+            }
+            if (prepared.eventType() == StateConditionEvent.class
+                    && !SimTaskStateEventFactory.supports(prepared)) {
+                log.warn("sim 任务状态条件缺少可靠数据源, 不加入任务链 taskId={},conditionId={}",
+                        cfg.getId(), prepared.spec().id());
+                continue;
+            }
+            ConditionCfg conditionCfg = GameDataManager.getConditionCfg(prepared.spec().id());
+            String legacyType = conditionCfg == null ? null : conditionCfg.getTriggerEventType();
+            String counterType = legacyType == null || legacyType.isBlank()
+                    ? "condition" + prepared.spec().id() : legacyType;
+            tmpConditions.put(cfg.getId(), new TaskConditionDef(prepared, counterType));
             if (cfg.getTaskType() == TaskConstant.TaskType.MAIN_LINE) {
                 mains.add(cfg);
             } else if (cfg.getTaskType() == TaskConstant.TaskType.ACHIEVEMENT) {
@@ -94,6 +140,7 @@ public class SimTaskConfigService implements ConfigExcelChangeListener {
         this.mainChain = Collections.unmodifiableList(tmpMain);
         this.achievementGroups = Collections.unmodifiableMap(tmpGroups);
         this.nextIndex = Collections.unmodifiableMap(tmpNext);
+        this.conditions = Collections.unmodifiableMap(tmpConditions);
         log.info("加载 sim 任务链: 主线 {} 条, 成就组 {} 个", tmpMain.size(), tmpGroups.size());
     }
 
@@ -150,6 +197,10 @@ public class SimTaskConfigService implements ConfigExcelChangeListener {
         return this.nextIndex.getOrDefault(taskId, 0);
     }
 
+    public TaskConditionDef conditionOf(int taskId) {
+        return conditions.get(taskId);
+    }
+
     /**
      * 根据当前链节点推导已完成节点数，用于旧数据补齐累计完成任务数。
      */
@@ -168,5 +219,9 @@ public class SimTaskConfigService implements ConfigExcelChangeListener {
             return 0;
         }
         return index + (currentCompleted ? 1 : 0);
+    }
+
+    /** 配置加载后不可变，可被玩家热路径无锁复用。 */
+    public record TaskConditionDef(PreparedCondition condition, String counterType) {
     }
 }

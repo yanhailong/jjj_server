@@ -215,28 +215,6 @@ public interface AllianceConst {
         int BUILD_SPEEDUP = 2;
     }
 
-    /**
-     * 条件，对齐condition表
-     */
-    interface TaskConditionType {
-        //建筑升级次数 (建筑ID(0=任意)_次数)
-        int BUILDING_UPGRADE_TIMES = 12206;
-        //游戏中奖倍数 (游戏ID(0=任意)_大于等于总押注_中奖倍数_达标次数)
-        int WIN_TIMES = 12301;
-        //游戏下注次数-消耗能量 (游戏ID(0=任意)_大于等于总押注_目标投注次数)
-        int BET_TIMES = 12302;
-        //卡池抽奖次数 (卡池ID(0=任意)_抽奖次数)
-        int POOL_DRAW_TIMES = 12303;
-        //技能研究次数 (游戏ID(0=任意)_研究次数)
-        int SKILL_RESEARCH_TIMES = 12304;
-        //联盟捐献次数 (大于等于捐献量门槛_目标捐献次数)
-        int DONATE_TIMES = 12305;
-        //游戏赢奖金额 (游戏ID(0=任意)_大于等于总押注_货币ID_目标获胜金额)
-        int WIN_AMOUNT = 12306;
-        //接取任务后个人累计充值 (渠道ID(0=任意)_累计充值金额)
-        int RECHARGE_AMOUNT = 12307;
-    }
-
     interface BattleState {
         //本期未创建/未到报名时间
         int NONE = 0;

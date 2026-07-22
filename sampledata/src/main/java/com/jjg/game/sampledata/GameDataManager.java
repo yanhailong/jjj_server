@@ -137,6 +137,7 @@ public class GameDataManager {
     containerMap.put(BetAreaCfg.class, new BetAreaCfgContainer());
     containerMap.put(BetRobotCfg.class, new BetRobotCfgContainer());
     containerMap.put(BlackjackCfg.class, new BlackjackCfgContainer());
+    containerMap.put(BuffCfg.class, new BuffCfgContainer());
     containerMap.put(BuildingAreaTableCfg.class, new BuildingAreaTableCfgContainer());
     containerMap.put(BuildingEquipmentTableCfg.class, new BuildingEquipmentTableCfgContainer());
     containerMap.put(BuildingFloorCfg.class, new BuildingFloorCfgContainer());
@@ -879,6 +880,18 @@ public class GameDataManager {
 
   public static List<BlackjackCfg> getBlackjackCfgList() {
     return getInstance().getCfgContainer(BlackjackCfg.class).getCfgBeanList();
+  }
+
+  public static BuffCfg getBuffCfg(int key) {
+    return getInstance().getCfgContainer(BuffCfg.class).getCfgBeanMap().get(key);
+  }
+
+  public static Map<Integer, BuffCfg> getBuffCfgMap() {
+    return getInstance().getCfgContainer(BuffCfg.class).getCfgBeanMap();
+  }
+
+  public static List<BuffCfg> getBuffCfgList() {
+    return getInstance().getCfgContainer(BuffCfg.class).getCfgBeanList();
   }
 
   public static BuildingAreaTableCfg getBuildingAreaTableCfg(int key) {

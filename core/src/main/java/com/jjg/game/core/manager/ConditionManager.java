@@ -3,12 +3,17 @@ package com.jjg.game.core.manager;
 import com.jjg.game.core.base.condition.ConditionEngine;
 import com.jjg.game.core.base.condition.MatchResult;
 import com.jjg.game.core.base.condition.MatchResultData;
+import com.jjg.game.core.base.condition.numeric.ConditionEvent;
+import com.jjg.game.core.base.condition.numeric.ConditionSpec;
+import com.jjg.game.core.base.condition.numeric.ConditionUpdate;
+import com.jjg.game.core.base.condition.numeric.PreparedCondition;
 import com.jjg.game.core.constant.Code;
 import com.jjg.game.core.data.Player;
 import com.jjg.game.core.utils.TipUtils;
 import org.springframework.stereotype.Component;
 
 import java.util.Map;
+import java.util.List;
 
 /**
  * @author lm
@@ -21,6 +26,23 @@ public class ConditionManager {
 
     public ConditionManager(ConditionEngine conditionEngine) {
         this.conditionEngine = conditionEngine;
+    }
+
+    /** 数值型 condition 表配置入口；推荐在业务配置加载时调用一次并缓存返回值。 */
+    public PreparedCondition prepare(List<Long> config) {
+        return conditionEngine.prepare(config);
+    }
+
+    public PreparedCondition prepare(String config) {
+        return conditionEngine.prepare(config);
+    }
+
+    public ConditionUpdate evaluate(ConditionSpec spec, ConditionEvent event) {
+        return conditionEngine.evaluate(spec, event);
+    }
+
+    public boolean supports(int conditionId) {
+        return conditionEngine.supports(conditionId);
     }
 
     /**

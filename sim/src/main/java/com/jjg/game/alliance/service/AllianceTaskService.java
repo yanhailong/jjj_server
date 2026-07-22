@@ -13,11 +13,13 @@ import com.jjg.game.alliance.data.PlayerTakenTask;
 import com.jjg.game.alliance.pb.AlliancePbConverter;
 import com.jjg.game.alliance.pb.res.*;
 import com.jjg.game.common.utils.TimeHelper;
+import com.jjg.game.core.base.condition.numeric.ConditionEvent;
+import com.jjg.game.core.base.condition.numeric.ConditionUpdate;
+import com.jjg.game.core.base.condition.numeric.PreparedCondition;
 import com.jjg.game.core.constant.AddType;
 import com.jjg.game.core.constant.Code;
 import com.jjg.game.core.data.PlayerController;
 import com.jjg.game.core.service.PlayerPackService;
-import com.jjg.game.core.utils.ItemUtils;
 import com.jjg.game.sampledata.GameDataManager;
 import com.jjg.game.sampledata.bean.TaskCfg;
 import com.jjg.game.sim.constant.SimConstant;
@@ -25,13 +27,14 @@ import com.jjg.game.sim.dao.SimPlayerGameDao;
 import com.jjg.game.sim.data.SimPlayerContext;
 import com.jjg.game.sim.manager.SimPlayerContextRegistry;
 import com.jjg.game.sim.service.SimConfigCacheService;
+import com.jjg.game.sim.service.SimConditionEventFactory;
 import com.jjg.game.sim.service.SimPackService;
-import com.jjg.game.sim.data.SpinStatInfo;
 import com.jjg.game.social.service.SocialSender;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.data.redis.core.StringRedisTemplate;
+import org.springframework.data.redis.core.script.DefaultRedisScript;
 import org.springframework.stereotype.Service;
 
 import java.time.LocalDateTime;
@@ -58,6 +61,40 @@ import java.util.concurrent.TimeUnit;
 @Service
 public class AllianceTaskService {
     private static final Logger log = LoggerFactory.getLogger(AllianceTaskService.class);
+
+    /**
+     * 进度更新脚本：ADD 使用 Redis 原生 64 位 INCRBY；MAX 用十进制字符串比较，避免 Lua double
+     * 在大额金币超过 2^53 后丢精度。更新与首次设置 TTL 在 Redis 内原子完成，支持玩家跨 hall
+     * 节点迁移时多个事件并发到达。
+     */
+    private static final DefaultRedisScript<String> UPDATE_PROGRESS_SCRIPT = new DefaultRedisScript<>("""
+            local old = redis.call('GET', KEYS[1])
+            local mode = ARGV[1]
+            local value = ARGV[2]
+            if mode == 'ADD' then
+                redis.call('INCRBY', KEYS[1], value)
+            elseif mode == 'MAX' then
+                local function normalize(v)
+                    local n = string.gsub(v, '^0+', '')
+                    if n == '' then return '0' end
+                    return n
+                end
+                local current = normalize(old or '0')
+                local candidate = normalize(value)
+                if string.len(candidate) > string.len(current)
+                        or (string.len(candidate) == string.len(current) and candidate > current) then
+                    redis.call('SET', KEYS[1], candidate)
+                elseif not old then
+                    redis.call('SET', KEYS[1], current)
+                end
+            else
+                redis.call('SET', KEYS[1], value)
+            end
+            if not old then
+                redis.call('EXPIRE', KEYS[1], ARGV[3])
+            end
+            return redis.call('GET', KEYS[1])
+            """, String.class);
 
     //任务完成结果
     public static final int TASK_RESULT_FINISH = 1;
@@ -427,45 +464,17 @@ public class AllianceTaskService {
     // 进度 (事件驱动, 高频路径)
     // =====================================================================
 
-    /**
-     * 任务进度上报 (由 {@code AllianceEventService} 统一调度)。
-     * 高频路径: 任务快照走本地缓存, 无任务的玩家在缓存上直接短路, 不触达存储。
-     *
-     * @param conditionId task.xlsx 的 taskConditionId 首位
-     * @param param       事件参数
-     * @param value       进度增量
-     */
-    public void onProgress(long playerId, int conditionId, long param, long value) {
-        onProgress(playerId, new TaskEvent(conditionId, param, value, 0, 0, 0));
-    }
-
-    /**
-     * 任务求助被帮助: 求助上限=1 次, 帮助即视为达成 (需求:
-     * 同一任务只能由一名用户帮助, 被帮助者相当于完成任务)。
-     *
-     * @return true 该任务因此完成
-     */
-    public void onSpin(long playerId, int gameType, int winTimes, int costPower, SpinStatInfo statInfo) {
-        long bet = statInfo == null ? costPower : statInfo.getBet();
-        long win = statInfo == null ? 0 : statInfo.getWin();
-        if (costPower > 0 || bet > 0) {
-            onProgress(playerId, new TaskEvent(AllianceConst.TaskConditionType.BET_TIMES, gameType, 1, bet, gameType, 0));
-        }
-        if (winTimes > 0) {
-            onProgress(playerId, new TaskEvent(AllianceConst.TaskConditionType.WIN_TIMES, winTimes, 1, bet, gameType, 0));
-        }
-        if (win > 0) {
-            onProgress(playerId, new TaskEvent(AllianceConst.TaskConditionType.WIN_AMOUNT, 0, win, bet, gameType, ItemUtils.getGoldItemId()));
-        }
-    }
-
+    /** 非 slots 结算产生的金币收益上报，沿用 12306 的游戏/货币过滤规则。 */
     public void onEarnGold(long playerId, int gameType, long gold) {
-        onProgress(playerId, new TaskEvent(AllianceConst.TaskConditionType.WIN_AMOUNT, 0, gold,
-                Long.MAX_VALUE, gameType, ItemUtils.getGoldItemId()));
+        onConditionEvent(playerId,
+                SimConditionEventFactory.fromGameResult(gameType, Long.MAX_VALUE, gold, 0));
     }
 
-    private void onProgress(long playerId, TaskEvent event) {
-        if (event.value() <= 0) {
+    /**
+     * 通用条件事件入口。先通过联盟/任务本地缓存短路，只有当前已接任务确实匹配事件才访问 Redis。
+     */
+    public void onConditionEvent(long playerId, ConditionEvent event) {
+        if (event == null) {
             return;
         }
         if (cacheService.getAllianceId(playerId) <= 0) {
@@ -476,7 +485,12 @@ public class AllianceTaskService {
             return;
         }
         TaskCfg cfg = configService.getAllianceTaskByCfgId(taken.getCfgId());
-        if (cfg == null || !matchesEvent(cfg, event)) {
+        PreparedCondition condition = configService.getAllianceTaskCondition(taken.getCfgId());
+        if (cfg == null || condition == null) {
+            return;
+        }
+        ConditionUpdate update = condition.evaluate(event);
+        if (!update.matched() || update.value() <= 0) {
             return;
         }
         long now = System.currentTimeMillis();
@@ -484,57 +498,26 @@ public class AllianceTaskService {
             failTask(playerId, taken);
             return;
         }
-        Long progress = stringRedisTemplate.opsForValue().increment(progressKey(playerId, taken.getCfgId()), event.value());
-        if (progress != null && progress == event.value()) {
-            stringRedisTemplate.expire(progressKey(playerId, taken.getCfgId()),
-                    AllianceConst.Cfg.TASK_PROGRESS_TTL_SEC, TimeUnit.SECONDS);
-        }
-        if (progress != null && progress >= targetValue(cfg)) {
+        String key = progressKey(playerId, taken.getCfgId());
+        String result = stringRedisTemplate.execute(UPDATE_PROGRESS_SCRIPT, List.of(key),
+                update.mode().name(), Long.toString(update.value()),
+                Long.toString(AllianceConst.Cfg.TASK_PROGRESS_TTL_SEC));
+        long progress = parseProgress(result);
+        if (progress >= condition.target()) {
             finishTask(playerId, taken, cfg);
         }
     }
 
-    private boolean matchesEvent(TaskCfg cfg, TaskEvent event) {
-        List<Long> cond = cfg.getTaskConditionId();
-        if (cond == null || cond.isEmpty() || longAt(cond, 0, 0) != event.conditionId()) {
-            return false;
+    private long parseProgress(String value) {
+        if (value == null || value.isBlank()) {
+            return 0;
         }
-        return switch (event.conditionId()) {
-            //中奖倍数: 游戏ID_押注门槛_中奖倍数_达标次数 (每次达标 spin 计 1)
-            case AllianceConst.TaskConditionType.WIN_TIMES -> matchOptional(longAt(cond, 1, 0), event.gameType())
-                    && event.bet() >= longAt(cond, 2, 0)
-                    && event.param() >= longAt(cond, 3, 0);
-            //下注次数(消耗能量): 游戏ID_押注门槛_目标次数
-            case AllianceConst.TaskConditionType.BET_TIMES -> matchOptional(longAt(cond, 1, 0), event.gameType())
-                    && event.bet() >= longAt(cond, 2, 0);
-            //赢奖金额: 游戏ID_押注门槛_货币ID_目标金额 (货币ID 在第 3 位)
-            case AllianceConst.TaskConditionType.WIN_AMOUNT -> matchOptional(longAt(cond, 1, 0), event.gameType())
-                    && event.bet() >= longAt(cond, 2, 0)
-                    && matchOptional(longAt(cond, 3, 0), event.coinId());
-            //捐献: 捐献量门槛_目标次数 (单次捐献量达门槛才计次)
-            case AllianceConst.TaskConditionType.DONATE_TIMES -> event.param() >= longAt(cond, 1, 0);
-            //建筑升级/卡池抽奖/技能研究/累计充值: 第 1 位为可选过滤维度(建筑ID/卡池ID/游戏ID/渠道ID, 0=任意)
-            default -> matchOptional(longAt(cond, 1, 0), event.param());
-        };
-    }
-
-    /**
-     * 目标值 = 条件参数末位。对齐 condition.csv 后所有联盟条件的达标阈值均落在末位。
-     */
-    private long targetValue(TaskCfg cfg) {
-        List<Long> cond = cfg.getTaskConditionId();
-        return cond == null || cond.isEmpty() ? Long.MAX_VALUE : cond.getLast();
-    }
-
-    private boolean matchOptional(long expected, long actual) {
-        return expected <= 0 || expected == actual;
-    }
-
-    private long longAt(List<Long> values, int index, long defaultValue) {
-        return values.size() > index ? values.get(index) : defaultValue;
-    }
-
-    private record TaskEvent(int conditionId, long param, long value, long bet, int gameType, int coinId) {
+        try {
+            return Long.parseLong(value);
+        } catch (NumberFormatException e) {
+            log.error("联盟任务 Redis 进度值非法 value={}", value, e);
+            return 0;
+        }
     }
 
     public boolean onTaskHelped(long ownerId, int taskCfgId) {

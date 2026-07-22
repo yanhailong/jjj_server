@@ -1,5 +1,6 @@
 package com.jjg.game.season.service;
 
+import com.jjg.game.core.base.condition.numeric.GameConditionEvent;
 import com.jjg.game.core.constant.AddType;
 import com.jjg.game.core.constant.Code;
 import com.jjg.game.core.constant.TaskConstant;
@@ -18,6 +19,7 @@ import com.jjg.game.season.model.SeasonSnapshot;
 import com.jjg.game.sim.data.SimPlayerContext;
 import com.jjg.game.sim.data.SpinStatInfo;
 import com.jjg.game.sim.service.SimAutoSaveService;
+import com.jjg.game.sim.service.SimConditionEventFactory;
 import com.jjg.game.sim.service.SimPackService;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -40,14 +42,6 @@ import java.util.Map;
 @Service
 public class SeasonTrialService {
     private static final Logger log = LoggerFactory.getLogger(SeasonTrialService.class);
-
-    //条件类型 (condition 表 id)
-    private static final int COND_TOTAL_WIN = 12601;
-    private static final int COND_MODE_TRIGGER = 12602;
-    private static final int COND_MULTIPLE = 12603;
-    private static final int COND_WIN_COUNT = 12604;
-    private static final int COND_ICON_COUNT = 12605;
-    private static final int COND_SINGLE_WIN = 12606;
 
     private final SeasonTrialConfigService trialConfigService;
     private final SeasonConfigService configService;
@@ -177,9 +171,19 @@ public class SeasonTrialService {
      * @return 发生结算时返回结果, 否则 null
      */
     public SeasonTrialResult onSpin(SimPlayerContext ctx, int gameType, SpinStatInfo statInfo) {
+        if (statInfo == null) {
+            return null;
+        }
+        GameConditionEvent event = SimConditionEventFactory.fromSpin(gameType,
+                statInfo.getMultiple(), 0, statInfo);
+        return onSpin(ctx, gameType, event);
+    }
+
+    /** 生产热路径复用 SimManager 已构造的单个条件事件。 */
+    public SeasonTrialResult onSpin(SimPlayerContext ctx, int gameType, GameConditionEvent event) {
         SeasonPlayerData data = ctx.getSeasonPlayerData();
         SeasonTrialSession session = data == null ? null : data.getActiveTrial();
-        if (session == null || statInfo == null) {
+        if (session == null || event == null) {
             return null;
         }
         SeasonTrialDef def = trialConfigService.trial(session.getTrialId());
@@ -195,45 +199,12 @@ public class SeasonTrialService {
             return null;
         }
         session.setSpinCount(session.getSpinCount() + 1);
-        session.setProgress(advance(def, session.getProgress(), statInfo));
+        session.setProgress(def.condition().evaluate(event).apply(session.getProgress()));
         int achieved = def.starsOf(session.getProgress());
         if (achieved >= SeasonTrialDef.STAR_COUNT || session.getSpinCount() >= def.windowSpins()) {
             return settle(ctx, data, def, session, achieved);
         }
         return null;
-    }
-
-    /**
-     * 按条件类型推进进度值。
-     */
-    static long advance(SeasonTrialDef def, long progress, SpinStatInfo statInfo) {
-        long win = Math.max(0, statInfo.getWin());
-        return switch (def.conditionId()) {
-            case COND_TOTAL_WIN -> progress + win;
-            case COND_MODE_TRIGGER -> progress + (containsMode(statInfo, (int) def.param()) ? 1 : 0);
-            case COND_MULTIPLE -> progress + (statInfo.getMultiple() >= def.param() ? 1 : 0);
-            case COND_WIN_COUNT -> progress + (win > 0 ? 1 : 0);
-            case COND_ICON_COUNT -> progress + countIcons(statInfo.getIcons(), (int) def.param());
-            case COND_SINGLE_WIN -> Math.max(progress, win);
-            default -> progress;
-        };
-    }
-
-    private static boolean containsMode(SpinStatInfo statInfo, int modeId) {
-        return statInfo.getSpecialModes() != null && statInfo.getSpecialModes().contains(modeId);
-    }
-
-    private static int countIcons(List<Integer> icons, int elementId) {
-        if (icons == null) {
-            return 0;
-        }
-        int count = 0;
-        for (Integer icon : icons) {
-            if (icon != null && icon == elementId) {
-                count++;
-            }
-        }
-        return count;
     }
 
     // =====================================================================

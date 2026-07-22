@@ -1,5 +1,9 @@
 package com.jjg.game.sim.service;
 
+import com.jjg.game.core.base.condition.numeric.ConditionRuleRegistry;
+import com.jjg.game.core.base.condition.numeric.ConditionSpec;
+import com.jjg.game.core.base.condition.numeric.GameConditionEvent;
+import com.jjg.game.core.base.condition.numeric.PreparedCondition;
 import com.jjg.game.core.constant.TaskConstant;
 import com.jjg.game.core.listener.ConfigExcelChangeListener;
 import com.jjg.game.sampledata.GameDataManager;
@@ -10,6 +14,7 @@ import com.jjg.game.sim.constant.SimConstant;
 import com.jjg.game.sim.data.CoopTaskRule;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Component;
 
 import java.util.ArrayList;
@@ -37,6 +42,16 @@ public class CoopTaskConfigService implements ConfigExcelChangeListener {
     private volatile int dailyPoolCount = 10;
     private volatile int refreshCostItemId;
     private volatile long refreshCostCount;
+    private final ConditionRuleRegistry conditionRules;
+
+    public CoopTaskConfigService() {
+        this(ConditionRuleRegistry.standard());
+    }
+
+    @Autowired
+    public CoopTaskConfigService(ConditionRuleRegistry conditionRules) {
+        this.conditionRules = conditionRules;
+    }
 
     @Override
     public void initSampleCallbackCollector() {
@@ -127,23 +142,27 @@ public class CoopTaskConfigService implements ConfigExcelChangeListener {
         if (cond == null || cond.isEmpty()) {
             return null;
         }
-        int conditionId = cond.get(0).intValue();
-        int requiredSize = switch (conditionId) {
-            case CoopTaskConst.Condition.SPECIAL_MODE_COUNT,
-                 CoopTaskConst.Condition.BIG_WIN_COUNT -> 5;
-            case CoopTaskConst.Condition.TOTAL_WIN,
-                 CoopTaskConst.Condition.TOTAL_BET -> 4;
-            default -> 0;
-        };
-        if (requiredSize == 0 || cond.size() < requiredSize) {
+        PreparedCondition prepared;
+        try {
+            prepared = conditionRules.prepare(ConditionSpec.from(cond));
+        } catch (IllegalArgumentException e) {
             return null;
         }
-        int gameType = cond.get(1).intValue();
-        int spinBudget = cond.get(2).intValue();
-        int modeId = requiredSize == 5 ? cond.get(3).intValue() : 0;
-        long target = cond.get(requiredSize - 1);
+        int conditionId = prepared.spec().id();
+        //协作房间的配额语义目前只由 12501-12504 定义，其他通用条件不能被误当成 Spin 配额。
+        if (prepared.eventType() != GameConditionEvent.class
+                || conditionId < CoopTaskConst.Condition.SPECIAL_MODE_COUNT
+                || conditionId > CoopTaskConst.Condition.TOTAL_BET) {
+            return null;
+        }
+        int gameType = prepared.spec().intParameter(0);
+        int spinBudget = prepared.spec().intParameter(1);
+        int modeId = prepared.spec().parameters().size() == 4 ? prepared.spec().intParameter(2) : 0;
+        long target = prepared.target();
+        boolean requiresMode = conditionId == CoopTaskConst.Condition.SPECIAL_MODE_COUNT
+                || conditionId == CoopTaskConst.Condition.BIG_WIN_COUNT;
         if (gameType < 0 || spinBudget <= 0 || spinBudget > CoopTaskConst.Limits.MAX_SPIN_BUDGET
-                || target <= 0 || (requiredSize == 5 && modeId <= 0)) {
+                || target <= 0 || (requiresMode && modeId <= 0)) {
             return null;
         }
         List<Integer> minMax = cfg.getMinandMax();
@@ -158,7 +177,7 @@ public class CoopTaskConfigService implements ConfigExcelChangeListener {
             return null;
         }
         return new CoopTaskRule(cfg.getId(), conditionId, gameType,
-                spinBudget, modeId, target, min, max, duration);
+                spinBudget, modeId, target, min, max, duration, prepared);
     }
 
     /**

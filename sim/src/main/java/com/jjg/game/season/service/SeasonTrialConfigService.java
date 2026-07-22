@@ -1,11 +1,15 @@
 package com.jjg.game.season.service;
 
+import com.jjg.game.core.base.condition.numeric.ConditionRuleRegistry;
+import com.jjg.game.core.base.condition.numeric.ConditionSpec;
+import com.jjg.game.core.base.condition.numeric.PreparedCondition;
 import com.jjg.game.core.constant.TaskConstant;
 import com.jjg.game.sampledata.GameDataManager;
 import com.jjg.game.sampledata.bean.TaskCfg;
 import com.jjg.game.season.config.SeasonTrialDef;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 
 import java.util.ArrayList;
@@ -30,13 +34,24 @@ public class SeasonTrialConfigService {
      * 测试注入用配置源; null 时走 GameDataManager
      */
     private final List<TaskCfg> tasks;
+    private final ConditionRuleRegistry conditionRules;
 
     public SeasonTrialConfigService() {
-        this.tasks = null;
+        this(null, ConditionRuleRegistry.standard());
     }
 
     public SeasonTrialConfigService(List<TaskCfg> tasks) {
-        this.tasks = tasks == null ? List.of() : List.copyOf(tasks);
+        this(tasks == null ? List.of() : List.copyOf(tasks), ConditionRuleRegistry.standard());
+    }
+
+    @Autowired
+    public SeasonTrialConfigService(ConditionRuleRegistry conditionRules) {
+        this(null, conditionRules);
+    }
+
+    private SeasonTrialConfigService(List<TaskCfg> tasks, ConditionRuleRegistry conditionRules) {
+        this.tasks = tasks;
+        this.conditionRules = conditionRules;
     }
 
     public List<SeasonTrialDef> trials() {
@@ -157,9 +172,17 @@ public class SeasonTrialConfigService {
             }
         }
         int conditionId = base.getFirst().intValue();
+        PreparedCondition prepared;
+        try {
+            prepared = conditionRules.prepare(ConditionSpec.from(base));
+        } catch (IllegalArgumentException e) {
+            log.warn("赛季试炼配置无效: 通用条件校验失败 trialId={},condition={},error={}",
+                    trialId, base, e.getMessage());
+            return null;
+        }
         if (conditionId == CONDITION_RECHARGE) {
             return new SeasonTrialDef(trialId, day, conditionId, 0, 0, 0,
-                    base.get(1).intValue(), targets, List.copyOf(group));
+                    base.get(1).intValue(), targets, List.copyOf(group), prepared);
         }
         int gameType = base.get(1).intValue();
         int windowSpins = base.get(2).intValue();
@@ -169,7 +192,7 @@ public class SeasonTrialConfigService {
             return null;
         }
         return new SeasonTrialDef(trialId, day, conditionId, gameType, windowSpins, param, 0,
-                targets, List.copyOf(group));
+                targets, List.copyOf(group), prepared);
     }
 
     private static List<Integer> ids(List<TaskCfg> group) {

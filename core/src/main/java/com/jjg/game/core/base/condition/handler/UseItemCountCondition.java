@@ -2,8 +2,12 @@ package com.jjg.game.core.base.condition.handler;
 
 import com.jjg.game.core.base.condition.ConditionContext;
 import com.jjg.game.core.base.condition.MatchResultData;
-import com.jjg.game.core.base.condition.data.UserItem;
 import com.jjg.game.core.base.condition.event.UserItemEvent;
+import com.jjg.game.core.base.condition.numeric.ActionConditionEvent;
+import com.jjg.game.core.base.condition.numeric.ConditionRuleRegistry;
+import com.jjg.game.core.base.condition.numeric.ConditionSpec;
+import com.jjg.game.core.base.condition.numeric.ConditionUpdate;
+import com.jjg.game.core.base.condition.numeric.PreparedCondition;
 import com.jjg.game.core.base.gameevent.EGameEventType;
 import com.jjg.game.core.dao.CountDao;
 import com.jjg.game.sampledata.GameDataManager;
@@ -13,18 +17,14 @@ import org.springframework.stereotype.Component;
 import java.math.BigDecimal;
 import java.util.List;
 
-/**
- * 12006_每累计达到有效流水时触发|指定倍场游戏类型可多个倍场
- *
- * @author lm
- * @date 2026/1/14 13:48
- */
+/** 12101：累计使用指定道具。 */
 @Component
-public class UseItemCountCondition extends BaseRedisCondition<UserItem> {
+public class UseItemCountCondition extends BaseRedisCondition<PreparedCondition> {
+    private final ConditionRuleRegistry conditionRules;
 
-
-    protected UseItemCountCondition(CountDao countDao) {
+    protected UseItemCountCondition(CountDao countDao, ConditionRuleRegistry conditionRules) {
         super(countDao);
+        this.conditionRules = conditionRules;
     }
 
     @Override
@@ -38,56 +38,52 @@ public class UseItemCountCondition extends BaseRedisCondition<UserItem> {
     }
 
     @Override
-    public UserItem parse(List<String> args) {
-        String itemId = args.getFirst();
-        String count = args.get(1);
-        return new UserItem(Integer.parseInt(itemId), Integer.parseInt(count));
-    }
-
-    public boolean matchCheck(UserItemEvent event, UserItem config) {
-        return event.getItemId() == config.itemId();
+    public PreparedCondition parse(List<String> args) {
+        return conditionRules.prepare(ConditionSpec.from(12101, args));
     }
 
     @Override
-    public MatchResultData match(ConditionContext ctx, UserItem config) {
-        String customId = String.valueOf(ctx.player().getId()) + config.itemId();
-        BigDecimal count = countDao.getCount(getFeatureId(ctx), customId);
-        if (count.longValue() >= config.count()) {
+    public MatchResultData match(ConditionContext ctx, PreparedCondition config) {
+        BigDecimal count = countDao.getCount(getFeatureId(ctx), customId(ctx, config));
+        return count.longValue() >= config.target()
+                ? MatchResultData.match()
+                : MatchResultData.notMatch(getErrorCode(), config.target(), count.longValue());
+    }
+
+    @Override
+    public MatchResultData addProgress(ConditionContext ctx, PreparedCondition config) {
+        if (!(ctx.event() instanceof UserItemEvent event)) {
+            return MatchResultData.unknown();
+        }
+        String customId = customId(ctx, config);
+        BigDecimal current = countDao.getCount(getFeatureId(ctx), customId);
+        if (current.longValue() >= config.target()) {
             return MatchResultData.match();
         }
-        return MatchResultData.notMatch(getErrorCode(), config.count(), count.longValue());
-    }
-
-    @Override
-    public MatchResultData addProgress(ConditionContext ctx, UserItem config) {
-        if (ctx.event() instanceof UserItemEvent event && matchCheck(event, config)) {
-            String customId = String.valueOf(ctx.player().getId()) + event.getItemId();
-            String featureId = getFeatureId(ctx);
-            BigDecimal count = countDao.getCount(featureId, customId);
-            if (count.longValue() >= config.count()) {
-                return MatchResultData.match();
-            }
-            count = countDao.incrBy(ctx.player().getId(), featureId, customId, BigDecimal.valueOf(event.getCount()));
-            if (count.longValue() >= config.count()) {
-                return MatchResultData.match();
-            }
-            return MatchResultData.notMatch(getErrorCode(), config.count(), count.longValue());
+        ConditionUpdate update = config.evaluate(new ActionConditionEvent(ActionConditionEvent.Type.ITEM_USE,
+                event.getItemId(), 0, 0, event.getCount(), 0, false));
+        if (!update.matched() || update.value() <= 0) {
+            return MatchResultData.unknown();
         }
-        return MatchResultData.unknown();
+        BigDecimal total = countDao.incrBy(ctx.player().getId(), getFeatureId(ctx), customId,
+                BigDecimal.valueOf(update.value()));
+        return total.longValue() >= config.target()
+                ? MatchResultData.match()
+                : MatchResultData.notMatch(getErrorCode(), config.target(), total.longValue());
     }
 
     @Override
-    public void delete(ConditionContext ctx, UserItem config) {
-        String customId = String.valueOf(ctx.player().getId()) + config.itemId();
-        countDao.reset(ctx.player().getId(), getFeatureId(ctx), customId);
+    public void delete(ConditionContext ctx, PreparedCondition config) {
+        countDao.reset(ctx.player().getId(), getFeatureId(ctx), customId(ctx, config));
+    }
+
+    private static String customId(ConditionContext ctx, PreparedCondition config) {
+        return String.valueOf(ctx.player().getId()) + config.spec().parameter(0);
     }
 
     @Override
     public int getErrorCode() {
         ConditionCfg conditionCfg = GameDataManager.getConditionCfg(12101);
-        if (conditionCfg != null) {
-            return conditionCfg.getLanguageID();
-        }
-        return 0;
+        return conditionCfg == null ? 0 : conditionCfg.getLanguageID();
     }
 }

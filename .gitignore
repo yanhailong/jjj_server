@@ -17,6 +17,27 @@
 test
 sim/src/test/
 sim/src/test/**
+!sim/src/test/
+!sim/src/test/java/
+!sim/src/test/java/com/
+!sim/src/test/java/com/jjg/
+!sim/src/test/java/com/jjg/game/
+!sim/src/test/java/com/jjg/game/core/
+!sim/src/test/java/com/jjg/game/core/base/
+!sim/src/test/java/com/jjg/game/core/base/condition/
+!sim/src/test/java/com/jjg/game/core/base/condition/numeric/
+!sim/src/test/java/com/jjg/game/core/base/condition/numeric/ConditionRuleRegistryTest.java
+!sim/src/test/java/com/jjg/game/core/base/condition/handler/
+!sim/src/test/java/com/jjg/game/core/base/condition/handler/LegacyConditionHandlerTest.java
+!sim/src/test/java/com/jjg/game/core/task/
+!sim/src/test/java/com/jjg/game/core/task/condition/
+!sim/src/test/java/com/jjg/game/core/task/condition/TaskConditionAdapterTest.java
+!sim/src/test/java/com/jjg/game/sim/
+!sim/src/test/java/com/jjg/game/sim/service/
+!sim/src/test/java/com/jjg/game/sim/service/SimTaskStateEventFactoryTest.java
+!sim/src/test/java/com/jjg/game/alliance/
+!sim/src/test/java/com/jjg/game/alliance/service/
+!sim/src/test/java/com/jjg/game/alliance/service/AllianceEventServiceTest.java
 target
 log
 

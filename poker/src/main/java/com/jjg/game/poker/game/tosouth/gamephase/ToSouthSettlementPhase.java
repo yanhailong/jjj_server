@@ -502,7 +502,8 @@ public class ToSouthSettlementPhase extends BaseSettlementPhase<ToSouthGameDataV
             // 活动进度
             controller.dealBet(gamePlayer, totalBet);
             controller.dealEffectiveBet(gamePlayer, totalBet);
-            controller.triggerSettlementAction(playerId, controller.getRoom().getGameType(), 0, totalWin, controller.getGameTransactionItemId());
+            controller.triggerSettlementAction(playerId, controller.getRoom().getGameType(),
+                    0, totalBet, totalWin, controller.getGameTransactionItemId());
         }
 
         // 3. 发送到 Kafka（topic: game_bet_settlement）

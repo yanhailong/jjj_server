@@ -1,6 +1,5 @@
 package com.jjg.game.sim.service;
 
-import com.jjg.game.alliance.constant.AllianceConst;
 import com.jjg.game.alliance.service.AllianceEventService;
 import com.jjg.game.common.utils.TimeHelper;
 import com.jjg.game.common.utils.WeightRandom;
@@ -143,6 +142,7 @@ public class SimEmployeeService {
             List<RecruitItemInfo> recruitItems = new ArrayList<>();
 
             Map<Integer, Integer> addEmployee = new HashMap<>();
+            Map<Integer, Long> recruitedProfessions = new HashMap<>();
             for (int i = 0; i < count; i++) {
                 int drawItemId;
                 int rewardCount;
@@ -166,6 +166,7 @@ public class SimEmployeeService {
                 }
 
                 for (int j = 0; j < rewardCount; j++) {
+                    recruitedProfessions.merge(profileCfg.getProfessionID(), 1L, Long::sum);
                     RecruitItemInfo re = new RecruitItemInfo();
                     re.itemId = profileCfg.getDuplicatetoShard().get(0);
                     re.count = profileCfg.getDuplicatetoShard().get(2);
@@ -206,7 +207,9 @@ public class SimEmployeeService {
 
             res.shardInfos = recruitItems;
             //联盟任务: 卡池抽奖次数 (param=卡池ID, 供 0=任意/指定卡池 过滤; 10 连计为 10 次)
-            allianceEventService.onEvent(ctx.playerId(), AllianceConst.TaskConditionType.POOL_DRAW_TIMES, tmpCfg.getId(), count);
+            allianceEventService.onCardPoolDraw(ctx.playerId(), tmpCfg.getId(), count);
+            recruitedProfessions.forEach((professionId, recruited) ->
+                    allianceEventService.onEmployeeRecruit(ctx.playerId(), professionId, recruited));
             log.info("招募雇员成功 playerId={},count={},newEmployee={},addAllItems={}", ctx.playerId(), count, addEmployee, addAllItems);
         } catch (Exception e) {
             log.error("", e);

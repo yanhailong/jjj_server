@@ -1,7 +1,9 @@
 package com.jjg.game.sim.service;
 
-import com.jjg.game.core.base.condition.MatchResult;
-import com.jjg.game.core.base.condition.event.BetEvent;
+import com.jjg.game.core.base.condition.numeric.ConditionEvent;
+import com.jjg.game.core.base.condition.numeric.ConditionUpdate;
+import com.jjg.game.core.base.condition.numeric.PreparedCondition;
+import com.jjg.game.core.base.condition.numeric.StateConditionEvent;
 import com.jjg.game.core.constant.AddType;
 import com.jjg.game.core.constant.Code;
 import com.jjg.game.core.constant.TaskConstant;
@@ -11,13 +13,11 @@ import com.jjg.game.core.data.Item;
 import com.jjg.game.core.data.Player;
 import com.jjg.game.core.data.PlayerController;
 import com.jjg.game.core.logger.TaskLogger;
-import com.jjg.game.core.manager.ConditionManager;
 import com.jjg.game.core.service.CorePlayerService;
 import com.jjg.game.core.task.db.TaskDetail;
 import com.jjg.game.core.task.pb.Task;
 import com.jjg.game.core.task.pb.TaskCondition;
 import com.jjg.game.sampledata.GameDataManager;
-import com.jjg.game.sampledata.bean.ConditionCfg;
 import com.jjg.game.sampledata.bean.TaskCfg;
 import com.jjg.game.sim.data.SimBaseData;
 import com.jjg.game.sim.data.SimItemOperationResult;
@@ -34,6 +34,7 @@ import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 
+import java.math.BigDecimal;
 import java.util.ArrayList;
 import java.util.HashSet;
 import java.util.LinkedHashSet;
@@ -43,10 +44,10 @@ import java.util.Set;
 /**
  * sim 主线/成就任务服务 (线性链)。
  * <p>
- * 条件判定复用 core 通用条件系统 {@link ConditionManager}: 把任务配置 {@code taskConditionId}
- * (如 [10001,0,1,10]) 转成条件表达式 (如 {@code betFrequency(0,1,10)}, 首位经 condition 表映射为类型名),
- * 进度由条件系统累计在 Redis(CountDao)。prefix 按"主线整条 / 每个成就组"隔离, 同 prefix 同类型跨阶梯共享累计计数。
- * 链生命周期(接取/推进/领奖)与持久化由本服务在 sim 内自管, 事件来源 {@code SimManager.onSlotsSpin}。
+ * 条件判定复用 core 数值条件规则：配置加载时完成解析校验，事件热路径只做 O(1) 规则求值。
+ * 进度仍由本功能累计在 Redis(CountDao)；prefix 按"主线整条 / 每个成就组"隔离，旧条件继续沿用
+ * TriggerEventType 作为 featureId，保证改造前的进度数据可直接读取。
+ * 链生命周期(接取/推进/领奖)与持久化由本服务在 sim 内自管；旋转和经营动作都通过统一事实事件推进。
  *
  * @author 11
  * @date 2026/6/25
@@ -66,8 +67,6 @@ public class SimTaskService {
     private SimTaskDao simTaskDao;
     @Autowired
     private SimPackService simPackService;
-    @Autowired
-    private ConditionManager conditionManager;
     @Autowired
     private CountDao countDao;
     @Autowired
@@ -193,29 +192,53 @@ public class SimTaskService {
             if (player == null) {
                 return;
             }
-            BetEvent event = buildBetEvent(gameType, statInfo);
-            List<Task> changed = new ArrayList<>();
-
-            evaluateOnEvent(player, data, ctx.getSimBaseData(), data.getMainTask(), event, changed);
-            //成就组在事件推进中可能续接(替换同 group 节点), 用 keySet 快照遍历
-            for (Integer group : new ArrayList<>(data.getAchievements().keySet())) {
-                evaluateOnEvent(player, data, ctx.getSimBaseData(), data.getAchievements().get(group), event, changed);
-            }
-
-            if (!changed.isEmpty()) {
-                NotifySimTaskUpdate notify = new NotifySimTaskUpdate(Code.SUCCESS);
-                notify.tasks = changed;
-                ctx.send(notify);
-            }
+            onConditionEvent(ctx, SimConditionEventFactory.fromSpin(gameType,
+                    statInfo == null ? 0 : statInfo.getMultiple(), 0, statInfo));
         } catch (Exception e) {
             log.error("sim 任务旋转联动异常 playerId={},gameType={}", ctx.playerId(), gameType, e);
         }
     }
 
     /**
+     * sim 任务的通用事件入口。新增经营动作只需构造 core 条件事件并调用此方法，无需在任务服务
+     * 增加 condition id 分支；异常隔离由各事件生产者现有调用链负责。
+     */
+    public void onConditionEvent(SimPlayerContext ctx, ConditionEvent event) {
+        try {
+            advanceConditionEvent(ctx, event);
+        } catch (Exception e) {
+            log.error("sim 任务条件事件异常 playerId={},event={}",
+                    ctx == null ? 0 : ctx.playerId(), event, e);
+        }
+    }
+
+    private void advanceConditionEvent(SimPlayerContext ctx, ConditionEvent event) {
+        if (ctx == null) {
+            return;
+        }
+        SimTaskData data = ctx.getSimTaskData();
+        Player player = resolvePlayer(ctx);
+        if (data == null || player == null || event == null) {
+            return;
+        }
+        List<Task> changed = new ArrayList<>();
+        evaluateOnEvent(player, data, ctx.getSimBaseData(), data.getMainTask(), event, changed);
+        //成就组在事件推进中可能续接(替换同 group 节点), 用 keySet 快照遍历
+        for (Integer group : new ArrayList<>(data.getAchievements().keySet())) {
+            evaluateOnEvent(player, data, ctx.getSimBaseData(), data.getAchievements().get(group), event, changed);
+        }
+        if (!changed.isEmpty()) {
+            NotifySimTaskUpdate notify = new NotifySimTaskUpdate(Code.SUCCESS);
+            notify.tasks = changed;
+            ctx.send(notify);
+        }
+    }
+
+    /**
      * 事件推进单个节点: 累计进度(条件系统) + 判定完成。
      */
-    private void evaluateOnEvent(Player player, SimTaskData data, SimBaseData baseData, TaskDetail node, BetEvent event, List<Task> changed) {
+    private void evaluateOnEvent(Player player, SimTaskData data, SimBaseData baseData, TaskDetail node,
+                                 ConditionEvent event, List<Task> changed) {
         if (node == null || node.getStatus() != TaskConstant.TaskStatus.STATUS_IN_PROGRESS) {
             return;
         }
@@ -223,17 +246,26 @@ public class SimTaskService {
         if (cfg == null) {
             return;
         }
-        String expr = exprOf(cfg);
-        if (expr == null) {
-            log.debug("任务[{}]条件无法解析表达式, 跳过 playerId={}", node.getConfigId(), player.getId());
+        SimTaskConfigService.TaskConditionDef def = taskConfig.conditionOf(cfg.getId());
+        if (def == null) {
             return;
         }
-        String prefix = prefixOf(cfg);
-        MatchResult r = conditionManager.addProgressAndGetAchievements(player, event, prefix, expr).result();
-        //状态型条件(如玩家等级)addProgress 返回 UNKNOWN, 需再做一次达成判定
-        boolean done = r == MatchResult.MATCH
-                || (r == MatchResult.UNKNOWN && conditionManager.isAchievement(player, prefix, expr));
-        if (done) {
+        ConditionUpdate update = def.condition().evaluate(event);
+        if (!update.matched() || update.value() <= 0) {
+            return;
+        }
+        String featureId = def.counterType() + prefixOf(cfg);
+        String customId = String.valueOf(player.getId());
+        BigDecimal value = BigDecimal.valueOf(update.value());
+        long progress = switch (update.mode()) {
+            case ADD -> countDao.incrBy(player.getId(), featureId, customId, value).longValue();
+            case MAX -> countDao.max(player.getId(), featureId, customId, value).longValue();
+            case SET -> {
+                countDao.setCount(player.getId(), featureId, customId, value);
+                yield update.value();
+            }
+        };
+        if (progress >= def.condition().target()) {
             onComplete(player, data, baseData, node, cfg, changed);
         }
     }
@@ -249,8 +281,9 @@ public class SimTaskService {
         if (cfg == null) {
             return;
         }
-        String expr = exprOf(cfg);
-        if (expr != null && conditionManager.isAchievement(player, prefixOf(cfg), expr)) {
+        SimTaskConfigService.TaskConditionDef def = taskConfig.conditionOf(cfg.getId());
+        StateConditionEvent event = def == null ? null : playerState(player, def.condition());
+        if (event != null && def.condition().evaluate(event).apply(0) >= def.condition().target()) {
             onComplete(player, data, baseData, node, cfg, changed);
         }
     }
@@ -511,8 +544,8 @@ public class SimTaskService {
         List<Long> cond = cfg.getTaskConditionId();
         TaskCondition c = new TaskCondition();
         c.setConfigId(cond.getFirst().intValue());
-        //目标值 = 条件配置末位 (本期 1/10001/12007 均如此)
-        c.setConfigParam(cond.getLast());
+        SimTaskConfigService.TaskConditionDef def = taskConfig.conditionOf(cfg.getId());
+        c.setConfigParam(def == null ? cond.getLast() : def.condition().target());
         c.setProgress(currentProgress(player, cfg));
         c.setFinish(node.getStatus() != TaskConstant.TaskStatus.STATUS_IN_PROGRESS);
         task.getConditions().add(c);
@@ -523,43 +556,20 @@ public class SimTaskService {
      * 当前进度: 状态型(玩家等级)取实时等级, 事件型从条件系统计数(featureId = 条件type + prefix)回读。
      */
     private long currentProgress(Player player, TaskCfg cfg) {
-        int condId = cfg.getTaskConditionId().getFirst().intValue();
-        if (condId == TaskConstant.ConditionType.PLAYER_LEVEL) {
-            return player.getLevel();
-        }
-        ConditionCfg cc = GameDataManager.getConditionCfg(condId);
-        if (cc == null || cc.getTriggerEventType() == null || cc.getTriggerEventType().isEmpty()) {
+        SimTaskConfigService.TaskConditionDef def = taskConfig.conditionOf(cfg.getId());
+        if (def == null) {
             return 0;
         }
-        return countDao.getCount(cc.getTriggerEventType() + prefixOf(cfg), String.valueOf(player.getId())).longValue();
+        StateConditionEvent state = playerState(player, def.condition());
+        if (state != null) {
+            return def.condition().evaluate(state).apply(0);
+        }
+        return countDao.getCount(def.counterType() + prefixOf(cfg), String.valueOf(player.getId())).longValue();
     }
 
     // =====================================================================
     // 工具
     // =====================================================================
-
-    /**
-     * taskConditionId -> 条件表达式: 首位经 condition 表映射为类型名, 其余作参数。
-     * 例 [10001,0,1,10] -> betFrequency(0,1,10); [1,5] -> playerLevel(5); [12007,10000] -> totalValidBets(10000)。
-     */
-    private String exprOf(TaskCfg cfg) {
-        List<Long> cond = cfg.getTaskConditionId();
-        if (cond == null || cond.isEmpty()) {
-            return null;
-        }
-        ConditionCfg cc = GameDataManager.getConditionCfg(cond.getFirst().intValue());
-        if (cc == null || cc.getTriggerEventType() == null || cc.getTriggerEventType().isEmpty()) {
-            return null;
-        }
-        StringBuilder sb = new StringBuilder(cc.getTriggerEventType()).append('(');
-        for (int i = 1; i < cond.size(); i++) {
-            if (i > 1) {
-                sb.append(',');
-            }
-            sb.append(cond.get(i));
-        }
-        return sb.append(')').toString();
-    }
 
     /**
      * 计数隔离 prefix: 主线整条共享, 成就每组一个。
@@ -570,20 +580,8 @@ public class SimTaskService {
                 : PREFIX_ACH + cfg.getGroup();
     }
 
-    /**
-     * 旋转 -> 通用条件事件: slots 非房间游戏(roomType<10), betList 单笔用于次数类条件。
-     */
-    private BetEvent buildBetEvent(int gameType, SpinStatInfo statInfo) {
-        long bet = statInfo != null ? statInfo.getBet() : 0;
-        long win = statInfo != null ? statInfo.getWin() : 0;
-        BetEvent event = new BetEvent();
-        event.setGameId(gameType);
-        event.setGameType(gameType);
-        event.setRoomType(0);
-        event.setBetAmount(bet);
-        event.setWinAmount(win);
-        event.setBetList(List.of((int) Math.min(Math.max(bet, 1L), Integer.MAX_VALUE)));
-        return event;
+    private StateConditionEvent playerState(Player player, PreparedCondition condition) {
+        return SimTaskStateEventFactory.from(player, condition);
     }
 
     private Player resolvePlayer(SimPlayerContext ctx) {

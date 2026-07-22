@@ -60,7 +60,8 @@ public class BetDataTrackLogUtils {
                     controller.dealIncome(gamePlayer, finalIncome);
                 }
             }.setHandlerParamWithSelf("recordBetLog"));
-            controller.triggerSettlementAction(gamePlayer.getId(), controller.getRoom().getGameType(), effectiveWaterFlow, income, controller.getGameTransactionItemId());
+            controller.triggerSettlementAction(gamePlayer.getId(), controller.getRoom().getGameType(),
+                    effectiveWaterFlow, settlementData.getBetTotal(), income, controller.getGameTransactionItemId());
         }
         // 添加流水数据
         gameDataTracker.addPlayerLogData(

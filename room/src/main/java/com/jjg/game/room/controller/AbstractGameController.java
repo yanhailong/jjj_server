@@ -676,16 +676,19 @@ public abstract class AbstractGameController<RC extends RoomCfg, G extends GameD
      * @param playerId           玩家ID
      * @param gameType           游戏类型
      * @param effectiveWaterFlow 有效流水
+     * @param totalBet           本局总押注；不能使用会被互斥下注抵消的有效流水代替
      * @param winValue           增加的钱
      * @param coinId             货币id
      */
-    public void triggerSettlementAction(long playerId, int gameType, long effectiveWaterFlow, long winValue, int coinId) {
+    public void triggerSettlementAction(long playerId, int gameType, long effectiveWaterFlow,
+                                        long totalBet, long winValue, int coinId) {
         try {
             if (winValue > 0) {
                 //触发任务
                 taskManager.trigger(playerId, TaskConstant.ConditionType.PLAY_GAME_WIN_MONEY, () -> {
                     TaskConditionParam10003 param = new TaskConditionParam10003();
                     param.setGameId(gameType);
+                    param.setBetAmount(totalBet);
                     param.setAddValue(winValue);
                     param.setCoinId(coinId);
                     return param;
@@ -710,7 +713,8 @@ public abstract class AbstractGameController<RC extends RoomCfg, G extends GameD
                 }, false);
             }
         } catch (Exception e) {
-            log.error("任务触发异常 playerId:{} gameType:{} effectiveWaterFlow:{} winValue:{} coinId:{}", playerId, gameType, effectiveWaterFlow, winValue, coinId, e);
+            log.error("任务触发异常 playerId:{} gameType:{} effectiveWaterFlow:{} totalBet:{} winValue:{} coinId:{}",
+                    playerId, gameType, effectiveWaterFlow, totalBet, winValue, coinId, e);
         }
     }
 

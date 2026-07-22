@@ -1,5 +1,6 @@
 package com.jjg.game.season.service;
 
+import com.jjg.game.core.base.condition.numeric.GameConditionEvent;
 import com.jjg.game.core.constant.Code;
 import com.jjg.game.core.data.CommonResult;
 import com.jjg.game.core.data.PlayerPack;
@@ -20,6 +21,7 @@ import com.jjg.game.season.pb.struct.*;
 import com.jjg.game.sim.constant.SimConstant;
 import com.jjg.game.sim.data.SimPlayerContext;
 import com.jjg.game.sim.data.SpinStatInfo;
+import com.jjg.game.sim.service.SimConditionEventFactory;
 import com.jjg.game.sim.listener.SimPlayerTickListener;
 import com.jjg.game.sim.service.SimAutoSaveService;
 import com.jjg.game.social.service.SocialSender;
@@ -334,10 +336,18 @@ public class SeasonService implements SimPlayerTickListener {
      * slots 普通旋转成功后的赛季联动；无对局结算时不产生通知。内部吞异常, 不影响 slots 主流程。
      */
     public NotifySeasonMatchResult onSpin(SimPlayerContext ctx, int gameType, SpinStatInfo statInfo) {
+        GameConditionEvent event = statInfo == null ? null : SimConditionEventFactory.fromSpin(
+                gameType, statInfo.getMultiple(), 0, statInfo);
+        return onSpin(ctx, gameType, statInfo, event);
+    }
+
+    /** 生产热路径复用同一个条件事件，其他赛季结算仍使用原始 SpinStatInfo。 */
+    public NotifySeasonMatchResult onSpin(SimPlayerContext ctx, int gameType, SpinStatInfo statInfo,
+                                          GameConditionEvent event) {
         try {
             dropService.onSpin(ctx, gameType);
             //试炼挑战窗口推进; 结算时直接下发通知 (与对局互斥: 试炼仅新手赛季, 对局仅进阶/循环赛季)
-            SeasonTrialResult trialResult = trialService.onSpin(ctx, gameType, statInfo);
+            SeasonTrialResult trialResult = event == null ? null : trialService.onSpin(ctx, gameType, event);
             if (trialResult != null) {
                 socialSender.sendTo(ctx.playerId(), trialNotify(trialResult));
             }

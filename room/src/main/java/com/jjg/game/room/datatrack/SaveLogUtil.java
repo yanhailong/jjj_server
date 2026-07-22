@@ -79,7 +79,8 @@ public class SaveLogUtil {
                 }
             }.setHandlerParamWithSelf("generalLog"));
             //触发任务
-            gameController.triggerSettlementAction(gamePlayer.getId(), gameController.getRoom().getGameType(), sum, income, gameController.getGameTransactionItemId());
+            gameController.triggerSettlementAction(gamePlayer.getId(), gameController.getRoom().getGameType(),
+                    sum, totalBet, income, gameController.getGameTransactionItemId());
             gameDataTracker.addPlayerLogData(gamePlayer, DataTrackNameConstant.AREA_DATA, areaMap);
         }
         gameDataTracker.addGameLogData(DataTrackNameConstant.AREA_DATA, areaTotalBet);

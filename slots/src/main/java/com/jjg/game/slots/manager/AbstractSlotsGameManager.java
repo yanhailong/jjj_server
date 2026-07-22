@@ -2249,6 +2249,7 @@ public abstract class AbstractSlotsGameManager<T extends SlotsPlayerGameData, L 
         taskManager.trigger(player.getId(), TaskConstant.ConditionType.PLAY_GAME_WIN_MONEY, () -> {
             TaskConditionParam10003 param = new TaskConditionParam10003();
             param.setGameId(gameType);
+            param.setBetAmount(playerGameData.getAllBetScore());
             param.setAddValue(winValue);
             param.setCoinId(moneyItemId);
             return param;
