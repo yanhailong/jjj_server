@@ -210,7 +210,9 @@ public abstract class AbstractWealthGodGameManager extends AbstractSlotsGameMana
         }
         Player player = playerController.getPlayer();
         long playerId = playerController.playerId();
-        CommonResult<Long> slotsRewardPool = slotsPoolDao.rewardByRatioFromSmallPool(playerId, this.gameType, player.getRoomCfgId(), poolCfg.getTruePool(), poolId, AddType.SLOTS_JACKPOT_REWARD);
+        WealthGodPlayerGameData playerGameData = getPlayerGameData(playerController);
+        long stake = playerGameData == null ? 0L : playerGameData.getAllBetScore();
+        CommonResult<Long> slotsRewardPool = slotsPoolDao.rewardByRatioFromSmallPool(playerId, this.gameType, player.getRoomCfgId(), poolCfg.getTruePool(), poolId, stake, poolCfg.getMaxMultiple(), AddType.SLOTS_JACKPOT_REWARD);
         if (slotsRewardPool != null) {
             return slotsRewardPool.data;
         }

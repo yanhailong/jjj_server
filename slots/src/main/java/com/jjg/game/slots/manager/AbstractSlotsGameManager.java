@@ -1257,7 +1257,7 @@ public abstract class AbstractSlotsGameManager<T extends SlotsPlayerGameData, L 
 
             //检查是否中大奖
             CommonResult<Long> result = slotsPoolDao.rewardByRatioFromSmallPool(playerGameData.getPlayerId(), this.gameType, playerGameData.getRoomCfgId(),
-                    poolCfg.getTruePool(), poolCfg.getId(), AddType.SLOTS_JACKPOT_REWARD);
+                    poolCfg.getTruePool(), poolCfg.getId(), playerGameData.getAllBetScore(), poolCfg.getMaxMultiple(), AddType.SLOTS_JACKPOT_REWARD);
             if (!result.success()) {
                 log.warn("从小池子扣除，并给玩家加钱失败2 code = {}", result.code);
                 return;

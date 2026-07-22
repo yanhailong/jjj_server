@@ -33,6 +33,8 @@ public class PoolCfg extends BaseCfgBean {
   protected int poolProp;
   /** 真奖池奖金万分比 */
   protected int truePool;
+  /** 最大奖金倍数（相对于下注额） */
+  protected int maxMultiple;
 
   /** 返回中奖表现延迟时间 */
   public int getDelayTime() {
@@ -67,6 +69,11 @@ public class PoolCfg extends BaseCfgBean {
   /** 返回真奖池奖金万分比 */
   public int getTruePool() {
     return truePool;
+  }
+
+  /** 返回最大奖金倍数（相对于下注额） */
+  public int getMaxMultiple() {
+    return maxMultiple;
   }
 
   @Override

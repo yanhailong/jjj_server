@@ -108,7 +108,7 @@ public abstract class AbstractGaraGemstone1GameManager extends AbstractSlotsGame
             PoolCfg poolCfg = GameDataManager.getPoolCfg(resultLib.getJackpotId());
             if (poolCfg != null) {
                 CommonResult<Long> result = slotsPoolDao.rewardByRatioFromSmallPool(playerGameData.getPlayerId(), this.gameType, playerGameData.getRoomCfgId(),
-                        poolCfg.getTruePool(), poolCfg.getId(), AddType.SLOTS_JACKPOT_REWARD);
+                        poolCfg.getTruePool(), poolCfg.getId(), betValue, poolCfg.getMaxMultiple(), AddType.SLOTS_JACKPOT_REWARD);
                 if (result.success()) {
                     gameRunInfo.addSmallPoolGold(result.data);
                 }
