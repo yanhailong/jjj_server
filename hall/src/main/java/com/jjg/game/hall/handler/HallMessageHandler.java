@@ -190,6 +190,8 @@ public class HallMessageHandler implements GmListener, ChooseWareListener, Choos
                 return;
             }
 
+            SimPlayerContext ctx = simPlayerContextRegistry.getContext(playerController.playerId());
+
             res.playerId = player.getId();
             res.nick = player.getNickName();
             res.createTime = player.getCreateTime();
@@ -204,7 +206,11 @@ public class HallMessageHandler implements GmListener, ChooseWareListener, Choos
             res.headFrameId = player.getHeadFrameId();
             res.nationalId = player.getNationalId();
             res.titleId = player.getTitleId();
-            res.level = player.getLevel();
+//            res.level = player.getLevel();
+
+            if (ctx != null) {
+                res.level = ctx.getSimBaseData().getAllLevel();
+            }
             res.exp = player.getExp();
 
             Account account = accountDao.queryAccountByPlayerId(playerController.playerId());
@@ -1185,13 +1191,13 @@ public class HallMessageHandler implements GmListener, ChooseWareListener, Choos
                 }
 
                 SimPlayerContext context = simPlayerContextRegistry.getContext(playerController.playerId());
-                if(context == null){
+                if (context == null) {
                     log.warn("获取新手奖励时，获取SimPlayerContext失败 playerId = {}", playerController.playerId());
                     playerController.send(res);
                     res.code = Code.NOT_FOUND;
                     return;
                 }
-                CommonResult<SimItemOperationResult> addItems = simPackService.addItems(context, rewards, AddType.PLAYER_REGISTER,null,true);
+                CommonResult<SimItemOperationResult> addItems = simPackService.addItems(context, rewards, AddType.PLAYER_REGISTER, null, true);
                 if (!addItems.success()) {
                     log.error("玩家领取注册奖励失败 playerId:{}", playerController.playerId());
                 }

@@ -27,8 +27,6 @@ public class SimCasinoData extends AbstractData {
     private int exp;
     //场景等级 (CasinoStatsSheet.level)
     private int casinoLevel;
-    //等级id
-    private int statsId;
     //当前繁荣度
     private int prosperity;
     //知名度 (场景宣传度)

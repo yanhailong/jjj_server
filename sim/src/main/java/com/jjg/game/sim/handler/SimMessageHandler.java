@@ -731,7 +731,10 @@ public class SimMessageHandler implements GmListener {
                     return res;
                 }
                 SimPlayerContext ctx = this.simPlayerContextRegistry.getContext(playerController.playerId());
+
+                int oldLevel = ctx.getCurrentCasino().getCasinoLevel();
                 ctx.getCurrentCasino().setCasinoLevel(cfg.getLevel());
+                ctx.getSimBaseData().addAllLevel(ctx.getCurrentCasino().getCasinoLevel() - oldLevel);
             } else if ("simAddItem".equalsIgnoreCase(gmOrders[0])) {
                 int itemId = Integer.parseInt(gmOrders[1]);
                 long count = Long.parseLong(gmOrders[2]);
