@@ -220,6 +220,7 @@ public class SimVisitService {
             SimCasinoData casino = owned.get(ThreadLocalRandom.current().nextInt(owned.size()));
             ResVisitCasino result = visit(ctx, id, casino.getCasinoId());
             if (result.code == Code.SUCCESS) {
+                log.info("玩家拜访 playerId={},targetPlayerId={}", ctx.playerId(), id);
                 return result;
             }
             if (result.code == Code.EXCEPTION) {

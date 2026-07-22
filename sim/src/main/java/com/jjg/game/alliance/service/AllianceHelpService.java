@@ -419,9 +419,15 @@ public class AllianceHelpService {
         ResAllianceHelpList res = new ResAllianceHelpList(Code.SUCCESS);
         res.orders = new ArrayList<>();
         long allianceId = cacheService.getAllianceId(playerId);
+        if (allianceId < 1) {
+            res.code = Code.NOT_FOUND;
+            log.warn("获取求助订单失败，玩家不在联盟 playerId={}", playerId);
+            return res;
+        }
         AllianceData alliance = cacheService.getAlliance(allianceId);
         if (alliance == null) {
             res.code = Code.NOT_FOUND;
+            log.warn("获取求助订单失败，未找到玩家所在联盟 playerId={},allianceId={}", playerId, allianceId);
             return res;
         }
         long now = System.currentTimeMillis();

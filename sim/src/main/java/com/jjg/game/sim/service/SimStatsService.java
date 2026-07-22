@@ -166,12 +166,15 @@ public class SimStatsService {
         list.add(new StatInfo(SimStatKey.Operation.FINISH_TASK, baseData.getFinishedTaskCount()));
         list.add(new StatInfo(SimStatKey.Operation.WATCH_AD, baseData.getWatchAdCount()));
 
-        //房间每分钟产量
+        //房间每分钟产量 (金币收益=SLOT+扑克+捕鱼 三类游戏房间合计)
         Map<Integer, Long> roomOutputs = buildingService.computeRoomOutputs(ctx, casino);
+        long slotOutput = roomOutputs.getOrDefault(SimStatKey.Operation.GOLD_INCOME, 0L);
+        long pokerOutput = roomOutputs.getOrDefault(SimStatKey.Operation.POKER_ROOM, 0L);
+        long fishingOutput = roomOutputs.getOrDefault(SimStatKey.Operation.FISHING_ROOM, 0L);
         list.add(new StatInfo(SimStatKey.Operation.ENERGY_ROOM, roomOutputs.getOrDefault(SimStatKey.Operation.ENERGY_ROOM, 0L)));
-        list.add(new StatInfo(SimStatKey.Operation.GOLD_INCOME, roomOutputs.getOrDefault(SimStatKey.Operation.GOLD_INCOME, 0L)));
-        list.add(new StatInfo(SimStatKey.Operation.POKER_ROOM, roomOutputs.getOrDefault(SimStatKey.Operation.POKER_ROOM, 0L)));
-        list.add(new StatInfo(SimStatKey.Operation.FISHING_ROOM, roomOutputs.getOrDefault(SimStatKey.Operation.FISHING_ROOM, 0L)));
+        list.add(new StatInfo(SimStatKey.Operation.GOLD_INCOME, slotOutput + pokerOutput + fishingOutput));
+        list.add(new StatInfo(SimStatKey.Operation.POKER_ROOM, pokerOutput));
+        list.add(new StatInfo(SimStatKey.Operation.FISHING_ROOM, fishingOutput));
 
         //职能部门当前等级属性值
         list.add(new StatInfo(SimStatKey.Operation.RECEPTION_AREA, buildingService.computeDeptValue(ctx, casino, BuildingOutputType.SERVICE)));
