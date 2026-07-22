@@ -79,13 +79,14 @@ final class DefaultConditionRules {
         rules.add(game(12002, 1, 1, 0, ProgressMode.ADD,
                 (s, e) -> e.roomType() < 10, (s, e) -> Math.max(0, e.bet())));
         rules.add(game(12003, 2, Integer.MAX_VALUE, 0, ProgressMode.ADD,
-                (s, e) -> containsAny(s, 1, e.gameId(), e.gameType()), (s, e) -> Math.max(0, e.bet())));
+                (s, e) -> wildcardOrContains(s, 1, e.gameId()), (s, e) -> Math.max(0, e.bet())));
         rules.add(game(12004, 2, Integer.MAX_VALUE, 0, ProgressMode.ADD,
-                (s, e) -> !containsAny(s, 1, e.gameId(), e.gameType()), (s, e) -> Math.max(0, e.bet())));
+                (s, e) -> wildcardAt(s, 1) || !contains(s, 1, e.gameId()),
+                (s, e) -> Math.max(0, e.bet())));
         rules.add(game(12005, 2, Integer.MAX_VALUE, 0, ProgressMode.ADD,
-                (s, e) -> contains(s, 1, e.gameType()), (s, e) -> Math.max(0, e.bet())));
+                (s, e) -> wildcardOrContains(s, 1, e.gameType()), (s, e) -> Math.max(0, e.bet())));
         rules.add(game(12006, 2, Integer.MAX_VALUE, 0, ProgressMode.ADD,
-                (s, e) -> contains(s, 1, e.roomType()), (s, e) -> Math.max(0, e.bet())));
+                (s, e) -> wildcardOrContains(s, 1, e.roomType()), (s, e) -> Math.max(0, e.bet())));
         rules.add(game(12007, 1, 1, 0, ProgressMode.ADD,
                 (s, e) -> e.roomType() < 10, (s, e) -> Math.max(0, e.bet())));
         rules.add(action(12101, 2, 2, 1, ProgressMode.ADD, ActionConditionEvent.Type.ITEM_USE,
@@ -268,8 +269,13 @@ final class DefaultConditionRules {
         return false;
     }
 
-    private static boolean containsAny(ConditionSpec spec, int start, long first, long second) {
-        return contains(spec, start, first) || contains(spec, start, second);
+    /** 12003-12006 的旧配置约定：过滤列表首项为 0 时表示任意范围。 */
+    private static boolean wildcardAt(ConditionSpec spec, int start) {
+        return spec.parameter(start) == 0;
+    }
+
+    private static boolean wildcardOrContains(ConditionSpec spec, int start, long actual) {
+        return wildcardAt(spec, start) || contains(spec, start, actual);
     }
 
     private static long positiveCount(ActionConditionEvent event) {
