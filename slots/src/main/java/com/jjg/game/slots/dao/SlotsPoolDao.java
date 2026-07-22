@@ -172,16 +172,25 @@ public class SlotsPoolDao extends AbstractPoolDao {
      * @param playerId
      * @param gameType
      * @param roomCfgId
-     * @param ratio     奖池万分比
+     * @param ratio       奖池万分比
+     * @param stake       本次下注额，与 maxMultiple 共同决定玩家最大可获得金额
+     * @param maxMultiple 最大奖金倍数（相对于下注额），小于等于0表示不限制
      * @param addType
      * @return
      */
-    public CommonResult<Long> rewardByRatioFromSmallPool(long playerId, int gameType, int roomCfgId, int ratio, int poolId, AddType addType) {
+    public CommonResult<Long> rewardByRatioFromSmallPool(long playerId, int gameType, int roomCfgId, int ratio, int poolId, long stake, int maxMultiple, AddType addType) {
         CommonResult<Long> result = new CommonResult<>(Code.SUCCESS);
 
         Number poolValue = getSmallPoolByRoomCfgId(gameType, roomCfgId);
 
         long value = PropUtil.calProp(ratio, poolValue.longValue());
+        if (maxMultiple > 0 && stake > 0) {
+            long maxValue = stake * maxMultiple;
+            if (value > maxValue) {
+                log.debug("按倍数上限截断奖池奖励 playerId = {},gameType = {},roomCfgId = {},stake = {},maxMultiple = {},原value = {},截断后value = {}", playerId, gameType, roomCfgId, stake, maxMultiple, value, maxValue);
+                value = maxValue;
+            }
+        }
         if (value < 1) {
             result.code = Code.FAIL;
             log.warn("计算出的 value 小于1 playerId = {},gameType = {},roomCfgId = {}", playerId, gameType, roomCfgId);

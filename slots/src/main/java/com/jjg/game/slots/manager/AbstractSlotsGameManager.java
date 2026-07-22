@@ -807,9 +807,17 @@ public abstract class AbstractSlotsGameManager<T extends SlotsPlayerGameData, L 
      * 成功时 data 为本次中奖值; 统一收口所有 rewardByRatioFromSmallPool 直连 DAO 的玩法。
      */
     protected CommonResult<Long> rewardByRatioSmallPoolCurrency(T playerGameData, int ratio, int poolId, AddType addType) {
+        PoolCfg poolCfg = GameDataManager.getPoolCfg(poolId);
+        long stake = playerGameData.getAllBetScore();
+        int maxMultiple = poolCfg == null ? 0 : poolCfg.getMaxMultiple();
         if (playerGameData.isSeason()) {
             Number poolNum = slotsPoolDao.getSmallPoolByRoomCfgId(this.gameType, playerGameData.getRoomCfgId());
             long value = poolNum == null ? 0 : PropUtil.calProp(ratio, poolNum.longValue());
+            if (maxMultiple > 0 && stake > 0) {
+                long maxValue = stake > Long.MAX_VALUE / maxMultiple
+                        ? Long.MAX_VALUE : stake * maxMultiple;
+                value = Math.min(value, maxValue);
+            }
             if (value < 1 || !seasonReward(playerGameData, value)) {
                 return new CommonResult<>(Code.FAIL);
             }
@@ -817,7 +825,8 @@ public abstract class AbstractSlotsGameManager<T extends SlotsPlayerGameData, L 
             slotsPoolDao.updatePoolCD(poolId);
             return new CommonResult<>(Code.SUCCESS, value);
         }
-        return slotsPoolDao.rewardByRatioFromSmallPool(playerGameData.getPlayerId(), this.gameType, playerGameData.getRoomCfgId(), ratio, poolId, addType);
+        return slotsPoolDao.rewardByRatioFromSmallPool(playerGameData.getPlayerId(), this.gameType,
+                playerGameData.getRoomCfgId(), ratio, poolId, stake, maxMultiple, addType);
     }
 
     /**
