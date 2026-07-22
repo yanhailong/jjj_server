@@ -173,7 +173,7 @@ public class PlayerPackService implements IPlayerRegister {
                 addShell += Math.abs(item.getItemCount());
                 continue;
             }
-            if(!itemCfg.getIsBag()){
+            if (!itemCfg.getIsBag()) {
                 continue;
             }
             itemList.add(item);
@@ -280,7 +280,7 @@ public class PlayerPackService implements IPlayerRegister {
     /**
      * 移除道具
      *
-     * @param remove   移除的道具
+     * @param remove 移除的道具
      * @return 最新的背包结果
      */
     public CommonResult<ItemOperationResult> removeItem(Player player, Item remove, AddType addType) {
@@ -371,6 +371,7 @@ public class PlayerPackService implements IPlayerRegister {
             return result;
         }
         CommonResult<ItemOperationResult> result = new CommonResult<>(Code.NOT_ENOUGH_ITEM);
+        player = corePlayerService.get(player.getId());
         int code = checkHasItems(player, validRemoveItemList);
         if (code != Code.SUCCESS) {
             result.code = code;
