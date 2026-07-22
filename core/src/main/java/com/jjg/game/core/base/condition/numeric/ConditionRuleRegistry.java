@@ -1,5 +1,6 @@
 package com.jjg.game.core.base.condition.numeric;
 
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Component;
 
 import java.util.LinkedHashMap;
@@ -13,6 +14,7 @@ import java.util.Map;
 public class ConditionRuleRegistry {
     private final Map<Integer, ConditionRule<?>> rules;
 
+    @Autowired
     public ConditionRuleRegistry(List<ConditionRule<?>> extensions) {
         this(DefaultConditionRules.rules(), extensions);
     }

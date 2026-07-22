@@ -63,7 +63,8 @@ final class DefaultConditionRules {
         rules.add(rule(11002, RechargeConditionEvent.class, 2, 2, 1, ProgressMode.ADD,
                 (s, e) -> e.matchesChannel(s.parameter(0)),
                 (s, e) -> Math.max(0, e.amount()), nonNegativeParameters()));
-        rules.add(rule(11003, RechargeConditionEvent.class, 2, 2, 0, ProgressMode.ADD,
+        //每日签到等旧业务用 11003_0_0 表示无需充值、立即满足；这是合法业务哨兵，不是错误目标。
+        rules.add(ruleAllowingZeroTarget(11003, RechargeConditionEvent.class, 2, 2, 0, ProgressMode.ADD,
                 (s, e) -> e.matchesChannel(s.parameter(1)),
                 (s, e) -> Math.max(0, e.amount()), nonNegativeParameters()));
         rules.add(rule(11004, RechargeConditionEvent.class, 2, 2, 0, ProgressMode.ADD,
@@ -243,7 +244,15 @@ final class DefaultConditionRules {
             ProgressMode mode, BiPredicate<ConditionSpec, E> predicate,
             ToLongBiFunction<ConditionSpec, E> value, Consumer<ConditionSpec> extraValidator) {
         return new SimpleRule<>(id, eventType, minParameters, maxParameters, targetIndex,
-                mode, predicate, value, extraValidator);
+                mode, predicate, value, extraValidator, false);
+    }
+
+    private static <E extends ConditionEvent> ConditionRule<E> ruleAllowingZeroTarget(
+            int id, Class<E> eventType, int minParameters, int maxParameters, int targetIndex,
+            ProgressMode mode, BiPredicate<ConditionSpec, E> predicate,
+            ToLongBiFunction<ConditionSpec, E> value, Consumer<ConditionSpec> extraValidator) {
+        return new SimpleRule<>(id, eventType, minParameters, maxParameters, targetIndex,
+                mode, predicate, value, extraValidator, true);
     }
 
     private static Consumer<ConditionSpec> nonNegativeParameters() {
@@ -302,7 +311,8 @@ final class DefaultConditionRules {
             ProgressMode mode,
             BiPredicate<ConditionSpec, E> predicate,
             ToLongBiFunction<ConditionSpec, E> valueFunction,
-            Consumer<ConditionSpec> extraValidator) implements ConditionRule<E> {
+            Consumer<ConditionSpec> extraValidator,
+            boolean zeroTargetAllowed) implements ConditionRule<E> {
 
         @Override
         public void validate(ConditionSpec spec) {
@@ -317,7 +327,11 @@ final class DefaultConditionRules {
                         + " parameters but got " + size);
             }
             extraValidator.accept(spec);
-            if (target(spec) <= 0) {
+            long target = target(spec);
+            if (target < 0) {
+                throw new IllegalArgumentException("condition " + id + " target must not be negative");
+            }
+            if (!zeroTargetAllowed && target == 0) {
                 throw new IllegalArgumentException("condition " + id + " target must be positive");
             }
         }
