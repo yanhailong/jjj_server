@@ -137,7 +137,7 @@ public class SeasonGemService {
                         ctx.playerId(), first.getRarity(), itemIds.size());
                 return new CommonResult<>(Code.PARAM_ERROR);
             }
-            allSame &= itemId == first.getGemName();
+            allSame &= itemId == first.getItemId();
             input.merge(itemId, 1L, Long::sum);
         }
         if (!playerPackService.checkHasItems(ctx.getPlayerController().getPlayer(), input)) {
@@ -179,7 +179,7 @@ public class SeasonGemService {
                 return new CommonResult<>(Code.NOT_FOUND);
             }
             int count = outputCount(output.getId(), craft.getSuccessGem());
-            Map<Integer, Long> reward = Map.of(output.getGemName(), (long) count);
+            Map<Integer, Long> reward = Map.of(output.getItemId(), (long) count);
             CommonResult<?> add = simPackService.addItems(ctx, reward, AddType.ITEM_EXCHANGE,
                     "season-gem-craft", true);
             if (!add.success()) {
@@ -188,7 +188,7 @@ public class SeasonGemService {
                         ctx.playerId(), first.getRarity(), add.code);
                 return new CommonResult<>(add.code);
             }
-            result.setResultItemId(output.getGemName());
+            result.setResultItemId(output.getItemId());
             result.setResultCount(count);
         } else {
             result.setKeptItemId(keepItemId);

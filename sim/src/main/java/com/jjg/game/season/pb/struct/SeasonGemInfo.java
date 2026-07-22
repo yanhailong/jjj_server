@@ -26,6 +26,4 @@ public class SeasonGemInfo {
     public int nameLanguageId;
     @ProtoDesc("描述多语言ID")
     public int descLanguageId;
-    @ProtoDesc("客户端资源名")
-    public String icon;
 }

@@ -84,7 +84,7 @@ public class SeasonDropService {
             }
             SeasonGemCfg gem = configService.gem(gemRow.get(1));
             if (gem != null) {
-                rewards.merge(gem.getGemName(), (long) Math.max(1, gemRow.get(2)), Long::sum);
+                rewards.merge(gem.getItemId(), (long) Math.max(1, gemRow.get(2)), Long::sum);
             }
         }
         if (rewards.isEmpty()) {

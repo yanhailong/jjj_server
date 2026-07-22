@@ -575,16 +575,15 @@ public class SeasonService implements SimPlayerTickListener {
     private SeasonGemInfo gemInfo(SeasonGemCfg cfg, PlayerPack pack, Map<Integer, Integer> equipped) {
         SeasonGemInfo info = new SeasonGemInfo();
         info.configId = cfg.getId();
-        info.itemId = cfg.getGemName();
+        info.itemId = cfg.getItemId();
         info.type = cfg.getType();
         info.genre = cfg.getGenre();
         info.rarity = cfg.getRarity();
-        info.buff = cfg.getBuff();
-        info.count = pack == null ? 0 : pack.getItemCount(cfg.getGemName());
-        info.equippedCount = (int) equipped.values().stream().filter(item -> item == cfg.getGemName()).count();
+//        info.buff = cfg.getBuff();
+        info.count = pack == null ? 0 : pack.getItemCount(cfg.getItemId());
+        info.equippedCount = (int) equipped.values().stream().filter(item -> item == cfg.getItemId()).count();
         info.nameLanguageId = cfg.getGemName();
         info.descLanguageId = cfg.getGemDesc();
-        info.icon = cfg.getIcon();
         return info;
     }
 

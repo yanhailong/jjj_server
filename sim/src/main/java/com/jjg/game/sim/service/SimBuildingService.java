@@ -557,18 +557,18 @@ public class SimBuildingService implements SimPlayerTickListener {
 
         BuildingAreaTableCfg areaCfg = GameDataManager.getBuildingAreaTableCfg(building.getId());
         if (areaCfg == null) {
-            return Collections.emptyMap();
+            return base;
         }
 
         BuildingType buildingType = BuildingType.fromCode(areaCfg.getType());
         if (buildingType == null) {
-            return Collections.emptyMap();
+            return base;
         }
         //获取加成
         BonusType bonusType = BonusType.fromBuildingType(buildingType);
         //检查是不是每分钟产出的建筑类型
         if (bonusType != null && !bonusType.isMin()) {
-            return Collections.emptyMap();
+            return base;
         }
         return applyBuildingBonus(ctx, base, bonusType, areaCfg.getEmployeeProfile(), bonusesMap);
     }

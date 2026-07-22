@@ -313,9 +313,9 @@ public class SeasonLifecycleService implements SimPlayerTickListener {
         }
         Map<Integer, Long> gems = new HashMap<>();
         configService.gems().forEach(cfg -> {
-            long count = pack.getItemCount(cfg.getGemName());
+            long count = pack.getItemCount(cfg.getItemId());
             if (count > 0) {
-                gems.put(cfg.getGemName(), count);
+                gems.put(cfg.getItemId(), count);
             }
         });
         if (gems.isEmpty()) {

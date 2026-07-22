@@ -212,7 +212,7 @@ public class SeasonConfigService {
             matchSource.forEach(cfg -> matchByDay.putIfAbsent(cfg.getDays(), cfg));
             gemSource.forEach(cfg -> {
                 gemById.putIfAbsent(cfg.getId(), cfg);
-                gemByItemId.putIfAbsent(cfg.getGemName(), cfg);
+                gemByItemId.putIfAbsent(cfg.getItemId(), cfg);
             });
             startSource.forEach(cfg -> seasonById.putIfAbsent(cfg.getId(), cfg));
             dropSource.forEach(cfg -> gemDropBySeasonId.putIfAbsent(cfg.getSeasonID(), cfg));
