@@ -17,7 +17,7 @@ import java.util.Map;
  */
 public class SeasonSlotsSessionData {
     /** 是否由赛季入口进入；仅此标记为 true 时使用赛季币及 SeasonGem 效果。 */
-    private boolean seasonCurrency;
+    private boolean seasonEnter;
     /** 赛季入口创建会话时的赛季币余额，后续由 slots 结算结果持续更新。 */
     private long seasonCoin;
     /** 当前机台是否是赛季每日免费局候选机台。 */
@@ -31,12 +31,12 @@ public class SeasonSlotsSessionData {
     /** 聚合 SeasonGem.winRate 与 specialModeProbUp 后的结果区间权重增量。 */
     private Map<Integer, Map<Integer, Integer>> sectionWeightDelta;
 
-    public boolean isSeasonCurrency() {
-        return seasonCurrency;
+    public boolean isSeasonEnter() {
+        return seasonEnter;
     }
 
-    public void setSeasonCurrency(boolean seasonCurrency) {
-        this.seasonCurrency = seasonCurrency;
+    public void setSeasonEnter(boolean seasonEnter) {
+        this.seasonEnter = seasonEnter;
     }
 
     public long getSeasonCoin() {

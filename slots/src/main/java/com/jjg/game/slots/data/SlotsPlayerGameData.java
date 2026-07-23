@@ -459,8 +459,8 @@ public class SlotsPlayerGameData {
         getSeasonSlotsSessionData().setSeasonFreeExhaustedDailyKey(seasonFreeExhaustedDailyKey);
     }
 
-    public boolean isSeasonCurrency() {
-        return getSeasonSlotsSessionData().isSeasonCurrency();
+    public boolean isSeason() {
+        return getSeasonSlotsSessionData().isSeasonEnter();
     }
 
     public SeasonSlotsSessionData getSeasonSlotsSessionData() {

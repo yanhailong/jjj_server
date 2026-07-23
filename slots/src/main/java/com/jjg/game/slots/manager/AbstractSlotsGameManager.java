@@ -372,15 +372,18 @@ public abstract class AbstractSlotsGameManager<T extends SlotsPlayerGameData, L 
     }
 
     public G playerStartGame(PlayerController playerController, long betValue) throws Exception {
-        //检查游戏是否开启
-        if (!this.open.get()) {
-            return createGameRunInfo(playerController.playerId(), Code.GAME_IS_MAINTAIN);
-        }
         //获取玩家游戏数据
         T playerGameData = getPlayerGameData(playerController);
         if (playerGameData == null) {
             log.debug("获取玩家游戏数据失败，开始游戏失败 playerId = {},gameType = {},roomCfgId = {}", playerController.playerId(), playerController.getPlayer().getGameType(), playerController.getPlayer().getRoomCfgId());
             return createGameRunInfo(playerController.playerId(), Code.NOT_FOUND);
+        }
+
+        //检查游戏是否开启
+        if (!playerGameData.isSeason()) {
+            if (!this.open.get()) {
+                return createGameRunInfo(playerController.playerId(), Code.GAME_IS_MAINTAIN);
+            }
         }
 
         if (getRoomType() != null) {
@@ -713,7 +716,7 @@ public abstract class AbstractSlotsGameManager<T extends SlotsPlayerGameData, L 
      * 成功时 data 为最新玩家对象(赛季模式返回当前玩家, 余额已刷新到 gameData); 供直接调用 DAO 的玩法复用。
      */
     protected CommonResult<Player> rewardBigPoolCurrency(T playerGameData, long value, AddType addType) {
-        if (playerGameData.isSeasonCurrency()) {
+        if (playerGameData.isSeason()) {
             if (value < 1 || !seasonReward(playerGameData, value)) {
                 return new CommonResult<>(Code.FAIL);
             }
@@ -729,7 +732,7 @@ public abstract class AbstractSlotsGameManager<T extends SlotsPlayerGameData, L 
      * 成功时 data 为最新玩家对象; 供直接调用 DAO 的玩法复用。
      */
     protected CommonResult<Player> rewardSmallPoolCurrency(T playerGameData, long value, int poolId, AddType addType) {
-        if (playerGameData.isSeasonCurrency()) {
+        if (playerGameData.isSeason()) {
             if (value < 1 || !seasonReward(playerGameData, value)) {
                 return new CommonResult<>(Code.FAIL);
             }
@@ -745,7 +748,7 @@ public abstract class AbstractSlotsGameManager<T extends SlotsPlayerGameData, L 
      * 成功时 data 为本次中奖值; 统一收口所有 rewardByRatioFromSmallPool 直连 DAO 的玩法。
      */
     protected CommonResult<Long> rewardByRatioSmallPoolCurrency(T playerGameData, int ratio, int poolId, AddType addType) {
-        if (playerGameData.isSeasonCurrency()) {
+        if (playerGameData.isSeason()) {
             Number poolNum = slotsPoolDao.getSmallPoolByRoomCfgId(this.gameType, playerGameData.getRoomCfgId());
             long value = poolNum == null ? 0 : PropUtil.calProp(ratio, poolNum.longValue());
             if (value < 1 || !seasonReward(playerGameData, value)) {
@@ -775,7 +778,7 @@ public abstract class AbstractSlotsGameManager<T extends SlotsPlayerGameData, L 
                 return new CommonResult<>(Code.SUCCESS, new Pair<>(freeSpinPlayer, new BetDivideInfo()));
             }
             Player player;
-            if (gameData.isSeasonCurrency()) {
+            if (gameData.isSeason()) {
                 //从赛季进入: 扣赛季币 (同步 RPC 到 sim), 池子共用不区分货币; 余额不足/sim不可达则拒绝本次旋转
                 CommonResult<Long> deductResult = seasonDeduct(gameData, betValue);
                 if (!deductResult.success()) {
@@ -1190,7 +1193,7 @@ public abstract class AbstractSlotsGameManager<T extends SlotsPlayerGameData, L 
      * 创建玩家玩游戏的数据存储对象
      *
      * @param playerController
-     * @param seasonEntry enterType=1 时为 true；赛季入口只加载 SeasonGem 效果，不加载研发技能
+     * @param seasonEntry      enterType=1 时为 true；赛季入口只加载 SeasonGem 效果，不加载研发技能
      * @return
      */
     @SuppressWarnings("unchecked")
@@ -1298,7 +1301,7 @@ public abstract class AbstractSlotsGameManager<T extends SlotsPlayerGameData, L 
         SeasonSlotsSessionData runtimeData = seasonSessionData == null
                 ? new SeasonSlotsSessionData() : seasonSessionData;
         // 普通入口也可能是赛季每日免费局候选，因此必须用显式标记区分是否启用赛季币和宝石效果。
-        runtimeData.setSeasonCurrency(seasonEntry);
+        runtimeData.setSeasonEnter(seasonEntry);
         // 保留当日已耗尽状态，防止同一天重新进机台后再次发起无意义的跨节点免费次数申请。
         runtimeData.setSeasonFreeExhaustedDailyKey(exhaustedDailyKey);
         playerGameData.setSkillsMap(!seasonEntry && skillsData != null ? skillsData.getSkillsMap() : null);
@@ -1344,7 +1347,7 @@ public abstract class AbstractSlotsGameManager<T extends SlotsPlayerGameData, L 
         }
 
         //赛季入口使用 SeasonGem，其他入口继续使用 ResearchSkills；两类配置在此处互斥。
-        if (playerGameData.isSeasonCurrency()) {
+        if (playerGameData.isSeason()) {
             propInfo = slotsSkillService.useSeasonGemLibTypeBonus(
                     playerGameData.getSeasonSlotsSessionData(), propInfo);
         } else {
@@ -1390,7 +1393,7 @@ public abstract class AbstractSlotsGameManager<T extends SlotsPlayerGameData, L 
         }
 
         //赛季入口使用 SeasonGem，其他入口继续使用 ResearchSkills；两类配置在此处互斥。
-        if (playerGameData.isSeasonCurrency()) {
+        if (playerGameData.isSeason()) {
             propInfo = slotsSkillService.useSeasonGemSectionBonus(
                     playerGameData.getSeasonSlotsSessionData(), propInfo, libType);
         } else {
@@ -1470,7 +1473,7 @@ public abstract class AbstractSlotsGameManager<T extends SlotsPlayerGameData, L 
         }
 
         if (playerGameData.getRoomType() == null) {
-            if (playerGameData.isSeasonCurrency()) {
+            if (playerGameData.isSeason()) {
                 //从赛季进入(credit-first): 先给玩家发赛季币(幂等RPC), 成功后再扣奖池(货币无关); 失败则不扣池、不算中奖
                 if (!seasonReward(playerGameData, addGold)) {
                     gameRunInfo.setCode(Code.FAIL);
@@ -1552,7 +1555,7 @@ public abstract class AbstractSlotsGameManager<T extends SlotsPlayerGameData, L 
                 continue;
             }
 
-            if (playerGameData.isSeasonCurrency()) {
+            if (playerGameData.isSeason()) {
                 //从赛季进入(credit-first): 先发赛季币, 成功后再扣小池(货币无关); 失败则不扣池、不算中奖
                 if (!seasonReward(playerGameData, poolValue)) {
                     return;
@@ -2370,7 +2373,7 @@ public abstract class AbstractSlotsGameManager<T extends SlotsPlayerGameData, L 
     public long getMoneyByItemId(WarehouseCfg warehouseCfg, Player player) {
         //从赛季进入的 slots: 展示赛季币余额, 而非金币/钻石 (allGold/beforeGold/afterGold 复用同一字段)
         T gameData = getPlayerGameData(player.getId());
-        if (gameData != null && gameData.isSeasonCurrency()) {
+        if (gameData != null && gameData.isSeason()) {
             return gameData.getSeasonCoinBalance();
         }
         if (warehouseCfg.getTransactionItemId() == ItemUtils.getDiamondItemId()) {
@@ -2785,7 +2788,7 @@ public abstract class AbstractSlotsGameManager<T extends SlotsPlayerGameData, L 
         }
 
         playerGameData.setTmpUnlockedStakeSet(null);
-        if (playerGameData.isSeasonCurrency()) {
+        if (playerGameData.isSeason()) {
             //赛季入口只追加 SeasonGem.bet，不能混入 ResearchSkills.bet。
             List<Long> seasonBet = playerGameData.getSeasonSlotsSessionData().getBet();
             if (seasonBet != null && !seasonBet.isEmpty()) {
