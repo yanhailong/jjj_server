@@ -21,6 +21,10 @@ public class SimBaseData extends AbstractData {
     private int currentCasinoId;
     //是否已完成新手引导
     private boolean guide;
+    private Set<Integer> triggeredGuideGroupIds;
+    private Set<Integer> completedGuideGroupIds;
+    // 已完成的具体引导步骤ID，用于断线后恢复组内进度
+    private Set<Integer> completedGuideIds;
     //上次离线时间 (ms), 用于长/短时掉线判定
     private long lastOfflineTime;
     //能量值
@@ -74,6 +78,71 @@ public class SimBaseData extends AbstractData {
 
     public void setGuide(boolean guide) {
         this.guide = guide;
+    }
+
+    public Set<Integer> getTriggeredGuideGroupIds() {
+        if (triggeredGuideGroupIds == null) triggeredGuideGroupIds = new HashSet<>();
+        return triggeredGuideGroupIds;
+    }
+
+    public void setTriggeredGuideGroupIds(Set<Integer> value) {
+        this.triggeredGuideGroupIds = value;
+    }
+
+    public Set<Integer> getCompletedGuideGroupIds() {
+        if (completedGuideGroupIds == null) completedGuideGroupIds = new HashSet<>();
+        return completedGuideGroupIds;
+    }
+
+    public void setCompletedGuideGroupIds(Set<Integer> value) {
+        this.completedGuideGroupIds = value;
+    }
+
+    public Set<Integer> getCompletedGuideIds() {
+        if (completedGuideIds == null) completedGuideIds = new HashSet<>();
+        return completedGuideIds;
+    }
+
+    public void setCompletedGuideIds(Set<Integer> value) {
+        this.completedGuideIds = value;
+    }
+
+    public boolean completeGuideId(int guideId) {
+        return guideId > 0 && getCompletedGuideIds().add(guideId);
+    }
+
+    public List<Integer> completedGuideIds() {
+        List<Integer> result = new ArrayList<>(getCompletedGuideIds());
+        result.sort(Integer::compareTo);
+        return result;
+    }
+
+    public boolean triggerGuideGroup(int groupId) {
+        return groupId > 0 && !getCompletedGuideGroupIds().contains(groupId)
+                && getTriggeredGuideGroupIds().add(groupId);
+    }
+
+    public boolean completeGuideGroup(int groupId) {
+        if (groupId <= 0) return false;
+        getTriggeredGuideGroupIds().add(groupId);
+        return getCompletedGuideGroupIds().add(groupId);
+    }
+
+    public boolean hasTriggeredGuideGroup(int groupId) {
+        return getTriggeredGuideGroupIds().contains(groupId);
+    }
+
+    public boolean hasCompletedGuideGroup(int groupId) {
+        return getCompletedGuideGroupIds().contains(groupId);
+    }
+
+    public List<Integer> pendingGuideGroupIds() {
+        List<Integer> pending = new ArrayList<>();
+        for (Integer groupId : getTriggeredGuideGroupIds()) {
+            if (!getCompletedGuideGroupIds().contains(groupId)) pending.add(groupId);
+        }
+        pending.sort(Integer::compareTo);
+        return pending;
     }
 
     public int getCurrentCasinoId() {

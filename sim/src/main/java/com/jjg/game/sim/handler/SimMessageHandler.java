@@ -14,6 +14,7 @@ import com.jjg.game.sampledata.bean.CasinoStatsSheetCfg;
 import com.jjg.game.sim.constant.SimConstant;
 import com.jjg.game.sim.data.BuildingData;
 import com.jjg.game.sim.data.SimPlayerContext;
+import com.jjg.game.sim.logger.SimGuideLogger;
 import com.jjg.game.sim.manager.SimManager;
 import com.jjg.game.sim.manager.SimPlayerContextRegistry;
 import com.jjg.game.sim.pb.req.*;
@@ -24,7 +25,10 @@ import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Component;
 
+import java.util.ArrayList;
 import java.util.HashMap;
+import java.util.LinkedHashSet;
+import java.util.List;
 import java.util.Map;
 import java.util.function.Consumer;
 import java.util.function.Function;
@@ -72,6 +76,8 @@ public class SimMessageHandler implements GmListener {
     private SimCoopRoomRouteService coopRoomRouteService;
     @Autowired
     private SimPackService simPackService;
+    @Autowired
+    private SimGuideLogger simGuideLogger;
 
 
     /**
@@ -96,7 +102,7 @@ public class SimMessageHandler implements GmListener {
      */
     @Command(SimConstant.MsgBean.REQ_FINISH_GUIDE)
     public void reqFinishGuide(PlayerController playerController, ReqFinishGuide req) {
-        simManager.onFinishGuide(playerController.playerId());
+        playerController.send(simManager.onFinishGuide(playerController.playerId(), req.guideId));
     }
 
     //--------------------------Casino相关 begin--------------------------
@@ -587,7 +593,52 @@ public class SimMessageHandler implements GmListener {
         CommonResult<String> res = new CommonResult<>(Code.SUCCESS);
         try {
             if ("simFinishGuide".equalsIgnoreCase(gmOrders[0])) {
-                reqFinishGuide(playerController, null);
+                // 后台命令：simFinishGuide all 或 simFinishGuide 1001,1002,1003
+                if (gmOrders.length < 2) {
+                    res.code = Code.PARAM_ERROR;
+                    res.data = "参数错误，格式：simFinishGuide all 或 simFinishGuide <GuideId,GuideId>";
+                    return res;
+                }
+                long playerId = playerController.playerId();
+                String param = gmOrders[1].trim();
+                if ("all".equalsIgnoreCase(param)) {
+                    res.code = simManager.onGmFinishAllGuides(playerId);
+                    if (res.code == Code.SUCCESS) {
+                        res.data = "已完成全部引导";
+                        simGuideLogger.completed(playerId, SimGuideLogger.OPERATION_FINISH_ALL, null);
+                    } else {
+                        res.data = "玩家模拟经营数据未加载，无法完成全部引导";
+                    }
+                    return res;
+                }
+
+                LinkedHashSet<Integer> uniqueIds = new LinkedHashSet<>();
+                for (String value : param.split(",", -1)) {
+                    if (value == null || !value.trim().matches("\\d+")) {
+                        res.code = Code.PARAM_ERROR;
+                        res.data = "引导ID格式错误：" + value;
+                        return res;
+                    }
+                    int guideId = Integer.parseInt(value.trim());
+                    if (guideId <= 0) {
+                        res.code = Code.PARAM_ERROR;
+                        res.data = "引导ID必须大于0：" + guideId;
+                        return res;
+                    }
+                    uniqueIds.add(guideId);
+                }
+                List<Integer> guideIds = new ArrayList<>(uniqueIds);
+                res.code = simManager.onGmFinishGuides(playerId, guideIds);
+                if (res.code == Code.SUCCESS) {
+                    res.data = "已完成指定引导：" + guideIds;
+                    simGuideLogger.completed(playerId,
+                            SimGuideLogger.OPERATION_FINISH_SPECIFIED, guideIds);
+                } else if (res.code == Code.PARAM_ERROR) {
+                    res.data = "指定列表中存在未配置的引导ID：" + guideIds;
+                } else {
+                    res.data = "玩家模拟经营数据未加载，无法完成指定引导：" + guideIds;
+                }
+                return res;
             } else if ("printGuest".equalsIgnoreCase(gmOrders[0])) {
                 SimPlayerContext context = this.simPlayerContextRegistry.getContext(playerController.playerId());
                 context.printGuest();

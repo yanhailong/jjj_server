@@ -76,6 +76,8 @@ public class SimTaskService {
     private SimMedalService simMedalService;
     @Autowired
     private TaskLogger taskLogger;
+    @Autowired
+    private SimGuideService guideService;
 
     // =====================================================================
     // 加载 / 接取
@@ -401,6 +403,7 @@ public class SimTaskService {
             simMedalService.refreshRankScore(ctx);
             simMedalService.refreshMedalBonusCache(ctx);
         }
+        guideService.trigger(ctx, com.jjg.game.sim.constant.SimConstant.GuideCondition.TASK_REWARD, taskId, true);
         log.info("玩家[{}]领取 sim 任务[{}]奖励成功", playerId, taskId);
         return res;
     }

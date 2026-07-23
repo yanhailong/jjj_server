@@ -37,6 +37,8 @@ public class SimDropService {
     private SimConfigCacheService configCacheService;
     @Autowired
     private SimPackService simPackService;
+    @Autowired
+    private SimGuideService guideService;
 
     /**
      * 玩家每次 slots 旋转触发 (运行在 hall 的 RPC 线程, 直接操作 ctx 内存数据)
@@ -58,6 +60,7 @@ public class SimDropService {
 
         //扣能量: 不足则跳过本次掉落联动 (不影响 slots 旋转本身)
         if (base.getPower() < SimConstant.Common.SPIN_COST_POWER) {
+            guideService.triggerItemNotEnough(ctx, SimConstant.Item.ID_POWER);
             log.info("能量不足, 跳过 slots 掉落联动 playerId={},gameType={},power={}", ctx.playerId(), gameType, base.getPower());
             result.code = Code.FAIL;
             return result;
@@ -68,6 +71,8 @@ public class SimDropService {
         //升级检查
         if (checkLevelUp(casino)) {
             ctx.getSimBaseData().addAllLevel(1);
+            guideService.trigger(ctx, SimConstant.GuideCondition.CASINO_LEVEL,
+                    casino.getCasinoLevel(), true);
         }
         //掉落
         Map<Integer, Long> dropResult = rollDrop(base, gameType, winTimes);
