@@ -40,6 +40,10 @@ public class ResSimEnterGame extends AbstractResponse {
     public int researchPoint;
     @ProtoDesc("已生成待领奖的购买游客 (断线重连补发, 凭 uid 领奖)")
     public List<GuestInfo> purchasedGuests;
+    @ProtoDesc("进入经营大厅时待执行的引导组编号列表")
+    public List<Integer> guideGroupIds;
+    @ProtoDesc("已经完成的引导步骤ID列表，用于断线后恢复组内进度")
+    public List<Integer> completedGuideIds;
 
 
     public ResSimEnterGame(int code) {

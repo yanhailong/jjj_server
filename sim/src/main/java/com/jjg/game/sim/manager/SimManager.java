@@ -21,6 +21,7 @@ import com.jjg.game.sim.dao.*;
 import com.jjg.game.sim.data.*;
 import com.jjg.game.sim.listener.SimPlayerTickListener;
 import com.jjg.game.sim.pb.SimPbConverter;
+import com.jjg.game.sim.pb.res.ResFinishGuide;
 import com.jjg.game.sim.pb.res.ResSimEnterGame;
 import com.jjg.game.sim.pb.res.ResSimPlayerInfo;
 import com.jjg.game.season.dao.SeasonPlayerDao;
@@ -40,6 +41,7 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Component;
 
 import java.util.ArrayList;
+import java.util.Collection;
 import java.util.Comparator;
 import java.util.List;
 import java.util.Map;
@@ -146,6 +148,8 @@ public class SimManager {
     private SeasonFreeGameService seasonFreeGameService;
     @Autowired
     private SeasonEconomyService economyService;
+    @Autowired
+    private SimGuideService guideService;
 
 
     /**
@@ -190,6 +194,11 @@ public class SimManager {
                 ctx.getSimBaseData().setLastOfflineTime(0);
             }
             playerController.setScene(ctx);
+            if (!ctx.getSimBaseData().isGuide()) {
+                guideService.trigger(ctx, SimConstant.GuideCondition.NEW_PLAYER, 0, false);
+            }
+            res.guideGroupIds = ctx.getSimBaseData().pendingGuideGroupIds();
+            res.completedGuideIds = ctx.getSimBaseData().completedGuideIds();
             res.guide = ctx.getSimBaseData().isGuide();
 
             res.currentCasinoId = ctx.getCurrentCasino().getCasinoId();
@@ -327,20 +336,20 @@ public class SimManager {
     }
 
     /**
-     * 玩家完成新手引导
+     * 玩家完成一个新手引导步骤
      */
-    public void onFinishGuide(long playerId) {
-        try {
-            SimPlayerContext ctx = this.simPlayerContextRegistry.getContext(playerId);
-            if (ctx == null) {
-                log.warn("玩家完成新手引导时获取 SimPlayerContext 失败 playerId={}", playerId);
-                return;
-            }
-            ctx.getSimBaseData().setGuide(true);
-            log.info("玩家完成新手引导 playerId={}", playerId);
-        } catch (Exception e) {
-            log.error("", e);
-        }
+    public ResFinishGuide onFinishGuide(long playerId, int guideId) {
+        return guideService.finish(simPlayerContextRegistry.getContext(playerId), guideId);
+    }
+
+    /** GM 强制完成指定引导步骤，不要求所属组已经触发。 */
+    public int onGmFinishGuides(long playerId, Collection<Integer> guideIds) {
+        return guideService.forceFinishGuides(simPlayerContextRegistry.getContext(playerId), guideIds);
+    }
+
+    /** GM 强制完成全部引导。 */
+    public int onGmFinishAllGuides(long playerId) {
+        return guideService.forceFinishAll(simPlayerContextRegistry.getContext(playerId));
     }
 
     /**
@@ -377,12 +386,10 @@ public class SimManager {
 
         //加载玩家数据
         SimBaseData baseData = simPlayerGameDao.findById(playerId).orElse(null);
-        boolean create = false;
         if (baseData == null) {
             baseData = new SimBaseData();
             baseData.setPlayerId(playerId);
             baseData.setPower(10000);
-            create = true;
         }
 
         ctx.setSimBaseData(baseData);
@@ -409,13 +416,6 @@ public class SimManager {
         //须在 ensureCurrent(可能切季重置赛季态)之前, 保证跨赛季也能拿回应保留的宝石
         seasonService.autoSettleFailedCraft(ctx);
         seasonLifecycleService.ensureCurrent(ctx, System.currentTimeMillis());
-
-        //TODO 临时，提审用
-        if (create) {
-            baseData.setGuide(true);
-            simGuestService.unlockGuest(ctx, 1001);
-            simGuestService.unlockGuest(ctx, 1002);
-        }
 
         this.simPlayerContextRegistry.putContext(ctx);
         simNodeService.save(playerId, clusterSystem.getNodePath());

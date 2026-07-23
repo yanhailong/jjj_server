@@ -20,7 +20,7 @@ public interface SimConstant {
 
         //完成新手引导
         int REQ_FINISH_GUIDE = BASE_MSG_PREFIX | 0x5;
-//        int RES_FINISH_GUIDE = BASE_MSG_PREFIX | 0x6;
+        int RES_FINISH_GUIDE = BASE_MSG_PREFIX | 0x6;
 
         //通知客户端生成游客
         int NOTIFY_GENERATE_GUEST = BASE_MSG_PREFIX | 0x7;
@@ -211,6 +211,19 @@ public interface SimConstant {
 
         int REQ_COMBAT_POWER = BASE_MSG_PREFIX | 0x6B;
         int RES_COMBAT_POWER = BASE_MSG_PREFIX | 0x6C;
+
+        //触发新手引导组
+        int NOTIFY_GUIDE_TRIGGER = BASE_MSG_PREFIX | 0x6D;
+    }
+
+    interface GuideCondition {
+        int NEW_PLAYER = 1;
+        int TASK_REWARD = 2;
+        int CASINO_LEVEL = 3;
+        int ITEM_NOT_ENOUGH = 4;
+        int ITEM_GAINED = 5;
+        int EMPLOYEE_DRAW = 6;
+        int ALLIANCE = 7;
     }
 
     interface Common {

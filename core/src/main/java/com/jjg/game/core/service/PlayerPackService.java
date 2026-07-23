@@ -13,6 +13,7 @@ import com.jjg.game.core.constant.TaskConstant;
 import com.jjg.game.core.dao.PlayerPackDao;
 import com.jjg.game.core.data.*;
 import com.jjg.game.core.logger.CoreLogger;
+import com.jjg.game.core.listener.ItemAddListener;
 import com.jjg.game.core.pb.PackItemInfo;
 import com.jjg.game.core.task.manager.TaskManager;
 import com.jjg.game.core.task.param.TaskConditionParam12101;
@@ -53,6 +54,8 @@ public class PlayerPackService implements IPlayerRegister {
     @Lazy
     @Autowired
     private TaskManager taskManager;
+    @Autowired(required = false)
+    private List<ItemAddListener> itemAddListeners = Collections.emptyList();
 
     protected String getLockKey(long playerId) {
         return lockTableName + playerId;
@@ -192,6 +195,7 @@ public class PlayerPackService implements IPlayerRegister {
                 result.data.shellChange(addShell, goldAndDiamond.data.getShell());
             }
             result.code = Code.SUCCESS;
+            notifyItemsAdded(playerId, validAddItemList, addType);
             return result;
         }
         PlayerPack playerPack = null;
@@ -272,8 +276,33 @@ public class PlayerPackService implements IPlayerRegister {
                     itemList.stream().collect(HashMap::new, (map, e) -> map.merge(e.getId(), e.getItemCount(), Long::sum),
                             HashMap::putAll);
             coreLogger.addItems(playerId, result.data.getChangeBeforeItemNum(), addTempItemMap, result.data.getChangeEndItemNum(), addType, desc);
+            notifyItemsAdded(playerId, validAddItemList, addType);
         }
         return result;
+    }
+
+    private void notifyItemsAdded(long playerId, List<Item> items, AddType addType) {
+        if (itemAddListeners.isEmpty() || items == null || items.isEmpty()) {
+            return;
+        }
+        Map<Integer, Long> added = new HashMap<>();
+        for (Item item : items) {
+            if (item != null && item.getItemCount() > 0) {
+                added.merge(item.getId(), item.getItemCount(), Long::sum);
+            }
+        }
+        if (added.isEmpty()) {
+            return;
+        }
+        Map<Integer, Long> immutable = Collections.unmodifiableMap(added);
+        for (ItemAddListener listener : itemAddListeners) {
+            try {
+                listener.onItemsAdded(playerId, immutable, addType);
+            } catch (Exception e) {
+                log.error("道具入账监听器异常 listener={},playerId={},items={}",
+                        listener.getClass().getSimpleName(), playerId, immutable, e);
+            }
+        }
     }
 
 
