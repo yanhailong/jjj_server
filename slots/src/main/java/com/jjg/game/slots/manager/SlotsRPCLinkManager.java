@@ -11,6 +11,7 @@ import com.jjg.game.core.data.CommonResult;
 import com.jjg.game.core.data.PlayerController;
 import com.jjg.game.core.utils.ItemUtils;
 import com.jjg.game.season.data.SeasonFreeSpinResult;
+import com.jjg.game.season.data.SeasonSlotsSessionData;
 import com.jjg.game.sim.bridge.ToSimBridge;
 import com.jjg.game.sim.data.SimSkillsData;
 import com.jjg.game.sim.data.SlotsSpinResult;
@@ -177,25 +178,28 @@ public class SlotsRPCLinkManager {
     }
 
     /**
-     * 只读查询赛季币余额 (无副作用, 无幂等/重试需求): 进游戏首帧展示用。sim 不可达返回失败。
+     * 从玩家所属 sim 节点读取赛季 slots 进场快照。该调用只在进场时执行一次，避免 spin 热路径跨节点访问。
      */
-    public CommonResult<Long> getSeasonCoin(SlotsPlayerGameData playerGameData) {
-        ClusterClient client = resolveSimClient(playerGameData);
-        if (client == null) {
-            return new CommonResult<>(Code.NOT_FOUND);
-        }
-        GameRpcContext rpcContext = GameRpcContext.getContext();
-        RpcReqParameterBuilder previousBuilder = rpcContext.getReqParameterBuilder();
+    public CommonResult<SeasonSlotsSessionData> getSeasonSlotsSessionData(long playerId, int gameType, String ip) {
         try {
-            rpcContext.withReqParameterBuilder(RpcReqParameterBuilder.create()
-                    .addClusterClient(client).setTryMillisPerClient(1000));
-            CommonResult<Long> result = toSimBridge.getSeasonCoin(playerGameData.getPlayerId());
-            return result == null ? new CommonResult<>(Code.EXCEPTION) : result;
+            ClusterClient client = simNodeService.getSimClusterClient(playerId, ip);
+            if (client == null) {
+                return new CommonResult<>(Code.NOT_FOUND);
+            }
+            GameRpcContext rpcContext = GameRpcContext.getContext();
+            RpcReqParameterBuilder previousBuilder = rpcContext.getReqParameterBuilder();
+            try {
+                rpcContext.withReqParameterBuilder(RpcReqParameterBuilder.create()
+                        .addClusterClient(client).setTryMillisPerClient(1000));
+                CommonResult<SeasonSlotsSessionData> result =
+                        toSimBridge.getSeasonSlotsSessionData(playerId, gameType);
+                return result == null ? new CommonResult<>(Code.EXCEPTION) : result;
+            } finally {
+                rpcContext.setReqParameterBuilder(previousBuilder);
+            }
         } catch (Exception e) {
-            log.error("赛季币余额查询RPC异常 playerId={}", playerGameData.getPlayerId(), e);
+            log.error("获取赛季 slots 进场快照 RPC 异常 playerId={},gameType={}", playerId, gameType, e);
             return new CommonResult<>(Code.EXCEPTION);
-        } finally {
-            rpcContext.setReqParameterBuilder(previousBuilder);
         }
     }
 

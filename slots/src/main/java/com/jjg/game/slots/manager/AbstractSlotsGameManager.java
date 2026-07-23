@@ -37,6 +37,7 @@ import com.jjg.game.core.utils.PropUtil;
 import com.jjg.game.sampledata.GameDataManager;
 import com.jjg.game.sampledata.bean.*;
 import com.jjg.game.season.data.SeasonFreeSpinResult;
+import com.jjg.game.season.data.SeasonSlotsSessionData;
 import com.jjg.game.season.service.SeasonFreeGameService;
 import com.jjg.game.sim.data.SimSkillsData;
 import com.jjg.game.sim.data.SimVisitTrialSession;
@@ -110,7 +111,7 @@ public abstract class AbstractSlotsGameManager<T extends SlotsPlayerGameData, L 
     @Autowired
     protected PlayerAllSlotsDataDao playerAllSlotsDataDao;
     @Autowired
-    protected SlotsSkillService simSkillService;
+    protected SlotsSkillService slotsSkillService;
     @Autowired
     protected SimNodeService simNodeService;
     @Autowired
@@ -1189,10 +1190,11 @@ public abstract class AbstractSlotsGameManager<T extends SlotsPlayerGameData, L 
      * 创建玩家玩游戏的数据存储对象
      *
      * @param playerController
+     * @param seasonEntry enterType=1 时为 true；赛季入口只加载 SeasonGem 效果，不加载研发技能
      * @return
      */
     @SuppressWarnings("unchecked")
-    public T createPlayerGameData(PlayerController playerController) throws Exception {
+    public T createPlayerGameData(PlayerController playerController, boolean seasonEntry) throws Exception {
         PlayerAllSlotsData playerAllSlotsData = playerAllSlotsDataDao.getFromAllDB(playerController.playerId());
         if (playerAllSlotsData == null) {
             playerAllSlotsData = new PlayerAllSlotsData();
@@ -1201,18 +1203,31 @@ public abstract class AbstractSlotsGameManager<T extends SlotsPlayerGameData, L 
 
         //客座赌局使用房主研发属性，普通游戏仍使用玩家自己的技能
         SimVisitTrialSession visitSession = simVisitQuotaService.getTrialSession(playerController.playerId());
-        boolean activeVisit = visitSession != null
+        boolean activeVisit = !seasonEntry && visitSession != null
                 && visitSession.activeFor(playerController.playerId(), this.gameType, System.currentTimeMillis());
         long skillOwnerId = activeVisit ? visitSession.getOwnerId() : playerController.playerId();
-        //走 RPC 取 sim 节点最新技能, 避免 sim 内存改动未到定时落库时进 slots 读到旧值; sim 不可达才回退读库
-        CommonResult<SimSkillsData> skillResult = slotsRPCLinkManager.getSimSkillData(
-                skillOwnerId, this.gameType, playerController.ipAddress());
-        SimSkillsData simSkillsData;
-        if (skillResult != null && skillResult.success()) {
-            simSkillsData = skillResult.data;
+        SimSkillsData simSkillsData = null;
+        SeasonSlotsSessionData seasonSessionData = null;
+        if (seasonEntry) {
+            //赛季币余额和宝石效果在同一次 RPC 中获取；失败时保留赛季入口语义，但不错误回退到研发技能。
+            CommonResult<SeasonSlotsSessionData> seasonResult = slotsRPCLinkManager.getSeasonSlotsSessionData(
+                    playerController.playerId(), this.gameType, playerController.ipAddress());
+            if (seasonResult != null && seasonResult.success() && seasonResult.data != null) {
+                seasonSessionData = seasonResult.data;
+            } else {
+                seasonSessionData = new SeasonSlotsSessionData();
+                log.warn("获取赛季 slots 进场快照失败，使用无宝石加成快照 playerId={},gameType={},code={}",
+                        playerController.playerId(), this.gameType, seasonResult == null ? null : seasonResult.code);
+            }
         } else {
-            //sim 节点不可达: 回退直接读库 (可能为定时落库前旧值)
-            simSkillsData = simSkillService.getSkillDataByGameType(skillOwnerId, this.gameType);
+            //普通入口走 RPC 取 sim 最新技能；sim 不可达才回退读库，避免定时落库前的脏读。
+            CommonResult<SimSkillsData> skillResult = slotsRPCLinkManager.getSimSkillData(
+                    skillOwnerId, this.gameType, playerController.ipAddress());
+            if (skillResult != null && skillResult.success()) {
+                simSkillsData = skillResult.data;
+            } else {
+                simSkillsData = slotsSkillService.getSkillDataByGameType(skillOwnerId, this.gameType);
+            }
         }
         //获取sim节点
         ClusterClient simClusterClient = simNodeService.getSimClusterClient(playerController.playerId(), playerController.ipAddress());
@@ -1226,7 +1241,7 @@ public abstract class AbstractSlotsGameManager<T extends SlotsPlayerGameData, L 
             playerGameData.setOfflineEventMap(initOffLineEvent());
             playerGameData.setPlayerAllSlotsData(playerAllSlotsData);
 
-            playerGameData.setSkillsMap(simSkillsData == null ? null : simSkillsData.getSkillsMap());
+            applyEntrySessionData(playerGameData, simSkillsData, seasonSessionData, seasonEntry);
             applyVisitSession(playerGameData, activeVisit ? visitSession : null);
             playerGameData.setSeasonFreeGameCandidate(seasonFreeGameService.freeGameCandidate(
                     playerController.playerId(), this.gameType, System.currentTimeMillis()));
@@ -1263,7 +1278,7 @@ public abstract class AbstractSlotsGameManager<T extends SlotsPlayerGameData, L 
         playerGameData.setOfflineEventMap(initOffLineEvent());
         playerGameData.setPlayerAllSlotsData(playerAllSlotsData);
 
-        playerGameData.setSkillsMap(simSkillsData == null ? null : simSkillsData.getSkillsMap());
+        applyEntrySessionData(playerGameData, simSkillsData, seasonSessionData, seasonEntry);
         applyVisitSession(playerGameData, activeVisit ? visitSession : null);
         playerGameData.setSeasonFreeGameCandidate(seasonFreeGameService.freeGameCandidate(
                 playerId, this.gameType, System.currentTimeMillis()));
@@ -1272,6 +1287,23 @@ public abstract class AbstractSlotsGameManager<T extends SlotsPlayerGameData, L 
         //保存到缓存中
         this.gameDataMap.put(playerId, playerGameData);
         return playerGameData;
+    }
+
+    /**
+     * 将入口类型对应的效果快照写入仅运行时的玩家数据，并清理上一次会话可能遗留的下注解锁缓存。
+     */
+    private void applyEntrySessionData(T playerGameData, SimSkillsData skillsData,
+                                       SeasonSlotsSessionData seasonSessionData, boolean seasonEntry) {
+        int exhaustedDailyKey = playerGameData.getSeasonSlotsSessionData().getSeasonFreeExhaustedDailyKey();
+        SeasonSlotsSessionData runtimeData = seasonSessionData == null
+                ? new SeasonSlotsSessionData() : seasonSessionData;
+        // 普通入口也可能是赛季每日免费局候选，因此必须用显式标记区分是否启用赛季币和宝石效果。
+        runtimeData.setSeasonCurrency(seasonEntry);
+        // 保留当日已耗尽状态，防止同一天重新进机台后再次发起无意义的跨节点免费次数申请。
+        runtimeData.setSeasonFreeExhaustedDailyKey(exhaustedDailyKey);
+        playerGameData.setSkillsMap(!seasonEntry && skillsData != null ? skillsData.getSkillsMap() : null);
+        playerGameData.setSeasonSlotsSessionData(runtimeData);
+        playerGameData.setTmpUnlockedStakeSet(null);
     }
 
     private void applyVisitSession(T playerGameData, SimVisitTrialSession session) {
@@ -1311,8 +1343,13 @@ public abstract class AbstractSlotsGameManager<T extends SlotsPlayerGameData, L 
             return result;
         }
 
-        //应用玩家技能的 specialMode 加成
-        propInfo = simSkillService.useLibTypeSkill(this.gameType, playerGameData.getSkillsMap(), propInfo);
+        //赛季入口使用 SeasonGem，其他入口继续使用 ResearchSkills；两类配置在此处互斥。
+        if (playerGameData.isSeasonCurrency()) {
+            propInfo = slotsSkillService.useSeasonGemLibTypeBonus(
+                    playerGameData.getSeasonSlotsSessionData(), propInfo);
+        } else {
+            propInfo = slotsSkillService.useLibTypeSkill(this.gameType, playerGameData.getSkillsMap(), propInfo);
+        }
 
         Integer type = propInfo.getRandKey();
         if (type == null) {
@@ -1352,8 +1389,14 @@ public abstract class AbstractSlotsGameManager<T extends SlotsPlayerGameData, L 
             return result;
         }
 
-        //应用玩家技能的 winRate / specialModeProbUp 加成
-        propInfo = simSkillService.useSectionSkill(this.gameType, playerGameData.getSkillsMap(), propInfo, libType);
+        //赛季入口使用 SeasonGem，其他入口继续使用 ResearchSkills；两类配置在此处互斥。
+        if (playerGameData.isSeasonCurrency()) {
+            propInfo = slotsSkillService.useSeasonGemSectionBonus(
+                    playerGameData.getSeasonSlotsSessionData(), propInfo, libType);
+        } else {
+            propInfo = slotsSkillService.useSectionSkill(
+                    this.gameType, playerGameData.getSkillsMap(), propInfo, libType);
+        }
 
         Integer index = propInfo.getRandKey();
         if (index == null) {
@@ -2741,10 +2784,18 @@ public abstract class AbstractSlotsGameManager<T extends SlotsPlayerGameData, L 
             list.add(arr[1]);
         }
 
-        //追加技能解锁的下注额
-        if (playerGameData.getSkillsMap() != null && !playerGameData.getSkillsMap().isEmpty()) {
+        playerGameData.setTmpUnlockedStakeSet(null);
+        if (playerGameData.isSeasonCurrency()) {
+            //赛季入口只追加 SeasonGem.bet，不能混入 ResearchSkills.bet。
+            List<Long> seasonBet = playerGameData.getSeasonSlotsSessionData().getBet();
+            if (seasonBet != null && !seasonBet.isEmpty()) {
+                list.addAll(seasonBet);
+                playerGameData.setTmpUnlockedStakeSet(new HashSet<>(seasonBet));
+            }
+        } else if (playerGameData.getSkillsMap() != null && !playerGameData.getSkillsMap().isEmpty()) {
+            //其他入口保持原有研发技能下注解锁逻辑。
             for (Map.Entry<Integer, Integer> en : playerGameData.getSkillsMap().entrySet()) {
-                ResearchSkillsCfg cfg = this.simSkillService.getResearchSkillsCfg(this.gameType, en.getKey(), en.getValue());
+                ResearchSkillsCfg cfg = this.slotsSkillService.getResearchSkillsCfg(this.gameType, en.getKey(), en.getValue());
                 if (cfg == null) {
                     continue;
                 }
@@ -2753,7 +2804,7 @@ public abstract class AbstractSlotsGameManager<T extends SlotsPlayerGameData, L 
                     continue;
                 }
                 list.addAll(cfg.getBet());
-                playerGameData.setTmpSkillStakeSet(new HashSet<>(cfg.getBet()));
+                playerGameData.setTmpUnlockedStakeSet(new HashSet<>(cfg.getBet()));
                 break;
             }
         }
@@ -2773,7 +2824,7 @@ public abstract class AbstractSlotsGameManager<T extends SlotsPlayerGameData, L 
             return betScoreArr;
         }
 
-        if (playerGameData.getTmpSkillStakeSet() == null || !playerGameData.getTmpSkillStakeSet().contains(betValue)) {
+        if (playerGameData.getTmpUnlockedStakeSet() == null || !playerGameData.getTmpUnlockedStakeSet().contains(betValue)) {
             return betScoreArr;
         }
 

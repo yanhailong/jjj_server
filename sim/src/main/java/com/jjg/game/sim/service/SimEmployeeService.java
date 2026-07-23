@@ -445,7 +445,7 @@ public class SimEmployeeService {
             return Collections.emptyMap();
         }
         Map<BonusType, Integer> map = new HashMap<>();
-        sumBouns(map, starCfg.getSupervisorBonus());
+//        sumBouns(map, starCfg.getSupervisorBonus());
         return map;
     }
 

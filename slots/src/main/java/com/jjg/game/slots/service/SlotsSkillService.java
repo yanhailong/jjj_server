@@ -3,7 +3,7 @@ package com.jjg.game.slots.service;
 import com.jjg.game.core.data.PropInfo;
 import com.jjg.game.core.utils.PropUtil;
 import com.jjg.game.sampledata.bean.ResearchSkillsCfg;
-import com.jjg.game.sim.data.SimSkillsData;
+import com.jjg.game.season.data.SeasonSlotsSessionData;
 import com.jjg.game.sim.service.AbstractSkillService;
 import org.springframework.stereotype.Service;
 
@@ -104,6 +104,30 @@ public class SlotsSkillService extends AbstractSkillService {
             return propInfo;
         }
         return newPropInfo;
+    }
+
+    /**
+     * 应用赛季宝石的 specialMode 效果。进场时已经由 sim 聚合，spin 热路径只需克隆并调整权重。
+     */
+    public PropInfo useSeasonGemLibTypeBonus(SeasonSlotsSessionData sessionData, PropInfo propInfo) {
+        if (sessionData == null || sessionData.getLibTypeWeightDelta().isEmpty()) {
+            return propInfo;
+        }
+        return PropUtil.applyPropInfoDelta(propInfo, sessionData.getLibTypeWeightDelta());
+    }
+
+    /**
+     * 应用赛季宝石的 winRate 与 specialModeProbUp 效果。
+     */
+    public PropInfo useSeasonGemSectionBonus(SeasonSlotsSessionData sessionData, PropInfo propInfo, int libType) {
+        if (sessionData == null || sessionData.getSectionWeightDelta().isEmpty()) {
+            return propInfo;
+        }
+        Map<Integer, Integer> sectionDelta = sessionData.getSectionWeightDelta().get(libType);
+        if (sectionDelta == null || sectionDelta.isEmpty()) {
+            return propInfo;
+        }
+        return PropUtil.applyPropInfoDelta(propInfo, sectionDelta);
     }
 
     /**

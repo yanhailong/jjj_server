@@ -3,6 +3,7 @@ package com.jjg.game.sim.bridge;
 import com.jjg.game.common.rpc.IGameRpc;
 import com.jjg.game.core.data.CommonResult;
 import com.jjg.game.season.data.SeasonFreeSpinResult;
+import com.jjg.game.season.data.SeasonSlotsSessionData;
 import com.jjg.game.season.pb.res.ResSeasonMatch;
 import com.jjg.game.season.pb.res.ResSeasonTrialProgress;
 import com.jjg.game.sim.data.SimSkillsData;
@@ -72,8 +73,14 @@ public interface ToSimBridge extends IGameRpc {
     CommonResult<SeasonFreeSpinResult> useSeasonFreeSpin(long playerId, int gameType);
 
     /**
-     * 只读查询玩家当前赛季币余额 (无副作用)。成功时 data 为余额; 不在赛季返回 NOT_FOUND。
+     * 获取赛季 slots 进场快照。快照包含当前赛季币余额，以及已镶嵌宝石中匹配当前游戏的效果。
      */
+    CommonResult<SeasonSlotsSessionData> getSeasonSlotsSessionData(long playerId, int gameType);
+
+    /**
+     * 旧 slots 节点滚动升级期间使用的余额查询兼容入口；新节点统一使用进场快照接口。
+     */
+    @Deprecated
     CommonResult<Long> getSeasonCoin(long playerId);
 
     /**

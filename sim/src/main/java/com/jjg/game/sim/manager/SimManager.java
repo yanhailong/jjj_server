@@ -26,6 +26,7 @@ import com.jjg.game.sim.pb.res.ResSimPlayerInfo;
 import com.jjg.game.season.dao.SeasonPlayerDao;
 import com.jjg.game.season.data.SeasonFreeSpinResult;
 import com.jjg.game.season.data.SeasonPlayerData;
+import com.jjg.game.season.data.SeasonSlotsSessionData;
 import com.jjg.game.season.service.SeasonEconomyService;
 import com.jjg.game.season.service.SeasonFreeGameService;
 import com.jjg.game.season.service.SeasonLifecycleService;
@@ -693,6 +694,26 @@ public class SimManager {
         }
     }
 
+    public CommonResult<SeasonSlotsSessionData> getSeasonSlotsSessionData(long playerId, int gameType) {
+        try {
+            SimPlayerContext ctx = this.simPlayerContextRegistry.getContext(playerId);
+            if (ctx == null) {
+                ctx = createContextByPlayerId(playerId);
+            }
+            if (ctx == null || ctx.getSeasonPlayerData() == null) {
+                return new CommonResult<>(Code.NOT_FOUND);
+            }
+            return new CommonResult<>(Code.SUCCESS, seasonService.slotsSessionData(ctx, gameType));
+        } catch (Exception e) {
+            log.error("获取赛季 slots 进场快照失败 playerId={},gameType={}", playerId, gameType, e);
+            return new CommonResult<>(Code.EXCEPTION);
+        }
+    }
+
+    /**
+     * 保留给滚动升级期间尚未切换进场快照协议的旧 slots 节点。
+     */
+    @Deprecated
     public CommonResult<Long> getSeasonCoin(long playerId) {
         try {
             SimPlayerContext ctx = this.simPlayerContextRegistry.getContext(playerId);

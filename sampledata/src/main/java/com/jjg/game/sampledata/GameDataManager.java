@@ -176,6 +176,7 @@ public class GameDataManager {
     containerMap.put(GlobalConfigCfg.class, new GlobalConfigCfgContainer());
     containerMap.put(GrowthFundCfg.class, new GrowthFundCfgContainer());
     containerMap.put(GuideCfg.class, new GuideCfgContainer());
+    containerMap.put(GuideDetailsCfg.class, new GuideDetailsCfgContainer());
     containerMap.put(IponeAreacodeConfigCfg.class, new IponeAreacodeConfigCfgContainer());
     containerMap.put(ItemCfg.class, new ItemCfgContainer());
     containerMap.put(LoginConfigCfg.class, new LoginConfigCfgContainer());
@@ -1348,6 +1349,18 @@ public class GameDataManager {
 
   public static List<GuideCfg> getGuideCfgList() {
     return getInstance().getCfgContainer(GuideCfg.class).getCfgBeanList();
+  }
+
+  public static GuideDetailsCfg getGuideDetailsCfg(int key) {
+    return getInstance().getCfgContainer(GuideDetailsCfg.class).getCfgBeanMap().get(key);
+  }
+
+  public static Map<Integer, GuideDetailsCfg> getGuideDetailsCfgMap() {
+    return getInstance().getCfgContainer(GuideDetailsCfg.class).getCfgBeanMap();
+  }
+
+  public static List<GuideDetailsCfg> getGuideDetailsCfgList() {
+    return getInstance().getCfgContainer(GuideDetailsCfg.class).getCfgBeanList();
   }
 
   public static IponeAreacodeConfigCfg getIponeAreacodeConfigCfg(int key) {

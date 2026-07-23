@@ -130,8 +130,8 @@ public class SeasonConfigService {
         return gemConfigs();
     }
 
-    public SeasonGemCraftCfg craftForRarity(int rarity) {
-        return craftConfigs().stream().filter(cfg -> cfg.getSynthesisGemQuality() == rarity).findFirst().orElse(null);
+    public SeasonGemCraftCfg craftForQuality(int quality) {
+        return craftConfigs().stream().filter(cfg -> cfg.getSynthesisGemQuality() == quality).findFirst().orElse(null);
     }
 
     public SeasonGemDropCfg gemDrop(int seasonId) {

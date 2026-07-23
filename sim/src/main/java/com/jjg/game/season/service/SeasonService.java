@@ -193,6 +193,14 @@ public class SeasonService implements SimPlayerTickListener {
         return response;
     }
 
+    /**
+     * 创建从赛季入口进入 slots 所需的权威会话快照。
+     */
+    public SeasonSlotsSessionData slotsSessionData(SimPlayerContext ctx, int gameType) {
+        lifecycleService.ensureCurrent(ctx, System.currentTimeMillis());
+        return gemService.buildSlotsSessionData(ctx.getSeasonPlayerData(), gameType);
+    }
+
     public ResSeasonEquipGem equip(SimPlayerContext ctx, int slot, int itemId) {
         lifecycleService.ensureCurrent(ctx, System.currentTimeMillis());
         CommonResult<Map<Integer, Integer>> result = gemService.equip(ctx, slot, itemId);
@@ -578,12 +586,8 @@ public class SeasonService implements SimPlayerTickListener {
         info.itemId = cfg.getItemId();
         info.type = cfg.getType();
         info.genre = cfg.getGenre();
-        info.rarity = cfg.getRarity();
-//        info.buff = cfg.getBuff();
         info.count = pack == null ? 0 : pack.getItemCount(cfg.getItemId());
         info.equippedCount = (int) equipped.values().stream().filter(item -> item == cfg.getItemId()).count();
-        info.nameLanguageId = cfg.getGemName();
-        info.descLanguageId = cfg.getGemDesc();
         return info;
     }
 

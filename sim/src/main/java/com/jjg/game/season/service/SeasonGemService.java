@@ -7,12 +7,15 @@ import com.jjg.game.core.constant.Code;
 import com.jjg.game.core.data.CommonResult;
 import com.jjg.game.core.data.PlayerPack;
 import com.jjg.game.core.service.PlayerPackService;
+import com.jjg.game.sampledata.GameDataManager;
+import com.jjg.game.sampledata.bean.ItemCfg;
 import com.jjg.game.sampledata.bean.SeasonGemCfg;
 import com.jjg.game.sampledata.bean.SeasonGemCraftCfg;
 import com.jjg.game.sampledata.bean.SeasonStartCfg;
 import com.jjg.game.sim.data.SimPlayerContext;
 import com.jjg.game.season.data.SeasonCraftResult;
 import com.jjg.game.season.data.SeasonPlayerData;
+import com.jjg.game.season.data.SeasonSlotsSessionData;
 import com.jjg.game.sim.service.SimAutoSaveService;
 import com.jjg.game.sim.service.SimPackService;
 import org.slf4j.Logger;
@@ -20,11 +23,15 @@ import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 
+import java.util.ArrayList;
 import java.util.Collection;
+import java.util.Comparator;
 import java.util.HashMap;
 import java.util.Iterator;
+import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Map;
+import java.util.Objects;
 import java.util.function.IntPredicate;
 
 /**
@@ -97,6 +104,73 @@ public class SeasonGemService {
     }
 
     /**
+     * 为赛季 slots 会话生成宝石效果快照。
+     *
+     * <p>只使用与当前 {@code gameType} 匹配的已镶嵌宝石。同一种宝石可以镶嵌在多个槽位，
+     * 因此概率权重按槽位逐个累加；下注额属于“解锁”语义，只保留去重后的并集。</p>
+     */
+    public SeasonSlotsSessionData buildSlotsSessionData(SeasonPlayerData data, int gameType) {
+        SeasonSlotsSessionData result = new SeasonSlotsSessionData();
+        if (data == null) {
+            return result;
+        }
+        result.setSeasonCoin(data.getSeasonCoin());
+        if (data.getEquippedGems().isEmpty()) {
+            return result;
+        }
+
+        LinkedHashSet<Long> unlockedBets = new LinkedHashSet<>();
+        Map<Integer, Integer> libTypeWeightDelta = new HashMap<>();
+        Map<Integer, Map<Integer, Integer>> sectionWeightDelta = new HashMap<>();
+
+        // 固定按槽位聚合，使跨节点快照及下注列表顺序稳定，便于排障和回放。
+        data.getEquippedGems().entrySet().stream()
+                .sorted(Comparator.comparingInt(Map.Entry::getKey))
+                .forEach(entry -> {
+                    SeasonGemCfg cfg = configService.gemByItemId(entry.getValue());
+                    if (cfg == null || cfg.getGameID() != gameType) {
+                        return;
+                    }
+                    if (cfg.getBet() != null) {
+                        cfg.getBet().stream().filter(Objects::nonNull).forEach(unlockedBets::add);
+                    }
+                    mergeDelta(libTypeWeightDelta, cfg.getSpecialMode());
+                    mergeSectionDelta(sectionWeightDelta, cfg.getWinRate());
+                    mergeSectionDelta(sectionWeightDelta, cfg.getSpecialModeProbUp());
+                });
+
+        result.setBet(new ArrayList<>(unlockedBets));
+        result.setLibTypeWeightDelta(libTypeWeightDelta);
+        result.setSectionWeightDelta(sectionWeightDelta);
+        return result;
+    }
+
+    private static void mergeDelta(Map<Integer, Integer> target, Map<Integer, Integer> source) {
+        if (source == null || source.isEmpty()) {
+            return;
+        }
+        source.forEach((key, delta) -> {
+            if (key != null && delta != null) {
+                target.merge(key, delta, Integer::sum);
+            }
+        });
+    }
+
+    private static void mergeSectionDelta(Map<Integer, Map<Integer, Integer>> target,
+                                          Map<Integer, Map<Integer, Integer>> source) {
+        if (source == null || source.isEmpty()) {
+            return;
+        }
+        source.forEach((libType, sectionDelta) -> {
+            if (libType == null || sectionDelta == null || sectionDelta.isEmpty()) {
+                return;
+            }
+            Map<Integer, Integer> targetSection = target.computeIfAbsent(libType, ignored -> new HashMap<>());
+            mergeDelta(targetSection, sectionDelta);
+        });
+    }
+
+    /**
      * GemCount 在三种形状间均匀开孔：3/6/9 分别表示每种形状开放 1/2/3 个孔。
      */
     boolean isSlotUnlocked(SeasonPlayerData data, int slot) {
@@ -112,6 +186,14 @@ public class SeasonGemService {
         return positionInType < perType + (typeIndex < remainder ? 1 : 0);
     }
 
+    /**
+     * 宝石品质取自其道具的 Item 表 quality 字段; 配置缺失返回 0。
+     */
+    private int gemQuality(SeasonGemCfg gem) {
+        ItemCfg item = GameDataManager.getItemCfg(gem.getItemId());
+        return item == null ? 0 : item.getQuality();
+    }
+
     public CommonResult<SeasonCraftResult> craft(SimPlayerContext ctx, List<Integer> itemIds, int keepItemId) {
         if (itemIds == null || itemIds.isEmpty()) {
             log.warn("赛季宝石合成参数为空 playerId={}", ctx.playerId());
@@ -122,27 +204,28 @@ public class SeasonGemService {
             log.warn("赛季宝石合成配置不存在 playerId={},itemId={}", ctx.playerId(), itemIds.getFirst());
             return new CommonResult<>(Code.NOT_FOUND);
         }
-        SeasonGemCraftCfg craft = configService.craftForRarity(first.getRarity());
+        int quality = gemQuality(first);
+        SeasonGemCraftCfg craft = configService.craftForQuality(quality);
         if (craft == null || itemIds.size() != craft.getCostAmount()) {
-            log.warn("赛季宝石合成数量或配置错误 playerId={},rarity={},count={}",
-                    ctx.playerId(), first.getRarity(), itemIds.size());
+            log.warn("赛季宝石合成数量或配置错误 playerId={},quality={},count={}",
+                    ctx.playerId(), quality, itemIds.size());
             return new CommonResult<>(Code.PARAM_ERROR);
         }
         Map<Integer, Long> input = new HashMap<>();
         boolean allSame = true;
         for (int itemId : itemIds) {
             SeasonGemCfg gem = configService.gemByItemId(itemId);
-            if (gem == null || gem.getRarity() != first.getRarity()) {
-                log.warn("赛季宝石合成品质不一致 playerId={},rarity={},count={}",
-                        ctx.playerId(), first.getRarity(), itemIds.size());
+            if (gem == null || gemQuality(gem) != quality) {
+                log.warn("赛季宝石合成品质不一致 playerId={},quality={},count={}",
+                        ctx.playerId(), quality, itemIds.size());
                 return new CommonResult<>(Code.PARAM_ERROR);
             }
             allSame &= itemId == first.getItemId();
             input.merge(itemId, 1L, Long::sum);
         }
         if (!playerPackService.checkHasItems(ctx.getPlayerController().getPlayer(), input)) {
-            log.warn("赛季宝石合成道具不足 playerId={},rarity={},count={}",
-                    ctx.playerId(), first.getRarity(), itemIds.size());
+            log.warn("赛季宝石合成道具不足 playerId={},quality={},count={}",
+                    ctx.playerId(), quality, itemIds.size());
             return new CommonResult<>(Code.NOT_ENOUGH_ITEM);
         }
         SeasonPlayerData data = ctx.getSeasonPlayerData();
@@ -164,7 +247,7 @@ public class SeasonGemService {
             consumed.values().removeIf(value -> value <= 0);
         }
         if (!simPackService.removeItems(ctx, consumed, AddType.ITEM_EXCHANGE, "season-gem-craft")) {
-            log.warn("赛季宝石合成扣除失败 playerId={},rarity={}", ctx.playerId(), first.getRarity());
+            log.warn("赛季宝石合成扣除失败 playerId={},quality={}", ctx.playerId(), quality);
             return new CommonResult<>(Code.NOT_ENOUGH_ITEM);
         }
         data.setSeasonCoin(data.getSeasonCoin() - craft.getMergeCost());
@@ -175,7 +258,7 @@ public class SeasonGemService {
             SeasonGemCfg output = chooseOutput(first, allSame, craft.getSuccessGem());
             if (output == null) {
                 rollback(ctx, data, consumed, craft.getMergeCost());
-                log.warn("赛季宝石合成产出配置错误 playerId={},rarity={}", ctx.playerId(), first.getRarity());
+                log.warn("赛季宝石合成产出配置错误 playerId={},quality={}", ctx.playerId(), quality);
                 return new CommonResult<>(Code.NOT_FOUND);
             }
             int count = outputCount(output.getId(), craft.getSuccessGem());
@@ -184,8 +267,8 @@ public class SeasonGemService {
                     "season-gem-craft", true);
             if (!add.success()) {
                 rollback(ctx, data, consumed, craft.getMergeCost());
-                log.warn("赛季宝石合成产出入账失败 playerId={},rarity={},code={}",
-                        ctx.playerId(), first.getRarity(), add.code);
+                log.warn("赛季宝石合成产出入账失败 playerId={},quality={},code={}",
+                        ctx.playerId(), quality, add.code);
                 return new CommonResult<>(add.code);
             }
             result.setResultItemId(output.getItemId());

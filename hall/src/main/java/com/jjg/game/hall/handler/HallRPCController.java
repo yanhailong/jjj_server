@@ -14,6 +14,7 @@ import com.jjg.game.hall.service.HallService;
 import com.jjg.game.sampledata.GameDataManager;
 import com.jjg.game.sampledata.bean.ResearchSkillsCfg;
 import com.jjg.game.season.data.SeasonFreeSpinResult;
+import com.jjg.game.season.data.SeasonSlotsSessionData;
 import com.jjg.game.season.pb.res.ResSeasonMatch;
 import com.jjg.game.season.pb.res.ResSeasonTrialProgress;
 import com.jjg.game.season.service.SeasonService;
@@ -205,6 +206,13 @@ public class HallRPCController extends CoreRPCController implements GmToHallBrid
     }
 
     @Override
+    @RpcCallSetting(processorModKey = "#arg0")
+    public CommonResult<SeasonSlotsSessionData> getSeasonSlotsSessionData(long playerId, int gameType) {
+        return simManager.getSeasonSlotsSessionData(playerId, gameType);
+    }
+
+    @Override
+    @Deprecated
     @RpcCallSetting(processorModKey = "#arg0")
     public CommonResult<Long> getSeasonCoin(long playerId) {
         return simManager.getSeasonCoin(playerId);

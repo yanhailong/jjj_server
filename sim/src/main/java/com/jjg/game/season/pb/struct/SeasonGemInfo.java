@@ -14,16 +14,8 @@ public class SeasonGemInfo {
     public int type;
     @ProtoDesc("流派")
     public int genre;
-    @ProtoDesc("品质")
-    public int rarity;
-    @ProtoDesc("配置效果值")
-    public int buff;
     @ProtoDesc("背包数量")
     public long count;
     @ProtoDesc("已镶嵌数量")
     public int equippedCount;
-    @ProtoDesc("名称多语言ID")
-    public int nameLanguageId;
-    @ProtoDesc("描述多语言ID")
-    public int descLanguageId;
 }

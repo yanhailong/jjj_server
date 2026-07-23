@@ -4,7 +4,7 @@ import com.jjg.game.common.cluster.ClusterClient;
 import com.jjg.game.core.data.Player;
 import com.jjg.game.core.data.PlayerController;
 import com.jjg.game.core.data.RoomType;
-import com.jjg.game.sim.data.SimSkillsData;
+import com.jjg.game.season.data.SeasonSlotsSessionData;
 import com.jjg.game.slots.controller.SlotsRoomController;
 import org.springframework.data.annotation.Id;
 import org.springframework.data.annotation.Transient;
@@ -76,10 +76,12 @@ public class SlotsPlayerGameData {
     protected transient Map<Integer, OffLineEventData> offlineEventMap;
     @Transient
     protected transient PlayerAllSlotsData playerAllSlotsData;
+    //普通/客座入口的研发技能快照；赛季入口保持为空，防止两类效果混用
     @Transient
     protected transient Map<Integer, Integer> skillsMap;
+    //当前入口额外解锁的下注额，仅用于校验基础房间配置以外的下注
     @Transient
-    protected transient Set<Long> tmpSkillStakeSet;
+    protected transient Set<Long> tmpUnlockedStakeSet;
     @Transient
     protected transient ClusterClient simClient;
     //客座赌局会话 (仅运行时): skillsMap 使用房主研发属性
@@ -87,18 +89,9 @@ public class SlotsPlayerGameData {
     protected transient long visitOwnerId;
     @Transient
     protected transient int visitCasinoId;
-    //赛季每日免费局 (仅运行时): 进机台时判定该机台是否为当前进阶/循环赛季的赛季游戏
+    //赛季运行态统一收口于此，包含入口类型、赛季币、宝石效果及每日免费局状态
     @Transient
-    protected transient boolean seasonFreeGameCandidate;
-    //当日免费次数已耗尽的系统日期 key (yyyyMMdd), 跨天后重新向 sim 申请
-    @Transient
-    protected transient int seasonFreeExhaustedDailyKey;
-    //从赛季进入 (enterType=1): 本次会话下注/结算使用赛季币而非金币, 池子共用不区分货币
-    @Transient
-    protected transient boolean seasonCurrency;
-    //最近一次已知的赛季币余额 (由 sim 扣/发 RPC 返回), 用于响应中 allGold/beforeGold/afterGold 展示
-    @Transient
-    protected transient long seasonCoinBalance;
+    protected transient SeasonSlotsSessionData seasonSlotsSessionData;
 
     public long getPlayerId() {
         if (playerId == 0) {
@@ -418,12 +411,12 @@ public class SlotsPlayerGameData {
         this.skillsMap = skillsMap;
     }
 
-    public Set<Long> getTmpSkillStakeSet() {
-        return tmpSkillStakeSet;
+    public Set<Long> getTmpUnlockedStakeSet() {
+        return tmpUnlockedStakeSet;
     }
 
-    public void setTmpSkillStakeSet(Set<Long> tmpSkillStakeSet) {
-        this.tmpSkillStakeSet = tmpSkillStakeSet;
+    public void setTmpUnlockedStakeSet(Set<Long> tmpUnlockedStakeSet) {
+        this.tmpUnlockedStakeSet = tmpUnlockedStakeSet;
     }
 
     public ClusterClient getSimClient() {
@@ -451,34 +444,42 @@ public class SlotsPlayerGameData {
     }
 
     public boolean isSeasonFreeGameCandidate() {
-        return seasonFreeGameCandidate;
+        return getSeasonSlotsSessionData().isSeasonFreeGameCandidate();
     }
 
     public void setSeasonFreeGameCandidate(boolean seasonFreeGameCandidate) {
-        this.seasonFreeGameCandidate = seasonFreeGameCandidate;
+        getSeasonSlotsSessionData().setSeasonFreeGameCandidate(seasonFreeGameCandidate);
     }
 
     public int getSeasonFreeExhaustedDailyKey() {
-        return seasonFreeExhaustedDailyKey;
+        return getSeasonSlotsSessionData().getSeasonFreeExhaustedDailyKey();
     }
 
     public void setSeasonFreeExhaustedDailyKey(int seasonFreeExhaustedDailyKey) {
-        this.seasonFreeExhaustedDailyKey = seasonFreeExhaustedDailyKey;
+        getSeasonSlotsSessionData().setSeasonFreeExhaustedDailyKey(seasonFreeExhaustedDailyKey);
     }
 
     public boolean isSeasonCurrency() {
-        return seasonCurrency;
+        return getSeasonSlotsSessionData().isSeasonCurrency();
     }
 
-    public void setSeasonCurrency(boolean seasonCurrency) {
-        this.seasonCurrency = seasonCurrency;
+    public SeasonSlotsSessionData getSeasonSlotsSessionData() {
+        if (seasonSlotsSessionData == null) {
+            seasonSlotsSessionData = new SeasonSlotsSessionData();
+        }
+        return seasonSlotsSessionData;
+    }
+
+    public void setSeasonSlotsSessionData(SeasonSlotsSessionData seasonSlotsSessionData) {
+        this.seasonSlotsSessionData = seasonSlotsSessionData == null
+                ? new SeasonSlotsSessionData() : seasonSlotsSessionData;
     }
 
     public long getSeasonCoinBalance() {
-        return seasonCoinBalance;
+        return getSeasonSlotsSessionData().getSeasonCoin();
     }
 
     public void setSeasonCoinBalance(long seasonCoinBalance) {
-        this.seasonCoinBalance = seasonCoinBalance;
+        getSeasonSlotsSessionData().setSeasonCoin(seasonCoinBalance);
     }
 }
