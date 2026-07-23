@@ -21,12 +21,14 @@ public class ResBuildingInfo extends AbstractResponse {
     public BuildingInfo buildingInfo;
     @ProtoDesc("雇员加成")
     public List<KVInfo> employeeBonus;
-    @ProtoDesc("主管加成")
+    @ProtoDesc("主管百分比加成  key参考BuildingAreaTable表的typeValue值")
     public List<KVInfo> manageEmployeeBonus;
     @ProtoDesc("配置的观看广告次数")
     public int watchAdLimit;
     @ProtoDesc("主管id")
     public int managerId;
+    @ProtoDesc("主管固定加成  key参考BuildingAreaTable表的typeValue值")
+    public List<KVInfo> manageEmployeeFixBonus;
 
 
     public ResBuildingInfo(int code) {

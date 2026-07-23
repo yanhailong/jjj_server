@@ -373,21 +373,10 @@ public class SimEmployeeService {
             }
             ctx.getCurrentCasino().addManagerEmploy(cfg.getProfessionID(), employeeId);
 
-            //主管百分比加成
-            ManageBonus manageBonus = manageEmployeeBonus(ctx, cfg.getProfessionID());
-            if (!manageBonus.modifier().isEmpty()) {
-                res.manageEmployeeBonus = new ArrayList<>(manageBonus.modifier().size());
-                for (Map.Entry<BuildingOutputType, Integer> en : manageBonus.modifier().entrySet()) {
-                    res.manageEmployeeBonus.add(new KVInfo(en.getKey().getCode(), en.getValue()));
-                }
-            }
-            //主管固定加成
-            if (!manageBonus.buff().isEmpty()) {
-                res.manageEmployeeFixBonus = new ArrayList<>(manageBonus.buff().size());
-                for (Map.Entry<BuildingOutputType, Integer> en : manageBonus.buff().entrySet()) {
-                    res.manageEmployeeFixBonus.add(new KVInfo(en.getKey().getCode(), en.getValue()));
-                }
-            }
+            //主管加成: 按该职业可任职建筑的产出类型过滤后返回
+            ManageBonus manageBonus = managerBonusFiltered(ctx, cfg.getProfessionID());
+            res.manageEmployeeBonus = toKVList(manageBonus.modifier());
+            res.manageEmployeeFixBonus = toKVList(manageBonus.buff());
 
             log.info("任命主管 playerId={},casinoId={},professionId={},employeeId={}", ctx.playerId(), ctx.getCurrentCasino().getCasinoId(), cfg.getProfessionID(), employeeId);
         } catch (Exception e) {
@@ -414,6 +403,10 @@ public class SimEmployeeService {
                     detailInfo.level = value.getLevel();
                     detailInfo.star = value.getStar();
                     detailInfo.manager = ctx.getCurrentCasino().employIsManager(value.getEmployeeId());
+                    //主管加成: 原样返回雇员技能配置, 不做过滤
+                    ManageBonus bonus = employeeSkillBonus(value.getEmployeeId());
+                    detailInfo.manageEmployeeBonus = toKVList(bonus.modifier());
+                    detailInfo.manageEmployeeFixBonus = toKVList(bonus.buff());
                     res.employees.add(detailInfo);
                 }
             }
@@ -458,8 +451,7 @@ public class SimEmployeeService {
     }
 
     /**
-     * 仅仅获取主管的加成: 主管雇员的 EmployeeProfile.SkillIdList 对应的 EmployeeSkillConfig
-     * (Modifier 百分比 + Buff 固定值), 按 BuildingOutputType 归类。
+     * 仅仅获取主管的加成: 当前任职于该职业建筑的主管雇员技能加成 (Modifier 百分比 + Buff 固定值)。
      *
      * @param ctx             玩家上下文
      * @param employeeProfile 建筑关联的职业ID
@@ -478,11 +470,18 @@ public class SimEmployeeService {
         if (ctx.getEmployee(managerId) == null) {
             return ManageBonus.empty();
         }
-        EmployeeProfileCfg profileCfg = GameDataManager.getEmployeeProfileCfg(managerId);
+        return employeeSkillBonus(managerId);
+    }
+
+    /**
+     * 雇员技能配置的原始加成: EmployeeProfile.SkillIdList 对应 EmployeeSkillConfig 的
+     * Modifier(百分比) + Buff(固定值), 按 {@link BuildingOutputType} 归类, 不做任何过滤。
+     */
+    private ManageBonus employeeSkillBonus(int employeeId) {
+        EmployeeProfileCfg profileCfg = GameDataManager.getEmployeeProfileCfg(employeeId);
         if (profileCfg == null || profileCfg.getSkillIdList() == null || profileCfg.getSkillIdList().isEmpty()) {
             return ManageBonus.empty();
         }
-
         Map<BuildingOutputType, Integer> modifier = new HashMap<>();
         Map<BuildingOutputType, Integer> buff = new HashMap<>();
         for (Integer skillId : profileCfg.getSkillIdList()) {
@@ -494,6 +493,62 @@ public class SimEmployeeService {
             sumBouns(buff, skillCfg.getBuff());
         }
         return new ManageBonus(modifier, buff);
+    }
+
+    /**
+     * 当前任职于该职业建筑的主管加成, 已按该职业可任职建筑的产出类型过滤。
+     * 供任命主管返回与建筑信息返回共用, 保证两者同名字段取值一致。
+     */
+    public ManageBonus managerBonusFiltered(SimPlayerContext ctx, int employeeProfile) {
+        return filterByProfessionOutput(manageEmployeeBonus(ctx, employeeProfile), employeeProfile);
+    }
+
+    /**
+     * 主管加成按建筑产出类型过滤: 某职业只能担任 EmployeeProfile 匹配的建筑主管,
+     * 仅保留这些建筑产出类型 (typeValue 的 {@link BuildingOutputType#bonusGroup()}) 对应的加成。
+     */
+    private ManageBonus filterByProfessionOutput(ManageBonus bonus, int professionId) {
+        if (bonus.isEmpty()) {
+            return bonus;
+        }
+        Set<BuildingOutputType> allowed = EnumSet.noneOf(BuildingOutputType.class);
+        for (BuildingAreaTableCfg areaCfg : GameDataManager.getBuildingAreaTableCfgList()) {
+            if (areaCfg.getEmployeeProfile() != professionId) {
+                continue;
+            }
+            BuildingOutputType type = BuildingOutputType.fromCode(areaCfg.getTypeValue());
+            if (type != null) {
+                allowed.add(type.bonusGroup());
+            }
+        }
+        return new ManageBonus(retainAllowed(bonus.modifier(), allowed), retainAllowed(bonus.buff(), allowed));
+    }
+
+    private Map<BuildingOutputType, Integer> retainAllowed(Map<BuildingOutputType, Integer> src, Set<BuildingOutputType> allowed) {
+        if (src.isEmpty() || allowed.isEmpty()) {
+            return Collections.emptyMap();
+        }
+        Map<BuildingOutputType, Integer> result = new HashMap<>(src.size());
+        for (Map.Entry<BuildingOutputType, Integer> en : src.entrySet()) {
+            if (allowed.contains(en.getKey())) {
+                result.put(en.getKey(), en.getValue());
+            }
+        }
+        return result;
+    }
+
+    /**
+     * 加成 Map 转 KVInfo 列表 (key=产出类型 code, value=加成值); 空则返回 null。
+     */
+    public List<KVInfo> toKVList(Map<BuildingOutputType, Integer> bonus) {
+        if (bonus.isEmpty()) {
+            return null;
+        }
+        List<KVInfo> list = new ArrayList<>(bonus.size());
+        for (Map.Entry<BuildingOutputType, Integer> en : bonus.entrySet()) {
+            list.add(new KVInfo(en.getKey().getCode(), en.getValue()));
+        }
+        return list;
     }
 
     /**

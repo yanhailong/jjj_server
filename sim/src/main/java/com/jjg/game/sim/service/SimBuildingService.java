@@ -139,8 +139,11 @@ public class SimBuildingService implements SimPlayerTickListener {
             Map<BuildingOutputType, Long> base = getBaseOutput(buildingData.getId(), buildingData.getLevel());
             //普通雇员加成
             res.employeeBonus = normalEmployeeBonus(ctx, base);
-            //主管加成
-            res.manageEmployeeBonus = manageEmployeeBonus(ctx, base, buildingData);
+            //主管加成 (与任命主管返回一致: 配置值按产出类型过滤)
+            BuildingAreaTableCfg areaCfg = GameDataManager.getBuildingAreaTableCfg(buildingData.getId());
+            SimEmployeeService.ManageBonus manage = employeeService.managerBonusFiltered(ctx, areaCfg == null ? 0 : areaCfg.getEmployeeProfile());
+            res.manageEmployeeBonus = employeeService.toKVList(manage.modifier());
+            res.manageEmployeeFixBonus = employeeService.toKVList(manage.buff());
             //观看广告次数限制
             res.watchAdLimit = GameDataManager.getGlobalConfigCfg(SimConstant.Global.ID_WATCH_AD_LIMIT).getIntValue();
             //主管id
@@ -754,40 +757,6 @@ public class SimBuildingService implements SimPlayerTickListener {
         for (Map.Entry<BuildingOutputType, Long> en : base.entrySet()) {
             int bonus = bonusesMap.getOrDefault(en.getKey().bonusGroup(), 0);
             long extra = en.getValue() * bonus / SimConstant.Common.EMPLOYEE_BONUS_DIVISOR;
-            if (extra <= 0) {
-                continue;
-            }
-            list.add(new KVInfo(en.getKey().getCode(), (int) extra));
-        }
-        return list;
-    }
-
-    /**
-     * 主管加成
-     *
-     * @param ctx
-     * @param base
-     * @param buildingData
-     * @return KVInfo.key=itemId  KVInfo.value=bouns
-     */
-    public List<KVInfo> manageEmployeeBonus(SimPlayerContext ctx, Map<BuildingOutputType, Long> base, BuildingData buildingData) {
-        if (base == null || base.isEmpty()) {
-            return Collections.emptyList();
-        }
-        BuildingAreaTableCfg areaCfg = GameDataManager.getBuildingAreaTableCfg(buildingData.getId());
-        if (areaCfg == null) {
-            return Collections.emptyList();
-        }
-        //主管加成 (百分比 + 固定值)
-        SimEmployeeService.ManageBonus manage = employeeService.manageEmployeeBonus(ctx, areaCfg.getEmployeeProfile());
-        if (manage.isEmpty()) {
-            return Collections.emptyList();
-        }
-        List<KVInfo> list = new ArrayList<>(base.size());
-        for (Map.Entry<BuildingOutputType, Long> en : base.entrySet()) {
-            BuildingOutputType group = en.getKey().bonusGroup();
-            long extra = en.getValue() * manage.modifier().getOrDefault(group, 0) / SimConstant.Common.EMPLOYEE_BONUS_DIVISOR
-                    + manage.buff().getOrDefault(group, 0);
             if (extra <= 0) {
                 continue;
             }
