@@ -1063,6 +1063,16 @@ public class SimBuildingService implements SimPlayerTickListener {
             return Collections.emptyMap();
         }
 
+        BuildingType buildingType = BuildingType.fromCode(buildingAreaTableCfg.getType());
+        if(buildingType == null){
+            return Collections.emptyMap();
+        }
+
+        //只能有游戏区和休息区才有产出
+        if(buildingType != BuildingType.GAME && buildingType != BuildingType.REST){
+            return Collections.emptyMap();
+        }
+
         BuildingUpgradeTableCfg cfg = configCache.getBuildingUpgradeCfg(buildingId, level);
         if (cfg == null) {
             return Collections.emptyMap();

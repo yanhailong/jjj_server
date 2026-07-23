@@ -2,6 +2,8 @@ package com.jjg.game.social.service;
 
 import com.jjg.game.core.constant.AddType;
 import com.jjg.game.core.constant.Code;
+import com.jjg.game.core.dao.AccountDao;
+import com.jjg.game.core.data.Account;
 import com.jjg.game.core.data.NoticeTipBuilder;
 import com.jjg.game.core.data.Player;
 import com.jjg.game.core.data.PlayerController;
@@ -42,6 +44,8 @@ public class FriendService {
     @Autowired
     private CorePlayerService corePlayerService;
     @Autowired
+    private AccountDao accountDao;
+    @Autowired
     private SocialSender sender;
     @Autowired
     private SocialStatusService statusService;
@@ -76,6 +80,7 @@ public class FriendService {
             if (friends != null && !friends.isEmpty()) {
                 int today = today();
                 Map<Long, Player> players = corePlayerService.multiGetPlayerMap(friends.keySet());
+                Map<Long, Account> accounts = accountDao.multiGetAccountMap(friends.keySet());
                 //一次 HMGET 批量取在线会话信息, 替代逐好友 getInfo/online 的 2N 次 Redis 往返
                 Map<Long, PlayerSessionInfo> sessionInfos = statusService.infosOf(friends.keySet());
                 for (Map.Entry<Long, FriendEntry> en : friends.entrySet()) {
@@ -83,7 +88,7 @@ public class FriendService {
                     Player p = players.get(fid);
                     PlayerSessionInfo info = sessionInfos.get(fid);
                     int status = statusService.statusOf(info);
-                    long offlineSeconds = statusService.offlineSeconds(info, p);
+                    long offlineSeconds = statusService.offlineSeconds(info, accounts.get(fid));
                     //今日对该好友的赠送次数未达每人上限即可继续赠送
                     int sentToday = en.getValue() == null ? 0 : en.getValue().currentGiftSendCount(today);
                     boolean hasPendingGift = data.getPendingGifts() != null && data.getPendingGifts().containsKey(fid);
@@ -337,6 +342,7 @@ public class FriendService {
             if (agree) {
                 //同意: 批量取申请者资料 + 在线状态, 受双方好友上限约束筛出可加好友
                 Map<Long, Player> players = corePlayerService.multiGetPlayerMap(handledIds);
+                Map<Long, Account> accounts = accountDao.multiGetAccountMap(handledIds);
                 Map<Long, PlayerSessionInfo> sessionInfos = statusService.infosOf(handledIds);
                 //一次聚合取各申请者当前好友数, 申请方已满者不建立关系(其申请照常移除)
                 Map<Long, Integer> requesterCounts = friendDao.friendCounts(handledIds);
@@ -358,7 +364,7 @@ public class FriendService {
 
                     PlayerSessionInfo info = sessionInfos.get(rid);
                     int status = statusService.statusOf(info);
-                    long offlineSeconds = statusService.offlineSeconds(info, requester);
+                    long offlineSeconds = statusService.offlineSeconds(info, accounts.get(rid));
                     res.addedFriends.add(SocialPbConverter.toFriendInfo(requester, status, offlineSeconds, 0, false));
                 }
 

@@ -1,7 +1,7 @@
 package com.jjg.game.social.service;
 
 import com.jjg.game.core.constant.Code;
-import com.jjg.game.core.data.Player;
+import com.jjg.game.core.data.Account;
 import com.jjg.game.core.data.PlayerSessionInfo;
 import com.jjg.game.core.service.PlayerSessionService;
 import com.jjg.game.social.pb.res.NotifyFriendStatus;
@@ -58,21 +58,20 @@ public class SocialStatusService {
 
     /**
      * 离线时长(秒); 在线返回 0。
-     * 注: 暂以玩家数据更新时间近似最近活跃, 精确"最后下线时间"待后续在登出时持久化。
      */
-    public long offlineSeconds(long playerId, Player player) {
-        return offlineSeconds(playerSessionService.getInfo(playerId), player);
+    public long offlineSeconds(long playerId, Account account) {
+        return offlineSeconds(playerSessionService.getInfo(playerId), account);
     }
 
     /**
      * 由会话信息推导离线时长, 供已批量取到 {@link PlayerSessionInfo} 的场景复用 (info 非空即在线, 返回 0)。
      */
-    public long offlineSeconds(PlayerSessionInfo info, Player player) {
+    public long offlineSeconds(PlayerSessionInfo info, Account account) {
         if (info != null) {
             return 0;
         }
-        if (player != null && player.getUpdateTime() > 0) {
-            long sec = (System.currentTimeMillis() - player.getUpdateTime()) / 1000;
+        if (account != null && account.getLastOfflineTime() > 0) {
+            long sec = (System.currentTimeMillis() - account.getLastOfflineTime()) / 1000;
             return Math.max(sec, 0);
         }
         return 0;

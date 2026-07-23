@@ -620,6 +620,7 @@ public class SeasonService implements SimPlayerTickListener {
         info.genre = cfg.getGenre();
         info.count = pack == null ? 0 : pack.getItemCount(cfg.getItemId());
         info.equippedCount = (int) equipped.values().stream().filter(item -> item == cfg.getItemId()).count();
+        info.buff = cfg.getStatBoost();
         return info;
     }
 

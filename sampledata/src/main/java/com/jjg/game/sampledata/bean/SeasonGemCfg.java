@@ -21,6 +21,8 @@ public class SeasonGemCfg extends BaseCfgBean {
 
   /** 流派 */
   protected int Genre;
+  /** 属性提升 */
+  protected int StatBoost;
   /** 金额解锁 */
   protected List<Long> bet;
   /** 游戏ID */
@@ -39,6 +41,11 @@ public class SeasonGemCfg extends BaseCfgBean {
   /** 返回流派 */
   public int getGenre() {
     return Genre;
+  }
+
+  /** 返回属性提升 */
+  public int getStatBoost() {
+    return StatBoost;
   }
 
   /** 返回金额解锁 */
