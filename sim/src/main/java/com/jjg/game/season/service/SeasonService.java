@@ -209,18 +209,43 @@ public class SeasonService implements SimPlayerTickListener {
         return response;
     }
 
-    public ResSeasonCraftGem craft(SimPlayerContext ctx, List<Integer> itemIds, int keepItemId) {
+    /**
+     * 合成第一步: 发起合成。成功返回产出，失败返回 success=false 并进入待定态，
+     * 客户端据此请求 {@link #craftKeep} 选择要保留的宝石。
+     */
+    public ResSeasonCraftGem craft(SimPlayerContext ctx, List<Integer> itemIds) {
         lifecycleService.ensureCurrent(ctx, System.currentTimeMillis());
-        CommonResult<SeasonCraftResult> result = gemService.craft(ctx, itemIds, keepItemId);
+        CommonResult<SeasonCraftResult> result = gemService.craft(ctx, itemIds);
         ResSeasonCraftGem response = new ResSeasonCraftGem(result.code);
         if (result.data != null) {
             response.success = result.data.isSuccess();
             response.resultItemId = result.data.getResultItemId();
             response.resultCount = result.data.getResultCount();
-            response.keptItemId = result.data.getKeptItemId();
         }
         response.seasonCoin = ctx.getSeasonPlayerData().getSeasonCoin();
         return response;
+    }
+
+    /**
+     * 合成第二步: 合成失败后选择保留的宝石，把该宝石返还背包(材料已在第一步托管扣除)。
+     */
+    public ResSeasonCraftGemKeep craftKeep(SimPlayerContext ctx, int keepItemId) {
+        lifecycleService.ensureCurrent(ctx, System.currentTimeMillis());
+        CommonResult<Integer> result = gemService.craftKeep(ctx, keepItemId);
+        ResSeasonCraftGemKeep response = new ResSeasonCraftGemKeep(result.code);
+        if (result.data != null) {
+            response.keptItemId = result.data;
+        }
+        response.seasonCoin = ctx.getSeasonPlayerData().getSeasonCoin();
+        return response;
+    }
+
+    /**
+     * 自动结算未完成的失败合成: 默认保留第一件材料，用于玩家掉线/登出与重登补偿
+     * (见 {@link SeasonGemService#autoSettleFailedCraft})。
+     */
+    public void autoSettleFailedCraft(SimPlayerContext ctx) {
+        gemService.autoSettleFailedCraft(ctx);
     }
 
     public ResSeasonMatch match(SimPlayerContext ctx, int gameType, long stake) {

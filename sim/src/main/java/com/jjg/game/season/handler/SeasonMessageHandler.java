@@ -73,7 +73,12 @@ public class SeasonMessageHandler implements GmListener {
 
     @Command(SeasonConstant.MsgBean.REQ_SEASON_CRAFT_GEM)
     public void reqSeasonCraftGem(PlayerController playerController, ReqSeasonCraftGem req) {
-        execute(playerController, ctx -> ctx.send(seasonService.craft(ctx, req.itemIds, req.keepItemId)));
+        execute(playerController, ctx -> ctx.send(seasonService.craft(ctx, req.itemIds)));
+    }
+
+    @Command(SeasonConstant.MsgBean.REQ_SEASON_CRAFT_GEM_KEEP)
+    public void reqSeasonCraftGemKeep(PlayerController playerController, ReqSeasonCraftGemKeep req) {
+        execute(playerController, ctx -> ctx.send(seasonService.craftKeep(ctx, req.keepItemId)));
     }
 
     @Command(SeasonConstant.MsgBean.REQ_SEASON_MATCH)

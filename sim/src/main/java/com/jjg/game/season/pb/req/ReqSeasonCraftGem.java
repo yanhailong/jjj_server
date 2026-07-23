@@ -9,10 +9,8 @@ import com.jjg.game.season.constant.SeasonConstant;
 import java.util.List;
 
 @ProtobufMessage(messageType = MessageConst.MessageTypeDef.SEASON, cmd = SeasonConstant.MsgBean.REQ_SEASON_CRAFT_GEM)
-@ProtoDesc("合成赛季宝石")
+@ProtoDesc("合成赛季宝石(第一步:发起合成)")
 public class ReqSeasonCraftGem extends AbstractMessage {
     @ProtoDesc("作为材料的宝石道具ID列表")
     public List<Integer> itemIds;
-    @ProtoDesc("合成失败时选择保留的宝石道具ID")
-    public int keepItemId;
 }

@@ -7,7 +7,7 @@ import com.jjg.game.common.proto.ProtobufMessage;
 import com.jjg.game.season.constant.SeasonConstant;
 
 @ProtobufMessage(messageType = MessageConst.MessageTypeDef.SEASON, cmd = SeasonConstant.MsgBean.RES_SEASON_CRAFT_GEM, resp = true)
-@ProtoDesc("合成赛季宝石返回")
+@ProtoDesc("合成赛季宝石返回(第一步)。success=false 表示合成失败，需再发起 ReqSeasonCraftGemKeep 选择保留的宝石")
 public class ResSeasonCraftGem extends AbstractResponse {
     @ProtoDesc("是否合成成功")
     public boolean success;
@@ -15,9 +15,7 @@ public class ResSeasonCraftGem extends AbstractResponse {
     public int resultItemId;
     @ProtoDesc("成功产出数量")
     public int resultCount;
-    @ProtoDesc("失败时保留的宝石道具ID")
-    public int keptItemId;
-    @ProtoDesc("合成后的赛季币")
+    @ProtoDesc("扣除合成费用后的赛季币")
     public long seasonCoin;
 
     public ResSeasonCraftGem(int code) {

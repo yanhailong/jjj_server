@@ -58,6 +58,8 @@ public class SeasonPlayerData extends AbstractData {
     private SeasonSettlement lastSettlement;
     private List<SeasonMatchRecord> matchHistory = new ArrayList<>();
     private List<String> processedMatchIds = new ArrayList<>();
+    //合成失败待结算态 (材料已在第一步托管扣除, 待玩家选择保留的宝石); 落库以便掉线/进程异常后重登补偿结算 (默认保留第一件)
+    private SeasonPendingCraft pendingCraft;
     //上次拉取跨节点待结算记录的时间; 内存态不落库 (登录后首次访问必拉)
     @Transient
     @JSONField(serialize = false, deserialize = false)
@@ -101,6 +103,7 @@ public class SeasonPlayerData extends AbstractData {
         matchOfflineTime = 0;
         getMatchHistory().clear();
         getProcessedMatchIds().clear();
+        pendingCraft = null;
         rankCacheTime = 0;
     }
 
@@ -256,6 +259,8 @@ public class SeasonPlayerData extends AbstractData {
         return processedMatchIds;
     }
     public void setProcessedMatchIds(List<String> processedMatchIds) { this.processedMatchIds = processedMatchIds == null ? new ArrayList<>() : processedMatchIds; }
+    public SeasonPendingCraft getPendingCraft() { return pendingCraft; }
+    public void setPendingCraft(SeasonPendingCraft pendingCraft) { this.pendingCraft = pendingCraft; }
     @JSONField(serialize = false, deserialize = false)
     public long getLastPendingCheckTime() { return lastPendingCheckTime; }
     public void setLastPendingCheckTime(long lastPendingCheckTime) { this.lastPendingCheckTime = lastPendingCheckTime; }

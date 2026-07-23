@@ -318,6 +318,8 @@ public class SimManager {
             if (ctx.getSeasonPlayerData() != null) {
                 ctx.getSeasonPlayerData().markMatchOffline(System.currentTimeMillis());
             }
+            //未完成的失败合成: 掉线时默认保留第一件材料, 结算返还并清除待结算态 (返还失败则保留待结算态, 已落库待重登重试)
+            seasonService.autoSettleFailedCraft(ctx);
             exitSaveData(playerId);
             return true;
         }
@@ -403,6 +405,9 @@ public class SimManager {
             seasonData.setPlayerId(playerId);
         }
         ctx.setSeasonPlayerData(seasonData);
+        //进程异常/崩溃后重登补偿: 若存在未结算的失败合成(材料已托管扣除), 默认保留第一件返还
+        //须在 ensureCurrent(可能切季重置赛季态)之前, 保证跨赛季也能拿回应保留的宝石
+        seasonService.autoSettleFailedCraft(ctx);
         seasonLifecycleService.ensureCurrent(ctx, System.currentTimeMillis());
 
         //TODO 临时，提审用
