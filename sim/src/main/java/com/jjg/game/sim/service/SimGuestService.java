@@ -9,6 +9,7 @@ import com.jjg.game.common.utils.WeightRandom;
 import com.jjg.game.core.constant.AddType;
 import com.jjg.game.core.constant.Code;
 import com.jjg.game.core.data.CommonResult;
+import com.jjg.game.core.base.condition.numeric.ActionConditionEvent;
 import com.jjg.game.core.data.Player;
 import com.jjg.game.core.listener.ItemListener;
 import com.jjg.game.core.utils.ItemUtils;
@@ -325,7 +326,10 @@ public class SimGuestService implements SimPlayerTickListener, ItemListener {
                 //添加道具
                 simPackService.addItems(ctx, rewardsMap, AddType.SIM_GUEST_REWARDS, null, false);
                 //经营信息: 购买游客交互产出金币计入经营收益
-                ctx.getSimBaseData().addBusinessIncome(rewardsMap.getOrDefault(ItemUtils.getGoldItemId(), 0L));
+                long destGold = rewardsMap.getOrDefault(ItemUtils.getGoldItemId(), 0L);
+                ctx.getSimBaseData().addBusinessIncome(destGold);
+                //主线任务: 经营金币收益 -> 推进 12215
+                allianceEventService.onBusinessIncome(ctx.playerId(), destGold);
             }
             dest.claimed = true;
         }
@@ -434,7 +438,10 @@ public class SimGuestService implements SimPlayerTickListener, ItemListener {
 
         //经营信息: 普通游客不计入高级游客人次; 游客交互产出金币计入玩家经营总收益
         if (!rewardsMap.isEmpty()) {
-            ctx.getSimBaseData().addBusinessIncome(rewardsMap.getOrDefault(ItemUtils.getGoldItemId(), 0L));
+            long guestGold = rewardsMap.getOrDefault(ItemUtils.getGoldItemId(), 0L);
+            ctx.getSimBaseData().addBusinessIncome(guestGold);
+            //主线任务: 经营金币收益 -> 推进 12215
+            allianceEventService.onBusinessIncome(ctx.playerId(), guestGold);
         }
 
         //累加经验
@@ -738,6 +745,8 @@ public class SimGuestService implements SimPlayerTickListener, ItemListener {
 
             res.guestId = guestData.getId();
             res.star = guestData.getStar();
+            //主线任务: 升星改变各星级持有量 -> 上报 12214 "拥有 N 个 X 星游客"
+            reportGuestCounts(ctx);
             log.info("升星游客成功 playerId={},guestId={},star={}", ctx.playerId(), guestId, guestData.getStar());
         } catch (Exception e) {
             log.error("", e);
@@ -892,12 +901,31 @@ public class SimGuestService implements SimPlayerTickListener, ItemListener {
             allianceEventService.onCardPoolDraw(ctx.playerId(), tmpCfg.getId(), count);
             allianceEventService.onGuestRecruit(ctx.playerId(),
                     tmpCfg.getDrawCost() != null && !tmpCfg.getDrawCost().isEmpty(), count);
+            //主线任务: 招募改变各星级持有量 -> 上报 12214 "拥有 N 个 X 星游客"
+            reportGuestCounts(ctx);
             log.info("招募游客成功 playerId={},count={},newEmployee={},addAllItems={}", ctx.playerId(), count, addGuest, addAllItems);
         } catch (Exception e) {
             log.error("", e);
             res.code = Code.EXCEPTION;
         }
         ctx.send(res);
+    }
+
+    /**
+     * 上报当前场景各星级游客的持有量, 推进 12214 "拥有 N 个 X 星游客" (X 星按 ≥ 阈值判定)。
+     * 内存仅驻留当前场景, 主线新手阶段玩家通常仅一座娱乐城, 故按当前场景统计。
+     */
+    private void reportGuestCounts(SimPlayerContext ctx) {
+        SimCasinoData casino = ctx.getCurrentCasino();
+        if (casino == null || casino.getGuestMap() == null || casino.getGuestMap().isEmpty()) {
+            return;
+        }
+        SortedMap<Integer, Long> countByStar = new TreeMap<>();
+        for (GuestData guest : casino.getGuestMap().values()) {
+            countByStar.merge(guest.getStar(), 1L, Long::sum);
+        }
+        allianceEventService.onOwnershipCounts(ctx.playerId(),
+                ActionConditionEvent.Type.GUEST_COUNT, 0, countByStar);
     }
 
     /**

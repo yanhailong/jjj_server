@@ -1,5 +1,6 @@
 package com.jjg.game.sim.service;
 
+import com.jjg.game.common.utils.TimeHelper;
 import com.jjg.game.core.base.condition.numeric.ConditionEvent;
 import com.jjg.game.core.base.condition.numeric.ConditionUpdate;
 import com.jjg.game.core.base.condition.numeric.PreparedCondition;
@@ -92,6 +93,24 @@ public class SimTaskService {
         }
         ctx.setSimTaskData(data);
         ensureActive(playerId, data);
+        //上线即推进"累积登陆天数"(12218): 主线首节点就是该条件, 不接入则整条主线无法起步
+        onDailyLogin(ctx);
+    }
+
+    /**
+     * 每日登陆推进"累积登陆天数"条件 (12218)。按自然日 (yyyyMMdd) 去重, 同一天多次上线只计一次。
+     */
+    private void onDailyLogin(SimPlayerContext ctx) {
+        SimBaseData baseData = ctx.getSimBaseData();
+        if (baseData == null) {
+            return;
+        }
+        int today = TimeHelper.getDayNumerical();
+        if (baseData.getLastLoginDay() == today) {
+            return;
+        }
+        baseData.setLastLoginDay(today);
+        onConditionEvent(ctx, SimConditionEventFactory.login());
     }
 
     /**

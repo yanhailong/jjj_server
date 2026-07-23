@@ -5,6 +5,7 @@ import com.jjg.game.alliance.service.AllianceEventService;
 import com.jjg.game.alliance.service.AllianceHelpService;
 import com.jjg.game.common.pb.ItemInfo;
 import com.jjg.game.common.utils.TimeHelper;
+import com.jjg.game.core.base.condition.numeric.ActionConditionEvent;
 import com.jjg.game.core.constant.AddType;
 import com.jjg.game.core.constant.Code;
 import com.jjg.game.core.pb.KVInfo;
@@ -253,6 +254,8 @@ public class SimBuildingService implements SimPlayerTickListener {
             data.setId(buildingId);
             data.setLevel(INITIAL_LEVEL);
             casino.putBuilding(data);
+            //主线任务: 新建筑改变各等级持有量 -> 上报 12208 "拥有 N 个 ≥X 级建筑"
+            reportBuildingCounts(ctx);
             log.info("解锁建筑成功 playerId={},buildingId={}", ctx.playerId(), buildingId);
         } catch (Exception e) {
             log.error("", e);
@@ -391,6 +394,8 @@ public class SimBuildingService implements SimPlayerTickListener {
                 res.level = data.getLevel();
                 //联盟任务: 建筑升级次数 (param=建筑ID, 供 0=任意/指定建筑 过滤)
                 allianceEventService.onBuildingUpgrade(ctx.playerId(), buildingId, data.getLevel());
+                //主线任务: 升级改变各等级持有量 -> 上报 12208 "拥有 N 个 ≥X 级建筑"
+                reportBuildingCounts(ctx);
             }
         } catch (Exception e) {
             log.error("", e);
@@ -450,6 +455,8 @@ public class SimBuildingService implements SimPlayerTickListener {
                 data.setAdClearCount(data.getAdClearCount() + 1);
                 //经营信息: 观看广告数 +1
                 ctx.getSimBaseData().incWatchAdCount();
+                //主线任务: 观看广告一次 -> 推进 12209
+                allianceEventService.onAdWatch(ctx.playerId());
             } else {
                 if (costCount < 1) {
                     res.code = Code.NOT_ENOUGH;
@@ -512,7 +519,10 @@ public class SimBuildingService implements SimPlayerTickListener {
                 Map<BuildingOutputType, Long> total = multiply(perMinute, fullMinutes);
                 simPackService.addItem(ctx, total, AddType.SIM_BUILD_MINUTE_REWARDS, null, false);
                 //经营信息: 累加每分钟自产金币收益
-                ctx.getSimBaseData().addBusinessIncome(total.getOrDefault(BuildingOutputType.GOLD, 0L));
+                long minuteGold = total.getOrDefault(BuildingOutputType.GOLD, 0L);
+                ctx.getSimBaseData().addBusinessIncome(minuteGold);
+                //主线任务: 经营金币收益 -> 推进 12215
+                allianceEventService.onBusinessIncome(ctx.playerId(), minuteGold);
             }
             //仅推进已结算的整分钟, 保留余量
             casino.setLastOutputTime(casino.getLastOutputTime() + fullMinutes * TimeHelper.ONE_MINUTE_OF_MILLIS);
@@ -954,14 +964,36 @@ public class SimBuildingService implements SimPlayerTickListener {
         Map<BuildingOutputType, Long> finalReward = scale(reward.getBaseReward(), multiplier);
         simPackService.addItem(ctx, finalReward, AddType.SIM_BUILD_OFFLINE_REWARDS, null, false);
         //经营信息: 离线产出金币计入经营收益; 看广告领取计入观看广告数
-        ctx.getSimBaseData().addBusinessIncome(finalReward.getOrDefault(BuildingOutputType.GOLD, 0L));
+        long offlineGold = finalReward.getOrDefault(BuildingOutputType.GOLD, 0L);
+        ctx.getSimBaseData().addBusinessIncome(offlineGold);
+        //主线任务: 离线经营金币收益 -> 推进 12215
+        allianceEventService.onBusinessIncome(ctx.playerId(), offlineGold);
         if (watchAd) {
             ctx.getSimBaseData().incWatchAdCount();
+            //主线任务: 观看广告一次 -> 推进 12209
+            allianceEventService.onAdWatch(ctx.playerId());
         }
         //领取后重置
         ctx.setPendingOffline(null);
         log.info("领取离线收益 playerId={},watchAd={},multiplier={},reward={}", ctx.playerId(), watchAd, multiplier, finalReward);
         return Code.SUCCESS;
+    }
+
+    /**
+     * 上报当前场景各等级建筑的持有量, 推进 12208 "拥有 N 个 ≥X 级建筑"。
+     * 内存仅驻留当前场景数据, 主线新手阶段玩家通常仅一座娱乐城, 故按当前场景统计。
+     */
+    private void reportBuildingCounts(SimPlayerContext ctx) {
+        SimCasinoData casino = ctx.getCurrentCasino();
+        if (casino == null || casino.getBuildingData() == null || casino.getBuildingData().isEmpty()) {
+            return;
+        }
+        SortedMap<Integer, Long> countByLevel = new TreeMap<>();
+        for (BuildingData building : casino.getBuildingData().values()) {
+            countByLevel.merge(building.getLevel(), 1L, Long::sum);
+        }
+        allianceEventService.onOwnershipCounts(ctx.playerId(),
+                ActionConditionEvent.Type.BUILDING_COUNT, 0, countByLevel);
     }
 
     private Map<BuildingOutputType, Long> multiply(Map<BuildingOutputType, Long> src, long factor) {

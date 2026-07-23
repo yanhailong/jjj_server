@@ -3,6 +3,7 @@ package com.jjg.game.sim.service;
 import com.jjg.game.alliance.service.AllianceEventService;
 import com.jjg.game.common.utils.TimeHelper;
 import com.jjg.game.common.utils.WeightRandom;
+import com.jjg.game.core.base.condition.numeric.ActionConditionEvent;
 import com.jjg.game.core.constant.AddType;
 import com.jjg.game.core.constant.Code;
 import com.jjg.game.core.data.CommonResult;
@@ -210,6 +211,8 @@ public class SimEmployeeService {
             allianceEventService.onCardPoolDraw(ctx.playerId(), tmpCfg.getId(), count);
             recruitedProfessions.forEach((professionId, recruited) ->
                     allianceEventService.onEmployeeRecruit(ctx.playerId(), professionId, recruited));
+            //主线任务: 招募改变各职业各星级持有量 -> 上报 12212 "拥有 N 个 X 星雇员"
+            reportEmployeeCounts(ctx);
             log.info("招募雇员成功 playerId={},count={},newEmployee={},addAllItems={}", ctx.playerId(), count, addEmployee, addAllItems);
         } catch (Exception e) {
             log.error("", e);
@@ -310,12 +313,38 @@ public class SimEmployeeService {
             }
             data.setStar(data.getStar() + 1);
             res.star = data.getStar();
+            //主线任务: 升星改变各星级持有量 -> 上报 12212 "拥有 N 个 X 星雇员"
+            reportEmployeeCounts(ctx);
             log.info("升星雇员成功 playerId={},employeeId={},newStar={}", ctx.playerId(), employeeId, data.getStar());
         } catch (Exception e) {
             log.error("", e);
             res.code = Code.EXCEPTION;
         }
         ctx.send(res);
+    }
+
+    /**
+     * 上报各职业各星级雇员持有量, 推进 12212 "拥有 N 个 X 星雇员" (X 星按 ≥ 阈值判定)。
+     * 雇员为玩家级全量驻留内存, 按职业分别上报, 供 12212 的职业过滤维度匹配。
+     */
+    private void reportEmployeeCounts(SimPlayerContext ctx) {
+        Map<Integer, SimEmployeeData> employees = ctx.getEmployeeMap();
+        if (employees == null || employees.isEmpty()) {
+            return;
+        }
+        // 职业 -> (星级 -> 恰好该星级的数量)
+        Map<Integer, SortedMap<Integer, Long>> byProfession = new HashMap<>();
+        for (SimEmployeeData employee : employees.values()) {
+            EmployeeProfileCfg cfg = GameDataManager.getEmployeeProfileCfg(employee.getEmployeeId());
+            if (cfg == null) {
+                continue;
+            }
+            byProfession.computeIfAbsent(cfg.getProfessionID(), k -> new TreeMap<>())
+                    .merge(employee.getStar(), 1L, Long::sum);
+        }
+        byProfession.forEach((profession, starCounts) ->
+                allianceEventService.onOwnershipCounts(ctx.playerId(),
+                        ActionConditionEvent.Type.EMPLOYEE_COUNT, profession, starCounts));
     }
 
     /**

@@ -39,6 +39,8 @@ public class SimBaseData extends AbstractData {
     private int watchAdCount;
     //经营信息-完成任务数 (玩家跨娱乐城累计, 完成即计数)
     private int finishedTaskCount;
+    //最近一次触发"登陆天数"条件的自然日 (yyyyMMdd); 每个自然日仅计一次登陆, 跨天再计
+    private int lastLoginDay;
     //经营信息-SPINE游戏统计 gameType -> 玩家累计统计
     private Map<Integer, SlotGameStatsData> slotStatsMap;
     //旧版按娱乐城保存的统计是否已迁移到玩家数据
@@ -172,6 +174,14 @@ public class SimBaseData extends AbstractData {
 
     public void incFinishedTaskCount() {
         this.finishedTaskCount++;
+    }
+
+    public int getLastLoginDay() {
+        return lastLoginDay;
+    }
+
+    public void setLastLoginDay(int lastLoginDay) {
+        this.lastLoginDay = lastLoginDay;
     }
 
     public Map<Integer, SlotGameStatsData> getSlotStatsMap() {

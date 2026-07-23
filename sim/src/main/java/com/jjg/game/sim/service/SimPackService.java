@@ -1,5 +1,6 @@
 package com.jjg.game.sim.service;
 
+import com.jjg.game.alliance.service.AllianceEventService;
 import com.jjg.game.core.constant.AddType;
 import com.jjg.game.core.constant.Code;
 import com.jjg.game.core.data.CommonResult;
@@ -21,6 +22,7 @@ import com.jjg.game.sim.manager.SimPlayerContextRegistry;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.context.annotation.Lazy;
 import org.springframework.stereotype.Service;
 
 import java.util.Collections;
@@ -47,6 +49,10 @@ public class SimPackService {
     private SimCasinoDao simCasinoDao;
     @Autowired
     private SimPlayerContextRegistry simPlayerContextRegistry;
+    //@Lazy 打破循环: 门面 -> SimTaskService -> SimPackService; 仅用于消费后上报主线任务事件
+    @Lazy
+    @Autowired
+    private AllianceEventService allianceEventService;
 
 
     /**
@@ -291,6 +297,9 @@ public class SimPackService {
         if (needAwareness > 0) {
             casino.setAwareness(casino.getAwareness() - (int) needAwareness);
         }
+        //主线任务: 背包道具消费(金币/钻石等) -> 推进 12220 (按 itemId 过滤); 体力/知名度不计入消费
+        packItems.forEach((itemId, count) ->
+                allianceEventService.onItemConsume(ctx.playerId(), itemId, count));
         return true;
     }
 

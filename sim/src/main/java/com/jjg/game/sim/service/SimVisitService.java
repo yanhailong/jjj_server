@@ -2,6 +2,7 @@ package com.jjg.game.sim.service;
 
 import com.jjg.game.alliance.data.AllianceData;
 import com.jjg.game.alliance.service.AllianceCacheService;
+import com.jjg.game.alliance.service.AllianceEventService;
 import com.jjg.game.common.cluster.ClusterSystem;
 import com.jjg.game.common.curator.MarsNode;
 import com.jjg.game.common.curator.NodeManager;
@@ -121,6 +122,8 @@ public class SimVisitService {
     private ClusterSystem clusterSystem;
     @Autowired
     private PlayerSessionService playerSessionService;
+    @Autowired
+    private AllianceEventService allianceEventService;
 
     public ResVisitCasino visit(SimPlayerContext ctx, long playerId, int casinoId) {
         ResVisitCasino res = new ResVisitCasino(Code.SUCCESS);
@@ -144,6 +147,8 @@ public class SimVisitService {
                     quota.ownerTodayPopularity());
             quotaService.markVisited(playerId, ctx.playerId());
             quotaService.markTargetVisited(ctx.playerId(), playerId);
+            //主线任务: 拜访一次 (含随机拜访) -> 推进 12217
+            allianceEventService.onVisit(ctx.playerId());
             res.remainingLikes = quota.remainingLikes();
             res.dailyLikeLimit = likeLimit;
             res.remainingComments = quota.remainingComments();

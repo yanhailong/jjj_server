@@ -1,5 +1,6 @@
 package com.jjg.game.sim.service;
 
+import com.jjg.game.core.base.condition.numeric.ActionConditionEvent;
 import com.jjg.game.core.base.condition.numeric.GameConditionEvent;
 import com.jjg.game.core.utils.ItemUtils;
 import com.jjg.game.sim.data.SpinStatInfo;
@@ -9,7 +10,9 @@ import org.slf4j.LoggerFactory;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
+import java.util.SortedMap;
 import java.util.concurrent.atomic.AtomicBoolean;
+import java.util.function.Consumer;
 
 /**
  * slots 跨节点旋转统计到 core 条件事件的唯一转换边界。
@@ -53,6 +56,72 @@ public final class SimConditionEventFactory {
         return new GameConditionEvent(gameType, gameType, 0, goldItemId, goldItemId,
                 bet, win, multiple, true, true, 0, 0, 0,
                 Set.of(), List.of(), win > 0 ? Map.of(goldItemId, win) : Map.of());
+    }
+
+    // =====================================================================
+    // 经营类动作事件 (sim 主线 12208-12220 使用; 均为本次动作的事实值, 不含历史累计)
+    // =====================================================================
+
+    /** 登陆一次 (按自然日去重由调用方保证): 推进 12218 累积登陆天数, 每次记 1。 */
+    public static ActionConditionEvent login() {
+        return new ActionConditionEvent(ActionConditionEvent.Type.LOGIN, 0, 0, 0, 1, 0, false);
+    }
+
+    /** 观看广告一次: 推进 12209 观看广告次数。 */
+    public static ActionConditionEvent adWatch() {
+        return new ActionConditionEvent(ActionConditionEvent.Type.AD_WATCH, 0, 0, 0, 1, 0, false);
+    }
+
+    /** 拜访一次: 推进 12217 累积拜访次数。 */
+    public static ActionConditionEvent visit() {
+        return new ActionConditionEvent(ActionConditionEvent.Type.VISIT, 0, 0, 0, 1, 0, false);
+    }
+
+    /**
+     * 一次经营金币收益 (自产/离线/游客产出): 推进 12215 经营收益累积。
+     * subject 取金币道具 id, 供 12215 的道具过滤维度匹配 (金币配置未就绪时退化为 0, 本次不推进)。
+     */
+    public static ActionConditionEvent businessIncome(long gold) {
+        return new ActionConditionEvent(ActionConditionEvent.Type.PRODUCTION_INCOME,
+                resolveGoldItemId(), 0, Math.max(0, gold), 0, 0, false);
+    }
+
+    /** 一次道具消费: 推进 12220 累积消费 (按 itemId 过滤金币/钻石等)。 */
+    public static ActionConditionEvent itemConsume(int itemId, long count) {
+        return new ActionConditionEvent(ActionConditionEvent.Type.ITEM_CONSUME,
+                itemId, 0, Math.max(0, count), 0, 0, false);
+    }
+
+    /**
+     * 生成"拥有型"计数条件的事件序列 (12208 建筑 / 12212 雇员 / 12214 游客)。
+     * <p>
+     * 这三条规则语义为 SET + {@code qualifier(等级/星级) >= 配置阈值} 时把进度覆盖为事件 value。
+     * 为使"持有量 ≥ 任意阈值 T"都能被正确覆盖: 把当前持有量按 tier 分档, 由高到低对每个存在的 tier
+     * 发一个事件, value = 该 tier 及以上的累计持有量, qualifier = 该 tier。这样对任意阈值 T, 匹配到的
+     * 最后一个事件恰是"存在的、≥T 的最小 tier", 其累计量即 count(≥T), SET 结果正确; 无任何 tier ≥T
+     * 时不发匹配事件, 进度保持不变。
+     *
+     * @param sink        事件下发口 (通常为 {@code e -> simTaskService.onConditionEvent(ctx, e)})
+     * @param type        条件事件类型 (BUILDING_COUNT / EMPLOYEE_COUNT / GUEST_COUNT)
+     * @param subjectId   主体过滤维度 (0 表示无过滤; 建筑/游客传 0, 雇员传职业 id)
+     * @param countByTier tier(等级/星级) -> 恰好处于该 tier 的持有数量
+     */
+    public static void emitOwnershipCounts(Consumer<ActionConditionEvent> sink,
+                                           ActionConditionEvent.Type type, int subjectId,
+                                           SortedMap<Integer, Long> countByTier) {
+        if (sink == null || countByTier == null || countByTier.isEmpty()) {
+            return;
+        }
+        long cumulative = 0;
+        //从最高 tier 向下累计, cumulative 即"≥当前 tier 的持有量"
+        for (Integer tier : new java.util.TreeSet<>(countByTier.keySet()).descendingSet()) {
+            Long tierCount = countByTier.get(tier);
+            if (tierCount == null || tierCount <= 0) {
+                continue;
+            }
+            cumulative += tierCount;
+            sink.accept(new ActionConditionEvent(type, subjectId, 0, cumulative, 0, tier, false));
+        }
     }
 
     private static int jackpotType(SpinStatInfo statInfo) {

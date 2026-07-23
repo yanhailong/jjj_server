@@ -44,6 +44,14 @@ public class AllianceEventService {
         } catch (Exception e) {
             log.error("联盟任务条件事件处理失败 playerId={},event={}", playerId, event, e);
         }
+        onSimOperation(playerId, event);
+    }
+
+    /**
+     * 仅驱动 sim 主线/成就任务的经营类事件 (12208-12220 等 condition 不用于联盟任务, 无需过联盟侧)。
+     * 玩家未在 sim 在线时静默跳过, 不影响玩法主流程。
+     */
+    public void onSimOperation(long playerId, ConditionEvent event) {
         try {
             SimPlayerContext ctx = simPlayerContextRegistry.getContext(playerId);
             if (ctx != null) {
@@ -51,6 +59,54 @@ public class AllianceEventService {
             }
         } catch (Exception e) {
             log.error("sim 任务条件事件处理失败 playerId={},event={}", playerId, event, e);
+        }
+    }
+
+    /** 观看广告一次 (清 CD / 领离线收益走广告倍数): 推进 12209。 */
+    public void onAdWatch(long playerId) {
+        onSimOperation(playerId, SimConditionEventFactory.adWatch());
+    }
+
+    /** 拜访一次: 推进 12217。 */
+    public void onVisit(long playerId) {
+        onSimOperation(playerId, SimConditionEventFactory.visit());
+    }
+
+    /** 一次经营金币收益 (自产 / 离线 / 游客产出): 推进 12215。 */
+    public void onBusinessIncome(long playerId, long gold) {
+        if (gold > 0) {
+            onSimOperation(playerId, SimConditionEventFactory.businessIncome(gold));
+        }
+    }
+
+    /** 一次道具消费: 推进 12220 (按 itemId 过滤金币 / 钻石)。 */
+    public void onItemConsume(long playerId, int itemId, long count) {
+        if (count > 0) {
+            onSimOperation(playerId, SimConditionEventFactory.itemConsume(itemId, count));
+        }
+    }
+
+    /**
+     * 上报"拥有型"计数条件的当前持有量 (12208 建筑 / 12212 雇员 / 12214 游客)。
+     * 只做一次 ctx 定位, 分档事件由 {@link SimConditionEventFactory#emitOwnershipCounts} 生成。
+     *
+     * @param type        BUILDING_COUNT / EMPLOYEE_COUNT / GUEST_COUNT
+     * @param subjectId   过滤维度 (0=无过滤; 雇员传职业 id)
+     * @param countByTier tier(等级/星级) -> 恰好处于该 tier 的持有数量
+     */
+    public void onOwnershipCounts(long playerId, ActionConditionEvent.Type type, int subjectId,
+                                  java.util.SortedMap<Integer, Long> countByTier) {
+        if (countByTier == null || countByTier.isEmpty()) {
+            return;
+        }
+        try {
+            SimPlayerContext ctx = simPlayerContextRegistry.getContext(playerId);
+            if (ctx != null) {
+                SimConditionEventFactory.emitOwnershipCounts(
+                        e -> simTaskService.onConditionEvent(ctx, e), type, subjectId, countByTier);
+            }
+        } catch (Exception e) {
+            log.error("sim 拥有型计数条件处理失败 playerId={},type={},subjectId={}", playerId, type, subjectId, e);
         }
     }
 
