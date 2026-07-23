@@ -27,6 +27,8 @@ public enum BuildingOutputType {
     TOP_RANK(9),
     //装饰
     DECORATION(10),
+    //管理属性(它是一个集合体，包括了SERVICE，AWARENESS，EXPOSURE)
+    MANAGE_ARRT(11)
     ;
 
     private final int code;
@@ -71,9 +73,23 @@ public enum BuildingOutputType {
             case 10 -> {
                 return DECORATION;
             }
+            case 11 -> {
+                return MANAGE_ARRT;
+            }
             default -> {
                 return null;
             }
         }
+    }
+
+    /**
+     * 加成归类: 管理区三属性(SERVICE/AWARENESS/EXPOSURE)统一归入集合体 MANAGE_ARRT, 其余为自身。
+     * 用于按产出类型查找对应的加成值。
+     */
+    public BuildingOutputType bonusGroup() {
+        return switch (this) {
+            case SERVICE, AWARENESS, EXPOSURE -> MANAGE_ARRT;
+            default -> this;
+        };
     }
 }

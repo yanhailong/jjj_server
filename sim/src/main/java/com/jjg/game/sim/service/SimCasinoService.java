@@ -9,7 +9,7 @@ import com.jjg.game.sampledata.bean.BuildingAreaTableCfg;
 import com.jjg.game.sampledata.bean.BuildingUpgradeTableCfg;
 import com.jjg.game.sampledata.bean.CasinoListCfg;
 import com.jjg.game.sampledata.bean.CasinoStatsSheetCfg;
-import com.jjg.game.sim.constant.BonusType;
+import com.jjg.game.sim.constant.BuildingOutputType;
 import com.jjg.game.sim.constant.SimConstant;
 import com.jjg.game.sim.dao.SimCasinoDao;
 import com.jjg.game.sim.data.*;
@@ -393,10 +393,12 @@ public class SimCasinoService {
         }
 
         //获取雇员加成
-        Map<BonusType, Integer> bonusesMap = new HashMap<>();
+        Map<BuildingOutputType, Integer> bonusesMap = new HashMap<>();
         employeeService.computeTypeBonusFixed(ctx, bonusesMap);
-        Integer bouns = bonusesMap.get(BonusType.AWARENESS);
-        if (bouns == null) {
+        //运营部产出知名度: 加成 = 管理区集合体(MANAGE_ARRT, 雇员/主管) + 知名度专项(AWARENESS, 勋章)
+        int bouns = bonusesMap.getOrDefault(BuildingOutputType.MANAGE_ARRT, 0)
+                + bonusesMap.getOrDefault(BuildingOutputType.AWARENESS, 0);
+        if (bouns <= 0) {
             return cfg.getUpgradeOutput();
         }
         long extra = cfg.getUpgradeOutput() * bouns / SimConstant.Common.EMPLOYEE_BONUS_DIVISOR;

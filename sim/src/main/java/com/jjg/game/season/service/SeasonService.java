@@ -183,9 +183,8 @@ public class SeasonService implements SimPlayerTickListener {
         lifecycleService.ensureCurrent(ctx, System.currentTimeMillis());
         ResSeasonGems response = new ResSeasonGems(Code.SUCCESS);
         PlayerPack pack = playerPackService.getFromAllDB(ctx.playerId());
-        Map<Integer, Integer> equipped = ctx.getSeasonPlayerData().getEquippedGems();
-        response.gems = configService.gems().stream().map(cfg -> gemInfo(cfg, pack, equipped)).toList();
-        response.slots = slots(equipped);
+        response.gems = configService.gems().stream().map(cfg -> gemInfo(cfg, pack)).toList();
+        response.slots = slots(ctx.getSeasonPlayerData().getEquippedGems());
 
         response.craftInfos = new ArrayList<>();
         for (SeasonGemCraftCfg cfg : GameDataManager.getSeasonGemCraftCfgList()) {
@@ -612,14 +611,13 @@ public class SeasonService implements SimPlayerTickListener {
         return info;
     }
 
-    private SeasonGemInfo gemInfo(SeasonGemCfg cfg, PlayerPack pack, Map<Integer, Integer> equipped) {
+    private SeasonGemInfo gemInfo(SeasonGemCfg cfg, PlayerPack pack) {
         SeasonGemInfo info = new SeasonGemInfo();
         info.configId = cfg.getId();
         info.itemId = cfg.getItemId();
         info.type = cfg.getType();
         info.genre = cfg.getGenre();
         info.count = pack == null ? 0 : pack.getItemCount(cfg.getItemId());
-        info.equippedCount = (int) equipped.values().stream().filter(item -> item == cfg.getItemId()).count();
         info.buff = cfg.getStatBoost();
         return info;
     }
@@ -630,6 +628,13 @@ public class SeasonService implements SimPlayerTickListener {
             SeasonGemSlotInfo info = new SeasonGemSlotInfo();
             info.slot = slot;
             info.itemId = itemId;
+            if (itemId > 0) {
+                SeasonGemCfg cfg = configService.gemByItemId(itemId);
+                info.gemId = cfg.getId();
+                info.type = cfg.getType();
+                info.genre = cfg.getGenre();
+                info.buff = cfg.getStatBoost();
+            }
             result.add(info);
         });
         result.sort(java.util.Comparator.comparingInt(info -> info.slot));

@@ -8,7 +8,7 @@ import com.jjg.game.sampledata.GameDataManager;
 import com.jjg.game.sampledata.bean.ItemCfg;
 import com.jjg.game.sampledata.bean.MedalBuffCfg;
 import com.jjg.game.sampledata.bean.MedalListCfg;
-import com.jjg.game.sim.constant.BonusType;
+import com.jjg.game.sim.constant.BuildingOutputType;
 import com.jjg.game.sim.constant.SimConstant;
 import com.jjg.game.sim.data.SimPlayerContext;
 import com.jjg.game.sim.pb.res.ResChangeShowMedal;
@@ -309,11 +309,11 @@ public class SimMedalService {
     }
 
     /**
-     * 把玩家勋章品质加成 (缓存) 合并进 sim 加成汇总 Map, 仅合并可映射到 {@link BonusType} 的项
+     * 把玩家勋章品质加成 (缓存) 合并进 sim 加成汇总 Map, 仅合并可映射到 {@link BuildingOutputType} 的项
      * (知名度/休息区能量/产金币建筑); 单位千分比, 与雇员加成同基数, 由各产出点统一按 /1000 生效。
-     * 广告金币收益 (12408) 无对应 BonusType, 由离线收益领取点单独取用。
+     * 广告金币收益 (12408) 无对应产出类型, 由离线收益领取点单独取用。
      */
-    public void mergeMedalBonus(SimPlayerContext ctx, Map<BonusType, Integer> bonusesMap) {
+    public void mergeMedalBonus(SimPlayerContext ctx, Map<BuildingOutputType, Integer> bonusesMap) {
         if (ctx == null || bonusesMap == null) {
             return;
         }
@@ -322,7 +322,7 @@ public class SimMedalService {
             return;
         }
         for (Map.Entry<Integer, Integer> en : medal.entrySet()) {
-            BonusType type = bonusTypeOf(en.getKey());
+            BuildingOutputType type = bonusTypeOf(en.getKey());
             if (type != null && en.getValue() != null) {
                 bonusesMap.merge(type, en.getValue(), Integer::sum);
             }
@@ -330,7 +330,7 @@ public class SimMedalService {
     }
 
     /**
-     * 勋章-广告金币收益加成 (千分比, condition 12408); 无对应 BonusType, 看广告领取离线收益时叠加到金币部分。
+     * 勋章-广告金币收益加成 (千分比, condition 12408); 无对应产出类型, 看广告领取离线收益时叠加到金币部分。
      */
     public int getAdGoldBonusPermil(SimPlayerContext ctx) {
         if (ctx == null) {
@@ -342,13 +342,13 @@ public class SimMedalService {
     }
 
     /**
-     * 勋章加成 condition id -> sim 加成体系 {@link BonusType}; 无对应 (如广告 12408/曝光度 12407) 返回 null。
+     * 勋章加成 condition id -> sim 产出类型 {@link BuildingOutputType}; 无对应 (如广告 12408/曝光度 12407) 返回 null。
      */
-    private static BonusType bonusTypeOf(int conditionId) {
+    private static BuildingOutputType bonusTypeOf(int conditionId) {
         return switch (conditionId) {
-            case COND_AWARENESS -> BonusType.AWARENESS;
-            case COND_REST_POWER -> BonusType.REST_AREA;
-            case COND_GOLD_BUILDING -> BonusType.GAME_AREA;
+            case COND_AWARENESS -> BuildingOutputType.AWARENESS;
+            case COND_REST_POWER -> BuildingOutputType.POWER;
+            case COND_GOLD_BUILDING -> BuildingOutputType.GOLD;
             default -> null;
         };
     }

@@ -18,8 +18,10 @@ import java.util.List;
 public class ResAssignSupervisor extends AbstractResponse {
     @ProtoDesc("雇员id")
     public int employeeId;
-    @ProtoDesc("主管加成")
+    @ProtoDesc("主管百分比加成  key参考BuildingAreaTable表的typeValue值")
     public List<KVInfo> manageEmployeeBonus;
+    @ProtoDesc("主管固定加成  key参考BuildingAreaTable表的typeValue值")
+    public List<KVInfo> manageEmployeeFixBonus;
 
     public ResAssignSupervisor(int code) {
         super(code);

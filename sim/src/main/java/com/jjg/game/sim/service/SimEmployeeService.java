@@ -10,7 +10,7 @@ import com.jjg.game.core.data.CommonResult;
 import com.jjg.game.core.pb.KVInfo;
 import com.jjg.game.sampledata.GameDataManager;
 import com.jjg.game.sampledata.bean.*;
-import com.jjg.game.sim.constant.BonusType;
+import com.jjg.game.sim.constant.BuildingOutputType;
 import com.jjg.game.sim.constant.SimConstant;
 import com.jjg.game.sim.dao.SimEmployeeDao;
 import com.jjg.game.sim.data.SimEmployeeData;
@@ -48,6 +48,8 @@ public class SimEmployeeService {
     private SimPackService simPackService;
     @Autowired
     private AllianceEventService allianceEventService;
+    @Autowired
+    private SimMedalService medalService;
 
     /**
      * 招募雇员 (卡池抽取):
@@ -371,15 +373,19 @@ public class SimEmployeeService {
             }
             ctx.getCurrentCasino().addManagerEmploy(cfg.getProfessionID(), employeeId);
 
-            //主管加成
-            Map<BonusType, Integer> bonusMap = manageEmployeeBonus(ctx, cfg.getProfessionID());
-            if (!bonusMap.isEmpty()) {
-                res.manageEmployeeBonus = new ArrayList<>(bonusMap.size());
-                for (Map.Entry<BonusType, Integer> en : bonusMap.entrySet()) {
-                    KVInfo kvInfo = new KVInfo();
-                    kvInfo.key = en.getKey().getCode();
-                    kvInfo.value = en.getValue();
-                    res.manageEmployeeBonus.add(kvInfo);
+            //主管百分比加成
+            ManageBonus manageBonus = manageEmployeeBonus(ctx, cfg.getProfessionID());
+            if (!manageBonus.modifier().isEmpty()) {
+                res.manageEmployeeBonus = new ArrayList<>(manageBonus.modifier().size());
+                for (Map.Entry<BuildingOutputType, Integer> en : manageBonus.modifier().entrySet()) {
+                    res.manageEmployeeBonus.add(new KVInfo(en.getKey().getCode(), en.getValue()));
+                }
+            }
+            //主管固定加成
+            if (!manageBonus.buff().isEmpty()) {
+                res.manageEmployeeFixBonus = new ArrayList<>(manageBonus.buff().size());
+                for (Map.Entry<BuildingOutputType, Integer> en : manageBonus.buff().entrySet()) {
+                    res.manageEmployeeFixBonus.add(new KVInfo(en.getKey().getCode(), en.getValue()));
                 }
             }
 
@@ -436,9 +442,9 @@ public class SimEmployeeService {
      * 汇总玩家加成固定值之和 (雇员等级加成 + 勋章品质加成) 到 bonusesMap; 单位千分比。
      *
      * @param ctx        玩家上下文
-     * @param bonusesMap 加成汇总输出 (BonusType -> 千分比值)
+     * @param bonusesMap 加成汇总输出
      */
-    public void computeTypeBonusFixed(SimPlayerContext ctx, Map<BonusType, Integer> bonusesMap) {
+    public void computeTypeBonusFixed(SimPlayerContext ctx, Map<BuildingOutputType, Integer> bonusesMap) {
         //所有已解锁同职业雇员的等级加成
         for (SimEmployeeData emp : ctx.getEmployeeMap().values()) {
             EmployeeLevelCfg levelCfg = getLevelCfg(emp.getEmployeeId(), emp.getLevel());
@@ -447,35 +453,62 @@ public class SimEmployeeService {
             }
             sumBouns(bonusesMap, levelCfg.getAttributeValue());
         }
+        //勋章品质加成
+        medalService.mergeMedalBonus(ctx, bonusesMap);
     }
 
     /**
-     * 仅仅获取主管的加成
+     * 仅仅获取主管的加成: 主管雇员的 EmployeeProfile.SkillIdList 对应的 EmployeeSkillConfig
+     * (Modifier 百分比 + Buff 固定值), 按 BuildingOutputType 归类。
      *
-     * @param ctx
-     * @return
+     * @param ctx             玩家上下文
+     * @param employeeProfile 建筑关联的职业ID
+     * @return 主管加成 (百分比 + 固定值)
      */
-    public Map<BonusType, Integer> manageEmployeeBonus(SimPlayerContext ctx, int employeeProfile) {
+    public ManageBonus manageEmployeeBonus(SimPlayerContext ctx, int employeeProfile) {
         if (employeeProfile < 1) {
-            return Collections.emptyMap();
+            return ManageBonus.empty();
         }
 
         int managerId = ctx.getCurrentCasino().manageEmploy(employeeProfile);
         if (managerId < 1) {
-            return Collections.emptyMap();
+            return ManageBonus.empty();
+        }
+        //主管未解锁则无加成
+        if (ctx.getEmployee(managerId) == null) {
+            return ManageBonus.empty();
+        }
+        EmployeeProfileCfg profileCfg = GameDataManager.getEmployeeProfileCfg(managerId);
+        if (profileCfg == null || profileCfg.getSkillIdList() == null || profileCfg.getSkillIdList().isEmpty()) {
+            return ManageBonus.empty();
         }
 
-        SimEmployeeData supervisor = ctx.getEmployee(managerId);
-        if (supervisor == null) {
-            return Collections.emptyMap();
+        Map<BuildingOutputType, Integer> modifier = new HashMap<>();
+        Map<BuildingOutputType, Integer> buff = new HashMap<>();
+        for (Integer skillId : profileCfg.getSkillIdList()) {
+            EmployeeSkillConfigCfg skillCfg = GameDataManager.getEmployeeSkillConfigCfg(skillId);
+            if (skillCfg == null) {
+                continue;
+            }
+            sumBouns(modifier, skillCfg.getModifier());
+            sumBouns(buff, skillCfg.getBuff());
         }
-        EmployeeStarCfg starCfg = getStarCfg(managerId, supervisor.getStar());
-        if (starCfg == null) {
-            return Collections.emptyMap();
+        return new ManageBonus(modifier, buff);
+    }
+
+    /**
+     * 主管加成: 百分比(千分比) + 固定值, 均按 {@link BuildingOutputType} 归类。
+     */
+    public record ManageBonus(Map<BuildingOutputType, Integer> modifier, Map<BuildingOutputType, Integer> buff) {
+        private static final ManageBonus EMPTY = new ManageBonus(Collections.emptyMap(), Collections.emptyMap());
+
+        public static ManageBonus empty() {
+            return EMPTY;
         }
-        Map<BonusType, Integer> map = new HashMap<>();
-//        sumBouns(map, starCfg.getSupervisorBonus());
-        return map;
+
+        public boolean isEmpty() {
+            return modifier.isEmpty() && buff.isEmpty();
+        }
     }
 
     /**
@@ -484,17 +517,17 @@ public class SimEmployeeService {
      * @param bonusesMap
      * @param attrMap
      */
-    private void sumBouns(Map<BonusType, Integer> bonusesMap, Map<Integer, Integer> attrMap) {
+    private void sumBouns(Map<BuildingOutputType, Integer> bonusesMap, Map<Integer, Integer> attrMap) {
         if (attrMap == null || attrMap.isEmpty()) {
             return;
         }
 
         for (Map.Entry<Integer, Integer> en : attrMap.entrySet()) {
-            BonusType bonusType = BonusType.fromCode(en.getKey());
-            if (bonusType == null) {
+            BuildingOutputType buildingOutputType = BuildingOutputType.fromCode(en.getKey());
+            if (buildingOutputType == null) {
                 continue;
             }
-            bonusesMap.merge(bonusType, en.getValue(), Integer::sum);
+            bonusesMap.merge(buildingOutputType, en.getValue(), Integer::sum);
         }
     }
 

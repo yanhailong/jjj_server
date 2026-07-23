@@ -20,19 +20,19 @@ public class EmployeeSkillConfigCfg extends BaseCfgBean {
   public static final String SHEET_NAME = "EmployeeSkillConfig";
 
   /** 固定值加成 */
-  protected Map<Integer,Long> Buff;
+  protected Map<Integer,Integer> Buff;
   /** 加成（百分比） */
-  protected Map<Integer,Long> Modifier;
+  protected Map<Integer,Integer> Modifier;
   /** 技能名称多语言 */
   protected int SkillName;
 
   /** 返回固定值加成 */
-  public Map<Integer,Long> getBuff() {
+  public Map<Integer,Integer> getBuff() {
     return Buff;
   }
 
   /** 返回加成（百分比） */
-  public Map<Integer,Long> getModifier() {
+  public Map<Integer,Integer> getModifier() {
     return Modifier;
   }
 

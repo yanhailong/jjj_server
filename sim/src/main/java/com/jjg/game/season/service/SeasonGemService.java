@@ -5,7 +5,6 @@ import com.jjg.game.common.utils.WeightRandom;
 import com.jjg.game.core.constant.AddType;
 import com.jjg.game.core.constant.Code;
 import com.jjg.game.core.data.CommonResult;
-import com.jjg.game.core.data.PlayerPack;
 import com.jjg.game.core.service.PlayerPackService;
 import com.jjg.game.sampledata.GameDataManager;
 import com.jjg.game.sampledata.bean.ItemCfg;
@@ -25,11 +24,9 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 
 import java.util.ArrayList;
-import java.util.Collection;
 import java.util.Collections;
 import java.util.Comparator;
 import java.util.HashMap;
-import java.util.Iterator;
 import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Map;
@@ -38,6 +35,7 @@ import java.util.function.IntPredicate;
 
 /**
  * 宝石镶嵌与配置驱动的合成逻辑。
+ * <p>镶嵌为真转移：宝石从背包进入槽位，卸下/替换时再回到背包；背包与槽位互斥。</p>
  */
 @Service
 public class SeasonGemService {
@@ -74,7 +72,18 @@ public class SeasonGemService {
             return new CommonResult<>(Code.PARAM_ERROR);
         }
         SeasonPlayerData data = ctx.getSeasonPlayerData();
+        int currentItemId = data.getEquippedGems().getOrDefault(slot, 0);
         if (itemId == 0) {
+            if (currentItemId <= 0) {
+                return new CommonResult<>(Code.SUCCESS, Map.copyOf(data.getEquippedGems()));
+            }
+            CommonResult<?> restored = simPackService.addItems(ctx, Map.of(currentItemId, 1L),
+                    AddType.ITEM_EXCHANGE, "season-gem-unequip", true);
+            if (!restored.success()) {
+                log.warn("赛季宝石卸下回包失败 playerId={},itemId={},code={}",
+                        ctx.playerId(), currentItemId, restored.code);
+                return new CommonResult<>(restored.code);
+            }
             data.getEquippedGems().remove(slot);
             autoSaveService.enqueueSave(data);
             return new CommonResult<>(Code.SUCCESS, Map.copyOf(data.getEquippedGems()));
@@ -90,15 +99,22 @@ public class SeasonGemService {
             log.warn("赛季宝石形状与槽位不匹配 playerId={},slot={},itemId={}", ctx.playerId(), slot, itemId);
             return new CommonResult<>(Code.PARAM_ERROR);
         }
-        long equippedCopies = data.getEquippedGems().values().stream()
-                .filter(equippedItemId -> equippedItemId == itemId)
-                .count();
-        boolean alreadyInSlot = data.getEquippedGems().getOrDefault(slot, 0) == itemId;
-        long requiredCopies = equippedCopies + (alreadyInSlot ? 0 : 1);
-        if (!playerPackService.checkHasItems(ctx.getPlayerController().getPlayer(),
-                Map.of(itemId, requiredCopies))) {
+        if (currentItemId == itemId) {
+            return new CommonResult<>(Code.SUCCESS, Map.copyOf(data.getEquippedGems()));
+        }
+        if (!simPackService.removeItems(ctx, Map.of(itemId, 1L), AddType.ITEM_EXCHANGE, "season-gem-equip")) {
             log.warn("赛季宝石镶嵌失败,道具不足 playerId={},itemId={}", ctx.playerId(), itemId);
             return new CommonResult<>(Code.NOT_ENOUGH_ITEM);
+        }
+        if (currentItemId > 0) {
+            CommonResult<?> restored = simPackService.addItems(ctx, Map.of(currentItemId, 1L),
+                    AddType.ITEM_EXCHANGE, "season-gem-unequip", true);
+            if (!restored.success()) {
+                simPackService.addItems(ctx, Map.of(itemId, 1L), AddType.FAIL_ROLLBACK, "season-gem-equip", true);
+                log.warn("赛季宝石替换回包失败 playerId={},oldItemId={},code={}",
+                        ctx.playerId(), currentItemId, restored.code);
+                return new CommonResult<>(restored.code);
+            }
         }
         data.getEquippedGems().put(slot, itemId);
         autoSaveService.enqueueSave(data);
@@ -201,8 +217,9 @@ public class SeasonGemService {
      *
      * <p>校验材料与赛季币后掷点，赛季币与全部材料在此立即扣除(无论成败)：赛季币锁定本次掷点、
      * 避免失败后重复发起免费重掷；材料以"托管"方式先行扣除、避免两步之间被消耗或转移绕过失败消耗。
-     * 掷点成功则直接产出宝石；掷点失败则记入待结算态({@link SeasonPendingCraft})，返回 success=false，
-     * 等待玩家第二步通过 {@link #craftKeep} 选择保留的宝石(掉线/重登则由 {@link #autoSettleFailedCraft} 默认保留第一件)。</p>
+     * 材料仅来自背包未镶嵌宝石。掷点成功则直接产出宝石；掷点失败则记入待结算态({@link SeasonPendingCraft})，
+     * 返回 success=false，等待玩家第二步通过 {@link #craftKeep} 选择保留的宝石
+     * (掉线/重登则由 {@link #autoSettleFailedCraft} 默认保留第一件)。</p>
      */
     public CommonResult<SeasonCraftResult> craft(SimPlayerContext ctx, List<Integer> itemIds) {
         SeasonPlayerData data = ctx.getSeasonPlayerData();
@@ -236,9 +253,7 @@ public class SeasonGemService {
         SeasonCraftResult result = new SeasonCraftResult();
         result.setSuccess(success);
         if (!success) {
-            //失败: 材料已托管扣除, 立即卸下已不在背包的镶嵌(防止未结算期间继续享用被扣宝石的效果),
-            //再记入待结算态, 等待第二步(或掉线/重登)选择保留的宝石后返还
-            unequipExcess(ctx, data, craftCtx.input.keySet());
+            //失败: 材料已托管扣除, 记入待结算态, 等待第二步(或掉线/重登)选择保留的宝石后返还
             data.setPendingCraft(new SeasonPendingCraft(new ArrayList<>(itemIds), craft.getFailKeepAmount()));
             autoSaveService.enqueueSave(data);
             return new CommonResult<>(Code.SUCCESS, result);
@@ -263,7 +278,6 @@ public class SeasonGemService {
         }
         result.setResultItemId(output.getItemId());
         result.setResultCount(count);
-        unequipExcess(ctx, data, craftCtx.input.keySet());
         autoSaveService.enqueueSave(data);
         return new CommonResult<>(Code.SUCCESS, result);
     }
@@ -317,8 +331,8 @@ public class SeasonGemService {
     }
 
     /**
-     * 结算一次失败合成: 把玩家保留的宝石按 keepAmount 返还背包(其余材料已在第一步托管扣除，不再重复扣除；
-     * 镶嵌也已在第一步失败时复核，此处不再处理)。返还量按本次材料中该宝石的持有量截断。
+     * 结算一次失败合成: 把玩家保留的宝石按 keepAmount 返还背包(其余材料已在第一步托管扣除，不再重复扣除)。
+     * 返还量按本次材料中该宝石的持有量截断。
      * <p>仅在返还成功后清除待结算态；返还失败(如背包锁/存储异常)则保留待结算态供后续重试，避免玩家永久损失应保留的宝石。</p>
      *
      * @return 结算结果码；{@link Code#SUCCESS} 表示已返还并清除待结算态，其它为返还失败对应的错误码。
@@ -399,30 +413,6 @@ public class SeasonGemService {
             this.first = first;
             this.allSame = allSame;
             this.input = input;
-        }
-    }
-
-    /**
-     * 合成消耗后按背包剩余数量复核镶嵌: 只卸下超出剩余持有量的镶嵌位, 剩余数量足够的保持不动。
-     */
-    private void unequipExcess(SimPlayerContext ctx, SeasonPlayerData data, Collection<Integer> itemIds) {
-        if (itemIds.isEmpty() || data.getEquippedGems().isEmpty()) {
-            return;
-        }
-        PlayerPack pack = playerPackService.getFromAllDB(ctx.playerId());
-        for (Integer itemId : itemIds) {
-            long remaining = pack == null ? 0 : pack.getItemCount(itemId);
-            Iterator<Map.Entry<Integer, Integer>> it = data.getEquippedGems().entrySet().iterator();
-            while (it.hasNext()) {
-                if (!it.next().getValue().equals(itemId)) {
-                    continue;
-                }
-                if (remaining > 0) {
-                    remaining--;
-                } else {
-                    it.remove();
-                }
-            }
         }
     }
 

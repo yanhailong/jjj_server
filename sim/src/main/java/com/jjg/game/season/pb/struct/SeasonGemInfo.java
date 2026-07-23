@@ -16,8 +16,6 @@ public class SeasonGemInfo {
     public int genre;
     @ProtoDesc("背包数量")
     public long count;
-    @ProtoDesc("已镶嵌数量")
-    public int equippedCount;
     @ProtoDesc("属性")
     public int buff;
 }
