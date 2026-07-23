@@ -8,11 +8,7 @@ import com.jjg.game.core.pb.KVInfo;
 import com.jjg.game.core.service.PlayerPackService;
 import com.jjg.game.core.utils.ItemUtils;
 import com.jjg.game.sampledata.GameDataManager;
-import com.jjg.game.sampledata.bean.SeasonGemCfg;
-import com.jjg.game.sampledata.bean.SeasonShopCfg;
-import com.jjg.game.sampledata.bean.SeasonStartCfg;
-import com.jjg.game.sampledata.bean.SeasonTierCfg;
-import com.jjg.game.sampledata.bean.TaskCfg;
+import com.jjg.game.sampledata.bean.*;
 import com.jjg.game.season.config.SeasonTrialDef;
 import com.jjg.game.season.data.*;
 import com.jjg.game.season.model.SeasonSnapshot;
@@ -21,9 +17,9 @@ import com.jjg.game.season.pb.struct.*;
 import com.jjg.game.sim.constant.SimConstant;
 import com.jjg.game.sim.data.SimPlayerContext;
 import com.jjg.game.sim.data.SpinStatInfo;
-import com.jjg.game.sim.service.SimConditionEventFactory;
 import com.jjg.game.sim.listener.SimPlayerTickListener;
 import com.jjg.game.sim.service.SimAutoSaveService;
+import com.jjg.game.sim.service.SimConditionEventFactory;
 import com.jjg.game.social.service.SocialSender;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -125,7 +121,7 @@ public class SeasonService implements SimPlayerTickListener {
         info.featureName = cfg.getFeatureName();
         info.openminigames = cfg.getOpenminigame();
 
-        if(info.phase > 1){
+        if (info.phase > 1) {
             info.freeGameCount = freeGameService.freeGameCount();
             info.remainFreeGameCount = freeGameService.remainFreeGameCount(data);
         }
@@ -190,6 +186,15 @@ public class SeasonService implements SimPlayerTickListener {
         Map<Integer, Integer> equipped = ctx.getSeasonPlayerData().getEquippedGems();
         response.gems = configService.gems().stream().map(cfg -> gemInfo(cfg, pack, equipped)).toList();
         response.slots = slots(equipped);
+
+        response.craftInfos = new ArrayList<>();
+        for (SeasonGemCraftCfg cfg : GameDataManager.getSeasonGemCraftCfgList()) {
+            SeasonGemCraftInfo info = new SeasonGemCraftInfo();
+            info.quality = cfg.getSynthesisGemQuality();
+            info.prop = cfg.getMergeSuccessRate();
+            info.cost = cfg.getMergeCost();
+            response.craftInfos.add(info);
+        }
         return response;
     }
 
@@ -278,11 +283,11 @@ public class SeasonService implements SimPlayerTickListener {
     private long nextTierNeedCoin(SeasonPlayerData data) {
         int next = data.getTierId() + 1;
         SeasonTierCfg seasonTierCfg = GameDataManager.getSeasonTierCfg(next);
-        if(seasonTierCfg == null){
+        if (seasonTierCfg == null) {
             return 0;
         }
         Integer allCoin = seasonTierCfg.getRankRange().get(1);
-        if(allCoin == null){
+        if (allCoin == null) {
             return 0;
         }
         return allCoin - data.getTotalEarnedCoin();
@@ -374,7 +379,9 @@ public class SeasonService implements SimPlayerTickListener {
         return onSpin(ctx, gameType, statInfo, event);
     }
 
-    /** 生产热路径复用同一个条件事件，其他赛季结算仍使用原始 SpinStatInfo。 */
+    /**
+     * 生产热路径复用同一个条件事件，其他赛季结算仍使用原始 SpinStatInfo。
+     */
     public NotifySeasonMatchResult onSpin(SimPlayerContext ctx, int gameType, SpinStatInfo statInfo,
                                           GameConditionEvent event) {
         try {

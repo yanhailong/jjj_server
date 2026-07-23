@@ -5,6 +5,7 @@ import com.jjg.game.common.pb.AbstractResponse;
 import com.jjg.game.common.proto.ProtoDesc;
 import com.jjg.game.common.proto.ProtobufMessage;
 import com.jjg.game.season.constant.SeasonConstant;
+import com.jjg.game.season.pb.struct.SeasonGemCraftInfo;
 import com.jjg.game.season.pb.struct.SeasonGemInfo;
 import com.jjg.game.season.pb.struct.SeasonGemSlotInfo;
 
@@ -17,6 +18,8 @@ public class ResSeasonGems extends AbstractResponse {
     public List<SeasonGemInfo> gems;
     @ProtoDesc("镶嵌槽位")
     public List<SeasonGemSlotInfo> slots;
+    @ProtoDesc("合成信息")
+    public List<SeasonGemCraftInfo> craftInfos;
 
     public ResSeasonGems(int code) {
         super(code);
