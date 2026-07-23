@@ -359,6 +359,10 @@ public class PlayerSessionService implements TimerListener<String> {
     }
 
     public boolean online(Long playerId) {
+        PFSession session = clusterSystem.getSession(playerId);
+        if (session != null) {
+            return true;
+        }
         return redisTemplate.opsForHash().hasKey(SESSION_TABLE_NAME, playerId);
     }
 

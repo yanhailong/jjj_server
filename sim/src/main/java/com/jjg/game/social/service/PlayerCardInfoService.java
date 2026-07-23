@@ -39,6 +39,8 @@ public class PlayerCardInfoService {
     private AllianceMemberProvider allianceProvider;
     @Autowired
     private SimCasinoDao simCasinoDao;
+    @Autowired
+    private SocialSender socialSender;
 
     /**
      * 获取玩家信息卡
@@ -73,8 +75,7 @@ public class PlayerCardInfoService {
             FriendData selfData = friendDao.getOrEmpty(selfId);
             card.relation = selfData.isFriend(targetId) ? 1 : 0;
             card.inBlacklist = selfData.isBlacklisted(targetId);
-
-
+            card.online = socialSender.online(targetId);
             res.card = card;
         } catch (Exception e) {
             log.error("", e);

@@ -36,4 +36,6 @@ public class PlayerCardInfo {
     public int relation;
     @ProtoDesc("是否被我拉黑")
     public boolean inBlacklist;
+    @ProtoDesc("是否在线")
+    public boolean online;
 }

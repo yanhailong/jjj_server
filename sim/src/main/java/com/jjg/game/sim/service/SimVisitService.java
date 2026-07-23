@@ -698,6 +698,9 @@ public class SimVisitService {
 
     private boolean canComment(long playerId) {
         try {
+            if (configService.getCommentRechargeAmount().compareTo(BigDecimal.ZERO) <= 0) {
+                return true;
+            }
             BigDecimal recharge = countDao.getCount(
                     CountDao.CountType.RECHARGE.getParam(), String.valueOf(playerId));
             return recharge.compareTo(configService.getCommentRechargeAmount()) >= 0;

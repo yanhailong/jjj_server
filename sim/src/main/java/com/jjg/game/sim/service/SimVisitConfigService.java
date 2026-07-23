@@ -55,8 +55,8 @@ public class SimVisitConfigService implements ConfigExcelChangeListener {
         commissionRate = Math.min(100, positiveInt(SimConstant.Common.VISIT_COMMISSION_RATE_ID, 3));
         dailyLikeLimit = positiveInt(SimConstant.Common.VISIT_DAILY_LIKE_LIMIT_ID, 10);
         dailyCommentLimit = positiveInt(SimConstant.Common.VISIT_DAILY_COMMENT_LIMIT_ID, 10);
-        commentRechargeAmount = positiveDecimal(
-                SimConstant.Common.VISIT_COMMENT_RECHARGE_ID, BigDecimal.ONE);
+        commentRechargeAmount = decimalValue(
+                SimConstant.Common.VISIT_COMMENT_RECHARGE_ID, BigDecimal.ZERO);
         commentMaxLength = Math.min(MAX_COMMENT_LENGTH,
                 positiveInt(SimConstant.Common.VISIT_COMMENT_MAX_LENGTH_ID, MAX_COMMENT_LENGTH));
         recordLimit = MAX_RECORD_LIMIT;
@@ -83,19 +83,12 @@ public class SimVisitConfigService implements ConfigExcelChangeListener {
         return value;
     }
 
-    private BigDecimal positiveDecimal(int id, BigDecimal defaultValue) {
+    private BigDecimal decimalValue(int id, BigDecimal defaultValue) {
         GlobalConfigCfg cfg = GameDataManager.getGlobalConfigCfg(id);
-        try {
-            BigDecimal value = cfg == null || cfg.getValue() == null
-                    ? BigDecimal.ZERO : new BigDecimal(cfg.getValue().trim());
-            if (value.compareTo(BigDecimal.ZERO) > 0) {
-                return value;
-            }
-        } catch (NumberFormatException ignored) {
-            //统一走默认值和告警
+        if (cfg == null) {
+            return defaultValue;
         }
-        log.warn("拜访配置缺失或无效，使用默认值 id={},defaultValue={}", id, defaultValue);
-        return defaultValue;
+        return BigDecimal.valueOf(cfg.getIntValue());
     }
 
     static boolean isValidComment(String content, int maxLength) {
@@ -115,17 +108,55 @@ public class SimVisitConfigService implements ConfigExcelChangeListener {
         return Math.min(commission, remainingLimit);
     }
 
-    public int getLikePopularity() { return likePopularity; }
-    public int getCommentPopularity() { return commentPopularity; }
-    public int getTrialPopularity() { return trialPopularity; }
-    public int getDailyPopularityLimit() { return dailyPopularityLimit; }
-    public int getDailyTrialLimit() { return dailyTrialLimit; }
-    public int getCommissionRate() { return commissionRate; }
-    public int getDailyLikeLimit() { return dailyLikeLimit; }
-    public int getDailyCommentLimit() { return dailyCommentLimit; }
-    public BigDecimal getCommentRechargeAmount() { return commentRechargeAmount; }
-    public int getCommentMaxLength() { return commentMaxLength; }
-    public int getRecordLimit() { return recordLimit; }
-    public long getDailyCommissionLimit() { return dailyCommissionLimit; }
-    public int getTrialSessionSeconds() { return trialSessionSeconds; }
+    public int getLikePopularity() {
+        return likePopularity;
+    }
+
+    public int getCommentPopularity() {
+        return commentPopularity;
+    }
+
+    public int getTrialPopularity() {
+        return trialPopularity;
+    }
+
+    public int getDailyPopularityLimit() {
+        return dailyPopularityLimit;
+    }
+
+    public int getDailyTrialLimit() {
+        return dailyTrialLimit;
+    }
+
+    public int getCommissionRate() {
+        return commissionRate;
+    }
+
+    public int getDailyLikeLimit() {
+        return dailyLikeLimit;
+    }
+
+    public int getDailyCommentLimit() {
+        return dailyCommentLimit;
+    }
+
+    public BigDecimal getCommentRechargeAmount() {
+        return commentRechargeAmount;
+    }
+
+    public int getCommentMaxLength() {
+        return commentMaxLength;
+    }
+
+    public int getRecordLimit() {
+        return recordLimit;
+    }
+
+    public long getDailyCommissionLimit() {
+        return dailyCommissionLimit;
+    }
+
+    public int getTrialSessionSeconds() {
+        return trialSessionSeconds;
+    }
 }
