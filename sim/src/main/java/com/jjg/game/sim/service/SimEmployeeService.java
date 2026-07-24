@@ -530,8 +530,15 @@ public class SimEmployeeService {
         }
         Map<BuildingOutputType, Integer> result = new HashMap<>(src.size());
         for (Map.Entry<BuildingOutputType, Integer> en : src.entrySet()) {
-            if (allowed.contains(en.getKey())) {
-                result.put(en.getKey(), en.getValue());
+            BuildingOutputType key = en.getKey();
+            if (allowed.contains(key)) {
+                if(key == BuildingOutputType.MANAGE_ARRT){
+                    result.put(BuildingOutputType.SERVICE, en.getValue());
+                    result.put(BuildingOutputType.AWARENESS, en.getValue());
+                    result.put(BuildingOutputType.EXPOSURE, en.getValue());
+                }else {
+                    result.put(key, en.getValue());
+                }
             }
         }
         return result;

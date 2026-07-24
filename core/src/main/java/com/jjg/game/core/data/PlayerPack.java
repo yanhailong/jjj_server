@@ -75,7 +75,7 @@ public class PlayerPack {
             return;
         }
 
-        if (maxNum < 0) {
+        if (maxNum <= 0) {
             maxNum = Integer.MAX_VALUE;
         }
 
