@@ -89,7 +89,7 @@ public class DouXianGameController extends BasePokerGameController<DouXianGameDa
         RepsDouXianRoomBaseInfo baseInfo = new RepsDouXianRoomBaseInfo();
         baseInfo.phase = getCurrentGamePhase();
         baseInfo.round = gameDataVo.getRound();
-        baseInfo.roundMultiplier = DouXianConstant.getRoundMultiplier(Math.max(gameDataVo.getRound(), 1));
+        baseInfo.roundMultiplier = DouXianDataHelper.getRoundMultiplier(gameDataVo, Math.max(gameDataVo.getRound(), 1));
         baseInfo.playerInfos = new ArrayList<>();
         // WAIT_READY阶段游戏还没真正开局，getActivePlayerIds()依赖的playerSeatInfoList要等tryStartGame成功才会
         // 填充，这时候只能从seatInfo(坐下即有，不等开局)拿座上玩家，否则等待准备的房间列表会是空的
@@ -448,7 +448,7 @@ public class DouXianGameController extends BasePokerGameController<DouXianGameDa
             }
             List<Integer> cardIds = gameDataVo.getPlayerZoneCards(playerId).get(zone).getAllCards();
             List<Card> cards = DouXianDataHelper.toCards(gameDataVo, cardIds);
-            DouXianHandResult result = DouXianHandEvaluator.evaluateZone(zone, cards, round);
+            DouXianHandResult result = DouXianHandEvaluator.evaluateZone(gameDataVo, zone, cards, round);
             sb.append(zone).append(DouXianDataHelper.cardsToString(cards))
                     .append('=').append(result.getHandType().getDisplayName())
                     .append('(').append(result.getAetherValue()).append(") ");
@@ -486,7 +486,7 @@ public class DouXianGameController extends BasePokerGameController<DouXianGameDa
             }
             List<Card> carried = DouXianDataHelper.toCards(gameDataVo, zoneCards.getCarriedCards());
             List<Card> candidates = DouXianDataHelper.toCards(gameDataVo, hand);
-            DouXianHandResult best = DouXianHandEvaluator.findBestZone(zone, carried, candidates, round);
+            DouXianHandResult best = DouXianHandEvaluator.findBestZone(gameDataVo, zone, carried, candidates, round);
             List<Card> chosenNew = best.getCards().subList(carried.size(), best.getCards().size());
             for (Card card : chosenNew) {
                 int cfgId = DouXianDataHelper.toCfgId(card);

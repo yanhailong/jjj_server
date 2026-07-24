@@ -1,6 +1,7 @@
 package com.jjg.game.poker.game.douxian.util;
 
 import com.jjg.game.poker.game.douxian.constant.DouXianZone;
+import com.jjg.game.poker.game.douxian.data.DouXianDataHelper;
 import com.jjg.game.poker.game.douxian.message.bean.DouXianZoneSettlementInfo;
 
 import java.util.ArrayList;
@@ -36,6 +37,12 @@ public final class DouXianSettlementCalculator {
         info.loserAether = cmp >= 0 ? resultB.getAetherValue() : resultA.getAetherValue();
         info.winnerHandTypeName = cmp >= 0 ? resultA.getHandType().getDisplayName() : resultB.getHandType().getDisplayName();
         info.loserHandTypeName = cmp >= 0 ? resultB.getHandType().getDisplayName() : resultA.getHandType().getDisplayName();
+        info.winnerHandTypeNameId = cmp >= 0
+                ? DouXianDataHelper.getHandTypeNameId(resultA.getHandType(), resultA.getZone())
+                : DouXianDataHelper.getHandTypeNameId(resultB.getHandType(), resultB.getZone());
+        info.loserHandTypeNameId = cmp >= 0
+                ? DouXianDataHelper.getHandTypeNameId(resultB.getHandType(), resultB.getZone())
+                : DouXianDataHelper.getHandTypeNameId(resultA.getHandType(), resultA.getZone());
         if (cmp == 0) {
             return info;
         }
@@ -67,6 +74,8 @@ public final class DouXianSettlementCalculator {
             info.loserAether = loserResult.getAetherValue();
             info.winnerHandTypeName = winnerResult.getHandType().getDisplayName();
             info.loserHandTypeName = loserResult.getHandType().getDisplayName();
+            info.winnerHandTypeNameId = DouXianDataHelper.getHandTypeNameId(winnerResult.getHandType(), zone);
+            info.loserHandTypeNameId = DouXianDataHelper.getHandTypeNameId(loserResult.getHandType(), zone);
             info.changeValue = (winnerResult.getAetherValue() - loserResult.getAetherValue()) * betBase;
             list.add(info);
         }
