@@ -3,6 +3,8 @@ package com.jjg.game.sim.service;
 import com.jjg.game.common.cluster.ClusterClient;
 import com.jjg.game.common.cluster.ClusterSystem;
 import com.jjg.game.common.curator.NodeType;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.data.redis.core.RedisTemplate;
 import org.springframework.stereotype.Service;
@@ -15,6 +17,8 @@ import java.util.Collection;
  */
 @Service
 public class SimNodeService {
+    private static final Logger log = LoggerFactory.getLogger(SimNodeService.class);
+
     protected final String tableName = "simnode";
 
     @Autowired
@@ -63,6 +67,11 @@ public class SimNodeService {
         ClusterClient clusterClient = null;
         if (path != null && !path.isEmpty()) {
             clusterClient = clusterSystem.getClusterByPath(path);
+            if (clusterClient == null) {
+                //路由已登记但节点不可达(节点重启/摘除): 后续 RPC 会落到别的节点重新从库加载 ctx,
+                //玩家会看到内存中未落库的改动回退, 这里必须留痕
+                log.warn("sim路由指向的节点不可用, 回退按hall取节点 playerId={},path={}", playerId, path);
+            }
         }
 
         if (clusterClient == null) {

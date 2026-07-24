@@ -18,4 +18,8 @@ public class SeasonRankInfo {
     public long totalEarnedCoin;
     @ProtoDesc("阶段：1新手，2进阶，3循环")
     public int phase;
+    @ProtoDesc("头像id")
+    public int headImgId;
+    @ProtoDesc("头像框id")
+    public int headFrameId;
 }

@@ -7,6 +7,7 @@ import com.jjg.game.sim.data.SpinStatInfo;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
@@ -30,22 +31,56 @@ public final class SimConditionEventFactory {
 
     public static GameConditionEvent fromSpin(int gameType, int winTimes, int costPower,
                                               SpinStatInfo statInfo) {
-        return fromSpin(gameType, winTimes, costPower, statInfo, resolveGoldItemId());
+        return fromSpin(gameType, winTimes, costPower, statInfo, resolveGoldItemId(), null);
+    }
+
+    /**
+     * 本次旋转另有道具产出 (掉落等) 时传入明细, 供 12202 等按道具 id 计数的条件推进。
+     * itemGains 必须是本次旋转真实到账的道具, 掉什么报什么, 新增道具无需改动本方法。
+     */
+    public static GameConditionEvent fromSpin(int gameType, int winTimes, int costPower,
+                                              SpinStatInfo statInfo, Map<Integer, Long> itemGains) {
+        return fromSpin(gameType, winTimes, costPower, statInfo, resolveGoldItemId(), itemGains);
     }
 
     /** 测试/无货币条件调用可显式传 0，避免依赖尚未初始化的 Item 配置。 */
     public static GameConditionEvent fromSpin(int gameType, int winTimes, int costPower,
                                               SpinStatInfo statInfo, int goldItemId) {
+        return fromSpin(gameType, winTimes, costPower, statInfo, goldItemId, null);
+    }
+
+    private static GameConditionEvent fromSpin(int gameType, int winTimes, int costPower,
+                                               SpinStatInfo statInfo, int goldItemId,
+                                               Map<Integer, Long> itemGains) {
         long bet = statInfo == null ? costPower : statInfo.getBet();
         long win = statInfo == null ? 0 : statInfo.getWin();
         return new GameConditionEvent(gameType, gameType, 0, goldItemId, goldItemId,
                 bet, win, winTimes, costPower > 0 || bet > 0, true,
                 statInfo == null ? 0 : statInfo.getBigShowId(), jackpotType(statInfo),
                 statInfo != null && statInfo.getRemainFreeCount() > 0 ? 1 : 0,
+                //赛季宝石掉落在 SeasonService 结算后由 withGemDrop 补入
+                0,
                 statInfo == null || statInfo.getSpecialModes() == null
                         ? Set.of() : Set.copyOf(statInfo.getSpecialModes()),
                 statInfo == null ? List.of() : statInfo.getIcons(),
-                win > 0 ? Map.of(goldItemId, win) : Map.of());
+                mergeGains(goldItemId, win, itemGains));
+    }
+
+    /** 本局收益明细: 金币赢奖 + 本次旋转的道具产出, 空值与非正数安全 (record 构造会拒绝 null)。 */
+    private static Map<Integer, Long> mergeGains(int goldItemId, long win, Map<Integer, Long> itemGains) {
+        if (itemGains == null || itemGains.isEmpty()) {
+            return win > 0 ? Map.of(goldItemId, win) : Map.of();
+        }
+        Map<Integer, Long> merged = new HashMap<>(itemGains.size() + 1);
+        for (Map.Entry<Integer, Long> en : itemGains.entrySet()) {
+            if (en.getKey() != null && en.getValue() != null && en.getValue() > 0) {
+                merged.merge(en.getKey(), en.getValue(), Long::sum);
+            }
+        }
+        if (win > 0) {
+            merged.merge(goldItemId, win, Long::sum);
+        }
+        return merged;
     }
 
     /**
@@ -54,7 +89,7 @@ public final class SimConditionEventFactory {
     public static GameConditionEvent fromGameResult(int gameType, long bet, long win, long multiple) {
         int goldItemId = resolveGoldItemId();
         return new GameConditionEvent(gameType, gameType, 0, goldItemId, goldItemId,
-                bet, win, multiple, true, true, 0, 0, 0,
+                bet, win, multiple, true, true, 0, 0, 0, 0,
                 Set.of(), List.of(), win > 0 ? Map.of(goldItemId, win) : Map.of());
     }
 

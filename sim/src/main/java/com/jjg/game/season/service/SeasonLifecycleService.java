@@ -116,10 +116,11 @@ public class SeasonLifecycleService implements SimPlayerTickListener {
             //切季前绕过节流强制消费一次待结算, 避免节流窗口内新到的记录被切季清理误删
             data.setLastPendingCheckTime(0);
             applyPendingSettlements(ctx, data, now);
+            String oldSeasonKey = data.getSeasonKey();
             long initialCoin = settlePreviousSeason(ctx, data);
             data.startSeason(snapshot, initialCoin);
-            log.info("玩家赛季切换 playerId={},seasonId={},seasonKey={}",
-                    ctx.playerId(), snapshot.seasonId(), snapshot.seasonKey());
+            log.info("玩家赛季切换 playerId={},oldSeasonKey={},seasonId={},seasonKey={},initialCoin={}",
+                    ctx.playerId(), oldSeasonKey, snapshot.seasonId(), snapshot.seasonKey(), initialCoin);
         }
         data.resetDaily(dailyKey(now));
         if (changed) {
@@ -206,12 +207,15 @@ public class SeasonLifecycleService implements SimPlayerTickListener {
         if (pending == null || pending.isEmpty()) {
             return;
         }
+        long coinBefore = data.getSeasonCoin();
+        int applied = 0;
         List<String> handledIds = new ArrayList<>(pending.size());
         for (SeasonPendingSettlement settlement : pending) {
             handledIds.add(settlement.getId());
             if (!data.markMatchProcessed(settlement.getMatchId(), settlement.getHistoryLimit())) {
                 continue;
             }
+            applied++;
             long delta = settlement.getCoinDelta();
             if (delta > 0) {
                 //被挑战方赢币同样受本人每日赢取上限的梯度削减
@@ -237,6 +241,9 @@ public class SeasonLifecycleService implements SimPlayerTickListener {
             }
             data.addMatchRecord(settlement.getRecord(), settlement.getHistoryLimit());
         }
+        //被动应下的币变动玩家看不到过程, 只有这条能解释"离线期间赛季币变了"
+        log.info("赛季消费跨节点待结算 playerId={},seasonKey={},pending={},applied={},coin={}->{}",
+                ctx.playerId(), data.getSeasonKey(), pending.size(), applied, coinBefore, data.getSeasonCoin());
         //数据先落库、再删除待结算记录; 两者都在落库 IO 线程 FIFO 执行, 崩溃时靠 processedMatchIds 幂等重放
         autoSaveService.enqueueSave(data);
         autoSaveService.enqueueTask(() -> seasonPlayerDao.deletePendingSettlements(handledIds));
@@ -289,6 +296,10 @@ public class SeasonLifecycleService implements SimPlayerTickListener {
         settlement.setInitialCoin(initialCoin);
         settlement.setSeasonBadge(tier == null ? 0 : tier.getSeasonBadge());
         data.setLastSettlement(settlement);
+        //每赛季每人一次: 名次和段位直接决定发奖内容, 玩家申诉时靠这条还原
+        log.info("赛季结算 playerId={},seasonKey={},rank={},tierId={},totalEarnedCoin={},leftCoin={},initialCoin={},rewards={}",
+                ctx.playerId(), data.getSeasonKey(), rank, data.getTierId(),
+                data.getTotalEarnedCoin(), data.getSeasonCoin(), initialCoin, rewards);
         //赛季徽章: 每赛季仅按最终段位授予唯一一枚勋章 (同 ranktype 一枚)
         if (tier != null && tier.getSeasonBadge() > 0 && ctx.getSimBaseData() != null) {
             ctx.getSimBaseData().activeMedalId(tier.getSeasonBadge());
