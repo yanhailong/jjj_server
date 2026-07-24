@@ -263,11 +263,12 @@ public class MahjiongWinGenerateManager extends AbstractSlotsGenerateManager<Mah
 
         addIconInfo.setAddIconMap(addIconMap);
 
-        //检查中奖
-        List<MahjiongWinAwardLineInfo> newAwardInfoList = fullLine(arr);
-
-        addIconInfo.setAwardLineInfoList(newAwardInfoList);
+        //本次消除对应的中奖信息（即触发本次消除的list），而不是消除补齐后下一轮的中奖信息
+        addIconInfo.setAwardLineInfoList(list);
         addIconInfoList.add(addIconInfo);
+
+        //检查补齐后是否有新的中奖，用于下一轮递归
+        List<MahjiongWinAwardLineInfo> newAwardInfoList = fullLine(arr);
 
         repairIcons(libType, arr, newAwardInfoList, addIconInfoList, winCount);
     }
