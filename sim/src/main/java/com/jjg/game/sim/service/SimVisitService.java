@@ -436,9 +436,9 @@ public class SimVisitService {
         res.power = ctx.getSimBaseData() == null ? 0 : ctx.getSimBaseData().getPower();
         res.expireTime = expireTime;
         res.wareId = roomCfgId;
-        //先回包再切节点, 客户端切到 slots 节点后按 roomCfgId 进房; slots 侧 createPlayerGameData 读会话绑定房主属性
+        //先回包再切节点, 客户端切到 slots 节点后按 roomCfgId 进房; enterType=2 让 slots 侧按客座入口加载房主技能
         ctx.send(res);
-        playerSessionService.changeGameType(ctx.playerId(), gameType, roomCfgId);
+        playerSessionService.changeGameType(ctx.playerId(), gameType, roomCfgId, 2);
         clusterSystem.switchNode(ctx.getPlayerController().getSession(), node);
         return null;
     }

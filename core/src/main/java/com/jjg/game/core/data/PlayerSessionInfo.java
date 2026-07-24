@@ -23,7 +23,7 @@ public class PlayerSessionInfo {
     private boolean isReconnect;
     //创建时间
     private int createTime;
-    //进入方式 0.正常进入  1.从赛季进入(slots使用赛季币下注/结算)
+    //进入方式 0.正常进入  1.从赛季进入(slots使用赛季币下注/结算)  2.从拜访进入
     private int enterType;
 
     public long getPlayerId() {

@@ -73,7 +73,7 @@ public class SlotsCommonMessageHandler {
                 playerController.send(res);
                 return;
             }
-            Map<Integer, Integer> skillsMap = gameManager.getSkills(playerController, req.tarPlayerId);
+            Map<Integer, Integer> skillsMap = gameManager.getSkills(playerController);
             if (skillsMap != null && !skillsMap.isEmpty()) {
                 res.skillInfos = new ArrayList<>();
                 for (Map.Entry<Integer, Integer> en : skillsMap.entrySet()) {

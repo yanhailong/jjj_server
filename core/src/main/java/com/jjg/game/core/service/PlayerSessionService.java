@@ -314,7 +314,6 @@ public class PlayerSessionService implements TimerListener<String> {
         }
         info.setGameType(gameType);
         info.setRoomCfgId(roomCfgId);
-        //进入方式随每次切换重置, 只有从赛季进入的slots会置为1
         info.setEnterType(enterType);
         save(info);
         onlinePlayerDao.changeGameType(playerId, gameType, roomCfgId);

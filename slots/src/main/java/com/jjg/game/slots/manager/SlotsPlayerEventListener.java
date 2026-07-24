@@ -122,7 +122,7 @@ public class SlotsPlayerEventListener implements SessionEnterListener, SessionCl
                 slotsFactoryManager.onEnterGame(playerController.playerId(), playerController.getPlayer().getRoomCfgId(), 0);
                 taskManager.loadTaskData(player.getId());
                 //创建 PlayerGameData
-                gameManager.createPlayerGameData(playerController, playerSessionInfo.getEnterType() == 1);
+                gameManager.createPlayerGameData(playerController, playerSessionInfo.getEnterType());
                 //大厅非重连会检查一次，这里再检查一次
                 rechargeService.loadOfflineRecharge(player.getId());
             }
@@ -162,7 +162,7 @@ public class SlotsPlayerEventListener implements SessionEnterListener, SessionCl
                 playerController.setScene(slotsRoomController);
                 //创建 PlayerGameData
                 taskManager.loadTaskData(player.getId());
-                gameManager.createPlayerGameData(playerController, false);
+                gameManager.createPlayerGameData(playerController, 0);
                 //大厅非重连会检查一次，这里再检查一次
                 rechargeService.loadOfflineRecharge(player.getId());
             }

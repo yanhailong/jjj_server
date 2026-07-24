@@ -1193,20 +1193,22 @@ public abstract class AbstractSlotsGameManager<T extends SlotsPlayerGameData, L 
      * 创建玩家玩游戏的数据存储对象
      *
      * @param playerController
-     * @param seasonEntry      enterType=1 时为 true；赛季入口只加载 SeasonGem 效果，不加载研发技能
+     * @param enterType        进入方式：1=赛季入口，只加载 SeasonGem 效果不加载研发技能；2=拜访入口，加载房主研发技能
      * @return
      */
     @SuppressWarnings("unchecked")
-    public T createPlayerGameData(PlayerController playerController, boolean seasonEntry) throws Exception {
+    public T createPlayerGameData(PlayerController playerController, int enterType) throws Exception {
         PlayerAllSlotsData playerAllSlotsData = playerAllSlotsDataDao.getFromAllDB(playerController.playerId());
         if (playerAllSlotsData == null) {
             playerAllSlotsData = new PlayerAllSlotsData();
             playerAllSlotsData.setPlayerId(playerController.playerId());
         }
 
+        boolean seasonEntry = enterType == 1;
         //客座赌局使用房主研发属性，普通游戏仍使用玩家自己的技能
-        SimVisitTrialSession visitSession = simVisitQuotaService.getTrialSession(playerController.playerId());
-        boolean activeVisit = !seasonEntry && visitSession != null
+        SimVisitTrialSession visitSession = enterType == 2
+                ? simVisitQuotaService.getTrialSession(playerController.playerId()) : null;
+        boolean activeVisit = visitSession != null
                 && visitSession.activeFor(playerController.playerId(), this.gameType, System.currentTimeMillis());
         long skillOwnerId = activeVisit ? visitSession.getOwnerId() : playerController.playerId();
         SimSkillsData simSkillsData = null;
@@ -2838,18 +2840,9 @@ public abstract class AbstractSlotsGameManager<T extends SlotsPlayerGameData, L 
     }
 
     /**
-     * @param tarPlayerId 目标玩家id，小于1或为自己时取自己房间内的技能快照
+     * 返回本局正在生效的技能快照：普通入口是自己的，客座赌局是进场时加载的房主技能。
      */
-    public Map<Integer, Integer> getSkills(PlayerController playerController, long tarPlayerId) {
-        if (tarPlayerId > 0 && tarPlayerId != playerController.playerId()) {
-            //查看他人技能：走 RPC 取 sim 最新技能，sim 不可达才回退读库
-            CommonResult<SimSkillsData> skillResult = slotsRPCLinkManager.getSimSkillData(
-                    tarPlayerId, this.gameType, playerController.ipAddress());
-            SimSkillsData simSkillsData = skillResult != null && skillResult.success()
-                    ? skillResult.data : slotsSkillService.getSkillDataByGameType(tarPlayerId, this.gameType);
-            return simSkillsData == null ? null : simSkillsData.getSkillsMap();
-        }
-
+    public Map<Integer, Integer> getSkills(PlayerController playerController) {
         T playerGameData = getPlayerGameData(playerController);
         if (playerGameData == null) {
             log.info("获取技能失败，playerId={},gameType = {}", playerController.playerId(), this.gameType);
