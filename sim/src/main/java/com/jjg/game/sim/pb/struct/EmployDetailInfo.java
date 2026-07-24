@@ -25,4 +25,6 @@ public class EmployDetailInfo {
     public List<KVInfo> manageEmployeeBonus;
     @ProtoDesc("主管固定加成  key参考BuildingAreaTable表的typeValue值")
     public List<KVInfo> manageEmployeeFixBonus;
+    @ProtoDesc("普通加成(雇员等级加成)  key参考BuildingAreaTable表的typeValue值")
+    public List<KVInfo> employeeBonus;
 }

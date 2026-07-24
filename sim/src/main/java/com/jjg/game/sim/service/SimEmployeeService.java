@@ -403,10 +403,12 @@ public class SimEmployeeService {
                     detailInfo.level = value.getLevel();
                     detailInfo.star = value.getStar();
                     detailInfo.manager = ctx.getCurrentCasino().employIsManager(value.getEmployeeId());
-                    //主管加成: 原样返回雇员技能配置, 不做过滤
+                    //主管加成: 原样返回雇员技能配置, 不做过滤 (11不拆, 客户端自行分类汇总)
                     ManageBonus bonus = employeeSkillBonus(value.getEmployeeId());
                     detailInfo.manageEmployeeBonus = toKVList(bonus.modifier());
                     detailInfo.manageEmployeeFixBonus = toKVList(bonus.buff());
+                    //普通加成: 该雇员等级加成, 同样原样返回不拆11
+                    detailInfo.employeeBonus = toKVList(employeeNormalBonus(value));
                     res.employees.add(detailInfo);
                 }
             }
@@ -448,6 +450,20 @@ public class SimEmployeeService {
         }
         //勋章品质加成
         medalService.mergeMedalBonus(ctx, bonusesMap);
+    }
+
+    /**
+     * 单个雇员的普通加成 (等级加成; 单位千分比), 不含勋章, key 保留 MANAGE_ARRT(11) 不拆。
+     * 与 {@link #computeTypeBonusFixed} 的雇员聚合口径同源, 供雇员列表逐雇员返回。
+     */
+    private Map<BuildingOutputType, Integer> employeeNormalBonus(SimEmployeeData emp) {
+        EmployeeLevelCfg levelCfg = getLevelCfg(emp.getEmployeeId(), emp.getLevel());
+        if (levelCfg == null) {
+            return Collections.emptyMap();
+        }
+        Map<BuildingOutputType, Integer> map = new HashMap<>();
+        sumBouns(map, levelCfg.getAttributeValue());
+        return map;
     }
 
     /**

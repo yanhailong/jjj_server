@@ -1,6 +1,7 @@
 package com.jjg.game.sim.data;
 
 import com.alibaba.fastjson.annotation.JSONField;
+import com.fasterxml.jackson.annotation.JsonIgnore;
 import org.springframework.data.annotation.Transient;
 
 /**
@@ -16,6 +17,8 @@ public abstract class AbstractData {
     @JSONField(serialize = false, deserialize = false)
     private transient volatile long savedHash;
 
+    //Jackson 会跳过 transient 字段但仍认这个 public getter, 导致 RPC 序列化带出 savedHash 而对端无法反序列化
+    @JsonIgnore
     @JSONField(serialize = false, deserialize = false)
     public long getSavedHash() {
         return savedHash;

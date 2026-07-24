@@ -13,4 +13,6 @@ import com.jjg.game.slots.constant.SlotsConst;
 @ProtobufMessage(messageType = MessageConst.MessageTypeDef.SLOTS_COMMON, cmd = SlotsConst.SlotsCommon.REQ_SLOTS_GET_SKILLS)
 @ProtoDesc("获取slots技能")
 public class ReqSlotsGetSkills extends AbstractMessage {
+    @ProtoDesc("目标玩家id，为0时表示获取自己的")
+    public long tarPlayerId;
 }
