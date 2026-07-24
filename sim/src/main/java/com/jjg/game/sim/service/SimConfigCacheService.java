@@ -102,6 +102,9 @@ public class SimConfigCacheService implements ConfigExcelChangeListener {
 
     private final ConditionRuleRegistry conditionRules;
 
+    //赛季结算赛季币返还: [0]返还比例(百分比), [1]返还上限
+    private int[] seasonReturnMaxArr = new int[2];
+
     @Autowired
     public SimConfigCacheService(ConditionRuleRegistry conditionRules) {
         this.conditionRules = conditionRules;
@@ -172,8 +175,7 @@ public class SimConfigCacheService implements ConfigExcelChangeListener {
         Map<Integer, Map<Integer, Integer>> tmpUnlockGameLevelMap = new HashMap<>();
         for (ResearchInstituteCfg cfg : GameDataManager.getResearchInstituteCfgList()) {
             tmpUnlockGamesMap.computeIfAbsent(cfg.getRegionID(), k -> new HashSet<>()).add(cfg.getGameType());
-            tmpUnlockGameLevelMap.computeIfAbsent(cfg.getRegionID(), k -> new HashMap<>())
-                    .put(cfg.getGameType(), cfg.getLevel());
+            tmpUnlockGameLevelMap.computeIfAbsent(cfg.getRegionID(), k -> new HashMap<>()).put(cfg.getGameType(), cfg.getLevel());
         }
         this.unlockGamesMap = tmpUnlockGamesMap;
         this.unlockGameLevelMap = tmpUnlockGameLevelMap;
@@ -413,6 +415,18 @@ public class SimConfigCacheService implements ConfigExcelChangeListener {
             String[] s = createAllianceCfg.getValue().split("_");
             this.createAllianceItem = new Item(Integer.parseInt(s[0]), Long.parseLong(s[1]));
         }
+
+        //赛季币返还比例与上限
+        GlobalConfigCfg seasonReturnMaxArrCfg = GameDataManager.getGlobalConfigCfg(SimConstant.Global.ID_RETURN_COIN_MAX);
+        if (seasonReturnMaxArrCfg != null) {
+            String[] s = seasonReturnMaxArrCfg.getValue().split("_");
+            int[] tmpSeasonReturnMaxArr = new int[2];
+            //返还的比例
+            tmpSeasonReturnMaxArr[0] = Integer.parseInt(s[0]);
+            //返还的上限
+            tmpSeasonReturnMaxArr[1] = Integer.parseInt(s[1]);
+            this.seasonReturnMaxArr = tmpSeasonReturnMaxArr;
+        }
     }
 
     private void loadPropConfig() {
@@ -448,8 +462,7 @@ public class SimConfigCacheService implements ConfigExcelChangeListener {
                 try {
                     condition = conditionRules.prepare(ConditionSpec.from(cfg.getTaskConditionId()));
                 } catch (IllegalArgumentException e) {
-                    log.warn("联盟任务条件配置非法, 不入池 taskId={},condition={},error={}",
-                            cfg.getId(), cfg.getTaskConditionId(), e.getMessage());
+                    log.warn("联盟任务条件配置非法, 不入池 taskId={},condition={},error={}", cfg.getId(), cfg.getTaskConditionId(), e.getMessage());
                     continue;
                 }
                 tasks.add(cfg);
@@ -784,5 +797,9 @@ public class SimConfigCacheService implements ConfigExcelChangeListener {
 
     public Map<Integer, List<SeasonSimulationDataCfg>> getSeasonSimulationDataCfgMap() {
         return seasonSimulationDataCfgMap;
+    }
+
+    public int[] getSeasonReturnMaxArr() {
+        return seasonReturnMaxArr;
     }
 }

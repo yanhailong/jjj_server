@@ -2837,7 +2837,19 @@ public abstract class AbstractSlotsGameManager<T extends SlotsPlayerGameData, L 
         return betScoreArr;
     }
 
-    public Map<Integer, Integer> getSkills(PlayerController playerController) {
+    /**
+     * @param tarPlayerId 目标玩家id，小于1或为自己时取自己房间内的技能快照
+     */
+    public Map<Integer, Integer> getSkills(PlayerController playerController, long tarPlayerId) {
+        if (tarPlayerId > 0 && tarPlayerId != playerController.playerId()) {
+            //查看他人技能：走 RPC 取 sim 最新技能，sim 不可达才回退读库
+            CommonResult<SimSkillsData> skillResult = slotsRPCLinkManager.getSimSkillData(
+                    tarPlayerId, this.gameType, playerController.ipAddress());
+            SimSkillsData simSkillsData = skillResult != null && skillResult.success()
+                    ? skillResult.data : slotsSkillService.getSkillDataByGameType(tarPlayerId, this.gameType);
+            return simSkillsData == null ? null : simSkillsData.getSkillsMap();
+        }
+
         T playerGameData = getPlayerGameData(playerController);
         if (playerGameData == null) {
             log.info("获取技能失败，playerId={},gameType = {}", playerController.playerId(), this.gameType);

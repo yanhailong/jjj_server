@@ -18,6 +18,7 @@ import com.jjg.game.season.data.SeasonPendingSettlement;
 import com.jjg.game.season.data.SeasonSettlement;
 import com.jjg.game.season.model.SeasonSnapshot;
 import com.jjg.game.sim.service.SimAutoSaveService;
+import com.jjg.game.sim.service.SimConfigCacheService;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Service;
@@ -50,11 +51,13 @@ public class SeasonLifecycleService implements SimPlayerTickListener {
     private final SeasonEconomyService economyService;
     private final MailService mailService;
     private final SimAutoSaveService autoSaveService;
+    private final SimConfigCacheService simConfigCacheService;
 
     public SeasonLifecycleService(SeasonConfigService configService, CorePlayerService corePlayerService,
                                   SeasonPlayerDao seasonPlayerDao, SeasonRankingService rankingService,
                                   PlayerPackService playerPackService, SeasonEconomyService economyService,
-                                  MailService mailService, SimAutoSaveService autoSaveService) {
+                                  MailService mailService, SimAutoSaveService autoSaveService,
+                                  SimConfigCacheService simConfigCacheService) {
         this.configService = configService;
         this.corePlayerService = corePlayerService;
         this.seasonPlayerDao = seasonPlayerDao;
@@ -63,6 +66,7 @@ public class SeasonLifecycleService implements SimPlayerTickListener {
         this.economyService = economyService;
         this.mailService = mailService;
         this.autoSaveService = autoSaveService;
+        this.simConfigCacheService = simConfigCacheService;
     }
 
     /**
@@ -249,7 +253,7 @@ public class SeasonLifecycleService implements SimPlayerTickListener {
 
     /**
      * 结算上一赛季: 排名奖励 + 段位结算奖励通过邮件发放 (按 seasonKey+playerId 幂等);
-     * 奖励中的赛季币部分不进邮件, 作为下一赛季的初始币直接带入。
+     * 奖励中的赛季币部分不进邮件, 连同赛季末剩余赛季币的返还部分, 作为下一赛季的初始币直接带入。
      */
     private long settlePreviousSeason(SimPlayerContext ctx, SeasonPlayerData data) {
         if (data.getSeasonId() == 0 || data.seasonPhase() == null) {
@@ -268,7 +272,8 @@ public class SeasonLifecycleService implements SimPlayerTickListener {
             tier.getSettlementReward().forEach((id, count) -> rewards.merge(id, count, Long::sum));
         }
         int currencyId = configService.currencyItemId();
-        long initialCoin = currencyId == 0 ? 0 : rewards.getOrDefault(currencyId, 0L);
+        long initialCoin = Math.addExact(currencyId == 0 ? 0 : rewards.getOrDefault(currencyId, 0L),
+                returnCoin(data.getSeasonCoin()));
         //结算快照 (含全部奖励): 跨季后玩家首次请求赛季信息时随 ResSeasonInfo 下发
         //须在 startSeason 清空 trialStars 之前采集
         SeasonSettlement settlement = new SeasonSettlement();
@@ -304,6 +309,17 @@ public class SeasonLifecycleService implements SimPlayerTickListener {
         }
         clearSeasonGems(ctx);
         return initialCoin;
+    }
+
+    /**
+     * 赛季币返还: 赛季末剩余赛季币按配置比例 (百分比) 返还, 且不超过配置上限。
+     */
+    private long returnCoin(long seasonCoin) {
+        int[] cfg = simConfigCacheService.getSeasonReturnMaxArr();
+        if (seasonCoin <= 0 || cfg[0] <= 0) {
+            return 0;
+        }
+        return Math.min(Math.multiplyExact(seasonCoin, cfg[0]) / 100, cfg[1]);
     }
 
     private void clearSeasonGems(SimPlayerContext ctx) {

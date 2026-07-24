@@ -51,8 +51,9 @@ public class AllianceAssetService {
      * 给联盟累加声誉值: $inc 后按新值重算等级, 升级用条件更新保证全集群只广播一次;
      * 同步累加声誉总榜与赛季(自然月)榜。
      * <p>
-     * 注: 声誉数值变化不主动失效联盟缓存 (展示允许 30s 内的滞后, 避免高频写把缓存打穿);
-     * 等级变化才失效并广播。
+     * 声誉与等级落库后统一失效联盟读缓存: 客户端捐献/交任务后会立刻重拉联盟信息,
+     * 缓存不失效则 {@code AllianceBrief.reputation} 会读到写入前的旧快照。
+     * 失效点放在等级条件更新之后, 保证重拉时 reputation 与 level 是同一份新数据。
      *
      * @return 累加后的联盟声誉值; 联盟不存在返回 -1
      */
@@ -71,8 +72,9 @@ public class AllianceAssetService {
 
         //等级重算: 条件更新只升不降, 并发重算只有一个节点会成功并广播
         int newLevel = configService.allianceLevelOf(updated.getLevel(), updated.getReputation());
-        if (newLevel > updated.getLevel() && allianceDao.tryUpgradeLevel(allianceId, newLevel)) {
-            cacheService.publishInvalidate(allianceId);
+        boolean upgraded = newLevel > updated.getLevel() && allianceDao.tryUpgradeLevel(allianceId, newLevel);
+        cacheService.publishInvalidate(allianceId);
+        if (upgraded) {
             broadcastToAlliance(allianceId, AllianceConst.NotifyType.LEVEL_UP, String.valueOf(newLevel));
             log.info("联盟升级 allianceId={},newLevel={},reputation={}", allianceId, newLevel, updated.getReputation());
         }

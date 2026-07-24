@@ -20,6 +20,7 @@ import com.jjg.game.sim.data.SpinStatInfo;
 import com.jjg.game.sim.listener.SimPlayerTickListener;
 import com.jjg.game.sim.service.SimAutoSaveService;
 import com.jjg.game.sim.service.SimConditionEventFactory;
+import com.jjg.game.sim.service.SimConfigCacheService;
 import com.jjg.game.social.service.SocialSender;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -57,13 +58,14 @@ public class SeasonService implements SimPlayerTickListener {
     private final SimAutoSaveService autoSaveService;
     private final SocialSender socialSender;
     private final SeasonFreeGameService freeGameService;
+    private final SimConfigCacheService simConfigCacheService;
 
     public SeasonService(SeasonLifecycleService lifecycleService, SeasonConfigService configService,
                          SeasonShopService shopService, SeasonGemService gemService,
                          SeasonMatchService matchService, SeasonDropService dropService,
                          SeasonRankingService rankingService, PlayerPackService playerPackService,
                          SeasonTrialService trialService, SimAutoSaveService autoSaveService,
-                         SocialSender socialSender, SeasonFreeGameService freeGameService) {
+                         SocialSender socialSender, SeasonFreeGameService freeGameService, SimConfigCacheService simConfigCacheService) {
         this.lifecycleService = lifecycleService;
         this.configService = configService;
         this.shopService = shopService;
@@ -76,6 +78,7 @@ public class SeasonService implements SimPlayerTickListener {
         this.autoSaveService = autoSaveService;
         this.socialSender = socialSender;
         this.freeGameService = freeGameService;
+        this.simConfigCacheService = simConfigCacheService;
     }
 
     public ResSeasonInfo info(SimPlayerContext ctx) {
@@ -150,7 +153,7 @@ public class SeasonService implements SimPlayerTickListener {
         info.rewards = settlement.getRewards().isEmpty()
                 ? List.of() : ItemUtils.buildItemInfo(settlement.getRewards());
         info.initialCoin = settlement.getInitialCoin();
-        info.returnCoinMax = GameDataManager.getGlobalConfigCfg(SimConstant.Global.ID_RETURN_COIN_MAX).getIntValue();
+        info.returnCoinMax = simConfigCacheService.getSeasonReturnMaxArr()[1];
         info.seasonBadge = settlement.getSeasonBadge();
         return info;
     }
