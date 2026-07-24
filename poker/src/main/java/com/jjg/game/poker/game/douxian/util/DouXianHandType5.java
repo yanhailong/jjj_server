@@ -7,32 +7,39 @@ package com.jjg.game.poker.game.douxian.util;
  */
 public enum DouXianHandType5 implements IDouXianHandType {
     //同花顺：5张花色相同且点数连续
-    WU_ZHUA_JIN_LONG("五爪金龙", 6, 360),
+    WU_ZHUA_JIN_LONG(1012, "五爪金龙", 6, 360),
     //四条
-    SI_XIANG_SHEN_GONG("四象神功", 5, 280),
+    SI_XIANG_SHEN_GONG(1013, "四象神功", 5, 280),
     //葫芦：3张相同+2张相同
-    SAN_QING_LIANG_YI("三清两仪", 5, 200),
+    SAN_QING_LIANG_YI(1014, "三清两仪", 5, 200),
     //顺子
-    JIAN_GUAN_CHANG_KONG("剑贯长空", 2, 100),
+    JIAN_GUAN_CHANG_KONG(1015, "剑贯长空", 2, 100),
     //同花
-    TIAN_HUA_LUAN_ZHUI("天花乱坠", 2, 70),
+    TIAN_HUA_LUAN_ZHUI(1016, "天花乱坠", 2, 70),
     //三条
-    SAN_QING_JUE("三清诀", 1, 45),
+    SAN_QING_JUE(1017, "三清诀", 1, 45),
     //两对
-    QIAN_KUN_DUI("乾坤对", 1, 30),
+    QIAN_KUN_DUI(1018, "乾坤对", 1, 30),
     //一对
-    LIANG_YI("两仪", 1, 15),
+    LIANG_YI(1019, "两仪", 1, 15),
     //高牌
-    SAN_SHOU("散手", 1, 0);
+    SAN_SHOU(1020, "散手", 1, 0);
 
+    private final int configId;
     private final String displayName;
     private final int multiplier;
     private final int value;
 
-    DouXianHandType5(String displayName, int multiplier, int value) {
+    DouXianHandType5(int configId, String displayName, int multiplier, int value) {
+        this.configId = configId;
         this.displayName = displayName;
         this.multiplier = multiplier;
         this.value = value;
+    }
+
+    @Override
+    public int getConfigId() {
+        return configId;
     }
 
     @Override

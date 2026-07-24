@@ -69,8 +69,9 @@ public final class DouXianBuilder {
             placement.locked = !zc.getCarriedCards().isEmpty() && zc.getNewCards().isEmpty();
             if (selfView && zc.isFull()) {
                 List<Card> cards = DouXianDataHelper.toCards(gameDataVo, zc.getAllCards());
-                DouXianHandResult result = DouXianHandEvaluator.evaluateZone(zone, cards, round);
+                DouXianHandResult result = DouXianHandEvaluator.evaluateZone(gameDataVo, zone, cards, round);
                 placement.handTypeName = result.getHandType().getDisplayName();
+                placement.handTypeNameId = DouXianDataHelper.getHandTypeNameId(result.getHandType(), zone);
                 placement.aetherValue = result.getAetherValue();
             }
             zones.add(placement);

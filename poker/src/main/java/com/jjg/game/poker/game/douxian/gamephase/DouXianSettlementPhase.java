@@ -83,7 +83,7 @@ public class DouXianSettlementPhase extends BasePokerPhase<DouXianGameDataVo> {
             for (DouXianZone zone : openZones) {
                 DouXianZoneCards zc = gameDataVo.getPlayerZoneCards(playerId).get(zone);
                 List<com.jjg.game.core.data.Card> cards = DouXianDataHelper.toCards(gameDataVo, zc.getAllCards());
-                DouXianHandResult result = DouXianHandEvaluator.evaluateZone(zone, cards, round);
+                DouXianHandResult result = DouXianHandEvaluator.evaluateZone(gameDataVo, zone, cards, round);
                 zoneResults.put(zone, result);
                 sb.append(zone).append(DouXianDataHelper.cardsToString(cards))
                         .append('=').append(result.getHandType().getDisplayName())
