@@ -14,7 +14,6 @@ import com.jjg.game.season.data.*;
 import com.jjg.game.season.model.SeasonSnapshot;
 import com.jjg.game.season.pb.res.*;
 import com.jjg.game.season.pb.struct.*;
-import com.jjg.game.sim.constant.SimConstant;
 import com.jjg.game.sim.data.SimPlayerContext;
 import com.jjg.game.sim.data.SpinStatInfo;
 import com.jjg.game.sim.listener.SimPlayerTickListener;
@@ -186,7 +185,8 @@ public class SeasonService implements SimPlayerTickListener {
         lifecycleService.ensureCurrent(ctx, System.currentTimeMillis());
         ResSeasonGems response = new ResSeasonGems(Code.SUCCESS);
         PlayerPack pack = playerPackService.getFromAllDB(ctx.playerId());
-        response.gems = configService.gems().stream().map(cfg -> gemInfo(cfg, pack)).toList();
+        response.gems = configService.gems().stream().map(cfg -> gemInfo(cfg, pack))
+                .filter(info -> info.count > 0).toList();
         response.slots = slots(ctx.getSeasonPlayerData().getEquippedGems());
 
         response.craftInfos = new ArrayList<>();
