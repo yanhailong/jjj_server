@@ -116,33 +116,6 @@ public class SimTaskService {
     }
 
     /**
-     * 由任务链当前节点补齐历史完成数量。配置缩减时不回退已经累计的数值。
-     */
-    public void reconcileFinishedTaskCount(SimPlayerContext ctx) {
-        SimTaskData data = ctx.getSimTaskData();
-        SimBaseData baseData = ctx.getSimBaseData();
-        if (data == null || baseData == null) {
-            return;
-        }
-        int completed = completedCount(data.getMainTask());
-        for (TaskDetail node : data.getAchievements().values()) {
-            completed += completedCount(node);
-        }
-        if (completed > baseData.getFinishedTaskCount()) {
-            baseData.setFinishedTaskCount(completed);
-        }
-    }
-
-    private int completedCount(TaskDetail node) {
-        if (node == null) {
-            return 0;
-        }
-        TaskCfg cfg = GameDataManager.getTaskCfg(node.getConfigId());
-        boolean currentCompleted = node.getStatus() != TaskConstant.TaskStatus.STATUS_IN_PROGRESS;
-        return taskConfig.completedCountThrough(cfg, currentCompleted);
-    }
-
-    /**
      * 保证主线与各成就组都有一个"当前节点": 首次接取首节点; 末节点已领取且配置新增了后置则续接。
      */
     private void ensureActive(long playerId, SimTaskData data) {

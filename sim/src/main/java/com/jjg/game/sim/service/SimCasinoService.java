@@ -55,6 +55,8 @@ public class SimCasinoService {
     @Autowired
     private SimSkillService simSkillService;
     @Autowired
+    private SimTaskService simTaskService;
+    @Autowired
     private AllianceCacheService allianceCacheService;
     @Autowired
     private AllianceHelpService allianceHelpService;
@@ -127,7 +129,6 @@ public class SimCasinoService {
             ctx.setCurrentCasino(target);
             ctx.switchCasino(targetCasinoId);
             simBuildingService.completeAllBuildingUpgrade(ctx, target);
-            syncResearchLevel(ctx, target);
 
             SimCasinoData casino = ctx.getCurrentCasino();
             res.currentCasinoId = casino.getCasinoId();
@@ -209,30 +210,7 @@ public class SimCasinoService {
         ctx.setCurrentCasino(currentCasino);
         //检查是否有建筑完成升级
         simBuildingService.completeAllBuildingUpgrade(ctx, currentCasino);
-        //自愈研究院等级快照 (升级同步钩子上线前的旧数据)
-        syncResearchLevel(ctx, currentCasino);
         return currentCasino;
-    }
-
-    /**
-     * 对齐研究院等级快照与研发部建筑等级 (只升不降): 快照是游戏解锁判定与大厅游戏列表的数据源。
-     */
-    private void syncResearchLevel(SimPlayerContext ctx, SimCasinoData casino) {
-        if (casino == null || casino.getBuildingData() == null) {
-            return;
-        }
-        BuildingData research = casino.getBuildingData().get(SimConstant.Building.ID_RESEARCH_DEPART);
-        if (research == null) {
-            return;
-        }
-        SimCasinoUnlock casinoUnlock = ctx.getCasinoUnlock();
-        int cached = 0;
-        if (casinoUnlock != null && casinoUnlock.getResearchLevelMap() != null) {
-            cached = casinoUnlock.getResearchLevelMap().getOrDefault(casino.getCasinoId(), 0);
-        }
-        if (research.getLevel() > cached) {
-            updateCasinoUnlock(ctx, casino.getCasinoId(), research.getLevel());
-        }
     }
 
     /**
@@ -424,6 +402,25 @@ public class SimCasinoService {
         }
         casinoUnlock.changeUnlockLevel(casinoId, level);
         redisTemplate.opsForHash().put(TABLE_NAME, ctx.playerId(), casinoUnlock);
+        reportResearchedGames(ctx);
+    }
+
+    /**
+     * 上报当前已研发游戏数 (任务条件 12216): 研究院等级快照是游戏解锁判定的数据源, 快照变化即研发进度变化。
+     * <p>
+     * 上报总数而非增量, 条件按 SET 覆盖进度, 重复上报幂等; 登录期场景数据先于任务数据加载, 那时的上报会被
+     * 任务侧忽略, 故 SimManager 在任务数据就绪后补报一次。这里直接用 ctx 投递, 不走 AllianceEventService
+     * 的 registry 查找 (登录期 ctx 尚未入 registry)。
+     */
+    public void reportResearchedGames(SimPlayerContext ctx) {
+        SimCasinoUnlock casinoUnlock = ctx.getCasinoUnlock();
+        if (casinoUnlock == null) {
+            return;
+        }
+        int researched = configCacheService.findUnlockedGames(casinoUnlock.getResearchLevelMap()).size();
+        if (researched > 0) {
+            simTaskService.onConditionEvent(ctx, SimConditionEventFactory.gameResearched(researched));
+        }
     }
 
     public SimCasinoUnlock getCasinoUnlock(long playerId) {

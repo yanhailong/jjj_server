@@ -21,6 +21,7 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 
 import java.util.ArrayList;
+import java.util.Collections;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
@@ -244,24 +245,10 @@ public class SimStatsService {
      * 解锁数据取 ctx 登录缓存, 不在高频看板路径上同步读 Redis。
      */
     private Set<Integer> findAllUnlockedGames(SimPlayerContext ctx) {
-        Set<Integer> result = new HashSet<>();
         SimCasinoUnlock unlock = ctx.getCasinoUnlock();
-        if (unlock == null || unlock.getResearchLevelMap() == null) {
-            return result;
-        }
-        for (Map.Entry<Integer, Integer> en : unlock.getResearchLevelMap().entrySet()) {
-            Set<Integer> games = configCache.getUnlockGameByRegionId(en.getKey());
-            if (games == null) {
-                continue;
-            }
-            for (Integer gameType : games) {
-                Integer needLevel = configCache.getUnlockGameLevel(en.getKey(), gameType);
-                if (needLevel != null && en.getValue() >= needLevel) {
-                    result.add(gameType);
-                }
-            }
-        }
-        return result;
+        return unlock == null
+                ? Collections.emptySet()
+                : configCache.findUnlockedGames(unlock.getResearchLevelMap());
     }
 
     /**

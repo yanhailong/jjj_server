@@ -108,6 +108,15 @@ public final class SimConditionEventFactory {
         return new ActionConditionEvent(ActionConditionEvent.Type.AD_WATCH, 0, 0, 0, 1, 0, false);
     }
 
+    /**
+     * 当前已研发的游戏总数 (研究院等级达标的游戏并集): 推进 12216 累积研发游戏数。
+     * 上报的是总数而非增量, 条件按 SET 覆盖进度, 重复上报幂等。
+     */
+    public static ActionConditionEvent gameResearched(long count) {
+        return new ActionConditionEvent(ActionConditionEvent.Type.GAME_UNLOCK,
+                0, 0, Math.max(0, count), 0, 0, false);
+    }
+
     /** 拜访一次: 推进 12217 累积拜访次数。 */
     public static ActionConditionEvent visit() {
         return new ActionConditionEvent(ActionConditionEvent.Type.VISIT, 0, 0, 0, 1, 0, false);

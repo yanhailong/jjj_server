@@ -2324,7 +2324,6 @@ public abstract class AbstractSlotsGameManager<T extends SlotsPlayerGameData, L 
         }
         int times = (int) (gameRunInfo.getAllWinGold() / playerGameData.getAllBetScore());
         gameRunInfo.setAllWinTimes(times);
-        System.out.println("设置倍数 " + times);
         return times;
     }
 

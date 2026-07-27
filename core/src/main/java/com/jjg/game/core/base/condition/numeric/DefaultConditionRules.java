@@ -17,7 +17,7 @@ final class DefaultConditionRules {
     }
 
     static List<ConditionRule<?>> rules() {
-        List<ConditionRule<?>> rules = new ArrayList<>(66);
+        List<ConditionRule<?>> rules = new ArrayList<>();
         addPlayerStateRules(rules);
         addBaseGameRules(rules);
         addRechargeRules(rules);
@@ -128,8 +128,10 @@ final class DefaultConditionRules {
                 (s, e) -> e.qualifier() >= s.parameter(1), (s, e) -> e.value()));
         rules.add(action(12215, 2, 2, 1, ProgressMode.ADD, ActionConditionEvent.Type.PRODUCTION_INCOME,
                 (s, e) -> e.matchesSubject(s.parameter(0)), (s, e) -> e.value()));
-        rules.add(action(12216, 1, 1, 0, ProgressMode.ADD, ActionConditionEvent.Type.GAME_RESEARCH,
-                (s, e) -> true, (s, e) -> positiveCount(e)));
+        //12216 是"已研发游戏数"(研究院等级达标的游戏并集), 事件携带当前总数, SET 覆盖;
+        //技能研究次数是 12304, 两者语义不同, 不能共用 GAME_RESEARCH 事件。
+        rules.add(action(12216, 1, 1, 0, ProgressMode.SET, ActionConditionEvent.Type.GAME_UNLOCK,
+                (s, e) -> true, (s, e) -> e.value()));
         rules.add(action(12217, 1, 1, 0, ProgressMode.ADD, ActionConditionEvent.Type.VISIT,
                 (s, e) -> true, (s, e) -> positiveCount(e)));
         rules.add(action(12218, 1, 1, 0, ProgressMode.ADD, ActionConditionEvent.Type.LOGIN,

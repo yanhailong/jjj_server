@@ -398,12 +398,10 @@ public class SimManager {
         skillService.loadSkillsData(ctx);
         //加载场景数据
         simCasinoService.loadCasinoData(ctx, baseData);
-        migrateLegacyOperationStats(ctx);
         //加载雇员数据
         employeeService.loadEmployeeData(ctx);
         //加载主线/成就任务数据 (首登接取主线首节点+各成就组首节点)
         simTaskService.initTaskData(ctx);
-        simTaskService.reconcileFinishedTaskCount(ctx);
         //加载多人协作任务数据 (每日池懒重置)
         simCoopTaskService.initData(ctx);
         SeasonPlayerData seasonData = seasonPlayerDao.findById(playerId).orElse(null);
@@ -420,43 +418,6 @@ public class SimManager {
         this.simPlayerContextRegistry.putContext(ctx);
         simNodeService.save(playerId, clusterSystem.getNodePath());
         return ctx;
-    }
-
-    /**
-     * 将旧版本按娱乐城保存的经营累计数据一次性汇总到玩家级数据。
-     */
-    private void migrateLegacyOperationStats(SimPlayerContext ctx) {
-        SimBaseData baseData = ctx.getSimBaseData();
-        if (baseData == null) {
-            return;
-        }
-        List<SimCasinoData> casinos = simCasinoDao.findByPlayerId(ctx.playerId());
-        if (casinos.isEmpty() && ctx.getCurrentCasino() != null) {
-            casinos = List.of(ctx.getCurrentCasino());
-        }
-        int allLevel = 0;
-        boolean migrateStats = !baseData.isOperationStatsMigrated();
-        for (SimCasinoData casino : casinos) {
-            allLevel += casino.getCasinoLevel();
-            if (!migrateStats) {
-                continue;
-            }
-            //旧 receptionCount 混入了普通游客及每个目的地交互，无法转换为“高级游客人数”，不迁移该字段
-            baseData.addBusinessIncome(casino.getBusinessIncome());
-            baseData.setWatchAdCount(baseData.getWatchAdCount() + casino.getWatchAdCount());
-            baseData.setFinishedTaskCount(baseData.getFinishedTaskCount() + casino.getFinishedTaskCount());
-            if (casino.getSlotStatsMap() != null) {
-                for (Map.Entry<Integer, SlotGameStatsData> entry : casino.getSlotStatsMap().entrySet()) {
-                    baseData.findOrCreateSlotStats(entry.getKey()).mergeFrom(entry.getValue());
-                }
-            }
-        }
-        if (allLevel > 0) {
-            baseData.setAllLevel(allLevel);
-        }
-        if (migrateStats) {
-            baseData.setOperationStatsMigrated(true);
-        }
     }
 
     /**
