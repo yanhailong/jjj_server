@@ -298,6 +298,11 @@ public class DouXianGameController extends BasePokerGameController<DouXianGameDa
         gameDataVo.getConfirmedPlayerIds().remove(remove.getPlayerId());
         gameDataVo.getConcededPlayerIds().remove(remove.getPlayerId());
         gameDataVo.getHostingPlayerIds().remove(remove.getPlayerId());
+        gameDataVo.getHostingCancelledPlayerIdsThisPhase().remove(remove.getPlayerId());
+        GamePlayer leavingPlayer = gameDataVo.getGamePlayer(remove.getPlayerId());
+        if (leavingPlayer != null) {
+            leavingPlayer.setHosting(false);
+        }
         gameDataVo.getPendingSpecialRule().remove(remove.getPlayerId());
         gameDataVo.getRechargingPlayerIds().remove(remove.getPlayerId());
         log.info("斗仙牌玩家离开房间，已清理局内数据 playerId:{} roomCfgId:{}",
@@ -534,8 +539,13 @@ public class DouXianGameController extends BasePokerGameController<DouXianGameDa
     public void forceFinishPlayCardPhase() {
         for (Long playerId : gameDataVo.getActivePlayerIds()) {
             if (!gameDataVo.getConfirmedPlayerIds().contains(playerId)) {
-                boolean firstTimeout = gameDataVo.getHostingPlayerIds().add(playerId);
+                boolean cancelledThisPhase = gameDataVo.getHostingCancelledPlayerIdsThisPhase().contains(playerId);
+                boolean firstTimeout = !cancelledThisPhase && gameDataVo.getHostingPlayerIds().add(playerId);
                 if (firstTimeout) {
+                    GamePlayer gamePlayer = gameDataVo.getGamePlayer(playerId);
+                    if (gamePlayer != null) {
+                        gamePlayer.setHosting(true);
+                    }
                     log.warn("斗仙牌出牌超时，玩家进入托管 playerId:{}", playerId);
                     NotifyDouXianHostingState hostingNotify = new NotifyDouXianHostingState();
                     hostingNotify.playerId = playerId;
@@ -649,7 +659,16 @@ public class DouXianGameController extends BasePokerGameController<DouXianGameDa
     }
 
     public void reqCancelHosting(long playerId, ReqDouXianCancelHosting req) {
+        log.info("斗仙牌收到取消托管请求 playerId:{} phase:{} hostingBefore:{}",
+                playerId, getCurrentGamePhase(), gameDataVo.getHostingPlayerIds().contains(playerId));
         boolean wasHosting = gameDataVo.getHostingPlayerIds().remove(playerId);
+        GamePlayer gamePlayer = gameDataVo.getGamePlayer(playerId);
+        if (gamePlayer != null) {
+            gamePlayer.setHosting(false);
+        }
+        if (getCurrentGamePhase() == EGamePhase.PLAY_CART) {
+            gameDataVo.getHostingCancelledPlayerIdsThisPhase().add(playerId);
+        }
         // 无论玩家是否处于托管中都要回包，否则客户端在状态不同步时(比如托管已被服务器清除)发这个请求会收不到任何响应
         NotifyDouXianHostingState notify = new NotifyDouXianHostingState();
         notify.playerId = playerId;

@@ -43,6 +43,8 @@ public interface DouXianConstant {
         int PLAY_CARD_TIME = 30_000;
         //弃牌倒计时
         int DISCARD_TIME = 20_000;
+        //第三轮有换牌操作，延长弃牌倒计时
+        int THIRD_ROUND_DISCARD_TIME = 30_000;
         //斗法/结算特效停留
         int SETTLEMENT_EFFECT_TIME = 1_000;
         //飞升动画停留
@@ -97,5 +99,7 @@ public interface DouXianConstant {
         int REQ_DOU_XIAN_GO_READY = BASE_MSG_PREFIX | 0x13;
         //通知玩家准备状态
         int NOTIFY_DOU_XIAN_PLAYER_READY = BASE_MSG_PREFIX | 0x14;
+        //通知进入弃牌/换牌阶段
+        int NOTIFY_DOU_XIAN_DISCARD_START = BASE_MSG_PREFIX | 0x15;
     }
 }
