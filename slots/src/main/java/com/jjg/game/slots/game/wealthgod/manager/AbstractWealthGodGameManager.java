@@ -97,6 +97,9 @@ public abstract class AbstractWealthGodGameManager extends AbstractSlotsGameMana
 
             gameRunInfo.setAfterGold(getMoneyByItemId(warehouseCfg, player));
 
+            //添加大奖展示id
+            int times = calWinTimes(gameRunInfo, playerGameData);
+            gameRunInfo.setBigShowId(getBigShowIdByTimes(times));
             checkMarquee(playerGameData, gameRunInfo.getAllWinGold());
             return gameRunInfo;
         } catch (Exception e) {

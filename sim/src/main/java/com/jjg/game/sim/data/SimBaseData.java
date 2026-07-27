@@ -47,12 +47,8 @@ public class SimBaseData extends AbstractData {
     private int lastLoginDay;
     //经营信息-SPINE游戏统计 gameType -> 玩家累计统计
     private Map<Integer, SlotGameStatsData> slotStatsMap;
-    //旧版按娱乐城保存的统计是否已迁移到玩家数据
-    private boolean operationStatsMigrated;
     //所有的激活的勋章
     private Set<Integer> allMedalIds;
-    //旧背包勋章是否已迁移到 allMedalIds
-    private boolean medalDataMigrated;
     //展示的勋章
     private List<Integer> showMedalIds;
 
@@ -272,14 +268,6 @@ public class SimBaseData extends AbstractData {
         return slotStatsMap.computeIfAbsent(gameType, ignored -> new SlotGameStatsData());
     }
 
-    public boolean isOperationStatsMigrated() {
-        return operationStatsMigrated;
-    }
-
-    public void setOperationStatsMigrated(boolean operationStatsMigrated) {
-        this.operationStatsMigrated = operationStatsMigrated;
-    }
-
     /**
      * 跨天则重置每日掉落计数
      *
@@ -324,14 +312,6 @@ public class SimBaseData extends AbstractData {
 
     public void setAllMedalIds(Set<Integer> allMedalIds) {
         this.allMedalIds = allMedalIds == null ? null : new HashSet<>(allMedalIds);
-    }
-
-    public boolean isMedalDataMigrated() {
-        return medalDataMigrated;
-    }
-
-    public void setMedalDataMigrated(boolean medalDataMigrated) {
-        this.medalDataMigrated = medalDataMigrated;
     }
 
     public List<Integer> getShowMedalIds() {

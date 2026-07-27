@@ -27,7 +27,7 @@ final class LegacyConditionEventAdapter {
         return new GameConditionEvent(
                 event.getGameId(), event.getGameType(), event.getRoomType(), event.getItemId(), event.getItemId(),
                 betAmount, event.getWinAmount(), 0, betAmount > 0, true,
-                0, 0, 0, 0, Set.of(), List.of(), Map.of());
+                0, Map.of(), 0, 0, Set.of(), List.of(), Map.of());
     }
 
     static RechargeConditionEvent recharge(PlayerRechargeEvent event) {

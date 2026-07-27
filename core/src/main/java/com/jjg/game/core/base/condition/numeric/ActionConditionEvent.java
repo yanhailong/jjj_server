@@ -22,6 +22,7 @@ public record ActionConditionEvent(Type type, int subjectId, int relatedId, long
         GUEST_COUNT,
         PRODUCTION_INCOME,
         GAME_RESEARCH,
+        GAME_UNLOCK,
         VISIT,
         LOGIN,
         CASINO_UNLOCK,

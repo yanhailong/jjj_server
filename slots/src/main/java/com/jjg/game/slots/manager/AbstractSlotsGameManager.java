@@ -123,6 +123,9 @@ public abstract class AbstractSlotsGameManager<T extends SlotsPlayerGameData, L 
 
     protected AtomicBoolean open = new AtomicBoolean(false);
 
+    //四档奖池 (mini/minor/major/grand) 的档位数量, 只配单个特殊奖池的游戏不按档位统计
+    private static final int JACKPOT_TIER_COUNT = 4;
+
     //游戏类型
     protected int gameType;
 
@@ -435,10 +438,7 @@ public abstract class AbstractSlotsGameManager<T extends SlotsPlayerGameData, L 
         statInfo.setWin(gameRunInfo.getAllWinGold());
         statInfo.setMultiple(gameRunInfo.getAllWinTimes());
         statInfo.setBigShowId(gameRunInfo.getBigShowId());
-        statInfo.setMini(gameRunInfo.getMini());
-        statInfo.setMinor(gameRunInfo.getMinor());
-        statInfo.setMajor(gameRunInfo.getMajor());
-        statInfo.setGrand(gameRunInfo.getGrand());
+        statInfo.setJackpotCounts(gameRunInfo.getJackpotCounts());
         statInfo.setRemainFreeCount(gameRunInfo.getRemainFreeCount());
         //结果库的模式类型/图标: 赛季试炼任务判定 "触发特殊模式/图标出现次数" 用
         SlotsResultLib resultLib = gameRunInfo.getResultLib();
@@ -1624,25 +1624,32 @@ public abstract class AbstractSlotsGameManager<T extends SlotsPlayerGameData, L 
     }
 
     /**
-     * 奖池中奖后按档位记入本次旋转结果 (mini/minor/major/grand), 供 sim 经营信息统计奖池触发次数。
+     * 奖池中奖后按档位记入本次旋转结果 (mini/minor/major/grand 的金额与触发次数),
+     * 供 sim 经营信息统计和任务条件 12204 使用。
+     * <p>
      * 档位 = poolId 在 BaseInit.PrizePoolIdList 中的下标 (0~3); 不在列表中的奖池不计。
+     * 只配了单个特殊奖池 (全屏奖/夺宝分散奖等) 的游戏不属于四档奖池, 整体不计入档位统计。
      */
     protected void recordJackpotStat(GameRunInfo<?> gameRunInfo, int poolId, long value) {
         if (gameRunInfo == null || value < 1) {
             return;
         }
         BaseInitCfg baseInitCfg = GameDataManager.getBaseInitCfg(this.gameType);
-        if (baseInitCfg == null || baseInitCfg.getPrizePoolIdList() == null) {
+        if (baseInitCfg == null || baseInitCfg.getPrizePoolIdList() == null
+                || baseInitCfg.getPrizePoolIdList().size() != JACKPOT_TIER_COUNT) {
             return;
         }
-        switch (baseInitCfg.getPrizePoolIdList().indexOf(poolId)) {
+        int index = baseInitCfg.getPrizePoolIdList().indexOf(poolId);
+        switch (index) {
             case 0 -> gameRunInfo.setMini(gameRunInfo.getMini() + value);
             case 1 -> gameRunInfo.setMinor(gameRunInfo.getMinor() + value);
             case 2 -> gameRunInfo.setMajor(gameRunInfo.getMajor() + value);
             case 3 -> gameRunInfo.setGrand(gameRunInfo.getGrand() + value);
             default -> {
+                return;
             }
         }
+        gameRunInfo.addJackpotCount(index + 1);
     }
 
     /**
@@ -2315,7 +2322,9 @@ public abstract class AbstractSlotsGameManager<T extends SlotsPlayerGameData, L 
         if (playerGameData.getAllBetScore() < 1) {
             return 0;
         }
-        return (int) (gameRunInfo.getAllWinGold() / playerGameData.getAllBetScore());
+        int times = (int) (gameRunInfo.getAllWinGold() / playerGameData.getAllBetScore());
+        gameRunInfo.setAllWinTimes(times);
+        return times;
     }
 
     public boolean canExit(SlotsPlayerGameData playerGameData) {

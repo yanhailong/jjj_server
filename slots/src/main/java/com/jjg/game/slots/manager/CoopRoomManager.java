@@ -528,7 +528,7 @@ public class CoopRoomManager {
                 GameConditionEvent conditionEvent = new GameConditionEvent(
                         gameType, gameType, 0, 0, 0,
                         gameRunInfo.getStake(), gameRunInfo.getAllWinGold(), gameRunInfo.getAllWinTimes(),
-                        true, statusBefore == SlotsConst.Status.NORMAL, 0, 0, 0, 0,
+                        true, statusBefore == SlotsConst.Status.NORMAL, 0, Map.of(), 0, 0,
                         gameRunInfo.getResultLib() == null || gameRunInfo.getResultLib().getLibTypeSet() == null
                                 ? Set.of() : Set.copyOf(gameRunInfo.getResultLib().getLibTypeSet()),
                         List.of(), Map.of());

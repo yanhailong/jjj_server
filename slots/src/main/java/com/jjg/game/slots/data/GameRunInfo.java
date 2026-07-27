@@ -2,6 +2,9 @@ package com.jjg.game.slots.data;
 
 import com.jjg.game.core.constant.Code;
 
+import java.util.HashMap;
+import java.util.Map;
+
 /**
  * @author 11
  * @date 2025/6/12 17:38
@@ -43,6 +46,8 @@ public class GameRunInfo<T extends SlotsPlayerGameData> {
     private long minor;
     private long major;
     private long grand;
+    //各档奖池触发次数 (档位 1.MINI 2.MINOR 3.MAJOR 4.GRAND; 未中奖池时不分配)
+    private Map<Integer, Long> jackpotCounts;
 
     //免费游戏累计金额
     private long freeModeTotalReward;
@@ -229,6 +234,22 @@ public class GameRunInfo<T extends SlotsPlayerGameData> {
 
     public void setGrand(long grand) {
         this.grand = grand;
+    }
+
+    public Map<Integer, Long> getJackpotCounts() {
+        return jackpotCounts;
+    }
+
+    /**
+     * 记录一次奖池触发。同一次旋转命中多档或同档多次都各自累计。
+     *
+     * @param tier 奖池档位 (1.MINI 2.MINOR 3.MAJOR 4.GRAND)
+     */
+    public void addJackpotCount(int tier) {
+        if (jackpotCounts == null) {
+            jackpotCounts = new HashMap<>(4);
+        }
+        jackpotCounts.merge(tier, 1L, Long::sum);
     }
 
     public long getFreeModeTotalReward() {

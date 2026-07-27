@@ -203,6 +203,9 @@ public class SimManager {
 
             res.currentCasinoId = ctx.getCurrentCasino().getCasinoId();
 
+            //下发前先消费联盟助力抵扣, 否则展示的仍是未减少的升级CD
+            buildingService.applyPendingSpeedup(ctx.playerId(), ctx.getCurrentCasino(), System.currentTimeMillis());
+
             //添加建筑数据
             res.buildings = SimPbConverter.toBuildingInfos(ctx.getCurrentCasino());
 
@@ -389,7 +392,6 @@ public class SimManager {
         if (baseData == null) {
             baseData = new SimBaseData();
             baseData.setPlayerId(playerId);
-            baseData.setPower(10000);
         }
 
         ctx.setSimBaseData(baseData);
@@ -398,12 +400,10 @@ public class SimManager {
         skillService.loadSkillsData(ctx);
         //加载场景数据
         simCasinoService.loadCasinoData(ctx, baseData);
-        migrateLegacyOperationStats(ctx);
         //加载雇员数据
         employeeService.loadEmployeeData(ctx);
         //加载主线/成就任务数据 (首登接取主线首节点+各成就组首节点)
         simTaskService.initTaskData(ctx);
-        simTaskService.reconcileFinishedTaskCount(ctx);
         //加载多人协作任务数据 (每日池懒重置)
         simCoopTaskService.initData(ctx);
         SeasonPlayerData seasonData = seasonPlayerDao.findById(playerId).orElse(null);
@@ -420,43 +420,6 @@ public class SimManager {
         this.simPlayerContextRegistry.putContext(ctx);
         simNodeService.save(playerId, clusterSystem.getNodePath());
         return ctx;
-    }
-
-    /**
-     * 将旧版本按娱乐城保存的经营累计数据一次性汇总到玩家级数据。
-     */
-    private void migrateLegacyOperationStats(SimPlayerContext ctx) {
-        SimBaseData baseData = ctx.getSimBaseData();
-        if (baseData == null) {
-            return;
-        }
-        List<SimCasinoData> casinos = simCasinoDao.findByPlayerId(ctx.playerId());
-        if (casinos.isEmpty() && ctx.getCurrentCasino() != null) {
-            casinos = List.of(ctx.getCurrentCasino());
-        }
-        int allLevel = 0;
-        boolean migrateStats = !baseData.isOperationStatsMigrated();
-        for (SimCasinoData casino : casinos) {
-            allLevel += casino.getCasinoLevel();
-            if (!migrateStats) {
-                continue;
-            }
-            //旧 receptionCount 混入了普通游客及每个目的地交互，无法转换为“高级游客人数”，不迁移该字段
-            baseData.addBusinessIncome(casino.getBusinessIncome());
-            baseData.setWatchAdCount(baseData.getWatchAdCount() + casino.getWatchAdCount());
-            baseData.setFinishedTaskCount(baseData.getFinishedTaskCount() + casino.getFinishedTaskCount());
-            if (casino.getSlotStatsMap() != null) {
-                for (Map.Entry<Integer, SlotGameStatsData> entry : casino.getSlotStatsMap().entrySet()) {
-                    baseData.findOrCreateSlotStats(entry.getKey()).mergeFrom(entry.getValue());
-                }
-            }
-        }
-        if (allLevel > 0) {
-            baseData.setAllLevel(allLevel);
-        }
-        if (migrateStats) {
-            baseData.setOperationStatsMigrated(true);
-        }
     }
 
     /**
@@ -625,6 +588,7 @@ public class SimManager {
     public CommonResult<SlotsSpinResult> onSlotsSpin(long playerId, int gameType, int winTimes, boolean changeNode,
                                                      SpinStatInfo statInfo, VisitTrialSpinPermit trialPermit) {
         try {
+            log.warn("playerId={},gameType={},winTimes={},statInfo={},trialPermit={}", playerId, gameType, winTimes, statInfo != null ? JSONObject.toJSONString(statInfo) : "null", trialPermit != null ? JSONObject.toJSONString(trialPermit) : "null");
             SimPlayerContext ctx = this.simPlayerContextRegistry.getContext(playerId);
             if (ctx == null) {
                 if (changeNode) {
@@ -659,16 +623,15 @@ public class SimManager {
                     result.data == null ? null : result.data.getItemsMap());
             if (!result.success()) {
                 log.warn("slots 联动失败, onSpin执行失败 playerId={},gameType={},winTimes={},code={}", playerId, gameType, winTimes, result.code);
-                //真实旋转已发生: 掉落失败也照常推进赛季联动 (试炼窗口/对局按实际旋转局数计)
-                if (!visitTrial) {
-                    seasonService.onSpin(ctx, gameType, statInfo, statInfo == null ? null : conditionEvent);
+                //试玩失败意味着 permit 已失效(重复投递等), 本次上报不可信, 不推进任何进度
+                if (visitTrial) {
+                    return result;
                 }
-                return result;
-            }
-            if (visitTrial) {
+            } else if (visitTrial) {
                 simStatsService.recordSpin(ctx.getSimBaseData(), gameType, statInfo);
             }
 
+            //真实旋转已发生: 体力不足/掉落失败都不影响下面的进度推进, 任务只认旋转本身这一事实
             //联盟联动: 消耗体力/中奖倍数 -> 任务进度 + 对决积分掉落 (内部吞异常, 不影响主流程)
             allianceEventService.onSpin(playerId, SimConstant.Common.SPIN_COST_POWER, conditionEvent);
 

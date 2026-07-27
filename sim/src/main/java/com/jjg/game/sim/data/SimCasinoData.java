@@ -31,12 +31,6 @@ public class SimCasinoData extends AbstractData {
     private int prosperity;
     //知名度 (场景宣传度)
     private int awareness;
-    //旧版经营信息统计 (仅用于一次性迁移到 SimBaseData)
-    private long receptionCount;
-    private long businessIncome;
-    private int watchAdCount;
-    private int finishedTaskCount;
-    private Map<Integer, SlotGameStatsData> slotStatsMap;
     //建筑数据
     private Map<Integer, BuildingData> buildingData;
     //拥有的游客 VisitorQuest表
@@ -308,95 +302,6 @@ public class SimCasinoData extends AbstractData {
             this.managerEmployMap = new HashMap<>();
         }
         this.managerEmployMap.put(professionId, employId);
-    }
-
-    // ---------------------------------------------------------------------
-    // 经营信息统计
-    // ---------------------------------------------------------------------
-
-    public long getReceptionCount() {
-        return receptionCount;
-    }
-
-    public void setReceptionCount(long receptionCount) {
-        this.receptionCount = receptionCount;
-    }
-
-    /**
-     * 累加接待游客人次
-     */
-    public void addReceptionCount(long count) {
-        if (count > 0) {
-            this.receptionCount += count;
-        }
-    }
-
-    public long getBusinessIncome() {
-        return businessIncome;
-    }
-
-    public void setBusinessIncome(long businessIncome) {
-        this.businessIncome = businessIncome;
-    }
-
-    /**
-     * 累加经营收益 (金币)
-     */
-    public void addBusinessIncome(long gold) {
-        if (gold > 0) {
-            this.businessIncome += gold;
-        }
-    }
-
-    public int getWatchAdCount() {
-        return watchAdCount;
-    }
-
-    public void setWatchAdCount(int watchAdCount) {
-        this.watchAdCount = watchAdCount;
-    }
-
-    /**
-     * 观看广告数 +1
-     */
-    public void incWatchAdCount() {
-        this.watchAdCount++;
-    }
-
-    public int getFinishedTaskCount() {
-        return finishedTaskCount;
-    }
-
-    public void setFinishedTaskCount(int finishedTaskCount) {
-        this.finishedTaskCount = finishedTaskCount;
-    }
-
-    public Map<Integer, SlotGameStatsData> getSlotStatsMap() {
-        return slotStatsMap;
-    }
-
-    public void setSlotStatsMap(Map<Integer, SlotGameStatsData> slotStatsMap) {
-        this.slotStatsMap = slotStatsMap;
-    }
-
-    /**
-     * 按 gameType 查询 slots 统计 (不存在返回 null)
-     */
-    public SlotGameStatsData findSlotStats(int gameType) {
-        if (this.slotStatsMap == null || this.slotStatsMap.isEmpty()) {
-            return null;
-        }
-        return this.slotStatsMap.get(gameType);
-    }
-
-    /**
-     * 按 gameType 查询 slots 统计, 不存在则创建
-     */
-    public SlotGameStatsData findOrCreateSlotStats(int gameType) {
-        if (this.slotStatsMap == null) {
-            this.slotStatsMap = new HashMap<>();
-        }
-        return this.slotStatsMap.computeIfAbsent(gameType, k -> new SlotGameStatsData());
     }
 
     public boolean containsGuestBonds(int bondsId) {

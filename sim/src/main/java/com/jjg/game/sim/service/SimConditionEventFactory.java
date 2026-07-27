@@ -56,7 +56,8 @@ public final class SimConditionEventFactory {
         long win = statInfo == null ? 0 : statInfo.getWin();
         return new GameConditionEvent(gameType, gameType, 0, goldItemId, goldItemId,
                 bet, win, winTimes, costPower > 0 || bet > 0, true,
-                statInfo == null ? 0 : statInfo.getBigShowId(), jackpotType(statInfo),
+                statInfo == null ? 0 : statInfo.getBigShowId(),
+                statInfo == null ? Map.of() : statInfo.getJackpotCounts(),
                 statInfo != null && statInfo.getRemainFreeCount() > 0 ? 1 : 0,
                 //赛季宝石掉落在 SeasonService 结算后由 withGemDrop 补入
                 0,
@@ -89,7 +90,7 @@ public final class SimConditionEventFactory {
     public static GameConditionEvent fromGameResult(int gameType, long bet, long win, long multiple) {
         int goldItemId = resolveGoldItemId();
         return new GameConditionEvent(gameType, gameType, 0, goldItemId, goldItemId,
-                bet, win, multiple, true, true, 0, 0, 0, 0,
+                bet, win, multiple, true, true, 0, Map.of(), 0, 0,
                 Set.of(), List.of(), win > 0 ? Map.of(goldItemId, win) : Map.of());
     }
 
@@ -105,6 +106,15 @@ public final class SimConditionEventFactory {
     /** 观看广告一次: 推进 12209 观看广告次数。 */
     public static ActionConditionEvent adWatch() {
         return new ActionConditionEvent(ActionConditionEvent.Type.AD_WATCH, 0, 0, 0, 1, 0, false);
+    }
+
+    /**
+     * 当前已研发的游戏总数 (研究院等级达标的游戏并集): 推进 12216 累积研发游戏数。
+     * 上报的是总数而非增量, 条件按 SET 覆盖进度, 重复上报幂等。
+     */
+    public static ActionConditionEvent gameResearched(long count) {
+        return new ActionConditionEvent(ActionConditionEvent.Type.GAME_UNLOCK,
+                0, 0, Math.max(0, count), 0, 0, false);
     }
 
     /** 拜访一次: 推进 12217 累积拜访次数。 */
@@ -157,15 +167,6 @@ public final class SimConditionEventFactory {
             cumulative += tierCount;
             sink.accept(new ActionConditionEvent(type, subjectId, 0, cumulative, 0, tier, false));
         }
-    }
-
-    private static int jackpotType(SpinStatInfo statInfo) {
-        if (statInfo == null) return 0;
-        if (statInfo.getMini() > 0) return 1;
-        if (statInfo.getMinor() > 0) return 2;
-        if (statInfo.getMajor() > 0) return 3;
-        if (statInfo.getGrand() > 0) return 4;
-        return 0;
     }
 
     private static int resolveGoldItemId() {
