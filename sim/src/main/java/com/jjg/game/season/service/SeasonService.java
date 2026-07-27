@@ -363,6 +363,8 @@ public class SeasonService implements SimPlayerTickListener {
         selfRankInfo.rank = rankingService.rankOf(data);
         selfRankInfo.playerId = data.getPlayerId();
         selfRankInfo.playerName = data.getPlayerName();
+        selfRankInfo.headFrameId = data.getHeadFrameId();
+        selfRankInfo.headImgId = data.getHeadImgId();
         selfRankInfo.seasonCoin = data.getSeasonCoin();
         selfRankInfo.totalEarnedCoin = data.getTotalEarnedCoin();
         // 与 SeasonInfo.phase 一致：1新手，2进阶，3循环
@@ -387,9 +389,11 @@ public class SeasonService implements SimPlayerTickListener {
     public NotifySeasonMatchResult onSpin(SimPlayerContext ctx, int gameType, SpinStatInfo statInfo,
                                           GameConditionEvent event) {
         try {
-            dropService.onSpin(ctx, gameType);
+            //宝石掉落在条件事件构造之后才结算, 就地补入事实, 12608 才能按本次掉落计数
+            Map<Integer, Long> gemGains = dropService.onSpin(ctx, gameType);
             //试炼挑战窗口推进; 结算时直接下发通知 (与对局互斥: 试炼仅新手赛季, 对局仅进阶/循环赛季)
-            SeasonTrialResult trialResult = event == null ? null : trialService.onSpin(ctx, gameType, event);
+            SeasonTrialResult trialResult = event == null
+                    ? null : trialService.onSpin(ctx, gameType, event.withGemDrop(gemGains));
             if (trialResult != null) {
                 socialSender.sendTo(ctx.playerId(), trialNotify(trialResult));
             }
@@ -665,6 +669,8 @@ public class SeasonService implements SimPlayerTickListener {
         info.rank = entry.getRank();
         info.playerId = entry.getPlayerId();
         info.playerName = entry.getPlayerName();
+        info.headImgId = entry.getHeadImgId();
+        info.headFrameId = entry.getHeadFrameId();
         info.seasonCoin = entry.getSeasonCoin();
         info.totalEarnedCoin = entry.getTotalEarnedCoin();
         info.phase = entry.getPhase();

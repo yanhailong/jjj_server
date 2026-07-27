@@ -305,6 +305,8 @@ public class SeasonMatchService {
         SeasonPlayerData data = ctx.getSeasonPlayerData();
         data.setMatchOfflineTime(0);
         if (!data.markMatchProcessed(session.getMatchId(), HISTORY_LIMIT)) {
+            //同一 matchId 已结算过 (重试/掉线补完与超时弃赛撞车), 丢弃本次避免重复改币
+            log.warn("赛季对局重复结算, 已跳过 playerId={},matchId={}", ctx.playerId(), session.getMatchId());
             data.setActiveMatch(null);
             return new CommonResult<>(Code.REPEAT_OP);
         }
@@ -340,10 +342,18 @@ public class SeasonMatchService {
         if (!RobotUtil.isRobot(session.getOpponentId())) {
             SeasonMatchRecord opponentRecord = record(session, -actualChange, now, true,
                     ctx.playerId(), data.getPlayerName(), data.getTierId());
-            seasonPlayerDao.applyOpponentSettlement(session.getOpponentId(), data.getSeasonKey(),
-                    session.getMatchId(), -actualChange, opponentRecord, HISTORY_LIMIT);
+            //matchId 每局新生成, 写不进去说明该 matchId 已存在待结算记录, 对手这笔币会丢
+            if (!seasonPlayerDao.applyOpponentSettlement(session.getOpponentId(), data.getSeasonKey(),
+                    session.getMatchId(), -actualChange, opponentRecord, HISTORY_LIMIT)) {
+                log.warn("赛季对局对手待结算写入未生效, 对手币未变动 playerId={},opponentId={},matchId={},coinChange={}",
+                        ctx.playerId(), session.getOpponentId(), session.getMatchId(), -actualChange);
+            }
         }
         autoSaveService.enqueueSave(data);
+        //对局结算改币且跨玩家写入, 按每日匹配次数封顶, 频率可控
+        log.info("赛季对局结算 playerId={},matchId={},opponentId={},playerWin={},opponentWin={},rawChange={},coinChange={},seasonCoin={}",
+                ctx.playerId(), session.getMatchId(), session.getOpponentId(),
+                playerTotal, opponentTotal, rawChange, actualChange, data.getSeasonCoin());
 
         SeasonMatchResult result = new SeasonMatchResult();
         result.setMatchId(session.getMatchId());

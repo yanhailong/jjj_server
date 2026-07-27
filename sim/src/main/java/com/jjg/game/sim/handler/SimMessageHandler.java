@@ -26,6 +26,7 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Component;
 
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.HashMap;
 import java.util.LinkedHashSet;
 import java.util.List;
@@ -815,7 +816,8 @@ public class SimMessageHandler implements GmListener {
                 res.code = Code.NOT_FOUND;
             }
         } catch (Exception e) {
-            log.error("", e);
+            log.error("GM 指令执行异常 playerId={},orders={}",
+                    playerController.playerId(), Arrays.toString(gmOrders), e);
             res.code = Code.EXCEPTION;
         }
         return res;

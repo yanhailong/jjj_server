@@ -84,6 +84,8 @@ public class SeasonRankingService {
             entry.setRank(index + 1);
             entry.setPlayerId(player.getPlayerId());
             entry.setPlayerName(player.getPlayerName());
+            entry.setHeadImgId(player.getHeadImgId());
+            entry.setHeadFrameId(player.getHeadFrameId());
             entry.setSeasonCoin(player.getSeasonCoin());
             entry.setTotalEarnedCoin(player.getTotalEarnedCoin());
             SeasonPhase phase = player.seasonPhase();

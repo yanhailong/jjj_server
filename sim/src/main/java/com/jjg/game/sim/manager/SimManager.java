@@ -238,7 +238,7 @@ public class SimManager {
             playerController.send(res);
             return;
         } catch (Exception e) {
-            log.error("", e);
+            log.error("玩家进入游戏异常 playerId={}", playerController.playerId(), e);
             res.code = Code.EXCEPTION;
         }
         playerController.send(res);
@@ -310,7 +310,7 @@ public class SimManager {
                 res.unlockCasinoIds = casinoUnlock.getResearchLevelMap().keySet().stream().toList();
             }
         } catch (Exception e) {
-            log.error("", e);
+            log.error("获取玩家信息异常 playerId={},targetPlayerId={}", playerController.playerId(), targetPlayerId, e);
             res.code = Code.EXCEPTION;
         }
         playerController.send(res);
@@ -646,8 +646,6 @@ public class SimManager {
             }
 
             boolean visitTrial = trialPermit != null && trialPermit.isTrial();
-            GameConditionEvent conditionEvent = SimConditionEventFactory.fromSpin(
-                    gameType, winTimes, SimConstant.Common.SPIN_COST_POWER, statInfo);
             //普通旋转沿用原语义：即使掉落失败也计入统计。试玩需要先通过 permit 幂等结算，避免 RPC 重试重复计数。
             if (!visitTrial) {
                 simStatsService.recordSpin(ctx.getSimBaseData(), gameType, statInfo);
@@ -655,6 +653,10 @@ public class SimManager {
             CommonResult<SlotsSpinResult> result = visitTrial
                     ? simVisitService.settleTrialSpin(ctx, gameType, statInfo, trialPermit)
                     : simDropService.onSpin(ctx, gameType, winTimes);
+            //须在掉落结算后构造: 本次到账的道具要计入 itemGains, 12202 等按道具计数的条件才能推进
+            GameConditionEvent conditionEvent = SimConditionEventFactory.fromSpin(
+                    gameType, winTimes, SimConstant.Common.SPIN_COST_POWER, statInfo,
+                    result.data == null ? null : result.data.getItemsMap());
             if (!result.success()) {
                 log.warn("slots 联动失败, onSpin执行失败 playerId={},gameType={},winTimes={},code={}", playerId, gameType, winTimes, result.code);
                 //真实旋转已发生: 掉落失败也照常推进赛季联动 (试炼窗口/对局按实际旋转局数计)
@@ -678,7 +680,8 @@ public class SimManager {
             }
             return result;
         } catch (Exception e) {
-            log.error("", e);
+            log.error("slots 联动处理异常 playerId={},gameType={},winTimes={},spinId={}",
+                    playerId, gameType, winTimes, statInfo == null ? 0 : statInfo.getSpinId(), e);
             return new CommonResult<>(Code.EXCEPTION);
         }
     }

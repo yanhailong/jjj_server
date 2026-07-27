@@ -193,7 +193,7 @@ final class DefaultConditionRules {
                 (s, e) -> e.matchesSubject(s.parameter(0)), (s, e) -> positiveCount(e)));
         rules.add(game(12608, 2, 2, 1, ProgressMode.ADD,
                 (s, e) -> e.matchesGame(s.parameter(0)),
-                (s, e) -> sumPositiveItemGains(e)));
+                (s, e) -> e.gemDrops()));
         rules.add(game(12609, 4, 4, 3, ProgressMode.ADD,
                 (s, e) -> e.matchesGame(s.parameter(0)) && e.bet() >= s.parameter(1)
                         && optional(s.parameter(2), e.winItemId()),
@@ -289,17 +289,6 @@ final class DefaultConditionRules {
 
     private static long positiveCount(ActionConditionEvent event) {
         return event.count() > 0 ? event.count() : 1;
-    }
-
-    private static long sumPositiveItemGains(GameConditionEvent event) {
-        long sum = 0;
-        for (Long value : event.itemGains().values()) {
-            if (value == null || value <= 0) {
-                continue;
-            }
-            sum = sum > Long.MAX_VALUE - value ? Long.MAX_VALUE : sum + value;
-        }
-        return sum;
     }
 
     private record SimpleRule<E extends ConditionEvent>(
