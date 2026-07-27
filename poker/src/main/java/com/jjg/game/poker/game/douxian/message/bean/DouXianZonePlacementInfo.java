@@ -19,10 +19,10 @@ public class DouXianZonePlacementInfo {
     public int hiddenCount;
     @ProtoDesc("牌型名称(仅本人视角、或该回合已结算亮牌后才下发，避免结算前泄露对手牌型)")
     public String handTypeName;
-    @ProtoDesc("牌型多语言id(来自ImmortalHand.xlsx)")
-    public int handTypeNameId;
     @ProtoDesc("灵力值(下发规则同handTypeName)")
     public long aetherValue;
     @ProtoDesc("是否锁定(飞升而来，本回合不可取回)")
     public boolean locked;
+    @ProtoDesc("牌型多语言id(来自ImmortalHand.xlsx)")
+    public int handTypeNameId;
 }

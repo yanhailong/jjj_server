@@ -21,12 +21,12 @@ public class DouXianZoneSettlementInfo {
     public long loserAether;
     @ProtoDesc("赢家牌型名称")
     public String winnerHandTypeName;
-    @ProtoDesc("赢家牌型多语言id(来自ImmortalHand.xlsx)")
-    public int winnerHandTypeNameId;
     @ProtoDesc("输家牌型名称")
     public String loserHandTypeName;
-    @ProtoDesc("输家牌型多语言id(来自ImmortalHand.xlsx)")
-    public int loserHandTypeNameId;
     @ProtoDesc("本次结算实际变化的金额(已按封顶/最小输赢裁剪)")
     public long changeValue;
+    @ProtoDesc("赢家牌型多语言id(来自ImmortalHand.xlsx)")
+    public int winnerHandTypeNameId;
+    @ProtoDesc("输家牌型多语言id(来自ImmortalHand.xlsx)")
+    public int loserHandTypeNameId;
 }
