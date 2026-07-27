@@ -1,6 +1,7 @@
 package com.jjg.game.sim.data;
 
 import java.util.List;
+import java.util.Map;
 
 /**
  * slots 每次旋转上报给 sim 的统计明细 (经 ToSimBridge.onSlotsSpin 跨节点传输)。
@@ -19,11 +20,9 @@ public class SpinStatInfo {
     private int multiple;
     //大奖展示id (GameRunInfo.bigShowId; 0=无, 1.SWEET 2.BIG 3.MEGA 4.EPIC 5.LEGENDARY)
     private int bigShowId;
-    //奖池金额 (>0 表示本次触发对应奖池)
-    private long mini;
-    private long minor;
-    private long major;
-    private long grand;
+    //本次旋转各档奖池的触发次数 (档位 1.MINI 2.MINOR 3.MAJOR 4.GRAND; 一次旋转可同时命中多档或同档多次)
+    //奖池中奖金额已计入 win, 各档金额只有客户端展示要用, 不跨节点传
+    private Map<Integer, Long> jackpotCounts;
     //本次旋转后剩余免费次数 (用于检测免费模式触发)
     private int remainFreeCount;
     //本次结果库的模式类型集合 (SlotsResultLib.libTypeSet, SpecialMode 表 type; 赛季试炼任务判定用)
@@ -68,36 +67,12 @@ public class SpinStatInfo {
         this.bigShowId = bigShowId;
     }
 
-    public long getMini() {
-        return mini;
+    public Map<Integer, Long> getJackpotCounts() {
+        return jackpotCounts;
     }
 
-    public void setMini(long mini) {
-        this.mini = mini;
-    }
-
-    public long getMinor() {
-        return minor;
-    }
-
-    public void setMinor(long minor) {
-        this.minor = minor;
-    }
-
-    public long getMajor() {
-        return major;
-    }
-
-    public void setMajor(long major) {
-        this.major = major;
-    }
-
-    public long getGrand() {
-        return grand;
-    }
-
-    public void setGrand(long grand) {
-        this.grand = grand;
+    public void setJackpotCounts(Map<Integer, Long> jackpotCounts) {
+        this.jackpotCounts = jackpotCounts;
     }
 
     public int getRemainFreeCount() {

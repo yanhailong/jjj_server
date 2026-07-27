@@ -22,7 +22,7 @@ public record GameConditionEvent(
         boolean energyConsumed,
         boolean normalSpin,
         int awardType,
-        int jackpotType,
+        Map<Integer, Long> jackpotCounts,
         int freeGameTriggers,
         int gemDrops,
         Set<Integer> specialModes,
@@ -33,6 +33,23 @@ public record GameConditionEvent(
         specialModes = specialModes == null ? Set.of() : Set.copyOf(specialModes);
         icons = icons == null ? List.of() : List.copyOf(icons);
         itemGains = itemGains == null ? Map.of() : Map.copyOf(itemGains);
+        jackpotCounts = jackpotCounts == null ? Map.of() : Map.copyOf(jackpotCounts);
+    }
+
+    /**
+     * 本次旋转触发的奖池次数。一次旋转可同时命中多个档位，各档独立计数，不互相遮蔽。
+     *
+     * @param tier 奖池档位 (1.MINI 2.MINOR 3.MAJOR 4.GRAND); <=0 表示不限档位，取各档合计
+     */
+    public long jackpotCount(int tier) {
+        if (tier > 0) {
+            return jackpotCounts.getOrDefault(tier, 0L);
+        }
+        long total = 0;
+        for (Long count : jackpotCounts.values()) {
+            total += count;
+        }
+        return total;
     }
 
     public boolean matchesGame(long configuredGameId) {
@@ -72,7 +89,7 @@ public record GameConditionEvent(
             }
         }
         return new GameConditionEvent(gameId, gameType, roomType, betItemId, winItemId,
-                bet, win, multiple, energyConsumed, normalSpin, awardType, jackpotType,
+                bet, win, multiple, energyConsumed, normalSpin, awardType, jackpotCounts,
                 freeGameTriggers, gemDrops + 1, specialModes, icons, merged);
     }
 

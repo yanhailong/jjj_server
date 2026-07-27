@@ -286,6 +286,8 @@ public class SimTaskService {
                 yield update.value();
             }
         };
+        log.debug("玩家[{}]任务[{}]条件[{}]推进 增量={},进度={}/{}", player.getId(), cfg.getId(),
+                def.condition().spec().id(), update.value(), progress, def.condition().target());
         if (progress >= def.condition().target()) {
             onComplete(player, data, baseData, node, cfg, changed);
         }

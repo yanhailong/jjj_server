@@ -101,8 +101,10 @@ final class DefaultConditionRules {
                 (s, e) -> e.matchesGame(s.parameter(0)), (s, e) -> e.itemGain(s.intParameter(1))));
         rules.add(game(12203, 2, 2, 1, ProgressMode.ADD,
                 (s, e) -> optional(s.parameter(0), e.awardType()), (s, e) -> 1));
+        //奖池按档位独立计数: 同一次旋转命中多档/同档多次都如实推进 (参数0 <=0 时不限档位)
         rules.add(game(12204, 2, 2, 1, ProgressMode.ADD,
-                (s, e) -> optional(s.parameter(0), e.jackpotType()), (s, e) -> 1));
+                (s, e) -> e.jackpotCount(s.intParameter(0)) > 0,
+                (s, e) -> e.jackpotCount(s.intParameter(0))));
         rules.add(game(12205, 1, 1, 0, ProgressMode.ADD,
                 (s, e) -> e.freeGameTriggers() > 0, (s, e) -> e.freeGameTriggers()));
         rules.add(action(12206, 2, 2, 1, ProgressMode.ADD, ActionConditionEvent.Type.BUILDING_UPGRADE,

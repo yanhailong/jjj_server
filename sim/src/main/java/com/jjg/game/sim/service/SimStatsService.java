@@ -76,24 +76,24 @@ public class SimStatsService {
             default -> {
             }
         }
-        //奖池次数
-        if (info.getMini() > 0) {
-            s.setMiniCount(s.getMiniCount() + 1);
-        }
-        if (info.getMinor() > 0) {
-            s.setMinorCount(s.getMinorCount() + 1);
-        }
-        if (info.getMajor() > 0) {
-            s.setMajorCount(s.getMajorCount() + 1);
-        }
-        if (info.getGrand() > 0) {
-            s.setGrandCount(s.getGrandCount() + 1);
+        //奖池次数: 与任务条件 12204 同源, 一次旋转命中多档或同档多次都如实累计
+        Map<Integer, Long> jackpotCounts = info.getJackpotCounts();
+        if (jackpotCounts != null && !jackpotCounts.isEmpty()) {
+            s.setMiniCount(s.getMiniCount() + jackpotCount(jackpotCounts, SimConstant.Jackpot.MINI));
+            s.setMinorCount(s.getMinorCount() + jackpotCount(jackpotCounts, SimConstant.Jackpot.MINOR));
+            s.setMajorCount(s.getMajorCount() + jackpotCount(jackpotCounts, SimConstant.Jackpot.MAJOR));
+            s.setGrandCount(s.getGrandCount() + jackpotCount(jackpotCounts, SimConstant.Jackpot.GRAND));
         }
         //免费游戏触发: 剩余免费次数 0 -> >0 视为一次触发
         if (s.getLastRemainFree() == 0 && info.getRemainFreeCount() > 0) {
             s.setFreeCount(s.getFreeCount() + 1);
         }
         s.setLastRemainFree(info.getRemainFreeCount());
+    }
+
+    private static long jackpotCount(Map<Integer, Long> jackpotCounts, int tier) {
+        Long count = jackpotCounts.get(tier);
+        return count == null ? 0 : count;
     }
 
     // ---------------------------------------------------------------------

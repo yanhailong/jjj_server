@@ -56,7 +56,8 @@ public final class SimConditionEventFactory {
         long win = statInfo == null ? 0 : statInfo.getWin();
         return new GameConditionEvent(gameType, gameType, 0, goldItemId, goldItemId,
                 bet, win, winTimes, costPower > 0 || bet > 0, true,
-                statInfo == null ? 0 : statInfo.getBigShowId(), jackpotType(statInfo),
+                statInfo == null ? 0 : statInfo.getBigShowId(),
+                statInfo == null ? Map.of() : statInfo.getJackpotCounts(),
                 statInfo != null && statInfo.getRemainFreeCount() > 0 ? 1 : 0,
                 //赛季宝石掉落在 SeasonService 结算后由 withGemDrop 补入
                 0,
@@ -89,7 +90,7 @@ public final class SimConditionEventFactory {
     public static GameConditionEvent fromGameResult(int gameType, long bet, long win, long multiple) {
         int goldItemId = resolveGoldItemId();
         return new GameConditionEvent(gameType, gameType, 0, goldItemId, goldItemId,
-                bet, win, multiple, true, true, 0, 0, 0, 0,
+                bet, win, multiple, true, true, 0, Map.of(), 0, 0,
                 Set.of(), List.of(), win > 0 ? Map.of(goldItemId, win) : Map.of());
     }
 
@@ -157,15 +158,6 @@ public final class SimConditionEventFactory {
             cumulative += tierCount;
             sink.accept(new ActionConditionEvent(type, subjectId, 0, cumulative, 0, tier, false));
         }
-    }
-
-    private static int jackpotType(SpinStatInfo statInfo) {
-        if (statInfo == null) return 0;
-        if (statInfo.getMini() > 0) return 1;
-        if (statInfo.getMinor() > 0) return 2;
-        if (statInfo.getMajor() > 0) return 3;
-        if (statInfo.getGrand() > 0) return 4;
-        return 0;
     }
 
     private static int resolveGoldItemId() {

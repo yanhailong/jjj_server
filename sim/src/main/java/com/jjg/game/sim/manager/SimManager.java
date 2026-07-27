@@ -625,6 +625,7 @@ public class SimManager {
     public CommonResult<SlotsSpinResult> onSlotsSpin(long playerId, int gameType, int winTimes, boolean changeNode,
                                                      SpinStatInfo statInfo, VisitTrialSpinPermit trialPermit) {
         try {
+            log.warn("playerId={},gameType={},winTimes={},statInfo={},trialPermit={}", playerId, gameType, winTimes, statInfo != null ? JSONObject.toJSONString(statInfo) : "null", trialPermit != null ? JSONObject.toJSONString(trialPermit) : "null");
             SimPlayerContext ctx = this.simPlayerContextRegistry.getContext(playerId);
             if (ctx == null) {
                 if (changeNode) {
@@ -659,16 +660,15 @@ public class SimManager {
                     result.data == null ? null : result.data.getItemsMap());
             if (!result.success()) {
                 log.warn("slots 联动失败, onSpin执行失败 playerId={},gameType={},winTimes={},code={}", playerId, gameType, winTimes, result.code);
-                //真实旋转已发生: 掉落失败也照常推进赛季联动 (试炼窗口/对局按实际旋转局数计)
-                if (!visitTrial) {
-                    seasonService.onSpin(ctx, gameType, statInfo, statInfo == null ? null : conditionEvent);
+                //试玩失败意味着 permit 已失效(重复投递等), 本次上报不可信, 不推进任何进度
+                if (visitTrial) {
+                    return result;
                 }
-                return result;
-            }
-            if (visitTrial) {
+            } else if (visitTrial) {
                 simStatsService.recordSpin(ctx.getSimBaseData(), gameType, statInfo);
             }
 
+            //真实旋转已发生: 体力不足/掉落失败都不影响下面的进度推进, 任务只认旋转本身这一事实
             //联盟联动: 消耗体力/中奖倍数 -> 任务进度 + 对决积分掉落 (内部吞异常, 不影响主流程)
             allianceEventService.onSpin(playerId, SimConstant.Common.SPIN_COST_POWER, conditionEvent);
 

@@ -560,15 +560,20 @@ public class SimBuildingService implements SimPlayerTickListener {
      * @param bonusesMap 已汇总的普通雇员加成 (按类型)
      */
     private Map<BuildingOutputType, Long> buildingActualPerMinute(SimPlayerContext ctx, BuildingData building, Map<BuildingOutputType, Integer> bonusesMap) {
+        BuildingAreaTableCfg areaCfg = GameDataManager.getBuildingAreaTableCfg(building.getId());
+        if (areaCfg == null) {
+            return Collections.emptyMap();
+        }
+        //只有游戏区和休息区才有每分钟产出
+        BuildingType buildingType = BuildingType.fromCode(areaCfg.getType());
+        if (buildingType != BuildingType.GAME && buildingType != BuildingType.REST) {
+            return Collections.emptyMap();
+        }
+
         //获取建筑的基础产出，不包含加成
         Map<BuildingOutputType, Long> base = getBaseOutput(building.getId(), building.getLevel());
         if (base.isEmpty()) {
             return Collections.emptyMap();
-        }
-
-        BuildingAreaTableCfg areaCfg = GameDataManager.getBuildingAreaTableCfg(building.getId());
-        if (areaCfg == null) {
-            return base;
         }
         return applyBuildingBonus(ctx, base, areaCfg.getEmployeeProfile(), bonusesMap);
     }
@@ -983,7 +988,8 @@ public class SimBuildingService implements SimPlayerTickListener {
     }
 
     /**
-     * 获取该建筑指定等级的产出 (基础值; 不含主管/雇员加成)
+     * 获取该建筑指定等级的基础值 (不含主管/雇员加成):
+     * 游戏区/休息区为每分钟产出, 管理区为部门属性值。
      */
     public Map<BuildingOutputType, Long> getBaseOutput(int buildingId, int level) {
         BuildingAreaTableCfg buildingAreaTableCfg = GameDataManager.getBuildingAreaTableCfg(buildingId);
@@ -991,13 +997,8 @@ public class SimBuildingService implements SimPlayerTickListener {
             return Collections.emptyMap();
         }
 
-        BuildingType buildingType = BuildingType.fromCode(buildingAreaTableCfg.getType());
-        if(buildingType == null){
-            return Collections.emptyMap();
-        }
-
-        //只能有游戏区和休息区才有产出
-        if(buildingType != BuildingType.GAME && buildingType != BuildingType.REST){
+        BuildingOutputType outputType = BuildingOutputType.fromCode(buildingAreaTableCfg.getTypeValue());
+        if (outputType == null) {
             return Collections.emptyMap();
         }
 
@@ -1006,7 +1007,7 @@ public class SimBuildingService implements SimPlayerTickListener {
             return Collections.emptyMap();
         }
         Map<BuildingOutputType, Long> map = new HashMap<>();
-        map.put(BuildingOutputType.fromCode(buildingAreaTableCfg.getTypeValue()), cfg.getUpgradeOutput());
+        map.put(outputType, cfg.getUpgradeOutput());
         return map;
     }
 }

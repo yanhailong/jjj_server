@@ -370,6 +370,16 @@ public interface SimConstant {
         int LEGENDARY = 5;
     }
 
+    /**
+     * 奖池档位 (对应 slots BaseInit.PrizePoolIdList 的下标顺序, 用于奖池触发次数分类)
+     */
+    interface Jackpot {
+        int MINI = 1;
+        int MINOR = 2;
+        int MAJOR = 3;
+        int GRAND = 4;
+    }
+
     interface PoolList {
         int TYPE_GUEST = 1;
         int TYPE_EMPLOYEE = 2;
