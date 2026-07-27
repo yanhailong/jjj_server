@@ -30,9 +30,7 @@ public class DouXianDiscardPhase extends BasePokerPhase<DouXianGameDataVo> {
 
     @Override
     public int getPhaseRunTime() {
-        return gameDataVo.getRound() == 2
-                ? DouXianConstant.Time.THIRD_ROUND_DISCARD_TIME
-                : DouXianConstant.Time.DISCARD_TIME;
+        return DouXianConstant.Time.DISCARD_TIME;
     }
 
     @Override
