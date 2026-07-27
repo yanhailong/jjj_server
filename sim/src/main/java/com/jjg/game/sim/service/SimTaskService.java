@@ -26,6 +26,7 @@ import com.jjg.game.sim.data.SimPlayerContext;
 import com.jjg.game.sim.data.SpinStatInfo;
 import com.jjg.game.sim.dao.SimTaskDao;
 import com.jjg.game.sim.data.SimTaskData;
+import com.jjg.game.sim.logger.SimAchievementTaskLogger;
 import com.jjg.game.sim.logger.SimMainTaskLogger;
 import com.jjg.game.sim.pb.res.NotifySimTaskUpdate;
 import com.jjg.game.sim.pb.res.ResSimTaskList;
@@ -82,6 +83,8 @@ public class SimTaskService {
     private SimGuideService guideService;
     @Autowired
     private SimMainTaskLogger mainTaskLogger;
+    @Autowired
+    private SimAchievementTaskLogger achievementTaskLogger;
 
     // =====================================================================
     // 加载 / 接取
@@ -138,7 +141,9 @@ public class SimTaskService {
             if (node == null) {
                 int first = taskConfig.firstOf(group);
                 if (first > 0) {
-                    data.getAchievements().put(group, createNode(playerId, first));
+                    TaskDetail firstNode = createNode(playerId, first);
+                    data.getAchievements().put(group, firstNode);
+                    logAchievementActivated(playerId, firstNode, group, 0);
                 }
             } else {
                 advanceIfRewardedTail(playerId, data, node, false, group);
@@ -162,6 +167,7 @@ public class SimTaskService {
                 logMainActivated(playerId, next, cur.getConfigId());
             } else {
                 data.getAchievements().put(group, next);
+                logAchievementActivated(playerId, next, group, cur.getConfigId());
             }
             cur = next;
         }
@@ -314,6 +320,12 @@ public class SimTaskService {
             long target = def == null ? 0 : def.condition().target();
             mainTaskLogger.completed(player.getId(), player.getNickName(), cfg.getId(),
                     conditionId, currentProgress(player, cfg), target, now);
+        } else if (cfg.getTaskType() == TaskConstant.TaskType.ACHIEVEMENT) {
+            SimTaskConfigService.TaskConditionDef def = taskConfig.conditionOf(cfg.getId());
+            int conditionId = def == null ? 0 : def.condition().spec().id();
+            long target = def == null ? 0 : def.condition().target();
+            achievementTaskLogger.completed(player.getId(), player.getNickName(), cfg.getId(), cfg.getGroup(),
+                    conditionId, currentProgress(player, cfg), target, now);
         }
 
         boolean noReward = (cfg.getGetItem() == null || cfg.getGetItem().isEmpty())
@@ -330,6 +342,14 @@ public class SimTaskService {
                         Collections.emptyList(), nextTaskId, now);
                 if (nextTaskId <= 0) {
                     mainTaskLogger.allCompleted(player.getId(), player.getNickName(), cfg.getId(), now);
+                }
+            } else if (cfg.getTaskType() == TaskConstant.TaskType.ACHIEVEMENT) {
+                int nextTaskId = taskConfig.next(cfg.getId());
+                achievementTaskLogger.rewarded(player.getId(), player.getNickName(), cfg.getId(), cfg.getGroup(),
+                        Collections.emptyList(), nextTaskId, now);
+                if (nextTaskId <= 0) {
+                    achievementTaskLogger.allCompleted(player.getId(), player.getNickName(), cfg.getId(),
+                            cfg.getGroup(), now);
                 }
             }
             Task next = advance(player, data, node, cfg);
@@ -400,6 +420,14 @@ public class SimTaskService {
             if (nextTaskId <= 0) {
                 mainTaskLogger.allCompleted(playerId, player.getNickName(), taskId, rewardTime);
             }
+        } else if (cfg.getTaskType() == TaskConstant.TaskType.ACHIEVEMENT) {
+            int nextTaskId = taskConfig.next(taskId);
+            achievementTaskLogger.rewarded(playerId, player.getNickName(), taskId, cfg.getGroup(),
+                    rewardItems, nextTaskId, rewardTime);
+            if (nextTaskId <= 0) {
+                achievementTaskLogger.allCompleted(playerId, player.getNickName(), taskId,
+                        cfg.getGroup(), rewardTime);
+            }
         }
         res.nextTask = advance(player, data, node, cfg);
         //领奖后强制下个 tick 尽快落库(走 autosave 规范路径), 收窄崩溃重复领取窗口
@@ -430,6 +458,7 @@ public class SimTaskService {
             logMainActivated(player.getId(), next, node.getConfigId());
         } else {
             data.getAchievements().put(cfg.getGroup(), next);
+            logAchievementActivated(player.getId(), next, cfg.getGroup(), node.getConfigId());
         }
         TaskCfg nextCfg = GameDataManager.getTaskCfg(nextId);
         return nextCfg == null ? null : assemble(player, next, nextCfg);
@@ -613,6 +642,13 @@ public class SimTaskService {
         Player player = corePlayerService.get(playerId);
         String playerName = player == null ? "" : player.getNickName();
         mainTaskLogger.activated(playerId, playerName, node.getConfigId(),
+                previousTaskId, taskConfig.next(node.getConfigId()), node.getCreateTime());
+    }
+
+    private void logAchievementActivated(long playerId, TaskDetail node, int group, int previousTaskId) {
+        Player player = corePlayerService.get(playerId);
+        String playerName = player == null ? "" : player.getNickName();
+        achievementTaskLogger.activated(playerId, playerName, node.getConfigId(), group,
                 previousTaskId, taskConfig.next(node.getConfigId()), node.getCreateTime());
     }
 
