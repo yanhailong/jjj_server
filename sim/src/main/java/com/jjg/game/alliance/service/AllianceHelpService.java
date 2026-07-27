@@ -22,6 +22,9 @@ import com.jjg.game.core.manager.SnowflakeManager;
 import com.jjg.game.core.service.CorePlayerService;
 import com.jjg.game.sampledata.GameDataManager;
 import com.jjg.game.sampledata.bean.GlobalConfigCfg;
+import com.jjg.game.sim.data.BuildingData;
+import com.jjg.game.sim.data.SimPlayerContext;
+import com.jjg.game.sim.manager.SimPlayerContextRegistry;
 import com.jjg.game.sim.service.SimConfigCacheService;
 import com.jjg.game.social.service.SocialSender;
 import org.slf4j.Logger;
@@ -81,6 +84,8 @@ public class AllianceHelpService {
     private SocialSender socialSender;
     @Autowired
     private CorePlayerService corePlayerService;
+    @Autowired
+    private SimPlayerContextRegistry simPlayerContextRegistry;
 
     // =====================================================================
     // 求助
@@ -128,6 +133,13 @@ public class AllianceHelpService {
             }
             maxHelp = AllianceConst.Cfg.TASK_ORDER_MAX_HELP;
         } else {
+            //目标必须是本人正在升级CD中的建筑: 否则帮助只会累计到一个不会被消费的 key,
+            //白扣帮助者次数且无任何效果
+            if (!upgradingBuilding(playerId, targetId)) {
+                res.code = Code.NOT_FOUND;
+                log.warn("发起联盟求助失败,目标建筑不在升级CD中 playerId={},targetId={}", playerId, targetId);
+                return res;
+            }
             //单订单可被帮上限对齐每日被帮助上限 (跨订单的当日总量由 speedupHelped 计数兜底)
             maxHelp = globalInt(AllianceConst.Global.SPEEDUP_DAILY_HELPED_LIMIT_ID);
         }
@@ -506,6 +518,19 @@ public class AllianceHelpService {
             log.warn("消费建筑加速抵扣失败 playerId={},buildingId={}", playerId, buildingId, e);
             return 0;
         }
+    }
+
+    /**
+     * 目标建筑是否处于升级 CD。发起求助必然在求助者自己的节点执行, ctx 在本地;
+     * 取不到 ctx/场景时放行, 不误伤。
+     */
+    private boolean upgradingBuilding(long playerId, int buildingId) {
+        SimPlayerContext ctx = simPlayerContextRegistry.getContext(playerId);
+        if (ctx == null || ctx.getCurrentCasino() == null) {
+            return true;
+        }
+        BuildingData building = ctx.getCurrentCasino().findBuilding(buildingId);
+        return building != null && building.isUpgrading(System.currentTimeMillis());
     }
 
     private boolean expired(AllianceHelpOrder order, long now) {

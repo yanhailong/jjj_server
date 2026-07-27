@@ -83,7 +83,8 @@ public class SimCoopTaskService {
     }
 
     /**
-     * 每日懒重置: 重抽今日列表/清领取次数/清免费刷新。已领取未完结任务跨天保留。
+     * 每日懒重置: 重抽今日列表/清领取次数/清免费刷新。
+     * 所有已领取任务 (CLAIMED/IN_ROOM/REWARDABLE/FAILED) 一律不跨天保留, 全部恢复到"未接取"。
      */
     private void ensureDaily(SimCoopTaskData data) {
         int today = todayKey();
@@ -93,12 +94,21 @@ public class SimCoopTaskService {
         data.setDayKey(today);
         data.setFreeRefreshUsed(false);
         data.setClaimedCount(0);
-        //失败为终态, 不跨天保留: 清理避免 tasks 无限膨胀(文档/落库脏哈希/池抽取排除放大); 待领奖(REWARDABLE)跨天保留
-        data.getTasks().values().removeIf(entry -> entry.getStatus() == CoopTaskConst.TaskStatus.FAILED);
+        //全清: 任一状态都不跨天保留。IN_ROOM 先释放其协作房间路由记录, 避免残留"玩家-房间"映射阻塞次日建房。
+        for (SimCoopTaskEntry entry : data.getTasks().values()) {
+            if (entry.getStatus() == CoopTaskConst.TaskStatus.IN_ROOM && entry.getRoomId() > 0) {
+                try {
+                    releaseRoomRecord(data.getPlayerId(), entry.getRoomId(), roomRecordDao.get(entry.getRoomId()));
+                } catch (Exception e) {
+                    log.error("多人任务每日清理房间记录失败 playerId={},roomId={}", data.getPlayerId(), entry.getRoomId(), e);
+                }
+            }
+        }
+        data.getTasks().clear();
         long receiptExpireBefore = System.currentTimeMillis() - SETTLEMENT_RECEIPT_RETENTION_MS;
         data.getSettlementReceipts().values().removeIf(receipt -> receipt.getFinishTime() < receiptExpireBefore);
         data.setPoolTaskIds(drawTasks(configService.getDailyPoolCount(), data.getTasks().keySet()));
-        log.info("多人任务每日重置 playerId={},pool={}", data.getPlayerId(), data.getPoolTaskIds());
+        log.info("多人任务每日重置(全清) playerId={},pool={}", data.getPlayerId(), data.getPoolTaskIds());
     }
 
     /**
@@ -417,16 +427,7 @@ public class SimCoopTaskService {
                     log.warn("多人任务房间不可达,回退待建房 playerId={},taskId={},roomId={},node={}",
                             data.getPlayerId(), entry.getTaskId(), entry.getRoomId(),
                             record == null ? null : record.getNodePath());
-                    if (record != null) {
-                        for (Long memberId : record.getMemberIds()) {
-                            if (memberId != null) {
-                                roomRecordDao.releasePlayerRoom(memberId, record.getRoomId());
-                            }
-                        }
-                        roomRecordDao.delete(record.getRoomId());
-                    } else {
-                        roomRecordDao.releasePlayerRoom(data.getPlayerId(), entry.getRoomId());
-                    }
+                    releaseRoomRecord(data.getPlayerId(), entry.getRoomId(), record);
                     entry.setStatus(CoopTaskConst.TaskStatus.CLAIMED);
                     entry.setRoomId(0);
                     entry.setGameType(0);
@@ -436,6 +437,22 @@ public class SimCoopTaskService {
                 //Redis 故障时保持现状, 下次列表再检查
                 log.error("多人任务房间自愈检查失败 playerId={},roomId={}", data.getPlayerId(), entry.getRoomId(), e);
             }
+        }
+    }
+
+    /**
+     * 释放协作房间路由记录: 解绑全部成员的"玩家-房间"映射并删除记录; record 为 null 时仅解绑发起者。
+     */
+    private void releaseRoomRecord(long playerId, long roomId, CoopRoomRecord record) {
+        if (record != null) {
+            for (Long memberId : record.getMemberIds()) {
+                if (memberId != null) {
+                    roomRecordDao.releasePlayerRoom(memberId, record.getRoomId());
+                }
+            }
+            roomRecordDao.delete(record.getRoomId());
+        } else {
+            roomRecordDao.releasePlayerRoom(playerId, roomId);
         }
     }
 

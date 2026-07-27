@@ -400,7 +400,7 @@ public class AllianceService {
             return res;
         }
         if (alliance.getMemberCount() >= cfg.getMaxMembers()) {
-            res.code = Code.FORBID;
+            res.code = Code.PEOPLE_FULL;
             log.warn("加入单个联盟失败,该联盟人数已满 playerId={},allianceId={}", player.getId(), allianceId);
             return res;
         }

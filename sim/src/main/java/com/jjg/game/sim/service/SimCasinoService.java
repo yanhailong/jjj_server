@@ -128,6 +128,8 @@ public class SimCasinoService {
             //切换到目标场景 (新加载实体的运行时 transient 字段天然为初始值)
             ctx.setCurrentCasino(target);
             ctx.switchCasino(targetCasinoId);
+            //先消费联盟助力抵扣(可能使CD提前到时), 再判定完成, 最后下发建筑列表
+            simBuildingService.applyPendingSpeedup(ctx.playerId(), target, System.currentTimeMillis());
             simBuildingService.completeAllBuildingUpgrade(ctx, target);
 
             SimCasinoData casino = ctx.getCurrentCasino();

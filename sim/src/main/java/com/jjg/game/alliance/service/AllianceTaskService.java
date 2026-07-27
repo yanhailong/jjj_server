@@ -379,7 +379,7 @@ public class AllianceTaskService {
         int today = TimeHelper.getDayNumerical();
         int dailyLimit = GameDataManager.getGlobalConfigCfg(AllianceConst.Global.DAILY_TASK_LIMIT_ID).getIntValue();
         if (playerData.taskFinishCountOf(today) >= dailyLimit) {
-            res.code = Code.REPEAT_OP;
+            res.code = Code.DAILY_TASK_LIMIT;
             log.warn("接取联盟任务失败,今日完成次数已达上限 playerId={},finished={},limit={}", playerId, playerData.taskFinishCountOf(today), dailyLimit);
             return res;
         }

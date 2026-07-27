@@ -978,6 +978,22 @@ public class SimBuildingService implements SimPlayerTickListener {
         return reduced;
     }
 
+    /**
+     * 下发场景建筑列表前消费联盟助力抵扣: 帮助者只把秒数累计到 Redis, 求助者所在节点是唯一消费方,
+     * 取出为 GETDEL 原子操作, 因此任何下发路径调用都不会重复应用。
+     * <p>
+     * tick 内的消费按 {@link #SPEEDUP_CHECK_INTERVAL_MS} 节流, 不足以保证列表下发的即时性, 故所有
+     * 携带 CD 的建筑列表下发点都必须先调用本方法, 否则会展示未减少的升级 CD。
+     */
+    public void applyPendingSpeedup(long playerId, SimCasinoData casino, long now) {
+        if (casino == null || casino.getBuildingData() == null || casino.getBuildingData().isEmpty()) {
+            return;
+        }
+        for (BuildingData data : casino.getBuildingData().values()) {
+            applyAllianceSpeedup(playerId, data, now);
+        }
+    }
+
     public void completeAllBuildingUpgrade(SimPlayerContext ctx, SimCasinoData casino) {
         if (casino == null || casino.getBuildingData() == null || casino.getBuildingData().isEmpty()) {
             return;
