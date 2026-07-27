@@ -52,6 +52,12 @@ public class DouXianGameDataVo extends BasePokerGameDataVo {
     private final Set<Long> hostingPlayerIds = new HashSet<>();
 
     /**
+     * 当前出牌阶段主动取消过托管的玩家。用于避免取消请求与本阶段超时回调相邻执行时，
+     * 玩家刚取消托管又被同一个阶段重新加入托管；进入下一次出牌阶段时清空。
+     */
+    private final Set<Long> hostingCancelledPlayerIdsThisPhase = new HashSet<>();
+
+    /**
      * 得证大道/隐忍渡劫待生效的玩家：playerId -> 规则类型(1得证大道 2隐忍渡劫)，
      * 在下一回合补牌阶段(DouXianDealPhase)生效并消费掉，DESIGN.md 三/8.13
      */
@@ -128,6 +134,10 @@ public class DouXianGameDataVo extends BasePokerGameDataVo {
         return hostingPlayerIds;
     }
 
+    public Set<Long> getHostingCancelledPlayerIdsThisPhase() {
+        return hostingCancelledPlayerIdsThisPhase;
+    }
+
     public Map<Long, Integer> getPendingSpecialRule() {
         return pendingSpecialRule;
     }
@@ -194,6 +204,7 @@ public class DouXianGameDataVo extends BasePokerGameDataVo {
         discardedPlayerIds.clear();
         concededPlayerIds.clear();
         hostingPlayerIds.clear();
+        hostingCancelledPlayerIdsThisPhase.clear();
         pendingSpecialRule.clear();
         rechargingPlayerIds.clear();
         gameStartBalance.clear();

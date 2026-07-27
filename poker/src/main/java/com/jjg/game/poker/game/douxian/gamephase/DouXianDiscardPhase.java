@@ -3,6 +3,7 @@ package com.jjg.game.poker.game.douxian.gamephase;
 import com.jjg.game.poker.game.common.gamephase.BasePokerPhase;
 import com.jjg.game.poker.game.douxian.autohandler.DouXianRobotHandler;
 import com.jjg.game.poker.game.douxian.constant.DouXianConstant;
+import com.jjg.game.poker.game.douxian.message.resp.NotifyDouXianDiscardStart;
 import com.jjg.game.poker.game.douxian.room.DouXianGameController;
 import com.jjg.game.poker.game.douxian.room.data.DouXianGameDataVo;
 import com.jjg.game.room.constant.EGamePhase;
@@ -29,13 +30,21 @@ public class DouXianDiscardPhase extends BasePokerPhase<DouXianGameDataVo> {
 
     @Override
     public int getPhaseRunTime() {
-        return DouXianConstant.Time.DISCARD_TIME;
+        return gameDataVo.getRound() == 2
+                ? DouXianConstant.Time.THIRD_ROUND_DISCARD_TIME
+                : DouXianConstant.Time.DISCARD_TIME;
     }
 
     @Override
     public void phaseDoAction() {
         super.phaseDoAction();
         gameDataVo.getDiscardedPlayerIds().clear();
+        NotifyDouXianDiscardStart notify = new NotifyDouXianDiscardStart();
+        notify.currentRound = gameDataVo.getRound();
+        notify.nextRound = gameDataVo.getRound() < DouXianConstant.Common.TOTAL_ROUND
+                ? gameDataVo.getRound() + 1 : 0;
+        notify.overTime = gameDataVo.getPhaseEndTime();
+        broadcastMsgToRoom(notify);
         log.info("斗仙牌进入弃牌阶段 round:{}", gameDataVo.getRound());
         if (gameController instanceof DouXianGameController controller) {
             for (Long playerId : gameDataVo.getActivePlayerIds()) {
