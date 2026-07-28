@@ -4,14 +4,20 @@ import com.jjg.game.core.base.condition.numeric.ActionConditionEvent;
 import com.jjg.game.core.base.condition.numeric.ConditionEvent;
 import com.jjg.game.core.base.condition.numeric.GameConditionEvent;
 import com.jjg.game.core.base.condition.numeric.RechargeConditionEvent;
+import com.jjg.game.core.constant.AddType;
+import com.jjg.game.core.listener.ItemConsumeListener;
 import com.jjg.game.sim.data.SimPlayerContext;
 import com.jjg.game.sim.manager.SimPlayerContextRegistry;
 import com.jjg.game.sim.service.SimConditionEventFactory;
+import com.jjg.game.sim.service.SimPackService;
 import com.jjg.game.sim.service.SimTaskService;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.context.annotation.Lazy;
 import org.springframework.stereotype.Service;
+
+import java.util.Map;
 
 /**
  * sim 玩法条件事件门面（保留原类名以兼容现有调用方）。
@@ -25,7 +31,7 @@ import org.springframework.stereotype.Service;
  * @date 2026/6/11
  */
 @Service
-public class AllianceEventService {
+public class AllianceEventService implements ItemConsumeListener {
     private static final Logger log = LoggerFactory.getLogger(AllianceEventService.class);
 
     @Autowired
@@ -36,6 +42,9 @@ public class AllianceEventService {
     private SimTaskService simTaskService;
     @Autowired
     private SimPlayerContextRegistry simPlayerContextRegistry;
+    @Lazy
+    @Autowired
+    private SimPackService simPackService;
 
     /** 通用扩展入口：业务只上报事实事件，具体 condition id 由当前任务配置决定。 */
     public void onConditionEvent(long playerId, ConditionEvent event) {
@@ -84,6 +93,16 @@ public class AllianceEventService {
         if (count > 0) {
             onSimOperation(playerId, SimConditionEventFactory.itemConsume(itemId, count));
         }
+    }
+
+    /** 背包道具扣除成功后由 PlayerPackService 回调 (体力/知名度/赛季币等特殊资源不计入消费)。 */
+    @Override
+    public void onItemsConsumed(long playerId, Map<Integer, Long> items, AddType addType) {
+        if (simPlayerContextRegistry.getContext(playerId) != null) {
+            items.forEach((itemId, count) -> onItemConsume(playerId, itemId, count));
+            return;
+        }
+        simPackService.forwardPackItemsConsumed(playerId, items, addType);
     }
 
     /**

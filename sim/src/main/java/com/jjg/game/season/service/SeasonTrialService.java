@@ -1,5 +1,6 @@
 package com.jjg.game.season.service;
 
+import com.jjg.game.core.service.PlayerPackService;
 import com.jjg.game.core.base.condition.numeric.GameConditionEvent;
 import com.jjg.game.core.constant.AddType;
 import com.jjg.game.core.constant.Code;
@@ -20,7 +21,6 @@ import com.jjg.game.sim.data.SimPlayerContext;
 import com.jjg.game.sim.data.SpinStatInfo;
 import com.jjg.game.sim.service.SimAutoSaveService;
 import com.jjg.game.sim.service.SimConditionEventFactory;
-import com.jjg.game.sim.service.SimPackService;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Service;
@@ -46,19 +46,19 @@ public class SeasonTrialService {
     private final SeasonTrialConfigService trialConfigService;
     private final SeasonConfigService configService;
     private final SeasonEconomyService economyService;
-    private final SimPackService simPackService;
+    private final PlayerPackService playerPackService;
     private final SimAutoSaveService autoSaveService;
     private final PlayerRechargeFlowDao playerRechargeFlowDao;
     private final TaskLogger taskLogger;
 
     public SeasonTrialService(SeasonTrialConfigService trialConfigService, SeasonConfigService configService,
-                              SeasonEconomyService economyService, SimPackService simPackService,
+                              SeasonEconomyService economyService, PlayerPackService playerPackService,
                               SimAutoSaveService autoSaveService, PlayerRechargeFlowDao playerRechargeFlowDao,
                               TaskLogger taskLogger) {
         this.trialConfigService = trialConfigService;
         this.configService = configService;
         this.economyService = economyService;
-        this.simPackService = simPackService;
+        this.playerPackService = playerPackService;
         this.autoSaveService = autoSaveService;
         this.playerRechargeFlowDao = playerRechargeFlowDao;
         this.taskLogger = taskLogger;
@@ -300,7 +300,7 @@ public class SeasonTrialService {
             economyService.addEarnedCoin(ctx, coin);
         }
         if (!packItems.isEmpty()) {
-            var result = simPackService.addItems(ctx, packItems, AddType.TASKAWARD,
+            var result = playerPackService.addItems(ctx.playerId(), packItems, AddType.TASKAWARD,
                     "seasonTrial:" + taskId, true);
             if (result == null || !result.success()) {
                 log.warn("试炼奖励发放失败 playerId={},taskId={},code={}",

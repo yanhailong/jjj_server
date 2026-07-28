@@ -4,6 +4,7 @@ import com.jjg.game.alliance.bridge.ToAllianceBridge;
 import com.jjg.game.alliance.service.AllianceCacheService;
 import com.jjg.game.alliance.service.AllianceEventService;
 import com.jjg.game.common.rpc.RpcCallSetting;
+import com.jjg.game.core.constant.AddType;
 import com.jjg.game.core.constant.Code;
 import com.jjg.game.core.dao.AccountDao;
 import com.jjg.game.core.data.*;
@@ -27,6 +28,8 @@ import com.jjg.game.sim.data.VisitTrialSpinPermit;
 import com.jjg.game.sim.manager.SimManager;
 import com.jjg.game.sim.manager.SimPlayerContextRegistry;
 import com.jjg.game.sim.service.SimCoopTaskService;
+import com.jjg.game.sim.service.SimGuideService;
+import com.jjg.game.sim.service.SimPackService;
 import com.jjg.game.sim.service.SimSkillService;
 import com.jjg.game.social.bridge.ToSocialBridge;
 import com.jjg.game.social.service.ChatService;
@@ -64,6 +67,10 @@ public class HallRPCController extends CoreRPCController implements GmToHallBrid
     private SeasonService seasonService;
     @Autowired
     private SimCoopTaskService simCoopTaskService;
+    @Autowired
+    private SimPackService simPackService;
+    @Autowired
+    private SimGuideService simGuideService;
     @Autowired
     private ChatService chatService;
 
@@ -262,6 +269,72 @@ public class HallRPCController extends CoreRPCController implements GmToHallBrid
             return 0;
         }
         return simSkillService.computeCombatPower(ctx);
+    }
+
+    @Override
+    @RpcCallSetting(processorModKey = "#arg0")
+    public CommonResult<Boolean> addSimItems(long playerId, List<Item> items, AddType addType, String desc) {
+        try {
+            boolean added = simPackService.addItemsHere(playerId, items, addType);
+            return new CommonResult<>(added ? Code.SUCCESS : Code.FAIL, added);
+        } catch (Exception e) {
+            log.error("跨节点入账sim特殊资源异常 playerId={},items={},addType={},desc={}", playerId, items, addType, desc, e);
+            return new CommonResult<>(Code.EXCEPTION, false);
+        }
+    }
+
+    @Override
+    @RpcCallSetting(processorModKey = "#arg0")
+    public CommonResult<Boolean> removeSimItems(long playerId, List<Item> items, AddType addType, String desc) {
+        try {
+            boolean removed = simPackService.removeItemsHere(playerId, items, addType);
+            return new CommonResult<>(removed ? Code.SUCCESS : Code.FAIL, removed);
+        } catch (Exception e) {
+            log.error("跨节点扣除sim特殊资源异常 playerId={},items={},addType={},desc={}", playerId, items, addType, desc, e);
+            return new CommonResult<>(Code.EXCEPTION, false);
+        }
+    }
+
+    @Override
+    @RpcCallSetting(processorModKey = "#arg0")
+    public CommonResult<Long> getSimItemCount(long playerId, int itemId) {
+        try {
+            return new CommonResult<>(Code.SUCCESS, simPackService.getItemCountHere(playerId, itemId));
+        } catch (Exception e) {
+            log.error("跨节点读取sim特殊资源数量异常 playerId={},itemId={}", playerId, itemId, e);
+            return new CommonResult<>(Code.EXCEPTION, 0L);
+        }
+    }
+
+    @Override
+    @RpcCallSetting(processorModKey = "#arg0")
+    public CommonResult<Boolean> onPackItemsAdded(long playerId, Map<Integer, Long> items, AddType addType) {
+        try {
+            SimPlayerContext ctx = simPlayerContextRegistry.getContext(playerId);
+            if (ctx == null) {
+                return new CommonResult<>(Code.NOT_FOUND, false);
+            }
+            simGuideService.triggerItemsAdded(ctx, items);
+            return new CommonResult<>(Code.SUCCESS, true);
+        } catch (Exception e) {
+            log.error("跨节点处理道具入账事件异常 playerId={},items={},addType={}", playerId, items, addType, e);
+            return new CommonResult<>(Code.EXCEPTION, false);
+        }
+    }
+
+    @Override
+    @RpcCallSetting(processorModKey = "#arg0")
+    public CommonResult<Boolean> onPackItemsConsumed(long playerId, Map<Integer, Long> items, AddType addType) {
+        try {
+            if (simPlayerContextRegistry.getContext(playerId) == null) {
+                return new CommonResult<>(Code.NOT_FOUND, false);
+            }
+            allianceEventService.onItemsConsumed(playerId, items, addType);
+            return new CommonResult<>(Code.SUCCESS, true);
+        } catch (Exception e) {
+            log.error("跨节点处理道具消费事件异常 playerId={},items={},addType={}", playerId, items, addType, e);
+            return new CommonResult<>(Code.EXCEPTION, false);
+        }
     }
 
     @Override

@@ -1,7 +1,9 @@
 package com.jjg.game.sim.bridge;
 
 import com.jjg.game.common.rpc.IGameRpc;
+import com.jjg.game.core.constant.AddType;
 import com.jjg.game.core.data.CommonResult;
+import com.jjg.game.core.data.Item;
 import com.jjg.game.season.data.SeasonFreeSpinResult;
 import com.jjg.game.season.data.SeasonSlotsSessionData;
 import com.jjg.game.season.pb.res.ResSeasonMatch;
@@ -122,6 +124,39 @@ public interface ToSimBridge extends IGameRpc {
      * @return
      */
     int getCombatPower(long playerId);
+
+    /**
+     * 跨节点入账 sim 特殊资源 (能量/知名度/曝光度/赛季币/勋章)。
+     * <p>
+     * 这些资源的权威态在玩家 sim 会话所在节点的内存里，slots 等非 owner 节点取不到 ctx，
+     * 必须转发到本接口执行；本接口内部不再二次路由。
+     *
+     * @param items 均为 sim 特殊资源, 常规道具由调用方自己的背包流程处理
+     */
+    CommonResult<Boolean> addSimItems(long playerId, List<Item> items, AddType addType, String desc);
+
+    /**
+     * 跨节点扣除 sim 特殊资源，语义同 {@link #addSimItems}，不足则整体失败且不产生扣除。
+     */
+    CommonResult<Boolean> removeSimItems(long playerId, List<Item> items, AddType addType, String desc);
+
+    /**
+     * 跨节点读取 sim 特殊资源持有量。直接读库会拿到最多落后一个落库周期的旧值，
+     * 扣除前的余量校验必须以会话所在节点的内存态为准。
+     */
+    CommonResult<Long> getSimItemCount(long playerId, int itemId);
+
+    /**
+     * 背包整笔入账成功后的 sim 引导事件。
+     * <p>
+     * 由 slots 等非 owner 节点在本地监听器中转发；Hall 落点只操作本节点已有的 ctx。
+     */
+    CommonResult<Boolean> onPackItemsAdded(long playerId, Map<Integer, Long> items, AddType addType);
+
+    /**
+     * 背包整笔扣除成功后的 sim 任务事件。
+     */
+    CommonResult<Boolean> onPackItemsConsumed(long playerId, Map<Integer, Long> items, AddType addType);
 
     /**
      * 多人协作任务结算回写 (slots 房间结束时调用发起者所在 sim 节点):

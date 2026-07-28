@@ -27,6 +27,8 @@ public class VisitorQuestCfg extends BaseCfgBean {
   protected List<Integer> DuplicatetoShard;
   /** 建筑交互权重 */
   protected Map<Integer,Integer> InteractionWeight;
+  /** 是否默认解锁 */
+  protected boolean IsDefaultUnlocked;
   /** 游客品质 */
   protected int Quality;
   /** 资源 */
@@ -56,6 +58,11 @@ public class VisitorQuestCfg extends BaseCfgBean {
   /** 返回建筑交互权重 */
   public Map<Integer,Integer> getInteractionWeight() {
     return InteractionWeight;
+  }
+
+  /** 返回是否默认解锁 */
+  public boolean getIsDefaultUnlocked() {
+    return IsDefaultUnlocked;
   }
 
   /** 返回游客品质 */

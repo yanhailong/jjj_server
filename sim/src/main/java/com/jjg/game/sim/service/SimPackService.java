@@ -1,26 +1,26 @@
 package com.jjg.game.sim.service;
 
-import com.jjg.game.alliance.service.AllianceEventService;
+import com.jjg.game.common.cluster.ClusterClient;
+import com.jjg.game.common.cluster.ClusterSystem;
+import com.jjg.game.common.rpc.ClusterRpcReference;
+import com.jjg.game.common.rpc.GameRpcContext;
+import com.jjg.game.common.rpc.RpcReqParameterBuilder;
 import com.jjg.game.core.constant.AddType;
-import com.jjg.game.core.constant.Code;
 import com.jjg.game.core.data.CommonResult;
-import com.jjg.game.core.data.ItemOperationResult;
-import com.jjg.game.core.data.PlayerPack;
-import com.jjg.game.core.service.PlayerPackService;
-import com.jjg.game.core.utils.ItemUtils;
+import com.jjg.game.core.data.Item;
+import com.jjg.game.core.listener.SpecialItemListener;
+import com.jjg.game.sim.bridge.ToSimBridge;
 import com.jjg.game.sampledata.GameDataManager;
-import com.jjg.game.sampledata.bean.ItemCfg;
 import com.jjg.game.season.dao.SeasonPlayerDao;
 import com.jjg.game.season.data.SeasonPlayerData;
 import com.jjg.game.season.service.SeasonEconomyService;
-import com.jjg.game.sim.constant.BuildingOutputType;
 import com.jjg.game.sim.constant.SimConstant;
 import com.jjg.game.sim.dao.SimCasinoDao;
 import com.jjg.game.sim.dao.SimPlayerGameDao;
 import com.jjg.game.sim.data.SimBaseData;
 import com.jjg.game.sim.data.SimCasinoData;
-import com.jjg.game.sim.data.SimItemOperationResult;
 import com.jjg.game.sim.data.SimPlayerContext;
+import com.jjg.game.sim.listener.SimSpecialItemBalanceListener;
 import com.jjg.game.sim.manager.SimPlayerContextRegistry;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -28,24 +28,25 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.context.annotation.Lazy;
 import org.springframework.stereotype.Service;
 
-import java.util.Collections;
-import java.util.HashMap;
+import java.util.ArrayList;
+import java.util.HashSet;
+import java.util.List;
 import java.util.Map;
+import java.util.Set;
+import java.util.function.Supplier;
 
 /**
- * 在sim模块中如果要添加道具，一律用该service
+ * sim 特殊资源（能量、知名度、曝光度、赛季币、勋章）的承载实现。
+ * <p>
+ * 这些资源不存在背包里：玩家在本节点在线时改内存态（随 ctx 定时落库），不在本节点时直写持久化数据。
  *
  * @author 11
  * @date 2026/6/11
  */
 @Service
-public class SimPackService {
+public class SimPackService implements SpecialItemListener {
     private static final Logger log = LoggerFactory.getLogger(SimPackService.class);
 
-    @Autowired
-    private PlayerPackService playerPackService;
-    @Autowired
-    private SimConfigCacheService simConfigCacheService;
     @Autowired
     private SimPlayerGameDao simPlayerGameDao;
     @Autowired
@@ -54,66 +55,97 @@ public class SimPackService {
     private SimPlayerContextRegistry simPlayerContextRegistry;
     @Autowired
     private SeasonPlayerDao seasonPlayerDao;
+    @Autowired
+    private SimNodeService simNodeService;
+    @Autowired
+    private ClusterSystem clusterSystem;
+    @ClusterRpcReference
+    private ToSimBridge toSimBridge;
+    //@Lazy 打破循环: 本类 -> SeasonEconomyService -> PlayerPackService -> 本类
     @Lazy
     @Autowired
     private SeasonEconomyService seasonEconomyService;
-    //@Lazy 打破循环: 门面 -> SimTaskService -> SimPackService; 仅用于消费后上报主线任务事件
-    @Lazy
-    @Autowired
-    private AllianceEventService allianceEventService;
+    @Autowired(required = false)
+    private List<SimSpecialItemBalanceListener> balanceListeners = List.of();
 
+    @Override
+    public boolean support(int itemId) {
+        return itemId == SimConstant.Item.ID_POWER
+                || itemId == SimConstant.Item.ID_AWARENESS
+                || itemId == SimConstant.Item.ID_EXPOD
+                || itemId == SimConstant.Item.ID_SEASON_COIN
+                || GameDataManager.getMedalListCfg(itemId) != null;
+    }
 
-    /**
-     * 添加道具 (BuildingOutputType 维度): 转换为 itemId 后统一入账
-     */
-    public CommonResult<SimItemOperationResult> addItem(SimPlayerContext ctx, Map<BuildingOutputType, Long> resources, AddType addType, String desc, boolean notify) {
-        return addItems(ctx, toItemMap(resources), addType, desc, notify);
+    @Override
+    public long getItemCount(long playerId, int itemId) {
+        ClusterClient owner = findRemoteSimNode(playerId);
+        if (owner != null) {
+            return rpcCall(owner, playerId, () -> toSimBridge.getSimItemCount(playerId, itemId), 0L, "读取");
+        }
+        return getItemCountHere(playerId, itemId);
     }
 
     /**
-     * 添加道具 (itemId 维度统一入口)
-     *
-     * @param ctx
-     * @param items
-     * @param addType
-     * @param desc
-     * @param notify
-     * @return
+     * 在本节点读取（跨节点转发的落点）：不再二次路由。
      */
-    public CommonResult<SimItemOperationResult> addItems(SimPlayerContext ctx, Map<Integer, Long> items, AddType addType, String desc, boolean notify) {
-        CommonResult<SimItemOperationResult> result = new CommonResult<>(Code.SUCCESS);
-        if (items == null || items.isEmpty()) {
-            result.code = Code.FAIL;
-            return result;
-        }
-
-        Map<Integer, Long> packItems = new HashMap<>(items.size());
-        for (Map.Entry<Integer, Long> en : items.entrySet()) {
-            if (en.getValue() != null && en.getValue() > 0 && !isSimResource(en.getKey())) {
-                packItems.merge(en.getKey(), en.getValue(), Long::sum);
+    public long getItemCountHere(long playerId, int itemId) {
+        SimPlayerContext ctx = simPlayerContextRegistry.getContext(playerId);
+        if (itemId == SimConstant.Item.ID_SEASON_COIN) {
+            SeasonPlayerData seasonData = ctx == null ? null : ctx.getSeasonPlayerData();
+            if (seasonData != null) {
+                return seasonData.getSeasonCoin();
             }
+            return seasonPlayerDao.findById(playerId).map(SeasonPlayerData::getSeasonCoin).orElse(0L);
         }
-
-        SimItemOperationResult data = new SimItemOperationResult();
-        if (!packItems.isEmpty()) {
-            CommonResult<ItemOperationResult> itemResult = playerPackService.addItems(
-                    ctx.playerId(), packItems, addType, desc, notify);
-            if (itemResult == null || !itemResult.success()) {
-                result.code = itemResult == null ? Code.EXCEPTION : itemResult.code;
-                if (itemResult != null && itemResult.data != null) {
-                    data = SimItemOperationResult.createFromItemResult(itemResult.data);
-                }
-                result.data = data;
-                return result;
-            }
-            if (itemResult.data != null) {
-                data = SimItemOperationResult.createFromItemResult(itemResult.data);
-            }
+        if (itemId == SimConstant.Item.ID_POWER) {
+            SimBaseData base = getBaseData(playerId, ctx);
+            return base == null ? 0 : base.getPower();
         }
+        if (itemId == SimConstant.Item.ID_AWARENESS) {
+            SimCasinoData casino = getCurrentCasino(playerId, ctx);
+            return casino == null ? 0 : casino.getAwareness();
+        }
+        if (GameDataManager.getMedalListCfg(itemId) != null) {
+            SimBaseData base = getBaseData(playerId, ctx);
+            Set<Integer> medalIds = base == null ? null : base.getAllMedalIds();
+            return medalIds != null && medalIds.contains(itemId) ? 1 : 0;
+        }
+        //曝光度无承载
+        return 0;
+    }
 
-        for (Map.Entry<Integer, Long> en : items.entrySet()) {
-            int itemId = en.getKey();
-            long count = en.getValue();
+    @Override
+    public boolean addItems(long playerId, List<Item> items, AddType addType, String desc, boolean notify) {
+        ClusterClient owner = findRemoteSimNode(playerId);
+        boolean added;
+        if (owner != null) {
+            added = rpcCall(owner, playerId,
+                    () -> toSimBridge.addSimItems(playerId, items, addType, desc), false, "入账");
+        } else {
+            added = addItemsHere(playerId, items, addType);
+        }
+        if (added) {
+            notifyCurrentBalances(owner, playerId, items);
+        }
+        return added;
+    }
+
+    /**
+     * 在本节点入账（跨节点转发的落点）：不再二次路由，避免节点间来回转发。
+     */
+    public boolean addItemsHere(long playerId, List<Item> items, AddType addType) {
+        SimPlayerContext ctx = simPlayerContextRegistry.getContext(playerId);
+        return ctx != null ? addItemsOnline(ctx, items, addType) : addItemsOffline(playerId, items, addType);
+    }
+
+    /**
+     * 在线入账：改内存态，随 ctx 定时落库
+     */
+    private boolean addItemsOnline(SimPlayerContext ctx, List<Item> items, AddType addType) {
+        for (Item item : items) {
+            int itemId = item.getId();
+            long count = item.getItemCount();
             if (count <= 0) {
                 continue;
             }
@@ -125,94 +157,49 @@ public class SimPackService {
                 if (casino != null) {
                     casino.setAwareness(casino.getAwareness() + (int) count);
                 }
-            } else if (itemId == SimConstant.Item.ID_EXPOD) {  //曝光度
-
-            } else if (GameDataManager.getMedalListCfg(itemId) != null) {
-                SimBaseData base = ctx.getSimBaseData();
-                base.activeMedalId(itemId);
-            } else if (itemId == SimConstant.Item.ID_SEASON_COIN) {
-                seasonEconomyService.addEarnedCoin(ctx, count);
+            } else if (itemId == SimConstant.Item.ID_EXPOD) {  //曝光度无承载, 丢弃
+                continue;
+            } else if (GameDataManager.getMedalListCfg(itemId) != null) {  //勋章
+                ctx.getSimBaseData().activeMedalId(itemId);
+            } else if (itemId == SimConstant.Item.ID_SEASON_COIN) {  //赛季币
+                addSeasonCoin(ctx, count, addType);
             }
         }
-
-        //回填 sim 特殊资源最新值, 供下发客户端
-        data.setPower(ctx.getSimBaseData().getPower());
-        SimCasinoData casino = ctx.getCurrentCasino();
-        if (casino != null) {
-            data.setAwareness(casino.getAwareness());
-        }
-        result.data = data;
-        return result;
+        return true;
     }
 
     /**
-     * 读取某道具当前数量 (赛季币读取赛季数据, 研究点等普通资源读取背包)
+     * 在线赛季币入账：正常发放计入累计获得量并推进段位；回滚只回补余额。
+     * <p>
+     * 扣除走 {@link SeasonEconomyService#spend} 只减余额、不减 totalEarnedCoin，
+     * 回滚若也走 addEarnedCoin 会让累计量净增，虚推段位甚至白发段位奖励。
      */
-    public long getItemCount(long playerId, int itemId) {
-        if (itemId == SimConstant.Item.ID_SEASON_COIN) {
-            SimPlayerContext ctx = simPlayerContextRegistry.getContext(playerId);
-            if (ctx != null && ctx.getSeasonPlayerData() != null) {
-                return ctx.getSeasonPlayerData().getSeasonCoin();
-            }
-            return seasonPlayerDao.findById(playerId)
-                    .map(SeasonPlayerData::getSeasonCoin)
-                    .orElse(0L);
-        }
-        PlayerPack pack = getPlayerPack(playerId);
-        return pack == null ? 0 : pack.getItemCount(itemId);
-    }
-
-    public PlayerPack getPlayerPack(long playerId) {
-        return playerPackService.getFromAllDB(playerId);
-    }
-
-    /**
-     * 读取研究点数量: gameType=0 为所有游戏通用的普通研究点, 其余为对应游戏的专属研究点。
-     */
-    public long getResearchPointCount(long playerId, int gameType) {
-        ItemCfg itemCfg = simConfigCacheService.getResearchPointItemCfg(gameType);
-        return itemCfg == null ? 0 : getItemCount(playerId, itemCfg.getId());
-    }
-
-    private boolean isSimResource(int itemId) {
-        return itemId == SimConstant.Item.ID_POWER
-                || itemId == SimConstant.Item.ID_AWARENESS
-                || itemId == SimConstant.Item.ID_EXPOD
-                || itemId == SimConstant.Item.ID_SEASON_COIN
-                || GameDataManager.getMedalListCfg(itemId) != null;
-    }
-
-    /**
-     * 按 playerId 添加道具 (联盟等跨节点发奖统一入口):
-     * 玩家在本节点在线则走 {@link #addItems} 正确入账 sim 内存资源/背包;
-     * 不在本节点则走 {@link #addItemsOffline} 直接写入持久化数据。
-     */
-    public void addItemsByPlayerId(long playerId, Map<Integer, Long> items, AddType addType, String desc, boolean notify) {
-        if (items == null || items.isEmpty()) {
+    private void addSeasonCoin(SimPlayerContext ctx, long count, AddType addType) {
+        if (ctx.getSeasonPlayerData() == null) {
+            log.warn("赛季币入账失败, 无SeasonPlayerData playerId={},count={}", ctx.playerId(), count);
             return;
         }
-        SimPlayerContext ctx = this.simPlayerContextRegistry.getContext(playerId);
-        if (ctx != null) {
-            addItems(ctx, items, addType, desc, notify);
+        if (addType == AddType.FAIL_ROLLBACK) {
+            seasonEconomyService.addSlotsWinCoin(ctx.getSeasonPlayerData(), count);
             return;
         }
-        addItemsOffline(playerId, items, addType, desc, notify);
+        seasonEconomyService.addEarnedCoin(ctx, count);
     }
 
     /**
-     * 离线 (玩家不在本节点) 添加道具: sim 特殊资源直接写入持久化数据 (能量入 SimBaseData,
-     * 知名度入当前场景 SimCasinoData, 赛季币入 SeasonPlayerData), 其余道具 (含研究点) 走背包。
-     * 注: 若玩家此刻正在其它节点在线, 该节点的内存快照落库可能覆盖此处直写 —— 联盟任务离线发奖
-     * 仅 onTaskHelped 触发, 概率低, 暂可接受。
+     * 离线（玩家不在本节点）入账：直接写入持久化数据。
+     * <p>
+     * 先把要写的载体全部取到，任一缺失就整体失败且不落任何一笔 —— 否则调用方重试会重复入账。
+     * 注: 若玩家此刻正在其它节点在线, 该节点的内存快照落库可能覆盖此处直写。
      */
-    private void addItemsOffline(long playerId, Map<Integer, Long> items, AddType addType, String desc, boolean notify) {
+    private boolean addItemsOffline(long playerId, List<Item> items, AddType addType) {
         int powerAdd = 0;
         int awarenessAdd = 0;
         long seasonCoinAdd = 0;
-        Map<Integer, Long> packItems = new HashMap<>(items.size());
-        for (Map.Entry<Integer, Long> en : items.entrySet()) {
-            int itemId = en.getKey();
-            long count = en.getValue();
+        List<Integer> medalIds = new ArrayList<>();
+        for (Item item : items) {
+            int itemId = item.getId();
+            long count = item.getItemCount();
             if (count <= 0) {
                 continue;
             }
@@ -222,85 +209,202 @@ public class SimPackService {
                 awarenessAdd += (int) count;
             } else if (itemId == SimConstant.Item.ID_SEASON_COIN) {
                 seasonCoinAdd = Math.addExact(seasonCoinAdd, count);
-            } else if (itemId == SimConstant.Item.ID_EXPOD) {
-                //曝光度无内存承载, 与在线入账一致丢弃
-            } else {
-                //研究点等资源已按 itemId 存于背包
-                packItems.merge(itemId, count, Long::sum);
+            } else if (GameDataManager.getMedalListCfg(itemId) != null) {
+                medalIds.add(itemId);
             }
+            //曝光度无承载, 与在线入账一致丢弃
         }
 
-        //能量 : 写 SimBaseData; 知名度: 写当前场景 SimCasinoData
-        if (powerAdd > 0 || awarenessAdd > 0) {
-            SimBaseData base = simPlayerGameDao.findById(playerId).orElse(null);
-            if (base == null) {
-                log.warn("离线发放sim资源失败, 无SimBaseData playerId={},items={}", playerId, items);
-            } else {
-                if (powerAdd > 0) {
-                    base.setPower(base.getPower() + powerAdd);
-                    simPlayerGameDao.save(base);
-                }
-                if (awarenessAdd > 0) {
-                    addAwarenessOffline(playerId, base.getCurrentCasinoId(), awarenessAdd);
-                }
-            }
+        //能量与勋章存于 SimBaseData; 知名度存于当前场景 SimCasinoData; 赛季币存于 SeasonPlayerData
+        boolean needBase = powerAdd > 0 || !medalIds.isEmpty();
+        SimBaseData base = needBase || awarenessAdd > 0 ? simPlayerGameDao.findById(playerId).orElse(null) : null;
+        if ((needBase || awarenessAdd > 0) && base == null) {
+            log.warn("离线发放sim资源失败, 无SimBaseData playerId={},items={}", playerId, items);
+            return false;
         }
-
-        if (seasonCoinAdd > 0) {
-            addSeasonCoinOffline(playerId, seasonCoinAdd);
-        }
-
-        if (!packItems.isEmpty()) {
-            playerPackService.addItems(playerId, packItems, addType, desc, notify);
-        }
-    }
-
-    /**
-     * 离线赛季币入账: 同在线发放一样增加当前余额与累计获得量。
-     */
-    private void addSeasonCoinOffline(long playerId, long count) {
-        SeasonPlayerData data = seasonPlayerDao.findById(playerId).orElse(null);
-        if (data == null) {
-            log.warn("离线发放赛季币失败, 无SeasonPlayerData playerId={},count={}", playerId, count);
-            return;
-        }
-        data.setSeasonCoin(Math.addExact(data.getSeasonCoin(), count));
-        data.setTotalEarnedCoin(Math.addExact(data.getTotalEarnedCoin(), count));
-        seasonPlayerDao.save(data);
-    }
-
-    /**
-     * 离线知名度入账: 优先当前场景, currentCasinoId 失效则回退任一场景。
-     */
-    private void addAwarenessOffline(long playerId, int currentCasinoId, int awarenessAdd) {
-        SimCasinoData casino = currentCasinoId > 0 ? simCasinoDao.findOne(playerId, currentCasinoId) : null;
-        if (casino == null) {
-            casino = simCasinoDao.findFirstByPlayerId(playerId);
-        }
-        if (casino == null) {
+        SimCasinoData casino = awarenessAdd > 0 ? findOfflineCasino(playerId, base.getCurrentCasinoId()) : null;
+        if (awarenessAdd > 0 && casino == null) {
             log.warn("离线发放知名度失败, 无场景 playerId={},awareness={}", playerId, awarenessAdd);
-            return;
+            return false;
         }
-        casino.setAwareness(casino.getAwareness() + awarenessAdd);
-        simCasinoDao.save(casino);
+        SeasonPlayerData seasonData = seasonCoinAdd > 0 ? seasonPlayerDao.findById(playerId).orElse(null) : null;
+        if (seasonCoinAdd > 0 && seasonData == null) {
+            log.warn("离线发放赛季币失败, 无SeasonPlayerData playerId={},count={}", playerId, seasonCoinAdd);
+            return false;
+        }
+
+        if (needBase) {
+            base.setPower(base.getPower() + powerAdd);
+            medalIds.forEach(base::activeMedalId);
+            simPlayerGameDao.save(base);
+        }
+        if (casino != null) {
+            casino.setAwareness(casino.getAwareness() + awarenessAdd);
+            simCasinoDao.save(casino);
+        }
+        if (seasonData != null) {
+            seasonData.setSeasonCoin(Math.addExact(seasonData.getSeasonCoin(), seasonCoinAdd));
+            //回滚不补累计获得量: 扣除时也没减过, 补了会虚推段位(离线无会话, 段位待下次上线由发放路径推进)
+            if (addType != AddType.FAIL_ROLLBACK) {
+                seasonData.setTotalEarnedCoin(Math.addExact(seasonData.getTotalEarnedCoin(), seasonCoinAdd));
+            }
+            seasonPlayerDao.save(seasonData);
+        }
+        return true;
     }
 
     /**
-     * 扣除道具 (itemId 维度统一入口): 先校验充足再扣除, 任一不足整体失败且不产生扣除。
-     *
-     * @return 扣除成功返回 true
+     * 离线取场景: 优先当前场景, currentCasinoId 失效则回退任一场景。
      */
-    public boolean removeItems(SimPlayerContext ctx, Map<Integer, Long> items, AddType addType, String desc) {
-        if (items == null || items.isEmpty()) {
-            return true;
+    private SimCasinoData findOfflineCasino(long playerId, int currentCasinoId) {
+        SimCasinoData casino = currentCasinoId > 0 ? simCasinoDao.findOne(playerId, currentCasinoId) : null;
+        return casino == null ? simCasinoDao.findFirstByPlayerId(playerId) : casino;
+    }
+
+    /**
+     * 找玩家 sim 会话所在的远端节点。
+     * <p>
+     * 本节点有会话（本地内存态最权威，不受路由记录过期影响）、无路由记录（真离线）、
+     * 路由就指向本节点、路由指向的节点已不可达，这四种都返回 null，由调用方在本节点处理。
+     */
+    private ClusterClient findRemoteSimNode(long playerId) {
+        if (simPlayerContextRegistry.getContext(playerId) != null) {
+            return null;
         }
+        String ownerPath = simNodeService.get(playerId);
+        if (ownerPath == null || ownerPath.isEmpty() || ownerPath.equals(clusterSystem.getNodePath())) {
+            return null;
+        }
+        ClusterClient client = clusterSystem.getClusterByPath(ownerPath);
+        if (client == null) {
+            log.warn("sim路由指向的节点不可用, 退化为本节点直写 playerId={},path={}", playerId, ownerPath);
+        }
+        return client;
+    }
+
+    /**
+     * 把特殊资源的读写转发到玩家 sim 会话所在节点执行。
+     *
+     * @param failValue 调用失败时的返回值（写操作 false / 读操作 0）
+     */
+    private <T> T rpcCall(ClusterClient owner, long playerId, Supplier<CommonResult<T>> call, T failValue, String action) {
+        GameRpcContext rpcContext = GameRpcContext.getContext();
+        RpcReqParameterBuilder previous = rpcContext.getReqParameterBuilder();
+        try {
+            rpcContext.withReqParameterBuilder(RpcReqParameterBuilder.create()
+                    .addClusterClient(owner).setTryMillisPerClient(1000));
+            CommonResult<T> result = call.get();
+            if (result == null || !result.success() || result.data == null) {
+                log.warn("跨节点{}sim特殊资源失败 playerId={},code={}",
+                        action, playerId, result == null ? null : result.code);
+                return failValue;
+            }
+            return result.data;
+        } catch (Exception e) {
+            log.error("跨节点{}sim特殊资源异常 playerId={}", action, playerId, e);
+            return failValue;
+        } finally {
+            rpcContext.setReqParameterBuilder(previous);
+        }
+    }
+
+    /**
+     * 背包整笔入账成功后，把获得事件转发给持有 ctx 的 Hall。
+     */
+    public boolean forwardPackItemsAdded(long playerId, Map<Integer, Long> items, AddType addType) {
+        ClusterClient owner = findRemoteSimNode(playerId);
+        if (owner == null) {
+            return false;
+        }
+        return rpcCall(owner, playerId,
+                () -> toSimBridge.onPackItemsAdded(playerId, items, addType), false, "转发入账事件");
+    }
+
+    /**
+     * 背包整笔扣除成功后，把消费事件转发给持有 ctx 的 Hall。
+     */
+    public boolean forwardPackItemsConsumed(long playerId, Map<Integer, Long> items, AddType addType) {
+        ClusterClient owner = findRemoteSimNode(playerId);
+        if (owner == null) {
+            return false;
+        }
+        return rpcCall(owner, playerId,
+                () -> toSimBridge.onPackItemsConsumed(playerId, items, addType), false, "转发消费事件");
+    }
+
+    private void notifyCurrentBalances(ClusterClient owner, long playerId, List<Item> items) {
+        if (balanceListeners.isEmpty()) {
+            return;
+        }
+        Set<Integer> notifiedItemIds = new HashSet<>();
+        for (Item item : items) {
+            int itemId = item.getId();
+            if (item.getItemCount() <= 0 || !notifiedItemIds.add(itemId)) {
+                continue;
+            }
+            boolean needed = false;
+            for (SimSpecialItemBalanceListener listener : balanceListeners) {
+                if (listener.support(itemId)) {
+                    needed = true;
+                    break;
+                }
+            }
+            if (!needed) {
+                continue;
+            }
+            Long balance = owner == null
+                    ? getItemCountHere(playerId, itemId)
+                    : rpcCall(owner, playerId,
+                    () -> toSimBridge.getSimItemCount(playerId, itemId), null, "同步余额");
+            if (balance == null) {
+                continue;
+            }
+            for (SimSpecialItemBalanceListener listener : balanceListeners) {
+                if (!listener.support(itemId)) {
+                    continue;
+                }
+                try {
+                    listener.onBalanceChanged(playerId, itemId, balance);
+                } catch (Exception e) {
+                    log.error("同步sim特殊资源余额监听器异常 listener={},playerId={},itemId={},balance={}",
+                            listener.getClass().getSimpleName(), playerId, itemId, balance, e);
+                }
+            }
+        }
+    }
+
+    /**
+     * 扣除特殊资源（曝光度与勋章无扣除承载）。
+     * <p>
+     * 与入账同样按 sim 会话所在节点路由；确实离线才直写持久化数据 —— 入账支持离线，
+     * 扣除也必须支持，否则离线发的混合奖励一旦背包侧失败就补偿不回来。
+     */
+    @Override
+    public boolean removeItems(long playerId, List<Item> items, AddType addType, String desc) {
+        ClusterClient owner = findRemoteSimNode(playerId);
+        boolean removed;
+        if (owner != null) {
+            removed = rpcCall(owner, playerId,
+                    () -> toSimBridge.removeSimItems(playerId, items, addType, desc), false, "扣除");
+        } else {
+            removed = removeItemsHere(playerId, items, addType);
+        }
+        if (removed) {
+            notifyCurrentBalances(owner, playerId, items);
+        }
+        return removed;
+    }
+
+    /**
+     * 在本节点扣除（跨节点转发的落点）：不再二次路由，避免节点间来回转发。
+     */
+    public boolean removeItemsHere(long playerId, List<Item> items, AddType addType) {
         long needPower = 0;
         long needAwareness = 0;
         long needSeasonCoin = 0;
-        Map<Integer, Long> packItems = new HashMap<>(items.size());
-        for (Map.Entry<Integer, Long> en : items.entrySet()) {
-            int itemId = en.getKey();
-            long count = en.getValue();
+        for (Item item : items) {
+            int itemId = item.getId();
+            long count = item.getItemCount();
             if (count <= 0) {
                 continue;
             }
@@ -310,37 +414,39 @@ public class SimPackService {
                 needAwareness += count;
             } else if (itemId == SimConstant.Item.ID_SEASON_COIN) {
                 needSeasonCoin += count;
+            } else if (addType == AddType.FAIL_ROLLBACK) {
+                //曝光度无承载、勋章激活后不可撤销；两者重复入账都是幂等的，
+                //回滚时跳过即可，不能因此让同批的能量/赛季币也退不回去
+                continue;
             } else {
-                packItems.merge(itemId, count, Long::sum);
+                log.warn("扣除sim特殊资源失败, 该资源不支持扣除 playerId={},itemId={},count={}", playerId, itemId, count);
+                return false;
             }
         }
 
+        SimPlayerContext ctx = simPlayerContextRegistry.getContext(playerId);
+        if (ctx == null) {
+            return removeItemsOffline(playerId, needPower, needAwareness, needSeasonCoin);
+        }
         SimBaseData base = ctx.getSimBaseData();
         SimCasinoData casino = ctx.getCurrentCasino();
         SeasonPlayerData seasonData = ctx.getSeasonPlayerData();
-        //先校验特殊资源是否充足
+        //先校验是否充足, 任一不足整体失败且不产生扣除
         if (needPower > 0 && base.getPower() < needPower) {
-            log.warn("扣除道具失败, 能量不足 playerId={},need={},have={}", ctx.playerId(), needPower, base.getPower());
+            log.warn("扣除道具失败, 能量不足 playerId={},need={},have={}", playerId, needPower, base.getPower());
             return false;
         }
         if (needAwareness > 0 && (casino == null || casino.getAwareness() < needAwareness)) {
-            log.warn("扣除道具失败, 知名度不足 playerId={},need={},have={}", ctx.playerId(), needAwareness, casino == null ? 0 : casino.getAwareness());
+            log.warn("扣除道具失败, 知名度不足 playerId={},need={},have={}",
+                    playerId, needAwareness, casino == null ? 0 : casino.getAwareness());
             return false;
         }
         if (needSeasonCoin > 0 && (seasonData == null || seasonData.getSeasonCoin() < needSeasonCoin)) {
             log.warn("扣除道具失败, 赛季币不足 playerId={},need={},have={}",
-                    ctx.playerId(), needSeasonCoin, seasonData == null ? 0 : seasonData.getSeasonCoin());
+                    playerId, needSeasonCoin, seasonData == null ? 0 : seasonData.getSeasonCoin());
             return false;
         }
-        //背包道具扣除 (失败不产生副作用, 此时特殊资源尚未扣除)
-        if (!packItems.isEmpty()) {
-            CommonResult<ItemOperationResult> r = playerPackService.removeItems(ctx.getPlayerController().getPlayer(), packItems, addType, desc);
-            if (!r.success()) {
-                log.warn("扣除道具失败 playerId={},items={},code={}", ctx.playerId(), packItems, r.code);
-                return false;
-            }
-        }
-        //背包扣除成功后再扣除特殊资源
+        //校验通过后统一扣除
         if (needPower > 0) {
             base.setPower(base.getPower() - (int) needPower);
         }
@@ -350,47 +456,77 @@ public class SimPackService {
         if (needSeasonCoin > 0) {
             seasonEconomyService.spend(seasonData, needSeasonCoin);
         }
-        //主线任务: 背包道具消费(金币/钻石等) -> 推进 12220 (按 itemId 过滤); 体力/知名度/赛季币不计入消费
-        packItems.forEach((itemId, count) ->
-                allianceEventService.onItemConsume(ctx.playerId(), itemId, count));
         return true;
     }
 
     /**
-     * 扣除单个道具
+     * 离线（玩家不在本节点）扣除：直写持久化数据。
+     * <p>
+     * 与离线入账同理，先取齐载体并校验充足，任一不满足就整体失败且不落任何一笔。
+     * 赛季币只减余额、不动 totalEarnedCoin，与在线的 {@link SeasonEconomyService#spend} 一致。
      */
-    public boolean removeItem(SimPlayerContext ctx, int itemId, long count, AddType addType) {
-        if (count <= 0) {
-            return true;
+    private boolean removeItemsOffline(long playerId, long needPower, long needAwareness, long needSeasonCoin) {
+        SimBaseData base = needPower > 0 || needAwareness > 0
+                ? simPlayerGameDao.findById(playerId).orElse(null) : null;
+        if ((needPower > 0 || needAwareness > 0) && base == null) {
+            log.warn("离线扣除sim资源失败, 无SimBaseData playerId={}", playerId);
+            return false;
         }
-        return removeItems(ctx, Collections.singletonMap(itemId, count), addType, null);
+        if (needPower > 0 && base.getPower() < needPower) {
+            log.warn("离线扣除失败, 能量不足 playerId={},need={},have={}", playerId, needPower, base.getPower());
+            return false;
+        }
+        SimCasinoData casino = needAwareness > 0 ? findOfflineCasino(playerId, base.getCurrentCasinoId()) : null;
+        if (needAwareness > 0 && (casino == null || casino.getAwareness() < needAwareness)) {
+            log.warn("离线扣除失败, 知名度不足 playerId={},need={},have={}",
+                    playerId, needAwareness, casino == null ? 0 : casino.getAwareness());
+            return false;
+        }
+        SeasonPlayerData seasonData = needSeasonCoin > 0 ? seasonPlayerDao.findById(playerId).orElse(null) : null;
+        if (needSeasonCoin > 0 && (seasonData == null || seasonData.getSeasonCoin() < needSeasonCoin)) {
+            log.warn("离线扣除失败, 赛季币不足 playerId={},need={},have={}",
+                    playerId, needSeasonCoin, seasonData == null ? 0 : seasonData.getSeasonCoin());
+            return false;
+        }
+
+        if (needPower > 0) {
+            base.setPower(base.getPower() - (int) needPower);
+            simPlayerGameDao.save(base);
+        }
+        if (casino != null) {
+            casino.setAwareness(casino.getAwareness() - (int) needAwareness);
+            simCasinoDao.save(casino);
+        }
+        if (seasonData != null) {
+            seasonData.setSeasonCoin(seasonData.getSeasonCoin() - needSeasonCoin);
+            seasonPlayerDao.save(seasonData);
+        }
+        return true;
     }
 
     /**
-     * BuildingOutputType 产出映射为 itemId (无对应道具的产出类型返回 null, 不入账)
+     * 取 SimBaseData: 在线取内存态, 否则读库
      */
-    private Map<Integer, Long> toItemMap(Map<BuildingOutputType, Long> resources) {
-        if (resources == null || resources.isEmpty()) {
-            return Collections.emptyMap();
+    private SimBaseData getBaseData(long playerId, SimPlayerContext ctx) {
+        if (ctx != null && ctx.getSimBaseData() != null) {
+            return ctx.getSimBaseData();
         }
-        Map<Integer, Long> items = new HashMap<>(resources.size());
-        for (Map.Entry<BuildingOutputType, Long> en : resources.entrySet()) {
-            Integer itemId = toItemId(en.getKey());
-            if (itemId == null) {
-                continue;
-            }
-            items.merge(itemId, en.getValue(), Long::sum);
-        }
-        return items;
+        return simPlayerGameDao.findById(playerId).orElse(null);
     }
 
-
-    private Integer toItemId(BuildingOutputType type) {
-        return switch (type) {
-            case GOLD -> ItemUtils.getGoldItemId();
-            case POWER -> SimConstant.Item.ID_POWER;
-            case AWARENESS -> SimConstant.Item.ID_AWARENESS;
-            default -> null;
-        };
+    /**
+     * 取当前场景: 在线取内存态, 否则读库（currentCasinoId 失效则回退任一场景）
+     */
+    private SimCasinoData getCurrentCasino(long playerId, SimPlayerContext ctx) {
+        if (ctx != null && ctx.getCurrentCasino() != null) {
+            return ctx.getCurrentCasino();
+        }
+        SimBaseData base = simPlayerGameDao.findById(playerId).orElse(null);
+        if (base == null) {
+            return null;
+        }
+        SimCasinoData casino = base.getCurrentCasinoId() > 0
+                ? simCasinoDao.findOne(playerId, base.getCurrentCasinoId()) : null;
+        return casino == null ? simCasinoDao.findFirstByPlayerId(playerId) : casino;
     }
 }

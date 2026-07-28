@@ -53,10 +53,8 @@ import com.jjg.game.sampledata.bean.AvatarCfg;
 import com.jjg.game.sampledata.bean.GlobalConfigCfg;
 import com.jjg.game.sampledata.bean.ItemCfg;
 import com.jjg.game.sampledata.bean.WarehouseCfg;
-import com.jjg.game.sim.data.SimItemOperationResult;
 import com.jjg.game.sim.data.SimPlayerContext;
 import com.jjg.game.sim.manager.SimPlayerContextRegistry;
-import com.jjg.game.sim.service.SimPackService;
 import org.apache.commons.lang3.StringUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -108,8 +106,6 @@ public class HallMessageHandler implements GmListener, ChooseWareListener, Choos
     private SharePromoteRewardService sharePromoteService;
     @Autowired
     private RedeemCodeService redeemCodeService;
-    @Autowired
-    private SimPackService simPackService;
     @Autowired
     private SimPlayerContextRegistry simPlayerContextRegistry;
 
@@ -1197,7 +1193,7 @@ public class HallMessageHandler implements GmListener, ChooseWareListener, Choos
                     res.code = Code.NOT_FOUND;
                     return;
                 }
-                CommonResult<SimItemOperationResult> addItems = simPackService.addItems(context, rewards, AddType.PLAYER_REGISTER, null, true);
+                CommonResult<ItemOperationResult> addItems = playerPackService.addItems(context.playerId(), rewards, AddType.PLAYER_REGISTER, null, true);
                 if (!addItems.success()) {
                     log.error("玩家领取注册奖励失败 playerId:{}", playerController.playerId());
                 }

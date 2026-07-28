@@ -17,7 +17,6 @@ import com.jjg.game.season.data.SeasonPendingCraft;
 import com.jjg.game.season.data.SeasonPlayerData;
 import com.jjg.game.season.data.SeasonSlotsSessionData;
 import com.jjg.game.sim.service.SimAutoSaveService;
-import com.jjg.game.sim.service.SimPackService;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -44,23 +43,21 @@ public class SeasonGemService {
     private static final int GEM_TYPE_COUNT = 3;
 
     private final SeasonConfigService configService;
-    private final SimPackService simPackService;
     private final PlayerPackService playerPackService;
     private final SimAutoSaveService autoSaveService;
     private final IntPredicate successRoll;
 
     @Autowired
-    public SeasonGemService(SeasonConfigService configService, SimPackService simPackService,
+    public SeasonGemService(SeasonConfigService configService,
                             PlayerPackService playerPackService, SimAutoSaveService autoSaveService) {
-        this(configService, simPackService, playerPackService, autoSaveService,
+        this(configService, playerPackService, autoSaveService,
                 RandomUtils::getRandomBoolean100);
     }
 
-    public SeasonGemService(SeasonConfigService configService, SimPackService simPackService,
+    public SeasonGemService(SeasonConfigService configService,
                             PlayerPackService playerPackService, SimAutoSaveService autoSaveService,
                             IntPredicate successRoll) {
         this.configService = configService;
-        this.simPackService = simPackService;
         this.playerPackService = playerPackService;
         this.autoSaveService = autoSaveService;
         this.successRoll = successRoll;
@@ -77,7 +74,7 @@ public class SeasonGemService {
             if (currentItemId <= 0) {
                 return new CommonResult<>(Code.SUCCESS, Map.copyOf(data.getEquippedGems()));
             }
-            CommonResult<?> restored = simPackService.addItems(ctx, Map.of(currentItemId, 1L),
+            CommonResult<?> restored = playerPackService.addItems(ctx.playerId(), Map.of(currentItemId, 1L),
                     AddType.ITEM_EXCHANGE, "season-gem-unequip", true);
             if (!restored.success()) {
                 log.warn("赛季宝石卸下回包失败 playerId={},itemId={},code={}",
@@ -102,15 +99,15 @@ public class SeasonGemService {
         if (currentItemId == itemId) {
             return new CommonResult<>(Code.SUCCESS, Map.copyOf(data.getEquippedGems()));
         }
-        if (!simPackService.removeItems(ctx, Map.of(itemId, 1L), AddType.ITEM_EXCHANGE, "season-gem-equip")) {
+        if (!playerPackService.removeItems(ctx.getPlayer(), Map.of(itemId, 1L), AddType.ITEM_EXCHANGE, "season-gem-equip").success()) {
             log.warn("赛季宝石镶嵌失败,道具不足 playerId={},itemId={}", ctx.playerId(), itemId);
             return new CommonResult<>(Code.NOT_ENOUGH_ITEM);
         }
         if (currentItemId > 0) {
-            CommonResult<?> restored = simPackService.addItems(ctx, Map.of(currentItemId, 1L),
+            CommonResult<?> restored = playerPackService.addItems(ctx.playerId(), Map.of(currentItemId, 1L),
                     AddType.ITEM_EXCHANGE, "season-gem-unequip", true);
             if (!restored.success()) {
-                simPackService.addItems(ctx, Map.of(itemId, 1L), AddType.FAIL_ROLLBACK, "season-gem-equip", true);
+                playerPackService.addItems(ctx.playerId(), Map.of(itemId, 1L), AddType.FAIL_ROLLBACK, "season-gem-equip", true);
                 log.warn("赛季宝石替换回包失败 playerId={},oldItemId={},code={}",
                         ctx.playerId(), currentItemId, restored.code);
                 return new CommonResult<>(restored.code);
@@ -244,7 +241,7 @@ public class SeasonGemService {
         //赛季币与全部材料在发起时即扣除(成功/失败一致): 赛季币防重复掷取, 材料托管防两步之间绕过失败消耗
         data.setSeasonCoin(data.getSeasonCoin() - craft.getMergeCost());
         Map<Integer, Long> consumed = new HashMap<>(craftCtx.input);
-        if (!simPackService.removeItems(ctx, consumed, AddType.ITEM_EXCHANGE, "season-gem-craft")) {
+        if (!playerPackService.removeItems(ctx.getPlayer(), consumed, AddType.ITEM_EXCHANGE, "season-gem-craft").success()) {
             data.setSeasonCoin(data.getSeasonCoin() + craft.getMergeCost());
             log.warn("赛季宝石合成扣除材料失败 playerId={},quality={}", ctx.playerId(), craftCtx.quality);
             return new CommonResult<>(Code.NOT_ENOUGH_ITEM);
@@ -268,7 +265,7 @@ public class SeasonGemService {
         }
         int count = outputCount(output.getId(), craft.getSuccessGem());
         Map<Integer, Long> reward = Map.of(output.getItemId(), (long) count);
-        CommonResult<?> add = simPackService.addItems(ctx, reward, AddType.ITEM_EXCHANGE,
+        CommonResult<?> add = playerPackService.addItems(ctx.playerId(), reward, AddType.ITEM_EXCHANGE,
                 "season-gem-craft", true);
         if (!add.success()) {
             rollback(ctx, data, consumed, craft.getMergeCost());
@@ -343,7 +340,7 @@ public class SeasonGemService {
         int held = Collections.frequency(materials, keepItemId);
         long keepCount = Math.min(pending.getKeepAmount(), held);
         if (keepCount > 0) {
-            CommonResult<?> add = simPackService.addItems(ctx, Map.of(keepItemId, keepCount),
+            CommonResult<?> add = playerPackService.addItems(ctx.playerId(), Map.of(keepItemId, keepCount),
                     AddType.ITEM_EXCHANGE, "season-gem-craft", true);
             if (!add.success()) {
                 log.warn("赛季宝石合成失败返还宝石失败, 保留待结算态待重试 playerId={},keepItemId={},keepCount={},code={}",
@@ -452,7 +449,7 @@ public class SeasonGemService {
     private void rollback(SimPlayerContext ctx, SeasonPlayerData data, Map<Integer, Long> consumed, int coin) {
         data.setSeasonCoin(data.getSeasonCoin() + coin);
         if (!consumed.isEmpty()) {
-            simPackService.addItems(ctx, consumed, AddType.FAIL_ROLLBACK, "season-gem-craft", true);
+            playerPackService.addItems(ctx.playerId(), consumed, AddType.FAIL_ROLLBACK, "season-gem-craft", true);
         }
     }
 }

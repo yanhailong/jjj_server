@@ -2,6 +2,7 @@ package com.jjg.game.season.service;
 
 import com.jjg.game.common.utils.RandomUtils;
 import com.jjg.game.common.utils.WeightRandom;
+import com.jjg.game.core.service.PlayerPackService;
 import com.jjg.game.core.constant.AddType;
 import com.jjg.game.sampledata.bean.SeasondropDetailedCfg;
 import com.jjg.game.sampledata.bean.SeasonGemCfg;
@@ -10,7 +11,6 @@ import com.jjg.game.sampledata.bean.SeasonStartCfg;
 import com.jjg.game.sim.data.SimPlayerContext;
 import com.jjg.game.season.data.SeasonPlayerData;
 import com.jjg.game.sim.service.SimAutoSaveService;
-import com.jjg.game.sim.service.SimPackService;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -30,23 +30,23 @@ public class SeasonDropService {
     private static final Logger log = LoggerFactory.getLogger(SeasonDropService.class);
 
     private final SeasonConfigService configService;
-    private final SimPackService simPackService;
+    private final PlayerPackService playerPackService;
     private final SimAutoSaveService autoSaveService;
     private final IntPredicate chance;
     private final Function<List<List<Integer>>, List<Integer>> selector;
 
     @Autowired
-    public SeasonDropService(SeasonConfigService configService, SimPackService simPackService,
+    public SeasonDropService(SeasonConfigService configService, PlayerPackService playerPackService,
                              SimAutoSaveService autoSaveService) {
-        this(configService, simPackService, autoSaveService, RandomUtils::getRandomBoolean10000,
+        this(configService, playerPackService, autoSaveService, RandomUtils::getRandomBoolean10000,
                 SeasonDropService::weightedRow);
     }
 
-    public SeasonDropService(SeasonConfigService configService, SimPackService simPackService,
+    public SeasonDropService(SeasonConfigService configService, PlayerPackService playerPackService,
                              SimAutoSaveService autoSaveService, IntPredicate chance,
                              Function<List<List<Integer>>, List<Integer>> selector) {
         this.configService = configService;
-        this.simPackService = simPackService;
+        this.playerPackService = playerPackService;
         this.autoSaveService = autoSaveService;
         this.chance = chance;
         this.selector = selector;
@@ -90,7 +90,7 @@ public class SeasonDropService {
         if (rewards.isEmpty()) {
             return Map.of();
         }
-        var result = simPackService.addItems(ctx, rewards, AddType.SIM_SLOTS_DROP,
+        var result = playerPackService.addItems(ctx.playerId(), rewards, AddType.SIM_SLOTS_DROP,
                 "season-gem-drop:" + data.getSeasonId(), true);
         if (!result.success()) {
             log.warn("赛季宝石掉落入账失败 playerId={},seasonId={},code={}",

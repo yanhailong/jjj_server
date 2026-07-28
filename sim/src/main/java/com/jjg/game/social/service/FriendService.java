@@ -1,5 +1,6 @@
 package com.jjg.game.social.service;
 
+import com.jjg.game.core.service.PlayerPackService;
 import com.jjg.game.core.constant.AddType;
 import com.jjg.game.core.constant.Code;
 import com.jjg.game.core.dao.AccountDao;
@@ -11,7 +12,6 @@ import com.jjg.game.core.data.PlayerSessionInfo;
 import com.jjg.game.core.service.CorePlayerService;
 import com.jjg.game.core.utils.TipUtils;
 import com.jjg.game.sim.service.SimConfigCacheService;
-import com.jjg.game.sim.service.SimPackService;
 import com.jjg.game.social.constant.SocialConst;
 import com.jjg.game.social.dao.FriendDao;
 import com.jjg.game.social.data.FriendData;
@@ -52,7 +52,7 @@ public class FriendService {
     @Autowired
     private SocialRelationCache relationCache;
     @Autowired
-    private SimPackService simPackService;
+    private PlayerPackService playerPackService;
     @Autowired
     private SimConfigCacheService simConfigCacheService;
 
@@ -651,7 +651,7 @@ public class FriendService {
                 return res;
             }
             //发放道具 (领取者即调用方本人, addItemsByPlayerId 自动按在线/离线入账)
-            simPackService.addItemsByPlayerId(selfId, Map.of(cfg.itemId(), total), AddType.FRIEND_GIFT_COLLECT, "", true);
+            playerPackService.addItems(selfId, Map.of(cfg.itemId(), total), AddType.FRIEND_GIFT_COLLECT, "", true);
             friendDao.clearPendingGifts(selfId);
             res.itemId = cfg.itemId();
             res.gainCount = total;

@@ -12,8 +12,10 @@ import com.jjg.game.core.constant.GameConstant;
 import com.jjg.game.core.constant.TaskConstant;
 import com.jjg.game.core.dao.PlayerPackDao;
 import com.jjg.game.core.data.*;
+import com.jjg.game.core.listener.SpecialItemListener;
 import com.jjg.game.core.logger.CoreLogger;
 import com.jjg.game.core.listener.ItemAddListener;
+import com.jjg.game.core.listener.ItemConsumeListener;
 import com.jjg.game.core.pb.PackItemInfo;
 import com.jjg.game.core.task.manager.TaskManager;
 import com.jjg.game.core.task.param.TaskConditionParam12101;
@@ -56,6 +58,13 @@ public class PlayerPackService implements IPlayerRegister {
     private TaskManager taskManager;
     @Autowired(required = false)
     private List<ItemAddListener> itemAddListeners = Collections.emptyList();
+    //一个道具只能由一个处理器承载，多个实现会在启动时直接冲突失败，好过静默取其一
+    @Autowired(required = false)
+    private SpecialItemListener specialItemListener;
+    //@Lazy 打破循环: 本服务 -> 消费埋点实现 -> 任务服务 -> 本服务
+    @Lazy
+    @Autowired(required = false)
+    private List<ItemConsumeListener> itemConsumeListeners = Collections.emptyList();
 
     protected String getLockKey(long playerId) {
         return lockTableName + playerId;
@@ -136,16 +145,19 @@ public class PlayerPackService implements IPlayerRegister {
             result.data = new ItemOperationResult();
             return result;
         }
+
         CommonResult<ItemOperationResult> result = new CommonResult<>(Code.FAIL);
-
-        long addGold = 0;
-        long addDiamond = 0;
-        long addShell = 0;
-
         result.data = new ItemOperationResult();
+
         List<Item> validAddItemList = new ArrayList<>(addItemList.size());
         for (Item item : addItemList) {
             if (item == null) {
+                continue;
+            }
+            //入账只接受正数：货币分支取的是 Math.abs，负数会被当成正数发放
+            if (item.getItemCount() <= 0) {
+                log.warn("添加道具跳过非正数 playerId={},itemId={},count={},addType={},desc={}",
+                        playerId, item.getId(), item.getItemCount(), addType, desc);
                 continue;
             }
             validAddItemList.add(item);
@@ -155,8 +167,49 @@ public class PlayerPackService implements IPlayerRegister {
             return result;
         }
 
+        //优先入账特殊道具，剩余的常规道具再走货币与背包。
+        //必须留在取锁前：特殊道具入账可能重新回调本服务（如赛季币入账触发段位奖励发放），
+        //若落在锁内，内层会读到外层尚未写回的旧背包，两者的写入将互相覆盖。
+        List<Item> normalAddItemList = new ArrayList<>(validAddItemList.size());
+        List<Item> specialAddItemList = splitSpecialItems(validAddItemList, normalAddItemList);
+        if (!specialAddItemList.isEmpty()
+                && !specialItemListener.addItems(playerId, specialAddItemList, addType, desc, notify)) {
+            log.error("特殊道具入账失败 playerId={},items={},addType={},desc={}", playerId, specialAddItemList, addType, desc);
+            return result;
+        }
+
+        try {
+            result = addNormalItems(playerId, normalAddItemList, validAddItemList, addType, desc, notify);
+        } catch (Exception e) {
+            //配置查询、纯货币路径的 addMoneyCoin 都在 addNormalItems 的内层 try 之外，
+            //异常若穿透出去就跳过了下面的补偿，特殊资源会留在账上
+            log.error("添加常规道具异常 playerId={},items={},addType={},desc={}",
+                    playerId, normalAddItemList, addType, desc, e);
+        }
+        //常规道具或货币入账失败(含抛异常)时撤回已入账的特殊道具，否则调用方按失败重试会重复发放
+        if (!result.success()) {
+            rollbackAddedSpecialItems(playerId, specialAddItemList);
+        }
+        return result;
+    }
+
+    /**
+     * 常规道具入账：货币走 {@link CorePlayerService}，其余进背包
+     *
+     * @param normalItems 已剔除特殊道具的常规道具
+     * @param allItems    本次入账的全部道具（含特殊道具），仅用于入账通知
+     */
+    private CommonResult<ItemOperationResult> addNormalItems(long playerId, List<Item> normalItems, List<Item> allItems,
+                                                             AddType addType, String desc, boolean notify) {
+        CommonResult<ItemOperationResult> result = new CommonResult<>(Code.FAIL);
+        result.data = new ItemOperationResult();
+
+        long addGold = 0;
+        long addDiamond = 0;
+        long addShell = 0;
+
         List<Item> itemList = new ArrayList<>();
-        for (Item item : validAddItemList) {
+        for (Item item : normalItems) {
             int itemId = item.getId();
             ItemCfg itemCfg = GameDataManager.getItemCfg(itemId);
             if (itemCfg == null) {
@@ -195,7 +248,7 @@ public class PlayerPackService implements IPlayerRegister {
                 result.data.shellChange(addShell, goldAndDiamond.data.getShell());
             }
             result.code = Code.SUCCESS;
-            notifyItemsAdded(playerId, validAddItemList, addType);
+            notifyItemsAdded(playerId, allItems, addType);
             return result;
         }
         PlayerPack playerPack = null;
@@ -276,9 +329,64 @@ public class PlayerPackService implements IPlayerRegister {
                     itemList.stream().collect(HashMap::new, (map, e) -> map.merge(e.getId(), e.getItemCount(), Long::sum),
                             HashMap::putAll);
             coreLogger.addItems(playerId, result.data.getChangeBeforeItemNum(), addTempItemMap, result.data.getChangeEndItemNum(), addType, desc);
-            notifyItemsAdded(playerId, validAddItemList, addType);
+            notifyItemsAdded(playerId, allItems, addType);
         }
         return result;
+    }
+
+    /**
+     * 撤回已入账的特殊道具
+     * <p>
+     * 只能退回数值：赛季币入账时可能已推进段位并发过段位奖励、勋章激活后不可撤销，这些连带影响撤不掉。
+     * 因此无论数值是否退回成功都留痕 —— 回退成功不等于状态已还原。
+     */
+    private void rollbackAddedSpecialItems(long playerId, List<Item> addedItems) {
+        if (addedItems.isEmpty()) {
+            return;
+        }
+        boolean rolledBack = specialItemListener.removeItems(playerId, addedItems, AddType.FAIL_ROLLBACK,
+                "PlayerPackService addItems rollback");
+        log.error("添加道具失败，回滚特殊道具 playerId={},items={},数值回退={}（段位晋升、段位奖励、勋章激活等无法撤销，需人工核对）",
+                playerId, addedItems, rolledBack ? "成功" : "失败");
+    }
+
+    /**
+     * 回滚已扣除的特殊道具
+     */
+    private void rollbackRemovedSpecialItems(long playerId, List<Item> removedItems) {
+        if (removedItems.isEmpty()) {
+            return;
+        }
+        if (!specialItemListener.addItems(playerId, removedItems, AddType.FAIL_ROLLBACK,
+                "PlayerPackService removeItem rollback", false)) {
+            log.error("移除道具回滚特殊道具失败(需人工修复) playerId={},items={}", playerId, removedItems);
+        }
+    }
+
+    /**
+     * 拆出由处理器承载的特殊道具，其余常规道具收集到 normalItems
+     */
+    private List<Item> splitSpecialItems(List<Item> items, List<Item> normalItems) {
+        if (specialItemListener == null) {
+            normalItems.addAll(items);
+            return List.of();
+        }
+        List<Item> specialItems = new ArrayList<>();
+        for (Item item : items) {
+            if (specialItemListener.support(item.getId())) {
+                specialItems.add(item);
+            } else {
+                normalItems.add(item);
+            }
+        }
+        return specialItems;
+    }
+
+    /**
+     * 该道具是否由处理器承载
+     */
+    private boolean isSpecialItem(int itemId) {
+        return specialItemListener != null && specialItemListener.support(itemId);
     }
 
     private void notifyItemsAdded(long playerId, List<Item> items, AddType addType) {
@@ -300,6 +408,21 @@ public class PlayerPackService implements IPlayerRegister {
                 listener.onItemsAdded(playerId, immutable, addType);
             } catch (Exception e) {
                 log.error("道具入账监听器异常 listener={},playerId={},items={}",
+                        listener.getClass().getSimpleName(), playerId, immutable, e);
+            }
+        }
+    }
+
+    private void notifyItemsConsumed(long playerId, Map<Integer, Long> items, AddType addType) {
+        if (itemConsumeListeners.isEmpty() || items == null || items.isEmpty()) {
+            return;
+        }
+        Map<Integer, Long> immutable = Collections.unmodifiableMap(items);
+        for (ItemConsumeListener listener : itemConsumeListeners) {
+            try {
+                listener.onItemsConsumed(playerId, immutable, addType);
+            } catch (Exception e) {
+                log.error("道具消费监听器异常 listener={},playerId={},items={}",
                         listener.getClass().getSimpleName(), playerId, immutable, e);
             }
         }
@@ -413,6 +536,16 @@ public class PlayerPackService implements IPlayerRegister {
         long deductShellV = 0;
 
         long playerId = player.getId();
+        //优先扣除特殊道具，剩余的常规道具再走货币与背包；与入账同理，必须在取锁前处理
+        List<Item> normalRemoveItemList = new ArrayList<>(validRemoveItemList.size());
+        List<Item> removedSpecialItemList = splitSpecialItems(validRemoveItemList, normalRemoveItemList);
+        if (!removedSpecialItemList.isEmpty()
+                && !specialItemListener.removeItems(playerId, removedSpecialItemList, addType, desc)) {
+            log.warn("扣除特殊道具失败 playerId={},items={},addType={}", playerId, removedSpecialItemList, addType);
+            result.code = Code.NOT_ENOUGH_ITEM;
+            return result;
+        }
+
         String key = getLockKey(playerId);
         boolean lock = false;
         boolean currencyDeducted = false;
@@ -425,7 +558,7 @@ public class PlayerPackService implements IPlayerRegister {
                 return result;
             }
             List<Item> packItemList = new ArrayList<>();
-            for (Item item : validRemoveItemList) {
+            for (Item item : normalRemoveItemList) {
                 int itemId = item.getId();
                 ItemCfg itemCfg = GameDataManager.getItemCfg(itemId);
                 if (itemCfg == null) {
@@ -560,6 +693,19 @@ public class PlayerPackService implements IPlayerRegister {
             } catch (Exception e) {
                 log.error("移除道具成功后触发任务失败 playerId={}", playerId, e);
             }
+            //货币同样算消费(主线 12220 就是按金币/钻石 itemId 过滤的)，分拣时货币未进 consumedMap；
+            //另建一份，避免污染已交给 coreLogger 的那个 map
+            Map<Integer, Long> consumedWithCurrency = new HashMap<>(consumedMap);
+            if (deductGoldV > 0) {
+                consumedWithCurrency.merge(ItemUtils.getGoldItemId(), deductGoldV, Long::sum);
+            }
+            if (deductDiamondV > 0) {
+                consumedWithCurrency.merge(ItemUtils.getDiamondItemId(), deductDiamondV, Long::sum);
+            }
+            if (deductShellV > 0) {
+                consumedWithCurrency.merge(ItemUtils.getShellItemId(), deductShellV, Long::sum);
+            }
+            notifyItemsConsumed(playerId, consumedWithCurrency, addType);
             return result;
         } catch (Exception e) {
             if (currencyDeducted && !committed) {
@@ -570,6 +716,10 @@ public class PlayerPackService implements IPlayerRegister {
         } finally {
             if (lock) {
                 redisLock.tryUnlock(key);
+            }
+            //背包或货币未提交成功，已扣除的特殊道具要还回去
+            if (!committed) {
+                rollbackRemovedSpecialItems(playerId, removedSpecialItemList);
             }
         }
         return result;
@@ -641,6 +791,13 @@ public class PlayerPackService implements IPlayerRegister {
             PlayerPack playerPack = getFromAllDB(playerId);
             for (Item item : itemList) {
                 if (item == null) {
+                    continue;
+                }
+                //特殊道具由承载它的处理器校验，不查背包与货币
+                if (isSpecialItem(item.getId())) {
+                    if (specialItemListener.getItemCount(playerId, item.getId()) < item.getItemCount()) {
+                        return Code.NOT_ENOUGH;
+                    }
                     continue;
                 }
                 ItemCfg itemCfg = GameDataManager.getItemCfg(item.getId());
@@ -821,6 +978,21 @@ public class PlayerPackService implements IPlayerRegister {
             return playerPack;
         }
         return playerPackDao.findById(playerId);
+    }
+
+    /**
+     * 读取道具当前持有量：特殊道具走承载它的处理器，其余读背包（不含金币等货币）
+     *
+     * @param playerId 玩家ID
+     * @param itemId   道具ID
+     * @return 持有量
+     */
+    public long getItemCount(long playerId, int itemId) {
+        if (isSpecialItem(itemId)) {
+            return specialItemListener.getItemCount(playerId, itemId);
+        }
+        PlayerPack playerPack = getFromAllDB(playerId);
+        return playerPack == null ? 0 : playerPack.getItemCount(itemId);
     }
 
     /**

@@ -4,11 +4,11 @@ import com.jjg.game.common.constant.MessageConst;
 import com.jjg.game.common.pb.AbstractResponse;
 import com.jjg.game.common.protostuff.Command;
 import com.jjg.game.common.protostuff.MessageType;
-import com.jjg.game.core.constant.AddType;
 import com.jjg.game.core.constant.Code;
 import com.jjg.game.core.data.CommonResult;
 import com.jjg.game.core.data.PlayerController;
 import com.jjg.game.core.listener.GmListener;
+import com.jjg.game.core.service.PlayerPackService;
 import com.jjg.game.sampledata.GameDataManager;
 import com.jjg.game.sampledata.bean.CasinoStatsSheetCfg;
 import com.jjg.game.sim.constant.SimConstant;
@@ -27,10 +27,8 @@ import org.springframework.stereotype.Component;
 
 import java.util.ArrayList;
 import java.util.Arrays;
-import java.util.HashMap;
 import java.util.LinkedHashSet;
 import java.util.List;
-import java.util.Map;
 import java.util.function.Consumer;
 import java.util.function.Function;
 import java.util.function.IntFunction;
@@ -76,7 +74,7 @@ public class SimMessageHandler implements GmListener {
     @Autowired
     private SimCoopRoomRouteService coopRoomRouteService;
     @Autowired
-    private SimPackService simPackService;
+    private PlayerPackService playerPackService;
     @Autowired
     private SimGuideLogger simGuideLogger;
 
@@ -788,15 +786,6 @@ public class SimMessageHandler implements GmListener {
                 int oldLevel = ctx.getCurrentCasino().getCasinoLevel();
                 ctx.getCurrentCasino().setCasinoLevel(cfg.getLevel());
                 ctx.getSimBaseData().addAllLevel(ctx.getCurrentCasino().getCasinoLevel() - oldLevel);
-            } else if ("simAddItem".equalsIgnoreCase(gmOrders[0])) {
-                int itemId = Integer.parseInt(gmOrders[1]);
-                long count = Long.parseLong(gmOrders[2]);
-
-                SimPlayerContext ctx = this.simPlayerContextRegistry.getContext(playerController.playerId());
-
-                Map<Integer, Long> map = new HashMap<>();
-                map.put(itemId, count);
-                simPackService.addItems(ctx, map, AddType.GM_OPERATOR, null, true);
             } else if ("simBuildLevelUp".equalsIgnoreCase(gmOrders[0])) {
                 int buildingId = Integer.parseInt(gmOrders[1]);
                 int level = Integer.parseInt(gmOrders[2]);

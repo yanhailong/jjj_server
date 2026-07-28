@@ -1,6 +1,8 @@
 package com.jjg.game.sim.service;
 
 import com.jjg.game.common.utils.TimeHelper;
+import com.jjg.game.core.service.PlayerPackService;
+import com.jjg.game.core.data.ItemOperationResult;
 import com.jjg.game.core.base.condition.numeric.ConditionEvent;
 import com.jjg.game.core.base.condition.numeric.ConditionUpdate;
 import com.jjg.game.core.base.condition.numeric.PreparedCondition;
@@ -21,7 +23,6 @@ import com.jjg.game.core.task.pb.TaskCondition;
 import com.jjg.game.sampledata.GameDataManager;
 import com.jjg.game.sampledata.bean.TaskCfg;
 import com.jjg.game.sim.data.SimBaseData;
-import com.jjg.game.sim.data.SimItemOperationResult;
 import com.jjg.game.sim.data.SimPlayerContext;
 import com.jjg.game.sim.data.SpinStatInfo;
 import com.jjg.game.sim.dao.SimTaskDao;
@@ -70,7 +71,7 @@ public class SimTaskService {
     @Autowired
     private SimTaskDao simTaskDao;
     @Autowired
-    private SimPackService simPackService;
+    private PlayerPackService playerPackService;
     @Autowired
     private CountDao countDao;
     @Autowired
@@ -395,8 +396,8 @@ public class SimTaskService {
         //发奖 (主线/成就奖励均为玩家背包道具; type2/3 当前无积分奖励)
         List<Item> rewardItems = null;
         if (cfg.getGetItem() != null && !cfg.getGetItem().isEmpty()) {
-            CommonResult<SimItemOperationResult> addResult = simPackService.addItems(
-                    ctx, cfg.getGetItem(), AddType.TASKAWARD, "taskId=" + taskId, true);
+            CommonResult<ItemOperationResult> addResult = playerPackService.addItems(
+                    ctx.playerId(), cfg.getGetItem(), AddType.TASKAWARD, "taskId=" + taskId, true);
             if (addResult == null || !addResult.success()) {
                 res.code = addResult == null ? Code.EXCEPTION : addResult.code;
                 log.error("领取 sim 任务奖励失败,发奖失败 playerId={},taskId={},result={}",

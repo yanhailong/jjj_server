@@ -13,6 +13,7 @@ import com.jjg.game.sim.pb.res.ResFinishGuide;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.context.annotation.Lazy;
 import org.springframework.stereotype.Service;
 
 import java.util.ArrayList;
@@ -34,6 +35,9 @@ public class SimGuideService implements ItemAddListener {
     private SimPlayerContextRegistry contextRegistry;
     @Autowired
     private SimGuideLogger guideLogger;
+    @Lazy
+    @Autowired
+    private SimPackService simPackService;
 
     public List<Integer> trigger(SimPlayerContext ctx, int condition, int param, boolean notify) {
         if (ctx == null || ctx.getSimBaseData() == null) {
@@ -148,7 +152,9 @@ public class SimGuideService implements ItemAddListener {
         SimPlayerContext ctx = contextRegistry.getContext(playerId);
         if (ctx != null) {
             triggerItemsAdded(ctx, items);
+            return;
         }
+        simPackService.forwardPackItemsAdded(playerId, items, addType);
     }
 
     private void finishGroupIfComplete(SimBaseData base, int guideGroupId) {

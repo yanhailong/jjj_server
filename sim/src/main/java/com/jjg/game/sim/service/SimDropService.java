@@ -2,14 +2,13 @@ package com.jjg.game.sim.service;
 
 import com.jjg.game.common.utils.RandomUtils;
 import com.jjg.game.common.utils.TimeHelper;
+import com.jjg.game.core.service.PlayerPackService;
+import com.jjg.game.core.data.ItemOperationResult;
 import com.jjg.game.core.constant.AddType;
 import com.jjg.game.core.constant.Code;
 import com.jjg.game.core.data.CommonResult;
 import com.jjg.game.sampledata.GameDataManager;
-import com.jjg.game.sampledata.bean.CasinoStatsSheetCfg;
-import com.jjg.game.sampledata.bean.DropItemCfg;
-import com.jjg.game.sampledata.bean.DropNumCfg;
-import com.jjg.game.sampledata.bean.DropTypeCfg;
+import com.jjg.game.sampledata.bean.*;
 import com.jjg.game.sim.constant.SimConstant;
 import com.jjg.game.sim.data.*;
 import org.slf4j.Logger;
@@ -36,7 +35,7 @@ public class SimDropService {
     @Autowired
     private SimConfigCacheService configCacheService;
     @Autowired
-    private SimPackService simPackService;
+    private PlayerPackService playerPackService;
     @Autowired
     private SimGuideService guideService;
 
@@ -79,7 +78,7 @@ public class SimDropService {
 
         //入账 (掉落可能含能量/知名度等特殊资源, 统一走 addItems 路由)
         if (!dropResult.isEmpty()) {
-            CommonResult<SimItemOperationResult> addResult = simPackService.addItems(ctx, dropResult, AddType.SIM_SLOTS_DROP, null, false);
+            CommonResult<ItemOperationResult> addResult = playerPackService.addItems(ctx.playerId(), dropResult, AddType.SIM_SLOTS_DROP, null, false);
             if (!addResult.success()) {
                 log.info("slots 掉落失败 playerId={},gameType={},winTimes={},code={}", ctx.playerId(), gameType, winTimes, addResult.code);
                 result.code = addResult.code;
@@ -91,7 +90,10 @@ public class SimDropService {
         slotsSpinResult.setItemsMap(dropResult);
         slotsSpinResult.setPower(base.getPower());
 
-        slotsSpinResult.setResearchPoints((int) simPackService.getResearchPointCount(ctx.playerId(), 0));
+        ItemCfg itemCfg = configCacheService.getResearchPointItemCfg(0);
+        if(itemCfg != null){
+            slotsSpinResult.setResearchPoints((int)playerPackService.getItemCount(ctx.playerId(), itemCfg.getId()));
+        }
         result.data = slotsSpinResult;
         return result;
     }

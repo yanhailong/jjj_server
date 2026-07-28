@@ -28,7 +28,6 @@ import com.jjg.game.sim.data.SimPlayerContext;
 import com.jjg.game.sim.manager.SimPlayerContextRegistry;
 import com.jjg.game.sim.service.SimConfigCacheService;
 import com.jjg.game.sim.service.SimConditionEventFactory;
-import com.jjg.game.sim.service.SimPackService;
 import com.jjg.game.social.service.SocialSender;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -110,8 +109,6 @@ public class AllianceTaskService {
     private SimConfigCacheService configService;
     @Autowired
     private AllianceAssetService assetService;
-    @Autowired
-    private SimPackService simPackService;
     @Autowired
     private StringRedisTemplate stringRedisTemplate;
     @Autowired
@@ -611,7 +608,7 @@ public class AllianceTaskService {
         }
         if (!packRewards.isEmpty()) {
             //统一走 sim 道具入口: 在线入内存资源/背包, 离线则进背包待上线迁移 (能量等 sim 特殊资源)
-            simPackService.addItemsByPlayerId(playerId, packRewards, AddType.ALLIANCE_TASK_REWARD, "", true);
+            playerPackService.addItems(playerId, packRewards, AddType.ALLIANCE_TASK_REWARD, "", true);
         }
     }
 

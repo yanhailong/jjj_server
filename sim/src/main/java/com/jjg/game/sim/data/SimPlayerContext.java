@@ -1,6 +1,7 @@
 package com.jjg.game.sim.data;
 
 import com.alibaba.fastjson.JSONObject;
+import com.jjg.game.core.data.Player;
 import com.jjg.game.core.data.PlayerController;
 import com.jjg.game.season.data.SeasonPlayerData;
 import org.slf4j.Logger;
@@ -70,6 +71,11 @@ public class SimPlayerContext {
 
     public void setPlayerController(PlayerController playerController) {
         this.playerController = playerController;
+    }
+
+    /** 扣除道具需要传 Player, 统一从会话上取 */
+    public Player getPlayer() {
+        return playerController == null ? null : playerController.getPlayer();
     }
 
     public SimBaseData getSimBaseData() {

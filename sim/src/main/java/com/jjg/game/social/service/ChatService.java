@@ -71,7 +71,7 @@ public class ChatService {
             Player sender = pc.getPlayer();
             int vcode = channel.validate(sender, targetId, content);
             if (vcode != Code.SUCCESS) {
-                res.code = Code.PARAM_ERROR;
+                res.code = vcode;
                 log.warn("发送聊天信息失败, 频道校验失败 playerId={},channelCode={}", pc.playerId(), channelCode);
                 return res;
             }

@@ -20,6 +20,7 @@ import com.jjg.game.core.service.PlayerSessionService;
 import com.jjg.game.sampledata.GameDataManager;
 import com.jjg.game.sampledata.bean.CasinoStatsSheetCfg;
 import com.jjg.game.sampledata.bean.GiftListCfg;
+import com.jjg.game.sampledata.bean.ItemCfg;
 import com.jjg.game.sim.constant.SimVisitConstant;
 import com.jjg.game.sim.dao.SimCasinoDao;
 import com.jjg.game.sim.dao.SimPlayerGameDao;
@@ -114,8 +115,6 @@ public class SimVisitService {
     private CountDao countDao;
     @Autowired
     private PlayerPackService playerPackService;
-    @Autowired
-    private SimPackService simPackService;
     @Autowired
     private NodeManager nodeManager;
     @Autowired
@@ -584,7 +583,11 @@ public class SimVisitService {
         SlotsSpinResult data = new SlotsSpinResult();
         data.setItemsMap(Map.of());
         data.setPower(ctx.getSimBaseData() == null ? 0 : ctx.getSimBaseData().getPower());
-        data.setResearchPoints((int) simPackService.getResearchPointCount(ctx.playerId(), 0));
+
+        ItemCfg itemCfg = configCacheService.getResearchPointItemCfg(0);
+        if(itemCfg != null){
+            data.setResearchPoints((int)playerPackService.getItemCount(ctx.playerId(), itemCfg.getId()));
+        }
         return new CommonResult<>(Code.SUCCESS, data);
     }
 

@@ -1,5 +1,6 @@
 package com.jjg.game.season.service;
 
+import com.jjg.game.core.service.PlayerPackService;
 import com.jjg.game.core.constant.AddType;
 import com.jjg.game.core.constant.Code;
 import com.jjg.game.core.data.CommonResult;
@@ -7,7 +8,6 @@ import com.jjg.game.sampledata.bean.SeasonShopCfg;
 import com.jjg.game.sim.data.SimPlayerContext;
 import com.jjg.game.season.data.SeasonPlayerData;
 import com.jjg.game.sim.service.SimAutoSaveService;
-import com.jjg.game.sim.service.SimPackService;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Service;
@@ -23,13 +23,13 @@ public class SeasonShopService {
     private static final Logger log = LoggerFactory.getLogger(SeasonShopService.class);
 
     private final SeasonConfigService configService;
-    private final SimPackService simPackService;
+    private final PlayerPackService playerPackService;
     private final SimAutoSaveService autoSaveService;
 
-    public SeasonShopService(SeasonConfigService configService, SimPackService simPackService,
+    public SeasonShopService(SeasonConfigService configService, PlayerPackService playerPackService,
                              SimAutoSaveService autoSaveService) {
         this.configService = configService;
-        this.simPackService = simPackService;
+        this.playerPackService = playerPackService;
         this.autoSaveService = autoSaveService;
     }
 
@@ -63,18 +63,18 @@ public class SeasonShopService {
         }
         Map<Integer, Long> packCost = new HashMap<>(cost);
         packCost.remove(currencyId);
-        if (!packCost.isEmpty() && !simPackService.removeItems(ctx, packCost, AddType.ITEM_EXCHANGE,
-                "season-shop:" + shopId)) {
+        if (!packCost.isEmpty() && !playerPackService.removeItems(ctx.getPlayer(), packCost, AddType.ITEM_EXCHANGE,
+                "season-shop:" + shopId).success()) {
             log.warn("赛季商店背包道具不足 playerId={},shopId={}", ctx.playerId(), shopId);
             return new CommonResult<>(Code.NOT_ENOUGH_ITEM);
         }
         data.setSeasonCoin(data.getSeasonCoin() - coinCost);
-        CommonResult<?> addResult = simPackService.addItems(ctx, goods, AddType.ITEM_EXCHANGE,
+        CommonResult<?> addResult = playerPackService.addItems(ctx.playerId(), goods, AddType.ITEM_EXCHANGE,
                 "season-shop:" + shopId, true);
         if (!addResult.success()) {
             data.setSeasonCoin(data.getSeasonCoin() + coinCost);
             if (!packCost.isEmpty()) {
-                simPackService.addItems(ctx, packCost, AddType.FAIL_ROLLBACK,
+                playerPackService.addItems(ctx.playerId(), packCost, AddType.FAIL_ROLLBACK,
                         "season-shop-rollback:" + shopId, true);
             }
             log.warn("赛季商店发货失败 playerId={},shopId={},code={}", ctx.playerId(), shopId, addResult.code);

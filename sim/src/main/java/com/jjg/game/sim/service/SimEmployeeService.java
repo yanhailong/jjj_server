@@ -3,6 +3,8 @@ package com.jjg.game.sim.service;
 import com.jjg.game.alliance.service.AllianceEventService;
 import com.jjg.game.common.utils.TimeHelper;
 import com.jjg.game.common.utils.WeightRandom;
+import com.jjg.game.core.service.PlayerPackService;
+import com.jjg.game.core.data.ItemOperationResult;
 import com.jjg.game.core.base.condition.numeric.ActionConditionEvent;
 import com.jjg.game.core.constant.AddType;
 import com.jjg.game.core.constant.Code;
@@ -14,7 +16,6 @@ import com.jjg.game.sim.constant.BuildingOutputType;
 import com.jjg.game.sim.constant.SimConstant;
 import com.jjg.game.sim.dao.SimEmployeeDao;
 import com.jjg.game.sim.data.SimEmployeeData;
-import com.jjg.game.sim.data.SimItemOperationResult;
 import com.jjg.game.sim.data.SimPlayerContext;
 import com.jjg.game.sim.pb.res.*;
 import com.jjg.game.sim.pb.struct.EmployDetailInfo;
@@ -45,7 +46,7 @@ public class SimEmployeeService {
     @Autowired
     private SimEmployeeDao simEmployeeDao;
     @Autowired
-    private SimPackService simPackService;
+    private PlayerPackService playerPackService;
     @Autowired
     private AllianceEventService allianceEventService;
     @Autowired
@@ -118,7 +119,7 @@ public class SimEmployeeService {
                         costMap.put(en.getKey(), en.getValue() * count);
                     }
                 }
-                boolean remove = simPackService.removeItems(ctx, costMap, AddType.SIM_EMPLOYEE_RECRUIT, null);
+                boolean remove = playerPackService.removeItems(ctx.getPlayer(), costMap, AddType.SIM_EMPLOYEE_RECRUIT, null).success();
                 if (!remove) {
                     log.warn("招募雇员失败,扣除道具失败 playerId={},count={},poolId={}", ctx.playerId(), count, tmpCfg.getId());
                     res.code = Code.PARAM_ERROR;
@@ -199,7 +200,7 @@ public class SimEmployeeService {
             }
 
             if (!addAllItems.isEmpty()) {
-                CommonResult<SimItemOperationResult> simItemOperationResultCommonResult = simPackService.addItems(ctx, addAllItems, AddType.SIM_GUEST_RECRUIT, count + "", false);
+                CommonResult<ItemOperationResult> simItemOperationResultCommonResult = playerPackService.addItems(ctx.playerId(), addAllItems, AddType.SIM_GUEST_RECRUIT, count + "", false);
                 if (!simItemOperationResultCommonResult.success()) {
                     log.warn("招募雇员后添加碎片道具失败 playerId={},count={},code={}", ctx.playerId(), count, simItemOperationResultCommonResult.code);
                     res.code = simItemOperationResultCommonResult.code;
@@ -256,7 +257,7 @@ public class SimEmployeeService {
             }
 
             if (nextCfg.getUpgradeCost() != null && !nextCfg.getUpgradeCost().isEmpty()) {
-                boolean removeItems = simPackService.removeItems(ctx, nextCfg.getUpgradeCost(), AddType.SIM_EMPLOYEE_LEVEL_UP, null);
+                boolean removeItems = playerPackService.removeItems(ctx.getPlayer(), nextCfg.getUpgradeCost(), AddType.SIM_EMPLOYEE_LEVEL_UP, null).success();
                 if (!removeItems) {
                     log.warn("升级雇员失败, 扣除道具失败 playerId={},employeeId={},level={},cost={}", ctx.playerId(), employeeId, data.getLevel(), nextCfg.getUpgradeCost());
                     res.code = Code.PARAM_ERROR;
@@ -306,7 +307,7 @@ public class SimEmployeeService {
                 return;
             }
 
-            boolean remove = simPackService.removeItem(ctx, employeeProfileCfg.getDuplicatetoShard().get(1), curCfg.getStarUpCost(), AddType.SIM_EMPLOYEE_STAR_UP);
+            boolean remove = playerPackService.removeItem(ctx.getPlayer(), employeeProfileCfg.getDuplicatetoShard().get(1), curCfg.getStarUpCost(), AddType.SIM_EMPLOYEE_STAR_UP).success();
             if (!remove) {
                 log.warn("升星雇员失败, 扣除碎片道具失败 playerId={},employeeId={},need={}", ctx.playerId(), employeeId, curCfg.getStarUpCost());
                 res.code = Code.NOT_ENOUGH;

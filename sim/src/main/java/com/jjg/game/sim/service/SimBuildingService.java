@@ -9,6 +9,8 @@ import com.jjg.game.core.base.condition.numeric.ActionConditionEvent;
 import com.jjg.game.core.constant.AddType;
 import com.jjg.game.core.constant.Code;
 import com.jjg.game.core.pb.KVInfo;
+import com.jjg.game.core.service.PlayerPackService;
+import com.jjg.game.core.utils.ItemUtils;
 import com.jjg.game.sampledata.GameDataManager;
 import com.jjg.game.sampledata.bean.BuildingAreaTableCfg;
 import com.jjg.game.sampledata.bean.BuildingUpgradeTableCfg;
@@ -52,7 +54,7 @@ public class SimBuildingService implements SimPlayerTickListener {
     @Autowired
     private SimEmployeeService employeeService;
     @Autowired
-    private SimPackService simPackService;
+    private PlayerPackService playerPackService;
     @Autowired
     private AllianceHelpService allianceHelpService;
     @Autowired
@@ -244,7 +246,7 @@ public class SimBuildingService implements SimPlayerTickListener {
                 }
             }
             //资源足够?
-            boolean remove = simPackService.removeItems(ctx, cfg.getUnlockCost(), AddType.SIM_BUILDING_UPGRADE, null);
+            boolean remove = playerPackService.removeItems(ctx.getPlayer(), cfg.getUnlockCost(), AddType.SIM_BUILDING_UPGRADE, null).success();
             if (!remove) {
                 log.warn("解锁建筑失败, 资源不足 playerId={},buildingId={},cost={}", ctx.playerId(), buildingId, cfg.getUnlockCost());
                 res.code = Code.NOT_ENOUGH;
@@ -315,7 +317,7 @@ public class SimBuildingService implements SimPlayerTickListener {
                 if (data.getProgress() < currentCfg.getCostPerLevel().size()) {
 
                     List<Integer> list = currentCfg.getCostPerLevel().get(data.getProgress());
-                    boolean remove = simPackService.removeItem(ctx, list.get(0), list.get(1), AddType.SIM_BUILDING_UPGRADE);
+                    boolean remove = playerPackService.removeItem(ctx.getPlayer(), list.get(0), list.get(1), AddType.SIM_BUILDING_UPGRADE).success();
                     if (!remove) {
                         log.warn("建筑添加进度条失败, 未找到获取配置表 playerId={},buildingId={},level={}", ctx.playerId(), buildingId, data.getLevel());
                         res.code = Code.PARAM_ERROR;
@@ -347,7 +349,7 @@ public class SimBuildingService implements SimPlayerTickListener {
                 ctx.send(res);
                 return;
             }
-            boolean remove = simPackService.removeItems(ctx, currentCfg.getUpgradeCost(), AddType.SIM_BUILDING_UPGRADE, null);
+            boolean remove = playerPackService.removeItems(ctx.getPlayer(), currentCfg.getUpgradeCost(), AddType.SIM_BUILDING_UPGRADE, null).success();
             if (!remove) {
                 log.warn("升级建筑失败, 资源不足 playerId={},buildingId={},cost={}", ctx.playerId(), buildingId, currentCfg.getUpgradeCost());
                 res.code = Code.NOT_ENOUGH;
@@ -465,7 +467,7 @@ public class SimBuildingService implements SimPlayerTickListener {
                     log.warn("道具清除建筑升级 CD失败，costCount不能小于1 playerId={},buildingId={},costCount={}", ctx.playerId(), buildingId, costCount);
                     return;
                 }
-                boolean remove = simPackService.removeItem(ctx, SimConstant.Item.ID_CLEAR_CD, costCount, AddType.SIM_BUILDING_UPGRADE);
+                boolean remove = playerPackService.removeItem(ctx.getPlayer(), SimConstant.Item.ID_CLEAR_CD, costCount, AddType.SIM_BUILDING_UPGRADE).success();
                 if (!remove) {
                     res.code = Code.NOT_ENOUGH;
                     ctx.send(res);
@@ -518,7 +520,7 @@ public class SimBuildingService implements SimPlayerTickListener {
             Map<BuildingOutputType, Long> perMinute = computePerMinuteOutput(ctx, casino);
             if (!perMinute.isEmpty()) {
                 Map<BuildingOutputType, Long> total = multiply(perMinute, fullMinutes);
-                simPackService.addItem(ctx, total, AddType.SIM_BUILD_MINUTE_REWARDS, null, false);
+                playerPackService.addItems(ctx.playerId(), toItemMap(total), AddType.SIM_BUILD_MINUTE_REWARDS, null, false);
                 //经营信息: 累加每分钟自产金币收益
                 long minuteGold = total.getOrDefault(BuildingOutputType.GOLD, 0L);
                 ctx.getSimBaseData().addBusinessIncome(minuteGold);
@@ -865,7 +867,7 @@ public class SimBuildingService implements SimPlayerTickListener {
         }
 
         Map<BuildingOutputType, Long> finalReward = computeFinalReward(ctx, reward, watchAd);
-        simPackService.addItem(ctx, finalReward, AddType.SIM_BUILD_OFFLINE_REWARDS, null, false);
+        playerPackService.addItems(ctx.playerId(), toItemMap(finalReward), AddType.SIM_BUILD_OFFLINE_REWARDS, null, false);
         //经营信息: 离线产出金币计入经营收益; 看广告领取计入观看广告数
         long offlineGold = finalReward.getOrDefault(BuildingOutputType.GOLD, 0L);
         ctx.getSimBaseData().addBusinessIncome(offlineGold);
@@ -903,6 +905,30 @@ public class SimBuildingService implements SimPlayerTickListener {
         Map<BuildingOutputType, Long> result = new HashMap<>(src.size());
         src.forEach((k, v) -> result.put(k, v * factor));
         return result;
+    }
+
+    /**
+     * 建筑产出映射为 itemId (无对应道具的产出类型不入账)
+     */
+    private Map<Integer, Long> toItemMap(Map<BuildingOutputType, Long> resources) {
+        Map<Integer, Long> items = new HashMap<>(resources.size());
+        for (Map.Entry<BuildingOutputType, Long> en : resources.entrySet()) {
+            Integer itemId = toItemId(en.getKey());
+            if (itemId == null) {
+                continue;
+            }
+            items.merge(itemId, en.getValue(), Long::sum);
+        }
+        return items;
+    }
+
+    private Integer toItemId(BuildingOutputType type) {
+        return switch (type) {
+            case GOLD -> ItemUtils.getGoldItemId();
+            case POWER -> SimConstant.Item.ID_POWER;
+            case AWARENESS -> SimConstant.Item.ID_AWARENESS;
+            default -> null;
+        };
     }
 
     /**

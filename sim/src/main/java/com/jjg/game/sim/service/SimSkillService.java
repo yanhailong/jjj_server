@@ -3,6 +3,7 @@ package com.jjg.game.sim.service;
 import com.alibaba.fastjson.JSON;
 import com.jjg.game.alliance.service.AllianceEventService;
 import com.jjg.game.common.pb.ItemInfo;
+import com.jjg.game.core.service.PlayerPackService;
 import com.jjg.game.core.constant.AddType;
 import com.jjg.game.core.constant.Code;
 import com.jjg.game.core.data.CommonResult;
@@ -39,7 +40,7 @@ public class SimSkillService extends AbstractSkillService implements ConfigExcel
     @Autowired
     private AllianceEventService allianceEventService;
     @Autowired
-    private SimPackService simPackService;
+    private PlayerPackService playerPackService;
 
     /**
      * 登录加载技能 (player 全量)。须在加载场景数据之前调用: initUnlock 依据已入内存的技能等级决定是否补解锁。
@@ -195,7 +196,7 @@ public class SimSkillService extends AbstractSkillService implements ConfigExcel
                     costMap.put(en.getKey(), en.getValue().longValue());
                 }
             }
-            if (!simPackService.removeItems(ctx, costMap, AddType.SIM_SKILL_UPGRADE, "skillUpgrade:" + skillPropId)) {
+            if (!playerPackService.removeItems(ctx.getPlayer(), costMap, AddType.SIM_SKILL_UPGRADE, "skillUpgrade:" + skillPropId).success()) {
                 log.warn("升级技能失败，研究点不足 playerId={},propId={},newLevelCfgId={}", skillData.getPlayerId(), skillPropId, newLevelCfg.getId());
                 res.code = Code.NOT_ENOUGH;
                 ctx.send(res);
@@ -262,7 +263,7 @@ public class SimSkillService extends AbstractSkillService implements ConfigExcel
      * @return
      */
     private List<ItemInfo> getResearchPoints(long playerId, int gameType) {
-        PlayerPack playerPack = simPackService.getPlayerPack(playerId);
+        PlayerPack playerPack = playerPackService.getFromAllDB(playerId);
         if (playerPack == null) {
             return null;
         }

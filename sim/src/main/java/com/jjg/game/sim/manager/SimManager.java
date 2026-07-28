@@ -14,7 +14,9 @@ import com.jjg.game.core.data.ExitType;
 import com.jjg.game.core.data.Player;
 import com.jjg.game.core.data.PlayerController;
 import com.jjg.game.core.service.CorePlayerService;
+import com.jjg.game.core.service.PlayerPackService;
 import com.jjg.game.sampledata.GameDataManager;
+import com.jjg.game.sampledata.bean.ItemCfg;
 import com.jjg.game.sampledata.bean.VisitorQuestCfg;
 import com.jjg.game.sim.constant.SimConstant;
 import com.jjg.game.sim.dao.*;
@@ -135,8 +137,6 @@ public class SimManager {
     @Autowired
     private SimMedalService simMedalService;
     @Autowired
-    private SimPackService simPackService;
-    @Autowired
     private SimPlayerContextRegistry simPlayerContextRegistry;
     @Autowired
     private SeasonPlayerDao seasonPlayerDao;
@@ -150,6 +150,10 @@ public class SimManager {
     private SeasonEconomyService economyService;
     @Autowired
     private SimGuideService guideService;
+    @Autowired
+    private PlayerPackService playerPackService;
+    @Autowired
+    private SimConfigCacheService simConfigCacheService;
 
 
     /**
@@ -223,7 +227,10 @@ public class SimManager {
             res.awareness = ctx.getCurrentCasino().getAwareness();
             res.power = ctx.getSimBaseData().getPower();
 
-            res.researchPoint = (int) simPackService.getResearchPointCount(ctx.playerId(), 0);
+            ItemCfg itemCfg = simConfigCacheService.getResearchPointItemCfg(0);
+            if(itemCfg != null){
+                res.researchPoint = (int)playerPackService.getItemCount(ctx.playerId(), itemCfg.getId());
+            }
 
             //已生成待领奖的购买游客 (断线重连补发, 客户端凭 uid 领奖)
             Map<String, PurchasedGuestData> purchasedGuestMap = ctx.getCurrentCasino().getPurchasedGuestMap();

@@ -1,12 +1,12 @@
 package com.jjg.game.season.service;
 
+import com.jjg.game.core.service.PlayerPackService;
 import com.jjg.game.core.constant.AddType;
 import com.jjg.game.core.constant.Code;
 import com.jjg.game.sampledata.bean.SeasonTierCfg;
 import com.jjg.game.sim.data.SimPlayerContext;
 import com.jjg.game.season.data.SeasonPlayerData;
 import com.jjg.game.season.pb.res.NotifySeasonTierUp;
-import com.jjg.game.sim.service.SimPackService;
 import com.jjg.game.social.service.SocialSender;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -24,13 +24,13 @@ public class SeasonEconomyService {
     private static final Logger log = LoggerFactory.getLogger(SeasonEconomyService.class);
 
     private final SeasonConfigService configService;
-    private final SimPackService simPackService;
+    private final PlayerPackService playerPackService;
     private final SocialSender socialSender;
 
-    public SeasonEconomyService(SeasonConfigService configService, SimPackService simPackService,
+    public SeasonEconomyService(SeasonConfigService configService, PlayerPackService playerPackService,
                                 SocialSender socialSender) {
         this.configService = configService;
-        this.simPackService = simPackService;
+        this.playerPackService = playerPackService;
         this.socialSender = socialSender;
     }
 
@@ -127,7 +127,7 @@ public class SeasonEconomyService {
             data.setSeasonCoin(Math.addExact(data.getSeasonCoin(), coin));
         }
         if (!packReward.isEmpty()) {
-            var result = simPackService.addItems(ctx, packReward, AddType.ACTIVITY,
+            var result = playerPackService.addItems(ctx.playerId(), packReward, AddType.ACTIVITY,
                     "season-tier:" + tier.getId(), true);
             if (!result.success()) {
                 log.warn("赛季段位奖励发放失败 playerId={},tierId={},code={}",

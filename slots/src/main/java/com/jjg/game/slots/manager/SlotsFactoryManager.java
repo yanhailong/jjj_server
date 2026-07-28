@@ -8,6 +8,7 @@ import com.jjg.game.core.service.GameStatusService;
 import com.jjg.game.sampledata.GameDataManager;
 import com.jjg.game.sampledata.bean.WarehouseCfg;
 import com.jjg.game.slots.dao.SlotsPoolDao;
+import com.jjg.game.slots.data.SlotsPlayerGameData;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -113,6 +114,22 @@ public class SlotsFactoryManager {
 
     public AbstractSlotsGameManager getGameManager(int gameType) {
         return this.slotsGameManagerMap.get(gameType);
+    }
+
+    public SlotsPlayerGameData getPlayerGameData(long playerId) {
+        for (AbstractSlotsGameManager<?, ?, ?> manager : slotsGameManagerMap.values()) {
+            SlotsPlayerGameData data = manager.getPlayerGameData(playerId);
+            if (data != null) {
+                return data;
+            }
+        }
+        for (AbstractSlotsGameManager<?, ?, ?> manager : slotsRoomGameManagerMap.values()) {
+            SlotsPlayerGameData data = manager.getPlayerGameData(playerId);
+            if (data != null) {
+                return data;
+            }
+        }
+        return null;
     }
 
 

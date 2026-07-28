@@ -6,6 +6,8 @@ import com.jjg.game.common.pb.ItemInfo;
 import com.jjg.game.common.utils.RandomUtils;
 import com.jjg.game.common.utils.TimeHelper;
 import com.jjg.game.common.utils.WeightRandom;
+import com.jjg.game.core.service.PlayerPackService;
+import com.jjg.game.core.data.ItemOperationResult;
 import com.jjg.game.core.constant.AddType;
 import com.jjg.game.core.constant.Code;
 import com.jjg.game.core.data.CommonResult;
@@ -50,7 +52,7 @@ public class SimGuestService implements SimPlayerTickListener, ItemListener {
     @Autowired
     private SimRewardService rewardService;
     @Autowired
-    private SimPackService simPackService;
+    private PlayerPackService playerPackService;
     @Autowired
     private SimPlayerContextRegistry simPlayerContextRegistry;
     @Autowired
@@ -324,7 +326,7 @@ public class SimGuestService implements SimPlayerTickListener, ItemListener {
                     rewardsMap.merge(itemInfo.itemId, itemInfo.count, Long::sum);
                 }
                 //添加道具
-                simPackService.addItems(ctx, rewardsMap, AddType.SIM_GUEST_REWARDS, null, false);
+                playerPackService.addItems(ctx.playerId(), rewardsMap, AddType.SIM_GUEST_REWARDS, null, false);
                 //经营信息: 购买游客交互产出金币计入经营收益
                 long destGold = rewardsMap.getOrDefault(ItemUtils.getGoldItemId(), 0L);
                 ctx.getSimBaseData().addBusinessIncome(destGold);
@@ -433,7 +435,7 @@ public class SimGuestService implements SimPlayerTickListener, ItemListener {
         }
         if (!rewardsMap.isEmpty()) {
             //添加道具
-            simPackService.addItems(ctx, rewardsMap, AddType.SIM_GUEST_REWARDS, null, false);
+            playerPackService.addItems(ctx.playerId(), rewardsMap, AddType.SIM_GUEST_REWARDS, null, false);
         }
 
         //经营信息: 普通游客不计入高级游客人次; 游客交互产出金币计入玩家经营总收益
@@ -732,7 +734,7 @@ public class SimGuestService implements SimPlayerTickListener, ItemListener {
                 return;
             }
 
-            boolean remove = simPackService.removeItem(ctx, visitorQuestCfg.getDuplicatetoShard().get(1), cfg.getAscend(), AddType.SIM_GUEST_STAR_UP);
+            boolean remove = playerPackService.removeItem(ctx.getPlayer(), visitorQuestCfg.getDuplicatetoShard().get(1), cfg.getAscend(), AddType.SIM_GUEST_STAR_UP).success();
             if (!remove) {
                 log.warn("升星游客失败,扣除道具失败 playerId={},guestId={}", ctx.playerId(), guestId);
                 res.code = Code.NOT_FOUND;
@@ -821,7 +823,7 @@ public class SimGuestService implements SimPlayerTickListener, ItemListener {
                         costMap.put(en.getKey(), en.getValue() * count);
                     }
                 }
-                boolean remove = simPackService.removeItems(ctx, costMap, AddType.SIM_GUEST_RECRUIT, null);
+                boolean remove = playerPackService.removeItems(ctx.getPlayer(), costMap, AddType.SIM_GUEST_RECRUIT, null).success();
                 if (!remove) {
                     log.warn("招募游客失败,扣除道具失败 playerId={},count={},poolId={}", ctx.playerId(), count, tmpCfg.getId());
                     res.code = Code.PARAM_ERROR;
@@ -879,7 +881,7 @@ public class SimGuestService implements SimPlayerTickListener, ItemListener {
             }
 
             if (!addAllItems.isEmpty()) {
-                CommonResult<SimItemOperationResult> simItemOperationResultCommonResult = simPackService.addItems(ctx, addAllItems, AddType.SIM_GUEST_RECRUIT, count + "", false);
+                CommonResult<ItemOperationResult> simItemOperationResultCommonResult = playerPackService.addItems(ctx.playerId(), addAllItems, AddType.SIM_GUEST_RECRUIT, count + "", false);
                 if (!simItemOperationResultCommonResult.success()) {
                     log.warn("招募游客后添加碎片道具失败 playerId={},count={},code={}", ctx.playerId(), count, simItemOperationResultCommonResult.code);
                     res.code = simItemOperationResultCommonResult.code;
@@ -1010,7 +1012,7 @@ public class SimGuestService implements SimPlayerTickListener, ItemListener {
         }
 
         if (!addItems.isEmpty()) {
-            CommonResult<SimItemOperationResult> addResult = simPackService.addItems(ctx, addItems, AddType.SIM_UNLOCK_BONDS, null, true);
+            CommonResult<ItemOperationResult> addResult = playerPackService.addItems(ctx.playerId(), addItems, AddType.SIM_UNLOCK_BONDS, null, true);
             if (addResult.success()) {
                 log.info("解锁羁绊添加道具成功 playerId={},addItems={}", ctx.playerId(), addItems);
             } else {
