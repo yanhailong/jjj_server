@@ -7,6 +7,8 @@ import com.jjg.game.common.proto.ProtobufMessage;
 import com.jjg.game.poker.game.douxian.constant.DouXianConstant;
 import com.jjg.game.poker.game.douxian.message.bean.DouXianZonePlacementInfo;
 
+import java.util.List;
+
 /**
  * 摆牌结果通知，DESIGN.md 8.6/8.7
  */
@@ -19,4 +21,10 @@ public class NotifyDouXianPlaceCardResult extends AbstractNotice {
     public DouXianZonePlacementInfo placement;
     @ProtoDesc("摆牌后剩余手牌数(仅广播给其他玩家用，自己以selfHandCardIds为准)")
     public int remainHandCardNum;
+    @ProtoDesc("摆牌后的完整本人手牌(客户端牌id)，仅本人可见")
+    public List<Integer> selfHandCardIds;
+    @ProtoDesc("摆牌后的本人三个区域完整状态，仅本人可见；请求失败时用于纠正客户端")
+    public List<DouXianZonePlacementInfo> selfZonePlacements;
+    @ProtoDesc("是否携带本人完整手牌/区域快照，用于兼容旧协议")
+    public boolean hasSelfSnapshot;
 }

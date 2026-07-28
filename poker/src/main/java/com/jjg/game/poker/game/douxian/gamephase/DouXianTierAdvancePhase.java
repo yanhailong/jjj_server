@@ -15,6 +15,7 @@ import com.jjg.game.room.constant.EGamePhase;
 import com.jjg.game.room.controller.AbstractPhaseGameController;
 import com.jjg.game.room.data.robot.GameRobotPlayer;
 import com.jjg.game.room.data.room.GamePlayer;
+import com.jjg.game.room.message.RoomMessageBuilder;
 import com.jjg.game.sampledata.bean.Room_ChessCfg;
 
 import java.util.ArrayList;
@@ -86,11 +87,20 @@ public class DouXianTierAdvancePhase extends BasePokerPhase<DouXianGameDataVo> {
         }
         DouXianDataHelper.returnCardsToPool(gameDataVo, allDiscardedToPool);
 
-        NotifyDouXianTierAdvance notify = new NotifyDouXianTierAdvance();
-        notify.playerInfos = playerInfos;
-        notify.discardedToPoolCount = allDiscardedToPool.size();
-        notify.firstRound = round == 1;
-        broadcastMsgToRoom(notify);
+        for (PlayerSeatInfo seatInfo : gameDataVo.getPlayerSeatInfoList()) {
+            if (seatInfo.isDelState()) {
+                continue;
+            }
+            long viewerId = seatInfo.getPlayerId();
+            NotifyDouXianTierAdvance notify = new NotifyDouXianTierAdvance();
+            notify.playerInfos = playerInfos;
+            notify.discardedToPoolCount = allDiscardedToPool.size();
+            notify.firstRound = round == 1;
+            notify.selfHandCardIds = DouXianDataHelper.getClientCardIds(gameDataVo,
+                    gameDataVo.getHandCards().getOrDefault(viewerId, List.of()));
+            notify.hasSelfSnapshot = true;
+            broadcastBuilderToRoom(RoomMessageBuilder.newBuilder().sendPlayer(viewerId, notify));
+        }
         log.info("斗仙牌飞升完成 roomCfgId:{} round:{} 舍弃回牌库:{}张",
                 gameDataVo.getRoomCfg().getId(), round, allDiscardedToPool.size());
     }
