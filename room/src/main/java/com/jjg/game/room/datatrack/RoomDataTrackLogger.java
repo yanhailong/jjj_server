@@ -70,6 +70,9 @@ public class RoomDataTrackLogger extends BaseLogger {
      * 根据topic发送日志
      */
     public void sendLog(String topic, Map<String, Object> data) {
+        if (!kafkaLogEnabled) {
+            return;
+        }
         String sendData = JSON.toJSONString(data, SerializerFeature.WriteNonStringKeyAsString);
 //        log.debug("发送日志数据：{} {}", topic, sendData);
         kafkaTemplate.send(topic, sendData);
