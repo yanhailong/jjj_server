@@ -17,15 +17,18 @@ import com.jjg.game.sim.constant.SimConstant;
 import com.jjg.game.sim.dao.SimEmployeeDao;
 import com.jjg.game.sim.data.SimEmployeeData;
 import com.jjg.game.sim.data.SimPlayerContext;
+import com.jjg.game.sim.listener.SimTaskStateReporter;
 import com.jjg.game.sim.pb.res.*;
 import com.jjg.game.sim.pb.struct.EmployDetailInfo;
 import com.jjg.game.sim.pb.struct.RecruitItemInfo;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.context.annotation.Lazy;
 import org.springframework.stereotype.Service;
 
 import java.util.*;
+import java.util.function.Consumer;
 
 /**
  * 雇员服务: 招募(解锁)、升级、升星、任命主管
@@ -34,7 +37,7 @@ import java.util.*;
  * @date 2026/5/28
  */
 @Service
-public class SimEmployeeService {
+public class SimEmployeeService implements SimTaskStateReporter {
     private static final Logger log = LoggerFactory.getLogger(SimEmployeeService.class);
 
     //雇员初始等级 / 星级
@@ -51,6 +54,10 @@ public class SimEmployeeService {
     private AllianceEventService allianceEventService;
     @Autowired
     private SimMedalService medalService;
+    //懒加载打破与 SimTaskService 的循环依赖 (对方持有本服务作状态补报口)
+    @Autowired
+    @Lazy
+    private SimTaskService simTaskService;
 
     /**
      * 招募雇员 (卡池抽取):
@@ -329,8 +336,18 @@ public class SimEmployeeService {
     /**
      * 上报各职业各星级雇员持有量, 推进 12212 "拥有 N 个 X 星雇员" (X 星按 ≥ 阈值判定)。
      * 雇员为玩家级全量驻留内存, 按职业分别上报, 供 12212 的职业过滤维度匹配。
+     * 直接用 ctx 投递: 登录期补报时 ctx 尚未入 registry, 走 playerId 查找会被丢弃。
      */
+    @Override
+    public void reportTaskState(SimPlayerContext ctx, Consumer<ActionConditionEvent> sink) {
+        reportEmployeeCounts(ctx, sink);
+    }
+
     private void reportEmployeeCounts(SimPlayerContext ctx) {
+        reportEmployeeCounts(ctx, e -> simTaskService.onConditionEvent(ctx, e));
+    }
+
+    private void reportEmployeeCounts(SimPlayerContext ctx, Consumer<ActionConditionEvent> sink) {
         Map<Integer, SimEmployeeData> employees = ctx.getEmployeeMap();
         if (employees == null || employees.isEmpty()) {
             return;
@@ -346,7 +363,7 @@ public class SimEmployeeService {
                     .merge(employee.getStar(), 1L, Long::sum);
         }
         byProfession.forEach((profession, starCounts) ->
-                allianceEventService.onOwnershipCounts(ctx.playerId(),
+                SimConditionEventFactory.emitOwnershipCounts(sink,
                         ActionConditionEvent.Type.EMPLOYEE_COUNT, profession, starCounts));
     }
 

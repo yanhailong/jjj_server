@@ -1273,6 +1273,7 @@ public abstract class AbstractSlotsGameManager<T extends SlotsPlayerGameData, L 
             playerGameData.setSeasonFreeGameCandidate(seasonFreeGameService.freeGameCandidate(
                     playerController.playerId(), this.gameType, System.currentTimeMillis()));
             playerGameData.setSimClient(simClusterClient);
+            playerGameData.setEnterType(enterType);
             return playerGameData;
         }
 
@@ -1298,6 +1299,7 @@ public abstract class AbstractSlotsGameManager<T extends SlotsPlayerGameData, L 
             playerGameData.setOneBetScore(baseRoomCfg.getDefaultBet().getFirst());
             playerGameData.setAllBetScore(oneLineToAllStake(playerGameData.getOneBetScore()));
         }
+        playerGameData.setEnterType(enterType);
         playerGameData.setOfflineTime(0);
         playerGameData.setOnline(true);
         playerGameData.setLastActiveTime(System.currentTimeMillis());

@@ -42,13 +42,14 @@ public class SimDropService {
     /**
      * 玩家每次 slots 旋转触发 (运行在 hall 的 RPC 线程, 直接操作 ctx 内存数据)
      *
-     * @param ctx      玩家 sim 上下文
-     * @param gameType slots 游戏类型 (如 SuperStar=100300)
-     * @param winTimes 本次中奖倍数 (allWinGold / allBetScore)
-     * @param freeMode 是否处于免费模式
+     * @param ctx       玩家 sim 上下文
+     * @param gameType  slots 游戏类型 (如 SuperStar=100300)
+     * @param winTimes  本次中奖倍数 (allWinGold / allBetScore)
+     * @param freeMode  是否处于免费模式
+     * @param enterType
      */
     public CommonResult<SlotsSpinResult> onSpin(SimPlayerContext ctx, int gameType, int winTimes,
-                                                boolean freeMode) {
+                                                boolean freeMode, int enterType) {
         CommonResult<SlotsSpinResult> result = new CommonResult<>(Code.SUCCESS);
 
         SimBaseData base = ctx.getSimBaseData();
@@ -59,8 +60,7 @@ public class SimDropService {
             return result;
         }
 
-        if (!freeMode) {
-            //扣能量: 不足则跳过本次掉落联动 (不影响 slots 旋转本身)
+        if (!freeMode || enterType > 0) {
             if (base.getPower() < SimConstant.Common.SPIN_COST_POWER) {
                 guideService.triggerItemNotEnough(ctx, SimConstant.Item.ID_POWER);
                 log.info("能量不足, 跳过 slots 掉落联动 playerId={},gameType={},power={}", ctx.playerId(), gameType, base.getPower());
@@ -68,7 +68,7 @@ public class SimDropService {
                 return result;
             }
             base.setPower(base.getPower() - SimConstant.Common.SPIN_COST_POWER);
-            //加经验
+            //加经验 (赛季入口仍计场景经验)
             casino.setExp(casino.getExp() + SimConstant.Common.SPIN_ADD_EXP);
             //升级检查
             if (checkLevelUp(casino)) {
@@ -95,8 +95,8 @@ public class SimDropService {
         slotsSpinResult.setPower(base.getPower());
 
         ItemCfg itemCfg = configCacheService.getResearchPointItemCfg(0);
-        if(itemCfg != null){
-            slotsSpinResult.setResearchPoints((int)playerPackService.getItemCount(ctx.playerId(), itemCfg.getId()));
+        if (itemCfg != null) {
+            slotsSpinResult.setResearchPoints((int) playerPackService.getItemCount(ctx.playerId(), itemCfg.getId()));
         }
         result.data = slotsSpinResult;
         return result;

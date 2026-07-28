@@ -38,6 +38,11 @@ public class SimTaskData extends AbstractData {
      */
     private List<Integer> displayedMedalIds = new ArrayList<>();
 
+    /**
+     * 主线计数键结构版本。0=整条主线共享计数; 1=按主线节点隔离。
+     */
+    private int mainCounterVersion;
+
     public long getPlayerId() {
         return playerId;
     }
@@ -74,5 +79,13 @@ public class SimTaskData extends AbstractData {
 
     public void setDisplayedMedalIds(List<Integer> displayedMedalIds) {
         this.displayedMedalIds = displayedMedalIds == null ? new ArrayList<>() : displayedMedalIds;
+    }
+
+    public int getMainCounterVersion() {
+        return mainCounterVersion;
+    }
+
+    public void setMainCounterVersion(int mainCounterVersion) {
+        this.mainCounterVersion = mainCounterVersion;
     }
 }

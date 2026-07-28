@@ -58,13 +58,23 @@ public final class SimConditionEventFactory {
                 bet, win, winTimes, costPower > 0 || bet > 0, true,
                 statInfo == null ? 0 : statInfo.getBigShowId(),
                 statInfo == null ? Map.of() : statInfo.getJackpotCounts(),
-                statInfo != null && statInfo.getRemainFreeCount() > 0 ? 1 : 0,
+                freeGameTriggers(statInfo),
                 //赛季宝石掉落在 SeasonService 结算后由 withGemDrop 补入
                 0,
                 statInfo == null || statInfo.getSpecialModes() == null
                         ? Set.of() : Set.copyOf(statInfo.getSpecialModes()),
                 statInfo == null ? List.of() : statInfo.getIcons(),
                 mergeGains(goldItemId, win, itemGains));
+    }
+
+    /**
+     * 本次旋转是否"触发"了免费模式 (12205 计数口径)。
+     * <p>
+     * 只有普通旋转赢得免费局的那一次记 1: 免费模式中的每次旋转同样带着剩余免费次数, 按剩余次数计数
+     * 会把一轮免费局记成很多次触发。
+     */
+    private static int freeGameTriggers(SpinStatInfo statInfo) {
+        return statInfo != null && !statInfo.isFreeMode() && statInfo.getRemainFreeCount() > 0 ? 1 : 0;
     }
 
     /** 本局收益明细: 金币赢奖 + 本次旋转的道具产出, 空值与非正数安全 (record 构造会拒绝 null)。 */

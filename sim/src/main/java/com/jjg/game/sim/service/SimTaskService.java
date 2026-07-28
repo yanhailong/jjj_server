@@ -27,6 +27,7 @@ import com.jjg.game.sim.data.SimPlayerContext;
 import com.jjg.game.sim.data.SpinStatInfo;
 import com.jjg.game.sim.dao.SimTaskDao;
 import com.jjg.game.sim.data.SimTaskData;
+import com.jjg.game.sim.listener.SimTaskStateReporter;
 import com.jjg.game.sim.logger.SimAchievementTaskLogger;
 import com.jjg.game.sim.logger.SimMainTaskLogger;
 import com.jjg.game.sim.pb.res.NotifySimTaskUpdate;
@@ -36,22 +37,26 @@ import com.jjg.game.sim.pb.res.ResSetDisplayedMedals;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.context.annotation.Lazy;
 import org.springframework.stereotype.Service;
 
 import java.math.BigDecimal;
 import java.util.ArrayList;
 import java.util.Collections;
+import java.util.HashMap;
 import java.util.HashSet;
 import java.util.LinkedHashSet;
 import java.util.List;
+import java.util.Map;
 import java.util.Set;
 
 /**
  * sim 主线/成就任务服务 (线性链)。
  * <p>
  * 条件判定复用 core 数值条件规则：配置加载时完成解析校验，事件热路径只做 O(1) 规则求值。
- * 进度仍由本功能累计在 Redis(CountDao)；prefix 按"主线整条 / 每个成就组"隔离，旧条件继续沿用
- * TriggerEventType 作为 featureId，保证改造前的进度数据可直接读取。
+ * 进度仍由本功能累计在 Redis(CountDao)；prefix 按"主线每个节点 / 每个成就组"隔离：成就组内是同一
+ * 条件的递增阶梯，共享计数才能逐级达成；主线相邻节点可能复用同一条件 id 但过滤参数不同
+ * (如 12303 分别指定游客卡池与雇员卡池)，必须按节点隔离，否则前一节点的进度会漏给后一节点。
  * 链生命周期(接取/推进/领奖)与持久化由本服务在 sim 内自管；旋转和经营动作都通过统一事实事件推进。
  *
  * @author 11
@@ -61,9 +66,10 @@ import java.util.Set;
 public class SimTaskService {
     private static final Logger log = LoggerFactory.getLogger(SimTaskService.class);
 
-    //计数 prefix: 主线整条共享一个, 成就每组一个 (featureId = 条件type + prefix)
+    //计数 prefix: 主线每个节点一个, 成就每组一个 (featureId = 条件type + prefix)
     private static final String PREFIX_MAIN = "simTaskMain";
     private static final String PREFIX_ACH = "simTaskAch";
+    private static final int MAIN_COUNTER_VERSION = 1;
     private static final int MAX_DISPLAYED_MEDALS = 3;
 
     @Autowired
@@ -86,6 +92,10 @@ public class SimTaskService {
     private SimMainTaskLogger mainTaskLogger;
     @Autowired
     private SimAchievementTaskLogger achievementTaskLogger;
+    //@Lazy 打破循环: 本服务 -> 状态补报实现(建筑/游客/雇员/场景) -> 本服务
+    @Lazy
+    @Autowired(required = false)
+    private List<SimTaskStateReporter> stateReporters = Collections.emptyList();
 
     // =====================================================================
     // 加载 / 接取
@@ -103,8 +113,62 @@ public class SimTaskService {
         }
         ctx.setSimTaskData(data);
         ensureActive(playerId, data);
+        //任务数据就绪后补一次状态: 场景/建筑/雇员/游客在本方法之前加载, 那时的上报会被任务侧丢弃;
+        //玩家等级等状态型条件同理, 不补则要等下一次事件或开界面才结算
+        settleState(ctx, true);
         //上线即推进"累积登陆天数"(12218): 主线首节点就是该条件, 不接入则整条主线无法起步
         onDailyLogin(ctx);
+    }
+
+    /**
+     * 状态补报 + 状态轮询: 把"拥有量/总量"型条件的当前值重报一次, 再结算已达标的状态型条件(玩家等级)。
+     * 登录与打开任务界面时各执行一次; 重复上报对 SET 语义幂等。
+     *
+     * @param notify 是否推送变更; 开界面时列表响应本身就带最新状态, 无需再推一次
+     */
+    private void settleState(SimPlayerContext ctx, boolean notify) {
+        Player player = resolvePlayer(ctx);
+        SimTaskData data = ctx.getSimTaskData();
+        if (player == null || data == null) {
+            return;
+        }
+        List<Task> changed = new ArrayList<>();
+        boolean activeNodesChanged;
+        do {
+            TaskDetail mainBefore = data.getMainTask();
+            Map<Integer, TaskDetail> achievementsBefore = new HashMap<>(data.getAchievements());
+            for (SimTaskStateReporter reporter : stateReporters) {
+                try {
+                    reporter.reportTaskState(ctx,
+                            event -> tryAdvanceConditionEvent(ctx, event, changed, false));
+                } catch (Exception e) {
+                    log.error("sim 任务状态补报失败 reporter={},playerId={}",
+                            reporter.getClass().getSimpleName(), ctx.playerId(), e);
+                }
+            }
+            pollStates(player, data, ctx.getSimBaseData(), changed);
+            activeNodesChanged = activeNodesChanged(data, mainBefore, achievementsBefore);
+        } while (activeNodesChanged);
+        if (notify) {
+            notifyChanged(ctx, changed);
+        }
+    }
+
+    private boolean activeNodesChanged(SimTaskData data, TaskDetail mainBefore,
+                                       Map<Integer, TaskDetail> achievementsBefore) {
+        if (mainBefore != data.getMainTask()) {
+            return true;
+        }
+        Map<Integer, TaskDetail> current = data.getAchievements();
+        if (achievementsBefore.size() != current.size()) {
+            return true;
+        }
+        for (Map.Entry<Integer, TaskDetail> entry : current.entrySet()) {
+            if (achievementsBefore.get(entry.getKey()) != entry.getValue()) {
+                return true;
+            }
+        }
+        return false;
     }
 
     /**
@@ -212,33 +276,59 @@ public class SimTaskService {
      * 增加 condition id 分支；异常隔离由各事件生产者现有调用链负责。
      */
     public void onConditionEvent(SimPlayerContext ctx, ConditionEvent event) {
-        try {
-            advanceConditionEvent(ctx, event);
-        } catch (Exception e) {
-            log.error("sim 任务条件事件异常 playerId={},event={}",
-                    ctx == null ? 0 : ctx.playerId(), event, e);
+        List<Task> changed = new ArrayList<>();
+        if (tryAdvanceConditionEvent(ctx, event, changed, true)) {
+            notifyChanged(ctx, changed);
         }
     }
 
-    private void advanceConditionEvent(SimPlayerContext ctx, ConditionEvent event) {
+    private boolean tryAdvanceConditionEvent(SimPlayerContext ctx, ConditionEvent event,
+                                             List<Task> changed, boolean pollState) {
+        try {
+            advanceConditionEvent(ctx, event, changed, pollState);
+            return true;
+        } catch (Exception e) {
+            log.error("sim 任务条件事件异常 playerId={},event={}",
+                    ctx == null ? 0 : ctx.playerId(), event, e);
+            return false;
+        }
+    }
+
+    private void advanceConditionEvent(SimPlayerContext ctx, ConditionEvent event,
+                                       List<Task> changed, boolean pollState) {
         if (ctx == null) {
             return;
         }
         SimTaskData data = ctx.getSimTaskData();
         Player player = resolvePlayer(ctx);
         if (data == null || player == null || event == null) {
+            //整个玩家的任务推进被丢弃, 不该静默: 任务数据未加载或玩家对象取不到都是异常态
+            log.warn("sim 任务事件丢弃 playerId={},taskDataNull={},playerNull={},eventNull={}",
+                    ctx.playerId(), data == null, player == null, event == null);
             return;
         }
-        List<Task> changed = new ArrayList<>();
         evaluateOnEvent(player, data, ctx.getSimBaseData(), data.getMainTask(), event, changed);
         //成就组在事件推进中可能续接(替换同 group 节点), 用 keySet 快照遍历
         for (Integer group : new ArrayList<>(data.getAchievements().keySet())) {
             evaluateOnEvent(player, data, ctx.getSimBaseData(), data.getAchievements().get(group), event, changed);
         }
-        if (!changed.isEmpty()) {
-            NotifySimTaskUpdate notify = new NotifySimTaskUpdate(Code.SUCCESS);
-            notify.tasks = changed;
+        //状态型条件(玩家等级)没有对应的事实事件: 玩家在 slots 节点下注升级, sim 侧收不到升级事件,
+        //借任意一次 sim 事件顺带结算, 玩家不必重开任务界面
+        if (pollState) {
+            pollStates(player, data, ctx.getSimBaseData(), changed);
+        }
+    }
+
+    private void notifyChanged(SimPlayerContext ctx, List<Task> changed) {
+        if (ctx == null || ctx.getPlayerController() == null || changed.isEmpty()) {
+            return;
+        }
+        NotifySimTaskUpdate notify = new NotifySimTaskUpdate(Code.SUCCESS);
+        notify.tasks = changed;
+        try {
             ctx.send(notify);
+        } catch (Exception e) {
+            log.error("推送 sim 任务状态失败 playerId={}", ctx.playerId(), e);
         }
     }
 
@@ -247,11 +337,16 @@ public class SimTaskService {
      */
     private void evaluateOnEvent(Player player, SimTaskData data, SimBaseData baseData, TaskDetail node,
                                  ConditionEvent event, List<Task> changed) {
-        if (node == null || node.getStatus() != TaskConstant.TaskStatus.STATUS_IN_PROGRESS) {
+        if (node == null) {
+            return;
+        }
+        //以下每个 return 都会让"玩家做了动作但进度不动", 逐个说明原因, 便于按 taskId 直接定位卡在哪一环
+        if (node.getStatus() != TaskConstant.TaskStatus.STATUS_IN_PROGRESS) {
             return;
         }
         TaskCfg cfg = GameDataManager.getTaskCfg(node.getConfigId());
         if (cfg == null) {
+            log.warn("任务未推进: 找不到任务配置 playerId={},taskId={}", player.getId(), node.getConfigId());
             return;
         }
         SimTaskConfigService.TaskConditionDef def = taskConfig.conditionOf(cfg.getId());
@@ -273,10 +368,24 @@ public class SimTaskService {
                 yield update.value();
             }
         };
-        log.debug("玩家[{}]任务[{}]条件[{}]推进 增量={},进度={}/{}", player.getId(), cfg.getId(),
-                def.condition().spec().id(), update.value(), progress, def.condition().target());
+        if (log.isDebugEnabled()) {
+            //带上计数 key: 进度存疑时可直接 redis-cli get 该 key 核对 (存的是实际值 x100)
+            log.debug("玩家[{}]任务[{}]条件[{}]推进 增量={},进度={}/{},计数key=count:{}:{}",
+                    player.getId(), cfg.getId(), def.condition().spec().id(), update.value(),
+                    progress, def.condition().target(), featureId, customId);
+        }
         if (progress >= def.condition().target()) {
             onComplete(player, data, baseData, node, cfg, changed);
+        }
+    }
+
+    /**
+     * 轮询主线与各成就组的当前节点。成就组可能在轮询中续接(替换同 group 节点), 用 keySet 快照遍历。
+     */
+    private void pollStates(Player player, SimTaskData data, SimBaseData baseData, List<Task> changed) {
+        pollState(player, data, baseData, data.getMainTask(), changed);
+        for (Integer group : new ArrayList<>(data.getAchievements().keySet())) {
+            pollState(player, data, baseData, data.getAchievements().get(group), changed);
         }
     }
 
@@ -466,6 +575,28 @@ public class SimTaskService {
     }
 
     /**
+     * 打开任务界面时记录主线当前节点快照。
+     * <p>
+     * 客户端按配置把整条主线都渲染出来, 服务端只跟踪一个"当前节点", 所以"某任务进度不涨"最常见的原因是
+     * 它根本还没轮到。这行日志直接给出当前节点 id / 状态 / 进度 / 计数 key, 一眼分辨是没轮到还是真没推进。
+     */
+    private void logMainSnapshot(Player player, TaskDetail main) {
+        if (main == null) {
+            log.info("主线当前节点: 无 (任务链为空或配置未加载) playerId={}", player.getId());
+            return;
+        }
+        TaskCfg cfg = GameDataManager.getTaskCfg(main.getConfigId());
+        SimTaskConfigService.TaskConditionDef def = cfg == null ? null : taskConfig.conditionOf(cfg.getId());
+        log.info("主线当前节点: taskId={},status={},进度={}/{},condition={},计数key=count:{}:{}",
+                main.getConfigId(), main.getStatus(),
+                cfg == null ? -1 : currentProgress(player, cfg),
+                def == null ? -1 : def.condition().target(),
+                cfg == null ? "配置缺失" : cfg.getTaskConditionId(),
+                def == null || cfg == null ? "无" : def.counterType() + prefixOf(cfg),
+                player.getId());
+    }
+
+    /**
      * 定位某 taskId 在数据中的当前节点 (主线或对应成就组)。
      */
     private TaskDetail findActiveNode(SimTaskData data, TaskCfg cfg, int taskId) {
@@ -489,13 +620,10 @@ public class SimTaskService {
         if (data == null || player == null) {
             return res;
         }
-        //开界面时顺带补齐(配置热更新增成就组/主线续接) + 状态轮询结算
+        //开界面时顺带补齐(配置热更新增成就组/主线续接) + 状态补报与轮询结算
+        //本次响应就带上最新状态, 无需再推送 NotifySimTaskUpdate
         ensureActive(player.getId(), data);
-        List<Task> ignore = new ArrayList<>();
-        pollState(player, data, ctx.getSimBaseData(), data.getMainTask(), ignore);
-        for (Integer group : new ArrayList<>(data.getAchievements().keySet())) {
-            pollState(player, data, ctx.getSimBaseData(), data.getAchievements().get(group), ignore);
-        }
+        settleState(ctx, false);
 
         TaskDetail main = data.getMainTask();
         if (main != null) {
@@ -506,6 +634,8 @@ public class SimTaskService {
                         && taskConfig.next(main.getConfigId()) <= 0;
             }
         }
+        //客户端按配置渲染整条链, 服务端只推进"当前节点": 排查"某个任务进度不动"先看这行是不是那个 taskId
+        logMainSnapshot(player, main);
         List<Task> achievements = new ArrayList<>(data.getAchievements().size());
         for (TaskDetail node : data.getAchievements().values()) {
             TaskCfg cfg = GameDataManager.getTaskCfg(node.getConfigId());
@@ -631,11 +761,48 @@ public class SimTaskService {
     // =====================================================================
 
     /**
-     * 计数隔离 prefix: 主线整条共享, 成就每组一个。
+     * 首次升级到按节点隔离的主线计数时, 把旧共享 key 的可见进度快照到当前节点。
+     * 迁移版本随任务文档持久化, 确保后续节点不会再次继承旧共享计数。
+     */
+    private void migrateMainCounter(long playerId, SimTaskData data) {
+        if (data.getMainCounterVersion() >= MAIN_COUNTER_VERSION) {
+            return;
+        }
+        try {
+            TaskDetail node = data.getMainTask();
+            if (node == null) {
+                data.setMainCounterVersion(MAIN_COUNTER_VERSION);
+                return;
+            }
+            TaskCfg cfg = GameDataManager.getTaskCfg(node.getConfigId());
+            SimTaskConfigService.TaskConditionDef def = cfg == null ? null : taskConfig.conditionOf(cfg.getId());
+            if (cfg == null || def == null || cfg.getTaskType() != TaskConstant.TaskType.MAIN_LINE) {
+                log.warn("暂缓迁移 sim 主线计数,任务配置未就绪 playerId={},taskId={}",
+                        playerId, node.getConfigId());
+                return;
+            }
+            String customId = String.valueOf(playerId);
+            String oldFeatureId = def.counterType() + PREFIX_MAIN;
+            String newFeatureId = def.counterType() + prefixOf(cfg);
+            if (!countDao.exists(newFeatureId, customId)
+                    && countDao.exists(oldFeatureId, customId)) {
+                BigDecimal progress = countDao.getCount(oldFeatureId, customId);
+                countDao.setCount(playerId, newFeatureId, customId, progress);
+                log.info("玩家[{}]迁移 sim 主线任务[{}]计数进度={}",
+                        playerId, cfg.getId(), progress.longValue());
+            }
+            data.setMainCounterVersion(MAIN_COUNTER_VERSION);
+        } catch (Exception e) {
+            log.error("迁移 sim 主线计数失败 playerId={}", playerId, e);
+        }
+    }
+
+    /**
+     * 计数隔离 prefix: 主线按节点隔离, 成就每组一个 (组内阶梯共享计数以逐级达成)。
      */
     private String prefixOf(TaskCfg cfg) {
         return cfg.getTaskType() == TaskConstant.TaskType.MAIN_LINE
-                ? PREFIX_MAIN
+                ? PREFIX_MAIN + cfg.getId()
                 : PREFIX_ACH + cfg.getGroup();
     }
 

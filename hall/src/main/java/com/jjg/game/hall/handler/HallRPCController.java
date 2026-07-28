@@ -20,11 +20,7 @@ import com.jjg.game.season.pb.res.ResSeasonMatch;
 import com.jjg.game.season.pb.res.ResSeasonTrialProgress;
 import com.jjg.game.season.service.SeasonService;
 import com.jjg.game.sim.bridge.ToSimBridge;
-import com.jjg.game.sim.data.SimPlayerContext;
-import com.jjg.game.sim.data.SimSkillsData;
-import com.jjg.game.sim.data.SlotsSpinResult;
-import com.jjg.game.sim.data.SpinStatInfo;
-import com.jjg.game.sim.data.VisitTrialSpinPermit;
+import com.jjg.game.sim.data.*;
 import com.jjg.game.sim.manager.SimManager;
 import com.jjg.game.sim.manager.SimPlayerContextRegistry;
 import com.jjg.game.sim.service.SimCoopTaskService;
@@ -33,11 +29,10 @@ import com.jjg.game.sim.service.SimPackService;
 import com.jjg.game.sim.service.SimSkillService;
 import com.jjg.game.social.bridge.ToSocialBridge;
 import com.jjg.game.social.service.ChatService;
-
-import java.util.List;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Component;
 
+import java.util.List;
 import java.util.Map;
 
 /**
@@ -169,8 +164,8 @@ public class HallRPCController extends CoreRPCController implements GmToHallBrid
     @Override
     @RpcCallSetting(processorModKey = "#arg0")
     public CommonResult<SlotsSpinResult> onSlotsSpin(long playerId, int gameType, int winTimes, boolean changeNode,
-                                                    SpinStatInfo statInfo, VisitTrialSpinPermit trialPermit) {
-        return simManager.onSlotsSpin(playerId, gameType, winTimes, changeNode, statInfo, trialPermit);
+                                                     SpinStatInfo statInfo, VisitTrialSpinPermit trialPermit, int enterType) {
+        return simManager.onSlotsSpin(playerId, gameType, winTimes, changeNode, statInfo, trialPermit, enterType);
     }
 
     @Override

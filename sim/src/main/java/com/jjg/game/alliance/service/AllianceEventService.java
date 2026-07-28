@@ -105,30 +105,6 @@ public class AllianceEventService implements ItemConsumeListener {
         simPackService.forwardPackItemsConsumed(playerId, items, addType);
     }
 
-    /**
-     * 上报"拥有型"计数条件的当前持有量 (12208 建筑 / 12212 雇员 / 12214 游客)。
-     * 只做一次 ctx 定位, 分档事件由 {@link SimConditionEventFactory#emitOwnershipCounts} 生成。
-     *
-     * @param type        BUILDING_COUNT / EMPLOYEE_COUNT / GUEST_COUNT
-     * @param subjectId   过滤维度 (0=无过滤; 雇员传职业 id)
-     * @param countByTier tier(等级/星级) -> 恰好处于该 tier 的持有数量
-     */
-    public void onOwnershipCounts(long playerId, ActionConditionEvent.Type type, int subjectId,
-                                  java.util.SortedMap<Integer, Long> countByTier) {
-        if (countByTier == null || countByTier.isEmpty()) {
-            return;
-        }
-        try {
-            SimPlayerContext ctx = simPlayerContextRegistry.getContext(playerId);
-            if (ctx != null) {
-                SimConditionEventFactory.emitOwnershipCounts(
-                        e -> simTaskService.onConditionEvent(ctx, e), type, subjectId, countByTier);
-            }
-        } catch (Exception e) {
-            log.error("sim 拥有型计数条件处理失败 playerId={},type={},subjectId={}", playerId, type, subjectId, e);
-        }
-    }
-
     public void onBuildingUpgrade(long playerId, int buildingId, int level) {
         onConditionEvent(playerId, new ActionConditionEvent(ActionConditionEvent.Type.BUILDING_UPGRADE,
                 buildingId, 0, 0, 1, 0, false));

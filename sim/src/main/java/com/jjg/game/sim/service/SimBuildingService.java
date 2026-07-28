@@ -21,6 +21,7 @@ import com.jjg.game.sim.data.SimCasinoData;
 import com.jjg.game.sim.data.SimOfflineReward;
 import com.jjg.game.sim.data.SimPlayerContext;
 import com.jjg.game.sim.listener.SimPlayerTickListener;
+import com.jjg.game.sim.listener.SimTaskStateReporter;
 import com.jjg.game.sim.pb.SimPbConverter;
 import com.jjg.game.sim.pb.res.*;
 import com.jjg.game.sim.pb.struct.OfflineReward;
@@ -31,6 +32,7 @@ import org.springframework.context.annotation.Lazy;
 import org.springframework.stereotype.Service;
 
 import java.util.*;
+import java.util.function.Consumer;
 
 /**
  * 建筑服务: 解锁、升级、CD 清除
@@ -39,7 +41,7 @@ import java.util.*;
  * @date 2026/5/28
  */
 @Service
-public class SimBuildingService implements SimPlayerTickListener {
+public class SimBuildingService implements SimPlayerTickListener, SimTaskStateReporter {
     private static final Logger log = LoggerFactory.getLogger(SimBuildingService.class);
 
     //初始等级 (解锁后)
@@ -65,6 +67,10 @@ public class SimBuildingService implements SimPlayerTickListener {
     @Autowired
     @Lazy
     private SimCasinoService simCasinoService;
+    //懒加载打破与 SimTaskService 的循环依赖 (对方持有本服务作状态补报口)
+    @Autowired
+    @Lazy
+    private SimTaskService simTaskService;
 
     @Override
     public void onTick(SimPlayerContext ctx, long now) {
@@ -887,8 +893,18 @@ public class SimBuildingService implements SimPlayerTickListener {
     /**
      * 上报当前场景各等级建筑的持有量, 推进 12208 "拥有 N 个 ≥X 级建筑"。
      * 内存仅驻留当前场景数据, 主线新手阶段玩家通常仅一座娱乐城, 故按当前场景统计。
+     * 直接用 ctx 投递: 登录期补报时 ctx 尚未入 registry, 走 playerId 查找会被丢弃。
      */
+    @Override
+    public void reportTaskState(SimPlayerContext ctx, Consumer<ActionConditionEvent> sink) {
+        reportBuildingCounts(ctx, sink);
+    }
+
     private void reportBuildingCounts(SimPlayerContext ctx) {
+        reportBuildingCounts(ctx, e -> simTaskService.onConditionEvent(ctx, e));
+    }
+
+    private void reportBuildingCounts(SimPlayerContext ctx, Consumer<ActionConditionEvent> sink) {
         SimCasinoData casino = ctx.getCurrentCasino();
         if (casino == null || casino.getBuildingData() == null || casino.getBuildingData().isEmpty()) {
             return;
@@ -897,7 +913,7 @@ public class SimBuildingService implements SimPlayerTickListener {
         for (BuildingData building : casino.getBuildingData().values()) {
             countByLevel.merge(building.getLevel(), 1L, Long::sum);
         }
-        allianceEventService.onOwnershipCounts(ctx.playerId(),
+        SimConditionEventFactory.emitOwnershipCounts(sink,
                 ActionConditionEvent.Type.BUILDING_COUNT, 0, countByLevel);
     }
 

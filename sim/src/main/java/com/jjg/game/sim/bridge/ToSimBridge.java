@@ -52,7 +52,7 @@ public interface ToSimBridge extends IGameRpc {
      * @return
      */
     CommonResult<SlotsSpinResult> onSlotsSpin(long playerId, int gameType, int winTimes, boolean changeNode,
-                                             SpinStatInfo statInfo, VisitTrialSpinPermit trialPermit);
+                                              SpinStatInfo statInfo, VisitTrialSpinPermit trialPermit, int enterType);
 
     /**
      * 发起赛季匹配，始终在玩家的 sim owner 节点执行。

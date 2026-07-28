@@ -92,6 +92,8 @@ public class SlotsPlayerGameData {
     //赛季运行态统一收口于此，包含入口类型、赛季币、宝石效果及每日免费局状态
     @Transient
     protected transient SeasonSlotsSessionData seasonSlotsSessionData;
+    @Transient
+    protected transient int enterType;
 
     public long getPlayerId() {
         if (playerId == 0) {
@@ -481,5 +483,13 @@ public class SlotsPlayerGameData {
 
     public void setSeasonCoinBalance(long seasonCoinBalance) {
         getSeasonSlotsSessionData().setSeasonCoin(seasonCoinBalance);
+    }
+
+    public int getEnterType() {
+        return enterType;
+    }
+
+    public void setEnterType(int enterType) {
+        this.enterType = enterType;
     }
 }

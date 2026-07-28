@@ -141,7 +141,9 @@ public class SimTaskConfigService implements ConfigExcelChangeListener {
         this.achievementGroups = Collections.unmodifiableMap(tmpGroups);
         this.nextIndex = Collections.unmodifiableMap(tmpNext);
         this.conditions = Collections.unmodifiableMap(tmpConditions);
-        log.info("加载 sim 任务链: 主线 {} 条, 成就组 {} 个", tmpMain.size(), tmpGroups.size());
+        //列出主线节点 id: 条件校验失败的节点会被上面的 continue 排除, 对比配置表即可发现缺了谁
+        log.info("加载 sim 任务链: 主线 {} 条, 成就组 {} 个, 主线节点={}",
+                tmpMain.size(), tmpGroups.size(), tmpMain);
     }
 
     /**

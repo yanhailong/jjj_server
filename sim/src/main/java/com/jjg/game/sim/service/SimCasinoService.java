@@ -3,6 +3,7 @@ package com.jjg.game.sim.service;
 import com.alibaba.fastjson.JSONObject;
 import com.jjg.game.alliance.service.AllianceCacheService;
 import com.jjg.game.alliance.service.AllianceHelpService;
+import com.jjg.game.core.base.condition.numeric.ActionConditionEvent;
 import com.jjg.game.core.constant.Code;
 import com.jjg.game.sampledata.GameDataManager;
 import com.jjg.game.sampledata.bean.*;
@@ -10,6 +11,7 @@ import com.jjg.game.sim.constant.BuildingOutputType;
 import com.jjg.game.sim.constant.SimConstant;
 import com.jjg.game.sim.dao.SimCasinoDao;
 import com.jjg.game.sim.data.*;
+import com.jjg.game.sim.listener.SimTaskStateReporter;
 import com.jjg.game.sim.pb.SimPbConverter;
 import com.jjg.game.sim.pb.res.ResSimCasinoInfo;
 import com.jjg.game.sim.pb.res.ResSwitchCasino;
@@ -23,13 +25,14 @@ import org.springframework.stereotype.Service;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.function.Consumer;
 
 /**
  * @author 11
  * @date 2026/5/28
  */
 @Service
-public class SimCasinoService {
+public class SimCasinoService implements SimTaskStateReporter {
 
     private final Logger log = LoggerFactory.getLogger(SimCasinoService.class);
 
@@ -431,17 +434,26 @@ public class SimCasinoService {
      * 上报当前已研发游戏数 (任务条件 12216): 研究院等级快照是游戏解锁判定的数据源, 快照变化即研发进度变化。
      * <p>
      * 上报总数而非增量, 条件按 SET 覆盖进度, 重复上报幂等; 登录期场景数据先于任务数据加载, 那时的上报会被
-     * 任务侧忽略, 故 SimManager 在任务数据就绪后补报一次。这里直接用 ctx 投递, 不走 AllianceEventService
-     * 的 registry 查找 (登录期 ctx 尚未入 registry)。
+     * 任务侧忽略, 故 SimTaskService 在任务数据就绪后作为 {@link SimTaskStateReporter} 补报一次。
+     * 这里直接用 ctx 投递, 不走 AllianceEventService 的 registry 查找 (登录期 ctx 尚未入 registry)。
      */
+    @Override
+    public void reportTaskState(SimPlayerContext ctx, Consumer<ActionConditionEvent> sink) {
+        reportResearchedGames(ctx, sink);
+    }
+
     public void reportResearchedGames(SimPlayerContext ctx) {
+        reportResearchedGames(ctx, e -> simTaskService.onConditionEvent(ctx, e));
+    }
+
+    private void reportResearchedGames(SimPlayerContext ctx, Consumer<ActionConditionEvent> sink) {
         SimCasinoUnlock casinoUnlock = ctx.getCasinoUnlock();
         if (casinoUnlock == null) {
             return;
         }
         int researched = configCacheService.findUnlockedGames(casinoUnlock.getResearchLevelMap()).size();
         if (researched > 0) {
-            simTaskService.onConditionEvent(ctx, SimConditionEventFactory.gameResearched(researched));
+            sink.accept(SimConditionEventFactory.gameResearched(researched));
         }
     }
 

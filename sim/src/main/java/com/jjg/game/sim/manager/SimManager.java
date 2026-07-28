@@ -228,8 +228,8 @@ public class SimManager {
             res.power = ctx.getSimBaseData().getPower();
 
             ItemCfg itemCfg = simConfigCacheService.getResearchPointItemCfg(0);
-            if(itemCfg != null){
-                res.researchPoint = (int)playerPackService.getItemCount(ctx.playerId(), itemCfg.getId());
+            if (itemCfg != null) {
+                res.researchPoint = (int) playerPackService.getItemCount(ctx.playerId(), itemCfg.getId());
             }
 
             //已生成待领奖的购买游客 (断线重连补发, 客户端凭 uid 领奖)
@@ -352,12 +352,16 @@ public class SimManager {
         return guideService.finish(simPlayerContextRegistry.getContext(playerId), guideId);
     }
 
-    /** GM 强制完成指定引导步骤，不要求所属组已经触发。 */
+    /**
+     * GM 强制完成指定引导步骤，不要求所属组已经触发。
+     */
     public int onGmFinishGuides(long playerId, Collection<Integer> guideIds) {
         return guideService.forceFinishGuides(simPlayerContextRegistry.getContext(playerId), guideIds);
     }
 
-    /** GM 强制完成全部引导。 */
+    /**
+     * GM 强制完成全部引导。
+     */
     public int onGmFinishAllGuides(long playerId) {
         return guideService.forceFinishAll(simPlayerContextRegistry.getContext(playerId));
     }
@@ -593,9 +597,13 @@ public class SimManager {
     }
 
     public CommonResult<SlotsSpinResult> onSlotsSpin(long playerId, int gameType, int winTimes, boolean changeNode,
-                                                     SpinStatInfo statInfo, VisitTrialSpinPermit trialPermit) {
+                                                     SpinStatInfo statInfo, VisitTrialSpinPermit trialPermit,
+                                                     int enterType) {
         try {
-            log.warn("playerId={},gameType={},winTimes={},statInfo={},trialPermit={}", playerId, gameType, winTimes, statInfo != null ? JSONObject.toJSONString(statInfo) : "null", trialPermit != null ? JSONObject.toJSONString(trialPermit) : "null");
+            log.warn("playerId={},gameType={},winTimes={},enterType={},statInfo={},trialPermit={}",
+                    playerId, gameType, winTimes, enterType,
+                    statInfo != null ? JSONObject.toJSONString(statInfo) : "null",
+                    trialPermit != null ? JSONObject.toJSONString(trialPermit) : "null");
             SimPlayerContext ctx = this.simPlayerContextRegistry.getContext(playerId);
             if (ctx == null) {
                 if (changeNode) {
@@ -618,14 +626,15 @@ public class SimManager {
 
             boolean visitTrial = trialPermit != null && trialPermit.isTrial();
             boolean freeMode = statInfo != null && statInfo.isFreeMode();
-            int spinCostPower = freeMode ? 0 : SimConstant.Common.SPIN_COST_POWER;
+            //免费模式 / 赛季入口: 不消耗体力 (与 SimDropService 扣能逻辑一致)
+            int spinCostPower = (freeMode || enterType > 0) ? 0 : SimConstant.Common.SPIN_COST_POWER;
             //普通旋转沿用原语义：即使掉落失败也计入统计。试玩需要先通过 permit 幂等结算，避免 RPC 重试重复计数。
             if (!visitTrial) {
                 simStatsService.recordSpin(ctx.getSimBaseData(), gameType, statInfo);
             }
             CommonResult<SlotsSpinResult> result = visitTrial
                     ? simVisitService.settleTrialSpin(ctx, gameType, statInfo, trialPermit)
-                    : simDropService.onSpin(ctx, gameType, winTimes, freeMode);
+                    : simDropService.onSpin(ctx, gameType, winTimes, freeMode, enterType);
             //须在掉落结算后构造: 本次到账的道具要计入 itemGains, 12202 等按道具计数的条件才能推进
             GameConditionEvent conditionEvent = SimConditionEventFactory.fromSpin(
                     gameType, winTimes, spinCostPower, statInfo,

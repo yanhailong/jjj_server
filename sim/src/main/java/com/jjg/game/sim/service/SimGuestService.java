@@ -20,6 +20,7 @@ import com.jjg.game.sampledata.bean.*;
 import com.jjg.game.sim.constant.SimConstant;
 import com.jjg.game.sim.data.*;
 import com.jjg.game.sim.listener.SimPlayerTickListener;
+import com.jjg.game.sim.listener.SimTaskStateReporter;
 import com.jjg.game.sim.manager.SimPlayerContextRegistry;
 import com.jjg.game.sim.pb.SimPbConverter;
 import com.jjg.game.sim.pb.res.*;
@@ -30,9 +31,11 @@ import com.jjg.game.sim.pb.struct.RecruitItemInfo;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.context.annotation.Lazy;
 import org.springframework.stereotype.Service;
 
 import java.util.*;
+import java.util.function.Consumer;
 
 /**
  * 游客生成、解锁
@@ -41,7 +44,7 @@ import java.util.*;
  * @date 2026/5/26
  */
 @Service
-public class SimGuestService implements SimPlayerTickListener, ItemListener {
+public class SimGuestService implements SimPlayerTickListener, ItemListener, SimTaskStateReporter {
     private static final Logger log = LoggerFactory.getLogger(SimGuestService.class);
 
     //购买游客 uid 生成器
@@ -57,6 +60,10 @@ public class SimGuestService implements SimPlayerTickListener, ItemListener {
     private SimPlayerContextRegistry simPlayerContextRegistry;
     @Autowired
     private AllianceEventService allianceEventService;
+    //懒加载打破与 SimTaskService 的循环依赖 (对方持有本服务作状态补报口)
+    @Autowired
+    @Lazy
+    private SimTaskService simTaskService;
 
     @Override
     public void onTick(SimPlayerContext ctx, long now) {
@@ -734,9 +741,9 @@ public class SimGuestService implements SimPlayerTickListener, ItemListener {
                 return;
             }
 
-            boolean remove = playerPackService.removeItem(ctx.getPlayer(), visitorQuestCfg.getDuplicatetoShard().get(1), cfg.getAscend(), AddType.SIM_GUEST_STAR_UP).success();
-            if (!remove) {
-                log.warn("升星游客失败,扣除道具失败 playerId={},guestId={}", ctx.playerId(), guestId);
+            CommonResult<ItemOperationResult> commonResult = playerPackService.removeItem(ctx.getPlayer(), visitorQuestCfg.getDuplicatetoShard().get(1), cfg.getAscend(), AddType.SIM_GUEST_STAR_UP);
+            if (!commonResult.success()) {
+                log.warn("升星游客失败,扣除道具失败 playerId={},guestId={},itemId={},count={},cfgId={},code={}", ctx.playerId(), guestId, visitorQuestCfg.getDuplicatetoShard().get(1), cfg.getAscend(), cfg.getId(), commonResult.code);
                 res.code = Code.NOT_FOUND;
                 ctx.send(res);
                 return;
@@ -938,8 +945,18 @@ public class SimGuestService implements SimPlayerTickListener, ItemListener {
     /**
      * 上报当前场景各星级游客的持有量, 推进 12214 "拥有 N 个 X 星游客" (X 星按 ≥ 阈值判定)。
      * 内存仅驻留当前场景, 主线新手阶段玩家通常仅一座娱乐城, 故按当前场景统计。
+     * 直接用 ctx 投递: 登录期补报时 ctx 尚未入 registry, 走 playerId 查找会被丢弃。
      */
+    @Override
+    public void reportTaskState(SimPlayerContext ctx, Consumer<ActionConditionEvent> sink) {
+        reportGuestCounts(ctx, sink);
+    }
+
     private void reportGuestCounts(SimPlayerContext ctx) {
+        reportGuestCounts(ctx, e -> simTaskService.onConditionEvent(ctx, e));
+    }
+
+    private void reportGuestCounts(SimPlayerContext ctx, Consumer<ActionConditionEvent> sink) {
         SimCasinoData casino = ctx.getCurrentCasino();
         if (casino == null || casino.getGuestMap() == null || casino.getGuestMap().isEmpty()) {
             return;
@@ -948,7 +965,7 @@ public class SimGuestService implements SimPlayerTickListener, ItemListener {
         for (GuestData guest : casino.getGuestMap().values()) {
             countByStar.merge(guest.getStar(), 1L, Long::sum);
         }
-        allianceEventService.onOwnershipCounts(ctx.playerId(),
+        SimConditionEventFactory.emitOwnershipCounts(sink,
                 ActionConditionEvent.Type.GUEST_COUNT, 0, countByStar);
     }
 
