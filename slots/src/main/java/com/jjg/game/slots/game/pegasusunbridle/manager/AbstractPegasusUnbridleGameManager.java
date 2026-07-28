@@ -39,6 +39,7 @@ public abstract class AbstractPegasusUnbridleGameManager extends AbstractSlotsGa
     public AbstractPegasusUnbridleGameManager(PegasusUnbridleGameGenerateManager gameGenerateManager,
                                               PegasusUnbridleResultLibDao PegasusUnbridleResultLibDao) {
         super(PegasusUnbridlePlayerGameData.class, PegasusUnbridleResultLib.class, PegasusUnbridleGameRunInfo.class);
+        registerFreeStatus(PegasusUnbridleConstant.Status.REAL_FU_MA);
         this.gameGenerateManager = gameGenerateManager;
         this.PegasusUnbridleResultLibDao = PegasusUnbridleResultLibDao;
     }

@@ -37,6 +37,7 @@ public abstract class AbstractTenFoldGoldenBullGameManager extends AbstractSlots
 
     public AbstractTenFoldGoldenBullGameManager(TenFoldGoldenBullGameGenerateManager gameGenerateManager,TenFoldGoldenBullResultLibDao TenFoldGoldenBullResultLibDao) {
         super(TenFoldGoldenBullPlayerGameData.class, TenFoldGoldenBullResultLib.class, TenFoldGoldenBullGameRunInfo.class);
+        registerFreeStatus(TenFoldGoldenBullConstant.Status.REAL_LUCKY_BULL);
         this.gameGenerateManager = gameGenerateManager;
         this.TenFoldGoldenBullResultLibDao = TenFoldGoldenBullResultLibDao;
     }

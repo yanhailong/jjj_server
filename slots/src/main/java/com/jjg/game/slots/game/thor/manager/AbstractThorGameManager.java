@@ -49,8 +49,9 @@ public abstract class AbstractThorGameManager extends AbstractSlotsGameManager<T
 
     @Override
     protected void resetFreeStateIfInvalid(ThorPlayerGameData gameData, int freeStatus, int normalStatus, String gameName) {
+        registerFreeStatus(freeStatus);
         AtomicInteger remainFreeCount = gameData.getRemainFreeCount();
-        if (gameData.getStatus() == freeStatus && !gameData.isFreeStart()
+        if (isFreeMode(gameData, freeStatus) && !gameData.isFreeStart()
                 && (gameData.getFreeLib() == null || remainFreeCount == null || remainFreeCount.get() <= 0)) {
             gameData.setStatus(normalStatus);
             resetFreeState(gameData);

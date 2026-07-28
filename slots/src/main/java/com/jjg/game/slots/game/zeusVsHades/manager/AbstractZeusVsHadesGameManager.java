@@ -37,6 +37,8 @@ public class AbstractZeusVsHadesGameManager extends AbstractSlotsGameManager<Zeu
 
     public AbstractZeusVsHadesGameManager() {
         super(ZeusVsHadesPlayerGameData.class, ZeusVsHadesResultLib.class, ZeusVsHadesGameRunInfo.class);
+        registerFreeStatus(ZeusVsHadesConstant.Status.ZEUS);
+        registerFreeStatus(ZeusVsHadesConstant.Status.HADES);
         this.log = LoggerFactory.getLogger(getClass());
     }
 

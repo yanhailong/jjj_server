@@ -38,6 +38,7 @@ public abstract class AbstractTigerBringsRichesGameManager extends AbstractSlots
     public AbstractTigerBringsRichesGameManager(TigerBringsRichesGameGenerateManager gameGenerateManager,
                                                 TigerBringsRichesResultLibDao TigerBringsRichesResultLibDao) {
         super(TigerBringsRichesPlayerGameData.class, TigerBringsRichesResultLib.class, TigerBringsRichesGameRunInfo.class);
+        registerFreeStatus(TigerBringsRichesConstant.Status.REAL_TIGER_BRINGS_RICHES);
         this.gameGenerateManager = gameGenerateManager;
         this.TigerBringsRichesResultLibDao = TigerBringsRichesResultLibDao;
     }

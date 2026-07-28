@@ -128,6 +128,8 @@ public abstract class AbstractSlotsGameManager<T extends SlotsPlayerGameData, L 
 
     //游戏类型
     protected int gameType;
+    //当前游戏所有免费状态；由 resetFreeStateIfInvalid 的 freeStatus 入参统一登记
+    private final Set<Integer> freeStatusSet = ConcurrentHashMap.newKeySet();
 
     //playerId -> gameData
     protected Map<Long, T> gameDataMap = new ConcurrentHashMap<>();
@@ -366,12 +368,30 @@ public abstract class AbstractSlotsGameManager<T extends SlotsPlayerGameData, L 
     }
 
     protected void resetFreeStateIfInvalid(T gameData, int freeStatus, int normalStatus, String gameName) {
+        registerFreeStatus(freeStatus);
         AtomicInteger remainFreeCount = gameData.getRemainFreeCount();
-        if (gameData.getStatus() == freeStatus && (gameData.getFreeLib() == null || remainFreeCount == null || remainFreeCount.get() <= 0)) {
+        if (isFreeMode(gameData, freeStatus) && (gameData.getFreeLib() == null || remainFreeCount == null || remainFreeCount.get() <= 0)) {
             gameData.setStatus(normalStatus);
             resetFreeState(gameData);
             log.info("{}玩家状态异常，重置为正常状态,状态为{}, playerId = {}", gameName, gameData.getStatus(), gameData.getPlayerId());
         }
+    }
+
+    protected void registerFreeStatus(int freeStatus) {
+        freeStatusSet.add(freeStatus);
+    }
+
+    protected boolean isFreeMode(T gameData, int freeStatus) {
+        return gameData != null && gameData.getStatus() == freeStatus;
+    }
+
+    protected boolean isFreeMode(T gameData) {
+        for (int freeStatus : freeStatusSet) {
+            if (isFreeMode(gameData, freeStatus)) {
+                return true;
+            }
+        }
+        return false;
     }
 
     public G playerStartGame(PlayerController playerController, long betValue) throws Exception {
@@ -403,7 +423,7 @@ public abstract class AbstractSlotsGameManager<T extends SlotsPlayerGameData, L 
         }
         //免费模式和协作任务特殊模式触发检测都需要旋转前的状态
         int statusBefore = playerGameData.getStatus();
-        boolean freeMode = statusBefore != SlotsConst.Status.NORMAL;
+        boolean freeMode = isFreeMode(playerGameData);
         CommonResult<VisitTrialSpinPermit> permitResult = slotsRPCLinkManager.prepareVisitTrialSpin(
                 playerGameData, getGameType(), freeMode);
         if (permitResult == null || !permitResult.success()) {
