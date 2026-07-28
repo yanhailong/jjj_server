@@ -239,8 +239,8 @@ public class HallRPCController extends CoreRPCController implements GmToHallBrid
 
     @Override
     @RpcCallSetting(processorModKey = "#arg0")
-    public CommonResult<VisitTrialSpinPermit> prepareVisitTrialSpin(long playerId, int gameType) {
-        return simManager.prepareVisitTrialSpin(playerId, gameType);
+    public CommonResult<VisitTrialSpinPermit> prepareVisitTrialSpin(long playerId, int gameType, boolean freeMode) {
+        return simManager.prepareVisitTrialSpin(playerId, gameType, freeMode);
     }
 
     @Override

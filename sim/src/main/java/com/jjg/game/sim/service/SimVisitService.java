@@ -468,7 +468,8 @@ public class SimVisitService {
     /**
      * 仅客座赌局在 slots 出结果前同步调用；普通旋转直接返回 trial=false。
      */
-    public CommonResult<VisitTrialSpinPermit> prepareTrialSpin(SimPlayerContext ctx, int gameType) {
+    public CommonResult<VisitTrialSpinPermit> prepareTrialSpin(SimPlayerContext ctx, int gameType,
+                                                               boolean freeMode) {
         VisitTrialSpinPermit permit = new VisitTrialSpinPermit();
         SimVisitTrialSession session = quotaService.getTrialSession(ctx.playerId());
         if (session == null) {
@@ -478,7 +479,7 @@ public class SimVisitService {
             return new CommonResult<>(Code.EXPIRE, permit);
         }
         SimBaseData base = ctx.getSimBaseData();
-        if (base == null || base.getPower() <= 0) {
+        if (base == null || (!freeMode && base.getPower() <= 0)) {
             return new CommonResult<>(Code.NOT_ENOUGH, permit);
         }
         int remaining = quotaService.consume(SimVisitConstant.QuotaType.TRIAL,
@@ -486,13 +487,17 @@ public class SimVisitService {
         if (remaining < 0) {
             return new CommonResult<>(Code.FORBID, permit);
         }
-        base.setPower(base.getPower() - 1);
+        if (!freeMode) {
+            base.setPower(base.getPower() - 1);
+        }
         String permitId = String.valueOf(snowflakeManager.nextId());
         try {
             quotaService.savePendingPermit(ctx.playerId(), permitId,
                     configService.getTrialSessionSeconds());
         } catch (Exception e) {
-            base.setPower(base.getPower() + 1);
+            if (!freeMode) {
+                base.setPower(base.getPower() + 1);
+            }
             quotaService.rollback(SimVisitConstant.QuotaType.TRIAL, ctx.playerId(), 1);
             log.error("保存试玩旋转许可失败 playerId={}", ctx.playerId(), e);
             return new CommonResult<>(Code.EXCEPTION, permit);
@@ -503,6 +508,7 @@ public class SimVisitService {
         permit.setCasinoId(session.getCasinoId());
         permit.setRemainingCount(remaining);
         permit.setPower(base.getPower());
+        permit.setFreeMode(freeMode);
         return new CommonResult<>(Code.SUCCESS, permit);
     }
 
@@ -515,7 +521,7 @@ public class SimVisitService {
             return false;
         }
         SimBaseData base = ctx.getSimBaseData();
-        if (base != null) {
+        if (base != null && !permit.isFreeMode()) {
             base.setPower(base.getPower() + 1);
         }
         quotaService.rollback(SimVisitConstant.QuotaType.TRIAL, ctx.playerId(), 1);

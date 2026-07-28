@@ -401,10 +401,11 @@ public abstract class AbstractSlotsGameManager<T extends SlotsPlayerGameData, L 
         if (coopCode != Code.SUCCESS) {
             return createGameRunInfo(playerController.playerId(), coopCode);
         }
-        //协作任务特殊模式触发检测需要旋转前的状态
-        int coopStatusBefore = playerGameData.getStatus();
+        //免费模式和协作任务特殊模式触发检测都需要旋转前的状态
+        int statusBefore = playerGameData.getStatus();
+        boolean freeMode = statusBefore != SlotsConst.Status.NORMAL;
         CommonResult<VisitTrialSpinPermit> permitResult = slotsRPCLinkManager.prepareVisitTrialSpin(
-                playerGameData, getGameType());
+                playerGameData, getGameType(), freeMode);
         if (permitResult == null || !permitResult.success()) {
             int code = permitResult == null ? Code.EXCEPTION : permitResult.code;
             return createGameRunInfo(playerController.playerId(), code);
@@ -420,9 +421,9 @@ public abstract class AbstractSlotsGameManager<T extends SlotsPlayerGameData, L 
         //公共: 旋转成功后通知 sim 联动 (扣能量/加经验/赌场升级/道具掉落), winTimes 取各游戏写入的 allWinTimes
         if (gameRunInfo != null && gameRunInfo.success()) {
             slotsRPCLinkManager.notifySpin(playerGameData, getGameType(), gameRunInfo.getAllWinTimes(),
-                    buildSpinStatInfo(gameRunInfo), trialPermit);
+                    buildSpinStatInfo(gameRunInfo, freeMode), trialPermit);
             //协作任务联动: 扣血/共享事件累计/成败判定 (内部吞异常, 不影响旋转主流程)
-            coopRoomManager.onSpin(playerController.playerId(), getGameType(), coopStatusBefore, gameRunInfo);
+            coopRoomManager.onSpin(playerController.playerId(), getGameType(), statusBefore, gameRunInfo);
         } else {
             slotsRPCLinkManager.cancelVisitTrialSpin(playerGameData, trialPermit);
         }
@@ -432,8 +433,9 @@ public abstract class AbstractSlotsGameManager<T extends SlotsPlayerGameData, L 
     /**
      * 由本次旋转结果构建上报 sim 的统计明细 (经营信息 SPINE游戏面板)
      */
-    private SpinStatInfo buildSpinStatInfo(G gameRunInfo) {
+    private SpinStatInfo buildSpinStatInfo(G gameRunInfo, boolean freeMode) {
         SpinStatInfo statInfo = new SpinStatInfo();
+        statInfo.setFreeMode(freeMode);
         statInfo.setBet(gameRunInfo.getStake());
         statInfo.setWin(gameRunInfo.getAllWinGold());
         statInfo.setMultiple(gameRunInfo.getAllWinTimes());

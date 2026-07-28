@@ -31,6 +31,8 @@ public class SpinStatInfo {
     private List<Integer> icons;
     //本次旋转的幂等 id (slots 侧生成, 非 0; sim 侧凭此拒绝超时重试的重复投递)
     private long spinId;
+    //本次旋转是否处于免费模式
+    private boolean freeMode;
 
     public SpinStatInfo() {
     }
@@ -105,5 +107,13 @@ public class SpinStatInfo {
 
     public void setSpinId(long spinId) {
         this.spinId = spinId;
+    }
+
+    public boolean isFreeMode() {
+        return freeMode;
+    }
+
+    public void setFreeMode(boolean freeMode) {
+        this.freeMode = freeMode;
     }
 }

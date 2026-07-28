@@ -617,16 +617,18 @@ public class SimManager {
             }
 
             boolean visitTrial = trialPermit != null && trialPermit.isTrial();
+            boolean freeMode = statInfo != null && statInfo.isFreeMode();
+            int spinCostPower = freeMode ? 0 : SimConstant.Common.SPIN_COST_POWER;
             //普通旋转沿用原语义：即使掉落失败也计入统计。试玩需要先通过 permit 幂等结算，避免 RPC 重试重复计数。
             if (!visitTrial) {
                 simStatsService.recordSpin(ctx.getSimBaseData(), gameType, statInfo);
             }
             CommonResult<SlotsSpinResult> result = visitTrial
                     ? simVisitService.settleTrialSpin(ctx, gameType, statInfo, trialPermit)
-                    : simDropService.onSpin(ctx, gameType, winTimes);
+                    : simDropService.onSpin(ctx, gameType, winTimes, freeMode);
             //须在掉落结算后构造: 本次到账的道具要计入 itemGains, 12202 等按道具计数的条件才能推进
             GameConditionEvent conditionEvent = SimConditionEventFactory.fromSpin(
-                    gameType, winTimes, SimConstant.Common.SPIN_COST_POWER, statInfo,
+                    gameType, winTimes, spinCostPower, statInfo,
                     result.data == null ? null : result.data.getItemsMap());
             if (!result.success()) {
                 log.warn("slots 联动失败, onSpin执行失败 playerId={},gameType={},winTimes={},code={}", playerId, gameType, winTimes, result.code);
@@ -640,7 +642,7 @@ public class SimManager {
 
             //真实旋转已发生: 体力不足/掉落失败都不影响下面的进度推进, 任务只认旋转本身这一事实
             //联盟联动: 消耗体力/中奖倍数 -> 任务进度 + 对决积分掉落 (内部吞异常, 不影响主流程)
-            allianceEventService.onSpin(playerId, SimConstant.Common.SPIN_COST_POWER, conditionEvent);
+            allianceEventService.onSpin(playerId, spinCostPower, conditionEvent);
 
             //主线/成就任务联动: 旋转次数 + 累积投注 (内部吞异常, 不影响主流程)
             simTaskService.onConditionEvent(ctx, conditionEvent);
@@ -772,7 +774,7 @@ public class SimManager {
         }
     }
 
-    public CommonResult<VisitTrialSpinPermit> prepareVisitTrialSpin(long playerId, int gameType) {
+    public CommonResult<VisitTrialSpinPermit> prepareVisitTrialSpin(long playerId, int gameType, boolean freeMode) {
         try {
             SimPlayerContext ctx = this.simPlayerContextRegistry.getContext(playerId);
             if (ctx == null) {
@@ -781,7 +783,7 @@ public class SimManager {
             if (ctx == null) {
                 return new CommonResult<>(Code.NOT_FOUND);
             }
-            return simVisitService.prepareTrialSpin(ctx, gameType);
+            return simVisitService.prepareTrialSpin(ctx, gameType, freeMode);
         } catch (Exception e) {
             log.error("准备客座赌局旋转失败 playerId={},gameType={}", playerId, gameType, e);
             return new CommonResult<>(Code.EXCEPTION);

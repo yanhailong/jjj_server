@@ -100,7 +100,7 @@ public interface ToSimBridge extends IGameRpc {
     /**
      * 客座赌局每次旋转前授权；普通旋转由 slots 本地直接跳过该 RPC。
      */
-    CommonResult<VisitTrialSpinPermit> prepareVisitTrialSpin(long playerId, int gameType);
+    CommonResult<VisitTrialSpinPermit> prepareVisitTrialSpin(long playerId, int gameType, boolean freeMode);
 
     /**
      * slots 生成结果失败时退回试玩次数和能量。

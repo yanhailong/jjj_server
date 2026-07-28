@@ -272,7 +272,7 @@ public class SlotsRPCLinkManager {
      * 普通旋转不发 RPC；只有进入 slots 时绑定了客座会话才同步向 sim 申请许可。
      */
     public CommonResult<VisitTrialSpinPermit> prepareVisitTrialSpin(SlotsPlayerGameData playerGameData,
-                                                                    int gameType) {
+                                                                    int gameType, boolean freeMode) {
         VisitTrialSpinPermit normal = new VisitTrialSpinPermit();
         if (playerGameData.getVisitOwnerId() <= 0) {
             return new CommonResult<>(Code.SUCCESS, normal);
@@ -287,7 +287,7 @@ public class SlotsRPCLinkManager {
             rpcContext.withReqParameterBuilder(RpcReqParameterBuilder.create()
                     .addClusterClient(client).setTryMillisPerClient(1000));
             CommonResult<VisitTrialSpinPermit> result = toSimBridge.prepareVisitTrialSpin(
-                    playerGameData.getPlayerId(), gameType);
+                    playerGameData.getPlayerId(), gameType, freeMode);
             if (result == null) {
                 return new CommonResult<>(Code.EXCEPTION, normal);
             }

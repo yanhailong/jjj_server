@@ -45,8 +45,10 @@ public class SimDropService {
      * @param ctx      玩家 sim 上下文
      * @param gameType slots 游戏类型 (如 SuperStar=100300)
      * @param winTimes 本次中奖倍数 (allWinGold / allBetScore)
+     * @param freeMode 是否处于免费模式
      */
-    public CommonResult<SlotsSpinResult> onSpin(SimPlayerContext ctx, int gameType, int winTimes) {
+    public CommonResult<SlotsSpinResult> onSpin(SimPlayerContext ctx, int gameType, int winTimes,
+                                                boolean freeMode) {
         CommonResult<SlotsSpinResult> result = new CommonResult<>(Code.SUCCESS);
 
         SimBaseData base = ctx.getSimBaseData();
@@ -57,21 +59,23 @@ public class SimDropService {
             return result;
         }
 
-        //扣能量: 不足则跳过本次掉落联动 (不影响 slots 旋转本身)
-        if (base.getPower() < SimConstant.Common.SPIN_COST_POWER) {
-            guideService.triggerItemNotEnough(ctx, SimConstant.Item.ID_POWER);
-            log.info("能量不足, 跳过 slots 掉落联动 playerId={},gameType={},power={}", ctx.playerId(), gameType, base.getPower());
-            result.code = Code.FAIL;
-            return result;
-        }
-        base.setPower(base.getPower() - SimConstant.Common.SPIN_COST_POWER);
-        //加经验
-        casino.setExp(casino.getExp() + SimConstant.Common.SPIN_ADD_EXP);
-        //升级检查
-        if (checkLevelUp(casino)) {
-            ctx.getSimBaseData().addAllLevel(1);
-            guideService.trigger(ctx, SimConstant.GuideCondition.CASINO_LEVEL,
-                    casino.getCasinoLevel(), true);
+        if (!freeMode) {
+            //扣能量: 不足则跳过本次掉落联动 (不影响 slots 旋转本身)
+            if (base.getPower() < SimConstant.Common.SPIN_COST_POWER) {
+                guideService.triggerItemNotEnough(ctx, SimConstant.Item.ID_POWER);
+                log.info("能量不足, 跳过 slots 掉落联动 playerId={},gameType={},power={}", ctx.playerId(), gameType, base.getPower());
+                result.code = Code.FAIL;
+                return result;
+            }
+            base.setPower(base.getPower() - SimConstant.Common.SPIN_COST_POWER);
+            //加经验
+            casino.setExp(casino.getExp() + SimConstant.Common.SPIN_ADD_EXP);
+            //升级检查
+            if (checkLevelUp(casino)) {
+                ctx.getSimBaseData().addAllLevel(1);
+                guideService.trigger(ctx, SimConstant.GuideCondition.CASINO_LEVEL,
+                        casino.getCasinoLevel(), true);
+            }
         }
         //掉落
         Map<Integer, Long> dropResult = rollDrop(base, gameType, winTimes);
