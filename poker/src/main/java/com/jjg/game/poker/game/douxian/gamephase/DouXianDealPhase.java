@@ -5,6 +5,7 @@ import com.jjg.game.poker.game.common.data.PlayerSeatInfo;
 import com.jjg.game.poker.game.common.gamephase.BasePokerPhase;
 import com.jjg.game.poker.game.douxian.constant.DouXianConstant;
 import com.jjg.game.poker.game.douxian.constant.DouXianZone;
+import com.jjg.game.poker.game.douxian.data.DouXianBuilder;
 import com.jjg.game.poker.game.douxian.data.DouXianDataHelper;
 import com.jjg.game.poker.game.douxian.data.DouXianZoneCards;
 import com.jjg.game.poker.game.douxian.message.resp.NotifyDouXianDealCards;
@@ -95,6 +96,9 @@ public class DouXianDealPhase extends BasePokerPhase<DouXianGameDataVo> {
             notify.handCardNum = hand.size();
             notify.openZoneIds = openZoneIds;
             notify.overTime = overTime;
+            notify.selfHandCardIds = DouXianDataHelper.getClientCardIds(gameDataVo, hand);
+            notify.selfZonePlacements = DouXianBuilder.buildZonePlacements(playerId, gameDataVo, true);
+            notify.hasSelfSnapshot = true;
             broadcastBuilderToRoom(RoomMessageBuilder.newBuilder().sendPlayer(playerId, notify));
 
             log.info("斗仙牌发牌 round:{} playerId:{} 本次新到:{} 手牌共{}张:{}",

@@ -25,4 +25,6 @@ public class DouXianZonePlacementInfo {
     public boolean locked;
     @ProtoDesc("牌型多语言id(来自ImmortalHand.xlsx)")
     public int handTypeNameId;
+    @ProtoDesc("区域内由飞升带来的锁定牌(客户端牌id)，用于区分同一区域中的锁定牌和本回合新牌")
+    public List<Integer> lockedCardIds;
 }

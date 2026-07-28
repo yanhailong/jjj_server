@@ -382,7 +382,15 @@ public class DouXianGameController extends BasePokerGameController<DouXianGameDa
         NotifyDouXianPlaceCardResult notify = new NotifyDouXianPlaceCardResult();
         notify.code = code;
         notify.playerId = playerId;
+        notify.selfHandCardIds = getSelfHandCardIds(playerId);
+        notify.selfZonePlacements = DouXianBuilder.buildZonePlacements(playerId, gameDataVo, true);
+        notify.hasSelfSnapshot = true;
         broadcastToPlayers(RoomMessageBuilder.newBuilder().sendPlayer(playerId, notify));
+    }
+
+    private List<Integer> getSelfHandCardIds(long playerId) {
+        return DouXianDataHelper.getClientCardIds(gameDataVo,
+                gameDataVo.getHandCards().getOrDefault(playerId, List.of()));
     }
 
     /**
@@ -396,6 +404,9 @@ public class DouXianGameController extends BasePokerGameController<DouXianGameDa
         selfNotify.placement = DouXianBuilder.buildZonePlacements(playerId, gameDataVo, true).stream()
                 .filter(p -> p.zoneId == zone.getId()).findFirst().orElse(null);
         selfNotify.remainHandCardNum = remainHandCardNum;
+        selfNotify.selfHandCardIds = getSelfHandCardIds(playerId);
+        selfNotify.selfZonePlacements = DouXianBuilder.buildZonePlacements(playerId, gameDataVo, true);
+        selfNotify.hasSelfSnapshot = true;
         broadcastToPlayers(RoomMessageBuilder.newBuilder().sendPlayer(playerId, selfNotify));
 
         NotifyDouXianPlaceCardResult othersNotify = new NotifyDouXianPlaceCardResult();
@@ -587,6 +598,8 @@ public class DouXianGameController extends BasePokerGameController<DouXianGameDa
                     NotifyDouXianDiscardResult error = new NotifyDouXianDiscardResult();
                     error.code = Code.PARAM_ERROR;
                     error.playerId = playerId;
+                    error.selfHandCardIds = getSelfHandCardIds(playerId);
+                    error.hasSelfSnapshot = true;
                     broadcastToPlayers(RoomMessageBuilder.newBuilder().sendPlayer(playerId, error));
                     return;
                 }
@@ -631,12 +644,22 @@ public class DouXianGameController extends BasePokerGameController<DouXianGameDa
     }
 
     private void broadcastDiscardResult(long playerId, boolean noDiscard, int discardCount) {
-        NotifyDouXianDiscardResult notify = new NotifyDouXianDiscardResult();
-        notify.playerId = playerId;
-        notify.noDiscard = noDiscard;
-        notify.discardCount = discardCount;
-        notify.allDiscarded = isAllActiveDiscarded();
-        broadcastToPlayers(RoomMessageBuilder.newBuilder().toAllPlayer().setData(notify));
+        boolean allDiscarded = isAllActiveDiscarded();
+        NotifyDouXianDiscardResult selfNotify = new NotifyDouXianDiscardResult();
+        selfNotify.playerId = playerId;
+        selfNotify.noDiscard = noDiscard;
+        selfNotify.discardCount = discardCount;
+        selfNotify.allDiscarded = allDiscarded;
+        selfNotify.selfHandCardIds = getSelfHandCardIds(playerId);
+        selfNotify.hasSelfSnapshot = true;
+        broadcastToPlayers(RoomMessageBuilder.newBuilder().sendPlayer(playerId, selfNotify));
+
+        NotifyDouXianDiscardResult othersNotify = new NotifyDouXianDiscardResult();
+        othersNotify.playerId = playerId;
+        othersNotify.noDiscard = noDiscard;
+        othersNotify.discardCount = discardCount;
+        othersNotify.allDiscarded = allDiscarded;
+        broadcastToPlayers(RoomMessageBuilder.newBuilder().toAllPlayer().exceptPlayer(playerId).setData(othersNotify));
     }
 
     private boolean isAllActiveDiscarded() {
