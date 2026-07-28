@@ -46,7 +46,7 @@ public class SimDropService {
      * @param gameType  slots 游戏类型 (如 SuperStar=100300)
      * @param winTimes  本次中奖倍数 (allWinGold / allBetScore)
      * @param freeMode  是否处于免费模式
-     * @param enterType
+     * @param enterType 进入方式: 0=普通, >0(赛季/拜访等)不扣能量
      */
     public CommonResult<SlotsSpinResult> onSpin(SimPlayerContext ctx, int gameType, int winTimes,
                                                 boolean freeMode, int enterType) {
@@ -60,7 +60,8 @@ public class SimDropService {
             return result;
         }
 
-        if (!freeMode || enterType > 0) {
+        //免费模式 / enterType>0(赛季、拜访等入口): 不消耗能量 (与 SimManager.spinCostPower 一致)
+        if (!freeMode && enterType <= 0) {
             if (base.getPower() < SimConstant.Common.SPIN_COST_POWER) {
                 guideService.triggerItemNotEnough(ctx, SimConstant.Item.ID_POWER);
                 log.info("能量不足, 跳过 slots 掉落联动 playerId={},gameType={},power={}", ctx.playerId(), gameType, base.getPower());
@@ -68,9 +69,10 @@ public class SimDropService {
                 return result;
             }
             base.setPower(base.getPower() - SimConstant.Common.SPIN_COST_POWER);
-            //加经验 (赛季入口仍计场景经验)
+        }
+        //非免费局计场景经验 (含赛季/拜访入口, 与是否扣能无关)
+        if (!freeMode) {
             casino.setExp(casino.getExp() + SimConstant.Common.SPIN_ADD_EXP);
-            //升级检查
             if (checkLevelUp(casino)) {
                 ctx.getSimBaseData().addAllLevel(1);
                 guideService.trigger(ctx, SimConstant.GuideCondition.CASINO_LEVEL,

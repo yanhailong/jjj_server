@@ -27,6 +27,8 @@ public class GuideCfg extends BaseCfgBean {
   protected List<Integer> GuideIdList;
   /** 触发场景 */
   protected String PathName;
+  /** 跳过引导ID */
+  protected List<Integer> SkipGuideId;
   /** 条件参数 */
   protected int param;
 
@@ -48,6 +50,11 @@ public class GuideCfg extends BaseCfgBean {
   /** 返回触发场景 */
   public String getPathName() {
     return PathName;
+  }
+
+  /** 返回跳过引导ID */
+  public List<Integer> getSkipGuideId() {
+    return SkipGuideId;
   }
 
   /** 返回条件参数 */

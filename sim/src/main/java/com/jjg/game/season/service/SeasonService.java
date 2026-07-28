@@ -372,8 +372,10 @@ public class SeasonService implements SimPlayerTickListener {
 
     /**
      * slots 普通旋转成功后的赛季联动；无对局结算时不产生通知。内部吞异常, 不影响 slots 主流程。
+     *
+     * @return 本次赛季宝石掉落 (itemId -> 数量), 未掉落返回空表
      */
-    public NotifySeasonMatchResult onSpin(SimPlayerContext ctx, int gameType, SpinStatInfo statInfo) {
+    public Map<Integer, Long> onSpin(SimPlayerContext ctx, int gameType, SpinStatInfo statInfo) {
         GameConditionEvent event = statInfo == null ? null : SimConditionEventFactory.fromSpin(
                 gameType, statInfo.getMultiple(), 0, statInfo);
         return onSpin(ctx, gameType, statInfo, event);
@@ -381,12 +383,16 @@ public class SeasonService implements SimPlayerTickListener {
 
     /**
      * 生产热路径复用同一个条件事件，其他赛季结算仍使用原始 SpinStatInfo。
+     *
+     * @return 本次赛季宝石掉落 (itemId -> 数量), 未掉落返回空表
      */
-    public NotifySeasonMatchResult onSpin(SimPlayerContext ctx, int gameType, SpinStatInfo statInfo,
-                                          GameConditionEvent event) {
+    public Map<Integer, Long> onSpin(SimPlayerContext ctx, int gameType, SpinStatInfo statInfo,
+                                     GameConditionEvent event) {
+        //宝石已入账, 对局结算异常也要把掉落交回调用方下发, 故在 try 外持有
+        Map<Integer, Long> gemGains = Map.of();
         try {
             //宝石掉落在条件事件构造之后才结算, 就地补入事实, 12608 才能按本次掉落计数
-            Map<Integer, Long> gemGains = dropService.onSpin(ctx, gameType);
+            gemGains = dropService.onSpin(ctx, gameType);
             //试炼挑战窗口推进; 结算时直接下发通知 (与对局互斥: 试炼仅新手赛季, 对局仅进阶/循环赛季)
             SeasonTrialResult trialResult = event == null
                     ? null : trialService.onSpin(ctx, gameType, event.withGemDrop(gemGains));
@@ -401,15 +407,13 @@ public class SeasonService implements SimPlayerTickListener {
                 if (!result.success()) {
                     log.warn("赛季对局旋转结算跳过 playerId={},gameType={},code={}", ctx.playerId(), gameType, result.code);
                 }
-                return null;
+                return gemGains;
             }
-            NotifySeasonMatchResult notify = matchNotify(result.data);
-            socialSender.sendTo(ctx.playerId(), notify);
-            return notify;
+            socialSender.sendTo(ctx.playerId(), matchNotify(result.data));
         } catch (Exception e) {
             log.error("赛季旋转联动异常 playerId={},gameType={}", ctx.playerId(), gameType, e);
-            return null;
         }
+        return gemGains;
     }
 
     /**

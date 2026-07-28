@@ -1,5 +1,6 @@
 package com.jjg.game.sim.data;
 
+import java.util.HashMap;
 import java.util.Map;
 
 /**
@@ -17,6 +18,19 @@ public class SlotsSpinResult {
 
     public void setItemsMap(Map<Integer, Long> itemsMap) {
         this.itemsMap = itemsMap;
+    }
+
+    /**
+     * 并入本次旋转另行结算的掉落 (赛季宝石), 随 rpc 结果一起下发给客户端。
+     * 已有 itemsMap 可能是不可变表, 故合并到新表再回写。
+     */
+    public void mergeItems(Map<Integer, Long> items) {
+        if (items == null || items.isEmpty()) {
+            return;
+        }
+        Map<Integer, Long> merged = new HashMap<>(itemsMap == null ? Map.of() : itemsMap);
+        items.forEach((itemId, count) -> merged.merge(itemId, count, Long::sum));
+        itemsMap = merged;
     }
 
     public int getPower() {
