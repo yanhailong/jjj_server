@@ -2100,7 +2100,7 @@ public abstract class AbstractSlotsGameManager<T extends SlotsPlayerGameData, L 
         BaseInitCfg baseInitCfg = GameDataManager.getBaseInitCfg(this.gameType);
         int lineCount = baseInitCfg.getMaxLine();
 
-        return stake / lineCount / stake / baseInitCfg.getBetMultiple().getFirst() / baseInitCfg.getLineMultiple().getFirst();
+        return stake / lineCount / baseInitCfg.getBetMultiple().getFirst() / baseInitCfg.getLineMultiple().getFirst();
     }
 
     /**
