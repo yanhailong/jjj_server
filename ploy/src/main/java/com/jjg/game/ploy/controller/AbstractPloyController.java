@@ -32,6 +32,7 @@ import com.jjg.game.sampledata.bean.PoolResultLibCfg;
 import com.jjg.game.core.manager.SnowflakeManager;
 import org.slf4j.Logger;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.kafka.core.KafkaTemplate;
 
 import java.lang.reflect.Constructor;
@@ -77,6 +78,8 @@ public abstract class AbstractPloyController<T extends PlayerPloyGameData> imple
     protected SnowflakeManager snowflakeManager;
     @Autowired
     protected KafkaTemplate<String, String> kafkaTemplate;
+    @Value("${game.kafka.log-enabled:true}")
+    protected boolean kafkaLogEnabled = true;
     @Autowired
     protected NodeConfig nodeConfig;
 
@@ -362,6 +365,9 @@ public abstract class AbstractPloyController<T extends PlayerPloyGameData> imple
     }
 
     protected void sendSettlementDataTrack(T playerGameData, long totalBet, long totalWin, Object settlementData) {
+        if (!kafkaLogEnabled) {
+            return;
+        }
         try {
             if (playerGameData == null || playerGameData.getPlayerController() == null || playerGameData.getPlayerController().getPlayer() == null) {
                 return;
