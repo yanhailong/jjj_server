@@ -33,6 +33,8 @@ public class SeasonStartCfg extends BaseCfgBean {
   protected int LoopSequence;
   /** 游戏的最大倍率 */
   protected int MaxMultiplier;
+  /** 新加入赛季送赛季币 */
+  protected int NewJoinSeasonCoin;
   /** 开启的小游戏 */
   protected List<Integer> Openminigame;
   /** 赛季持续时间 */
@@ -73,6 +75,11 @@ public class SeasonStartCfg extends BaseCfgBean {
   /** 返回游戏的最大倍率 */
   public int getMaxMultiplier() {
     return MaxMultiplier;
+  }
+
+  /** 返回新加入赛季送赛季币 */
+  public int getNewJoinSeasonCoin() {
+    return NewJoinSeasonCoin;
   }
 
   /** 返回开启的小游戏 */

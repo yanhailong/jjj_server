@@ -78,7 +78,7 @@ public class SeasonPlayerData extends AbstractData {
     @JSONField(serialize = false, deserialize = false)
     private transient int rankCacheValue;
 
-    public void startSeason(SeasonSnapshot snapshot, long initialCoin) {
+    public void startSeason(SeasonSnapshot snapshot, long initialCoin, int initialTierId) {
         seasonId = snapshot.seasonId();
         seasonKey = snapshot.seasonKey();
         phase = snapshot.phase().name();
@@ -87,7 +87,7 @@ public class SeasonPlayerData extends AbstractData {
         endTime = snapshot.endTime();
         seasonCoin = Math.max(0, initialCoin);
         totalEarnedCoin = 0;
-        tierId = 1;
+        tierId = initialTierId;
         dailyKey = 0;
         resetDailyCounters();
         lastMatchTime = 0;

@@ -59,6 +59,8 @@ public class SimPlayerContext {
     private long lastActiveTime;
     //上次随机拜访时间 (ms, 内存态, 服务端兜底限频用)
     private long lastRandomVisitTime;
+    //当前正在拜访的房主id (内存态; 0 表示在自己场景, 留言板据此判断查谁的)
+    private long visitTargetId;
     //上次联盟加速抵扣检查时间 (ms, 内存态; tick 内按玩家节流 Redis 访问)
     private long lastSpeedupCheckTime;
 
@@ -248,6 +250,14 @@ public class SimPlayerContext {
 
     public void setLastRandomVisitTime(long lastRandomVisitTime) {
         this.lastRandomVisitTime = lastRandomVisitTime;
+    }
+
+    public long getVisitTargetId() {
+        return visitTargetId;
+    }
+
+    public void setVisitTargetId(long visitTargetId) {
+        this.visitTargetId = visitTargetId;
     }
 
     public long getLastSpeedupCheckTime() {

@@ -283,16 +283,12 @@ public class SeasonService implements SimPlayerTickListener {
      * 升级到下一段位所需的累计赛季币 (下一档 RankRange 下限); 已是最高段位或无下一档时返回 0。
      */
     private long nextTierNeedCoin(SeasonPlayerData data) {
-        int next = data.getTierId() + 1;
-        SeasonTierCfg seasonTierCfg = GameDataManager.getSeasonTierCfg(next);
-        if (seasonTierCfg == null) {
-            return 0;
-        }
-        Integer allCoin = seasonTierCfg.getRankRange().get(1);
-        if (allCoin == null) {
-            return 0;
-        }
-        return allCoin - data.getTotalEarnedCoin();
+        return configService.tiers(data.seasonPhase()).stream()
+                .map(SeasonTierCfg::getRankRange)
+                .filter(range -> range != null && !range.isEmpty())
+                .mapToLong(range -> range.get(0))
+                .filter(need -> need > data.getTotalEarnedCoin())
+                .min().orElse(0L);
     }
 
     /**

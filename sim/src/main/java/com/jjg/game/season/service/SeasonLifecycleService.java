@@ -9,6 +9,7 @@ import com.jjg.game.core.service.MailService;
 import com.jjg.game.core.service.PlayerPackService;
 import com.jjg.game.sampledata.bean.SeasonMatchCfg;
 import com.jjg.game.sampledata.bean.SeasonRankingCfg;
+import com.jjg.game.sampledata.bean.SeasonStartCfg;
 import com.jjg.game.sampledata.bean.SeasonTierCfg;
 import com.jjg.game.sim.data.SimPlayerContext;
 import com.jjg.game.sim.listener.SimPlayerTickListener;
@@ -118,7 +119,13 @@ public class SeasonLifecycleService implements SimPlayerTickListener {
             applyPendingSettlements(ctx, data, now);
             String oldSeasonKey = data.getSeasonKey();
             long initialCoin = settlePreviousSeason(ctx, data);
-            data.startSeason(snapshot, initialCoin);
+            SeasonStartCfg season = configService.season(snapshot.seasonId());
+            if (season != null) {
+                initialCoin = Math.addExact(initialCoin, season.getNewJoinSeasonCoin());
+            }
+            //开局段位取该阶段累计币为 0 所处的档: 进阶/循环段位表 id 段不同, 不能硬编码
+            SeasonTierCfg initialTier = configService.tierFor(snapshot.phase(), 0);
+            data.startSeason(snapshot, initialCoin, initialTier == null ? 0 : initialTier.getId());
             log.info("玩家赛季切换 playerId={},oldSeasonKey={},seasonId={},seasonKey={},initialCoin={}",
                     ctx.playerId(), oldSeasonKey, snapshot.seasonId(), snapshot.seasonKey(), initialCoin);
         }

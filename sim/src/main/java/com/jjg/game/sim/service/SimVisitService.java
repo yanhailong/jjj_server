@@ -145,6 +145,8 @@ public class SimVisitService {
                     ctx.playerId(), playerId, likeLimit, commentLimit, trialLimit);
             res.info = buildCasinoInfo(target.player(), target.casino(), profiles.get(playerId),
                     quota.ownerTodayPopularity());
+            //记住当前拜访对象, 留言板等后续请求据此确定查谁的数据
+            ctx.setVisitTargetId(playerId);
             quotaService.markVisited(playerId, ctx.playerId());
             quotaService.markTargetVisited(ctx.playerId(), playerId);
             //主线任务: 拜访一次 (含随机拜访) -> 推进 12217
@@ -349,17 +351,24 @@ public class SimVisitService {
         return res;
     }
 
-    public ResVisitComments comments(long playerId, int offset, int limit) {
+    /**
+     * 留言板属于被拜访的房主: 拜访态下查房主的, 回到自己场景 (visitTargetId=0) 查自己的。
+     */
+    public ResVisitComments comments(SimPlayerContext ctx, int offset, int limit) {
+        long viewerId = ctx.playerId();
+        long ownerId = ctx.getVisitTargetId() <= 0 ? viewerId : ctx.getVisitTargetId();
         ResVisitComments res = new ResVisitComments(Code.SUCCESS);
-        SimVisitProfileData profile = visitDao.findCommentsView(playerId);
+        SimVisitProfileData profile = visitDao.findCommentsView(ownerId);
         List<SimVisitCommentData> comments = profile == null ? List.of() : profile.getComments();
         res.total = comments.size();
         res.comments = page(comments, offset, limit, configService.getRecordLimit()).stream()
                 .map(this::toCommentInfo).toList();
-        res.todayPopularity = (int) quotaService.used(SimVisitConstant.QuotaType.POPULARITY, playerId);
+        res.todayPopularity = (int) quotaService.used(SimVisitConstant.QuotaType.POPULARITY, ownerId);
         res.totalPopularity = profile == null ? 0 : profile.getTotalPopularity();
-        if (profile != null && profile.getUnreadCommentCount() > 0 && !profile.getComments().isEmpty()) {
-            visitDao.clearUnreadComments(playerId, profile.getUnreadCommentCount(),
+        //只有房主自己翻看才算已读，访客浏览不清房主的未读数
+        if (ownerId == viewerId && profile != null && profile.getUnreadCommentCount() > 0
+                && !profile.getComments().isEmpty()) {
+            visitDao.clearUnreadComments(ownerId, profile.getUnreadCommentCount(),
                     profile.getComments().get(0).getId());
         }
         return res;

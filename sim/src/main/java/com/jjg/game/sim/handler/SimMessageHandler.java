@@ -134,6 +134,8 @@ public class SimMessageHandler implements GmListener {
     @Command(SimConstant.MsgBean.REQ_CASINO_INFO)
     public void reqSimCasinoInfo(PlayerController playerController, ReqSimCasinoInfo req) {
         execute(playerController, ctx -> {
+            //回到自己场景即结束拜访态, 之后查留言板看到的是自己的
+            ctx.setVisitTargetId(0);
             casinoService.onCasinoInfo(ctx);
         });
     }
@@ -545,8 +547,7 @@ public class SimMessageHandler implements GmListener {
 
     @Command(SimConstant.MsgBean.REQ_VISIT_COMMENTS)
     public void reqVisitComments(PlayerController playerController, ReqVisitComments req) {
-        sendVisit(playerController,
-                () -> visitService.comments(playerController.playerId(), req.offset, req.limit),
+        executeVisit(playerController, ctx -> visitService.comments(ctx, req.offset, req.limit),
                 ResVisitComments::new);
     }
 
