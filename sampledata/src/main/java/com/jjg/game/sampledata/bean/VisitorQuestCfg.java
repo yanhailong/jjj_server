@@ -31,6 +31,8 @@ public class VisitorQuestCfg extends BaseCfgBean {
   protected boolean IsDefaultUnlocked;
   /** 游客品质 */
   protected int Quality;
+  /** 场景 ID */
+  protected int RegionID;
   /** 资源 */
   protected int Resource;
   /** 服务能力 */
@@ -68,6 +70,11 @@ public class VisitorQuestCfg extends BaseCfgBean {
   /** 返回游客品质 */
   public int getQuality() {
     return Quality;
+  }
+
+  /** 返回场景 ID */
+  public int getRegionID() {
+    return RegionID;
   }
 
   /** 返回资源 */

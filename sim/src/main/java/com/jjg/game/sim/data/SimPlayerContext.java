@@ -4,14 +4,8 @@ import com.alibaba.fastjson.JSONObject;
 import com.jjg.game.core.data.Player;
 import com.jjg.game.core.data.PlayerController;
 import com.jjg.game.season.data.SeasonPlayerData;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 
-import java.util.ArrayDeque;
-import java.util.HashMap;
-import java.util.Iterator;
-import java.util.LinkedHashMap;
-import java.util.Map;
+import java.util.*;
 
 /**
  * 单玩家模拟经营会话上下文
@@ -20,8 +14,6 @@ import java.util.Map;
  * @date 2026/5/26
  */
 public class SimPlayerContext {
-    private static final Logger log = LoggerFactory.getLogger(SimPlayerContext.class);
-
     private long playerId;
     private PlayerController playerController;
     private SimBaseData simBaseData;

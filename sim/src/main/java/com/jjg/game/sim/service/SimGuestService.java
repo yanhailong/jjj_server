@@ -832,6 +832,20 @@ public class SimGuestService implements SimPlayerTickListener, ItemListener {
                 }
             }
 
+            //新手引导: 不走随机, 固定召唤 NewbieGuideDraw 配置的游客
+            boolean guide = ctx.getSimBaseData().isGuide();
+            int guideItemId = 0;
+            if (!guide) {
+                VisitorPoolCfg visitorPoolCfg = GameDataManager.getVisitorPoolCfg(tmpCfg.getDropItem());
+                if (visitorPoolCfg == null || visitorPoolCfg.getNewbieGuideDraw() <= 0) {
+                    log.warn("招募游客失败,新手引导卡池配置异常 playerId={},poolId={}", ctx.playerId(), tmpCfg.getDropItem());
+                    res.code = Code.PARAM_ERROR;
+                    ctx.send(res);
+                    return;
+                }
+                guideItemId = visitorPoolCfg.getNewbieGuideDraw();
+            }
+
             Map<Integer, Long> addAllItems = new HashMap<>();
             List<RecruitItemInfo> recruitItems = new ArrayList<>();
 
@@ -839,19 +853,27 @@ public class SimGuestService implements SimPlayerTickListener, ItemListener {
 
 
             for (int i = 0; i < count; i++) {
-                List<Integer> next = poolRand.next();
-                if (next == null || next.size() < 3) {
-                    log.warn("招募游客失败,获取配置失败2 playerId={},count={},i={}", ctx.playerId(), count, i);
-                    return;
+                int drawItemId;
+                int rewardCount;
+                if (!guide) {
+                    drawItemId = guideItemId;
+                    rewardCount = 1;
+                } else {
+                    List<Integer> next = poolRand.next();
+                    if (next == null || next.size() < 3) {
+                        log.warn("招募游客失败,获取配置失败2 playerId={},count={},i={}", ctx.playerId(), count, i);
+                        return;
+                    }
+                    drawItemId = next.get(1);
+                    rewardCount = next.get(2);
                 }
 
-                VisitorQuestCfg visitorQuestCfg = configCache.getVisitorQuestCfgByItemId(next.get(1));
+                VisitorQuestCfg visitorQuestCfg = configCache.getVisitorQuestCfgByItemId(drawItemId);
                 if (visitorQuestCfg == null) {
-                    log.warn("招募游客失败,根据itemId获取VisitorQuestCfg失败 playerId={},count={},itemId={},i={}", ctx.playerId(), count, next.get(1), i);
+                    log.warn("招募游客失败,根据itemId获取VisitorQuestCfg失败 playerId={},count={},itemId={},i={}", ctx.playerId(), count, drawItemId, i);
                     return;
                 }
 
-                int rewardCount = next.get(2);
                 for (int j = 0; j < rewardCount; j++) {
                     RecruitItemInfo re = new RecruitItemInfo();
                     re.itemId = visitorQuestCfg.getDuplicatetoShard().get(0);

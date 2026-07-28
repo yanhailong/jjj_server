@@ -5,10 +5,7 @@ import com.jjg.game.alliance.service.AllianceCacheService;
 import com.jjg.game.alliance.service.AllianceHelpService;
 import com.jjg.game.core.constant.Code;
 import com.jjg.game.sampledata.GameDataManager;
-import com.jjg.game.sampledata.bean.BuildingAreaTableCfg;
-import com.jjg.game.sampledata.bean.BuildingUpgradeTableCfg;
-import com.jjg.game.sampledata.bean.CasinoListCfg;
-import com.jjg.game.sampledata.bean.CasinoStatsSheetCfg;
+import com.jjg.game.sampledata.bean.*;
 import com.jjg.game.sim.constant.BuildingOutputType;
 import com.jjg.game.sim.constant.SimConstant;
 import com.jjg.game.sim.dao.SimCasinoDao;
@@ -24,6 +21,7 @@ import org.springframework.data.redis.core.RedisTemplate;
 import org.springframework.stereotype.Service;
 
 import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
 
 /**
@@ -60,6 +58,9 @@ public class SimCasinoService {
     private AllianceCacheService allianceCacheService;
     @Autowired
     private AllianceHelpService allianceHelpService;
+    @Autowired
+    private SimGuestService simGuestService;
+
 
     /**
      * 开辟新场景 (校验 condition 后创建并落库, 不自动切换)
@@ -249,6 +250,8 @@ public class SimCasinoService {
 
         //自动解锁: UnlockType=false 且无解锁条件(UnlockMethod) 的建筑, 创建场景时直接以初始等级解锁
         autoUnlockBuildings(casino, casinoId);
+        //自动解锁游客
+        autoUnlockGuest(ctx, casinoId);
 
         updateCasinoUnlock(ctx, casinoId, INITIAL_BUILDING_LEVEL);
         simSkillService.initUnlock(ctx, casinoId);
@@ -280,6 +283,23 @@ public class SimCasinoService {
             data.setId(cfg.getId());
             data.setLevel(INITIAL_BUILDING_LEVEL);
             casino.putBuilding(data);
+        }
+    }
+
+    /**
+     * 自动解锁游客
+     *
+     * @param casinoId 场景id (= BuildingAreaTableCfg.RegionID)
+     */
+    private void autoUnlockGuest(SimPlayerContext ctx, int casinoId) {
+        List<VisitorQuestCfg> cfgs = configCacheService.getRegionVistorCfgMap().get(casinoId);
+        if (cfgs == null || cfgs.isEmpty()) {
+            return;
+        }
+        for (VisitorQuestCfg c : cfgs) {
+            if (c.getIsDefaultUnlocked()) {
+                simGuestService.unlockGuest(ctx, c.getId());
+            }
         }
     }
 

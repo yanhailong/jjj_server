@@ -52,6 +52,8 @@ public class SimConfigCacheService implements ConfigExcelChangeListener {
     private Map<Integer, Map<Integer, VisitorLevelCfg>> visitorLevelCfgMap;
     //VisitorStar配置 guestId -> star -> cfg
     private Map<Integer, Map<Integer, VisitorStarCfg>> visitorStarCfgMap;
+    //VisitorStar配置 regionId -> cfg
+    private Map<Integer, List<VisitorQuestCfg>> regionVistorCfgMap;
     //visitorPool 的drop item的权重
     private Map<Integer, WeightRandom<List<Integer>>> visitorPoolRandomMap;
     //游客羁绊 guestId -> bondsCfgId
@@ -207,6 +209,7 @@ public class SimConfigCacheService implements ConfigExcelChangeListener {
     private void loadVisitorQuestConfig() {
         Map<Integer, List<VisitorQuestCfg>> tmpVisitorQuestCfgMap = new HashMap<>();
         Map<Integer, VisitorQuestCfg> tmpVisitorQuestItemCfgMap = new HashMap<>();
+        Map<Integer, List<VisitorQuestCfg>> tmpRegionVistorCfgMap = new HashMap<>();
         for (VisitorQuestCfg cfg : GameDataManager.getVisitorQuestCfgList()) {
             tmpVisitorQuestCfgMap.computeIfAbsent(cfg.getQuality(), k -> new ArrayList<>()).add(cfg);
 
@@ -214,9 +217,12 @@ public class SimConfigCacheService implements ConfigExcelChangeListener {
             if (tmpList != null && tmpList.size() >= 3) {
                 tmpVisitorQuestItemCfgMap.put(tmpList.getFirst(), cfg);
             }
+
+            tmpRegionVistorCfgMap.computeIfAbsent(cfg.getRegionID(), k -> new ArrayList<>()).add(cfg);
         }
         this.visitorQuestCfgMap = tmpVisitorQuestCfgMap;
         this.visitorQuestItemCfgMap = tmpVisitorQuestItemCfgMap;
+        this.regionVistorCfgMap = tmpRegionVistorCfgMap;
     }
 
     /**
@@ -832,5 +838,9 @@ public class SimConfigCacheService implements ConfigExcelChangeListener {
 
     public int[] getSeasonReturnMaxArr() {
         return seasonReturnMaxArr;
+    }
+
+    public Map<Integer, List<VisitorQuestCfg>> getRegionVistorCfgMap() {
+        return regionVistorCfgMap;
     }
 }
