@@ -26,6 +26,12 @@ public class SeasonSlotsSessionData {
     private int seasonFreeExhaustedDailyKey;
     /** 上次被动匹配成功开局的系统时间（毫秒），用于冷却期内不再向 sim 发起被动匹配。 */
     private long passiveMatchTime;
+    /** 当前是否已有匹配成功且尚未结束的赛季对局。 */
+    private boolean seasonMatchActive;
+    /** 当前赛季对局的下注额；只有相同下注额的旋转才计入对局。 */
+    private long seasonMatchStake;
+    /** 当前赛季对局剩余需要完成的旋转局数。 */
+    private int seasonMatchRemainingSpins;
     /** 由所有匹配当前游戏的已镶嵌宝石解锁的下注额，已去重。 */
     private List<Long> bet;
     /** 聚合 SeasonGem.specialMode 后的结果库类型权重增量。 */
@@ -71,6 +77,56 @@ public class SeasonSlotsSessionData {
 
     public void setPassiveMatchTime(long passiveMatchTime) {
         this.passiveMatchTime = passiveMatchTime;
+    }
+
+    public boolean isSeasonMatchActive() {
+        return seasonMatchActive;
+    }
+
+    public void setSeasonMatchActive(boolean seasonMatchActive) {
+        this.seasonMatchActive = seasonMatchActive;
+    }
+
+    public long getSeasonMatchStake() {
+        return seasonMatchStake;
+    }
+
+    public void setSeasonMatchStake(long seasonMatchStake) {
+        this.seasonMatchStake = seasonMatchStake;
+    }
+
+    public int getSeasonMatchRemainingSpins() {
+        return seasonMatchRemainingSpins;
+    }
+
+    public void setSeasonMatchRemainingSpins(int seasonMatchRemainingSpins) {
+        this.seasonMatchRemainingSpins = seasonMatchRemainingSpins;
+    }
+
+    public void beginSeasonMatch(long stake, int remainingSpins) {
+        if (remainingSpins <= 0) {
+            clearSeasonMatch();
+            return;
+        }
+        seasonMatchActive = true;
+        seasonMatchStake = stake;
+        seasonMatchRemainingSpins = remainingSpins;
+    }
+
+    public void recordSeasonMatchSpin(long stake) {
+        if (!seasonMatchActive || seasonMatchStake != stake) {
+            return;
+        }
+        seasonMatchRemainingSpins--;
+        if (seasonMatchRemainingSpins <= 0) {
+            clearSeasonMatch();
+        }
+    }
+
+    public void clearSeasonMatch() {
+        seasonMatchActive = false;
+        seasonMatchStake = 0;
+        seasonMatchRemainingSpins = 0;
     }
 
     public List<Long> getBet() {

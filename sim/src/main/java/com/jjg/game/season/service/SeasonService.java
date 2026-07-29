@@ -204,7 +204,14 @@ public class SeasonService implements SimPlayerTickListener {
      */
     public SeasonSlotsSessionData slotsSessionData(SimPlayerContext ctx, int gameType) {
         lifecycleService.ensureCurrent(ctx, System.currentTimeMillis());
-        return gemService.buildSlotsSessionData(ctx.getSeasonPlayerData(), gameType);
+        SeasonPlayerData data = ctx.getSeasonPlayerData();
+        SeasonSlotsSessionData result = gemService.buildSlotsSessionData(data, gameType);
+        SeasonMatchSession match = data.getActiveMatch();
+        if (match != null && match.getGameType() == gameType) {
+            int remainingSpins = match.getExpectedSpins() - match.getPlayerSpinWins().size();
+            result.beginSeasonMatch(match.getStake(), remainingSpins);
+        }
+        return result;
     }
 
     public ResSeasonEquipGem equip(SimPlayerContext ctx, int slot, int itemId) {

@@ -12,7 +12,6 @@ import com.jjg.game.core.data.PlayerController;
 import com.jjg.game.sampledata.GameDataManager;
 import com.jjg.game.sampledata.bean.PoolCfg;
 import com.jjg.game.sampledata.bean.WarehouseCfg;
-import com.jjg.game.slots.dao.SlotsPoolDao;
 import com.jjg.game.slots.game.pegasusunbridle.constant.PegasusUnbridleConstant;
 import com.jjg.game.slots.game.pegasusunbridle.dao.PegasusUnbridleResultLibDao;
 import com.jjg.game.slots.game.pegasusunbridle.data.PegasusUnbridleAwardLineInfo;
@@ -21,7 +20,6 @@ import com.jjg.game.slots.game.pegasusunbridle.data.PegasusUnbridlePlayerGameDat
 import com.jjg.game.slots.game.pegasusunbridle.data.PegasusUnbridleResultLib;
 import com.jjg.game.slots.game.pegasusunbridle.pb.bean.PegasusUnbridleWinIconInfo;
 import com.jjg.game.slots.manager.AbstractSlotsGameManager;
-import org.springframework.beans.factory.annotation.Autowired;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -181,8 +179,7 @@ public abstract class AbstractPegasusUnbridleGameManager extends AbstractSlotsGa
             PoolCfg poolCfg = GameDataManager.getPoolCfg(resultLib.firstJackpotId());
             if (poolCfg != null) {
                 //检查是否中大奖
-                CommonResult<Long> result = slotsPoolDao.rewardByRatioFromSmallPool(playerGameData.getPlayerId(), this.gameType, playerGameData.getRoomCfgId(),
-                        poolCfg.getTruePool(), poolCfg.getId(), AddType.SLOTS_JACKPOT_REWARD);
+                CommonResult<Long> result = rewardByRatioSmallPoolCurrency(playerGameData, poolCfg.getTruePool(), poolCfg.getId(), AddType.SLOTS_JACKPOT_REWARD);
                 if (result.success()) {
                     gameRunInfo.addSmallPoolGold(result.data);
                 }
