@@ -81,8 +81,8 @@ public class SimGuideService implements ItemAddListener {
     }
 
     /**
-     * 按当前玩家总等级补扫所有已达到的等级引导。
-     * 用于正常升级、GM 跨级以及进入大厅时对后台直改数据进行补偿。
+     * 按角色系统玩家等级 Player.level 补扫所有已达到的等级引导。
+     * 用于正常升级事件、跨级以及进入大厅时对后台直改数据进行补偿。
      */
     public List<Integer> triggerPlayerLevelReached(SimPlayerContext ctx, int playerLevel, boolean notify) {
         if (ctx == null || ctx.getSimBaseData() == null || playerLevel <= 0) {

@@ -198,8 +198,9 @@ public class SimManager {
                 ctx.getSimBaseData().setLastOfflineTime(0);
             }
             playerController.setScene(ctx);
-            // 按当前持久化等级补扫，覆盖后台直改等级、跨级和旧玩家漏触发。
-            guideService.triggerPlayerLevelReached(ctx, ctx.getSimBaseData().getAllLevel(), false);
+            // 条件4使用角色系统的玩家等级 Player.level；进入大厅时补扫，覆盖后台直改等级和旧玩家漏触发。
+            int playerLevel = playerController.getPlayer() == null ? 0 : playerController.getPlayer().getLevel();
+            List<Integer> levelTriggeredGroups = guideService.triggerPlayerLevelReached(ctx, playerLevel, false);
             // PathName=1 代表模拟经营大厅；激活其他条件已满足但此前场景不符的等待组。
             guideService.triggerDeferredForPath(ctx, SimConstant.GuidePath.SIM_HALL, false);
             if (!ctx.getSimBaseData().isGuide()) {
@@ -209,6 +210,8 @@ public class SimManager {
             res.guideGroupIds = ctx.getSimBaseData().pendingGuideGroupIds();
             res.completedGuideIds = ctx.getSimBaseData().completedGuideIds();
             res.guide = ctx.getSimBaseData().isGuide();
+            log.info("进入模拟经营大厅检查等级引导 playerId={},playerLevel={},newGroups={},pendingGroups={}",
+                    playerController.playerId(), playerLevel, levelTriggeredGroups, res.guideGroupIds);
 
             res.currentCasinoId = ctx.getCurrentCasino().getCasinoId();
 
