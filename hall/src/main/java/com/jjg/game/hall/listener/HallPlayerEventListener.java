@@ -24,6 +24,7 @@ import com.jjg.game.core.manager.RedDotManager;
 import com.jjg.game.core.pb.MarqueeInfo;
 import com.jjg.game.core.recharge.service.RechargeService;
 import com.jjg.game.core.service.CarouselService;
+import com.jjg.game.core.service.PlayerStatService;
 import com.jjg.game.core.service.PlayerSessionService;
 import com.jjg.game.core.service.PlayerSnapshotService;
 import com.jjg.game.core.task.manager.TaskManager;
@@ -91,6 +92,8 @@ public class HallPlayerEventListener implements SessionCloseListener, SessionEnt
     private AccountDao accountDao;
     @Autowired
     private CountDao countDao;
+    @Autowired
+    private PlayerStatService playerStatService;
     @Autowired
     private RedDotManager redDotManager;
     @Autowired
@@ -277,6 +280,7 @@ public class HallPlayerEventListener implements SessionCloseListener, SessionEnt
             res.customerUrl = commonDao.getStrValue(GameConstant.CommonDaoId.CUSTOMER_TABLE_ID);
             //更新session
             PlayerSessionInfo playerSessionInfo = playerSessionService.online(session, player);
+            playerStatService.recordLoginDay(player.getId());
             //检查重连
             if (reconnect(session, player, playerSessionInfo)) {
                 res.gameWareInfo = new GameWareInfo();

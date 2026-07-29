@@ -5,6 +5,7 @@ import com.jjg.game.core.service.PlayerPackService;
 import com.jjg.game.core.data.ItemOperationResult;
 import com.jjg.game.core.base.condition.numeric.ConditionEvent;
 import com.jjg.game.core.base.condition.numeric.ConditionUpdate;
+import com.jjg.game.core.base.condition.numeric.GameConditionEvent;
 import com.jjg.game.core.base.condition.numeric.PreparedCondition;
 import com.jjg.game.core.base.condition.numeric.StateConditionEvent;
 import com.jjg.game.core.constant.AddType;
@@ -17,6 +18,7 @@ import com.jjg.game.core.data.Player;
 import com.jjg.game.core.data.PlayerController;
 import com.jjg.game.core.logger.TaskLogger;
 import com.jjg.game.core.service.CorePlayerService;
+import com.jjg.game.core.service.PlayerStatService;
 import com.jjg.game.core.task.db.TaskDetail;
 import com.jjg.game.core.task.pb.Task;
 import com.jjg.game.core.task.pb.TaskCondition;
@@ -54,7 +56,7 @@ import java.util.Set;
  * sim 主线/成就任务服务 (线性链)。
  * <p>
  * 条件判定复用 core 数值条件规则：配置加载时完成解析校验，事件热路径只做 O(1) 规则求值。
- * 进度仍由本功能累计在 Redis(CountDao)；prefix 按"主线每个节点 / 每个成就组"隔离：成就组内是同一
+ * 普通条件进度由本功能累计在 Redis(CountDao)；玩家统计条件直接读取玩家级统计。prefix 按"主线每个节点 / 每个成就组"隔离：成就组内是同一
  * 条件的递增阶梯，共享计数才能逐级达成；主线相邻节点可能复用同一条件 id 但过滤参数不同
  * (如 12303 分别指定游客卡池与雇员卡池)，必须按节点隔离，否则前一节点的进度会漏给后一节点。
  * 链生命周期(接取/推进/领奖)与持久化由本服务在 sim 内自管；旋转和经营动作都通过统一事实事件推进。
@@ -80,6 +82,8 @@ public class SimTaskService {
     private PlayerPackService playerPackService;
     @Autowired
     private CountDao countDao;
+    @Autowired
+    private SimPlayerStatService playerStatService;
     @Autowired
     private CorePlayerService corePlayerService;
     @Autowired
@@ -146,7 +150,7 @@ public class SimTaskService {
                             reporter.getClass().getSimpleName(), ctx.playerId(), e);
                 }
             }
-            pollStates(player, data, ctx.getSimBaseData(), changed);
+            pollStates(ctx, player, data, ctx.getSimBaseData(), changed, true);
             activeNodesChanged = activeNodesChanged(data, mainBefore, achievementsBefore);
         } while (activeNodesChanged);
         if (notify) {
@@ -307,15 +311,16 @@ public class SimTaskService {
                     ctx.playerId(), data == null, player == null, event == null);
             return;
         }
-        evaluateOnEvent(player, data, ctx.getSimBaseData(), data.getMainTask(), event, changed);
+        evaluateOnEvent(ctx, player, data, ctx.getSimBaseData(), data.getMainTask(), event, changed);
         //成就组在事件推进中可能续接(替换同 group 节点), 用 keySet 快照遍历
         for (Integer group : new ArrayList<>(data.getAchievements().keySet())) {
-            evaluateOnEvent(player, data, ctx.getSimBaseData(), data.getAchievements().get(group), event, changed);
+            evaluateOnEvent(ctx, player, data, ctx.getSimBaseData(),
+                    data.getAchievements().get(group), event, changed);
         }
         //状态型条件(玩家等级)没有对应的事实事件: 玩家在 slots 节点下注升级, sim 侧收不到升级事件,
         //借任意一次 sim 事件顺带结算, 玩家不必重开任务界面
         if (pollState) {
-            pollStates(player, data, ctx.getSimBaseData(), changed);
+            pollStates(ctx, player, data, ctx.getSimBaseData(), changed, false);
         }
     }
 
@@ -335,7 +340,8 @@ public class SimTaskService {
     /**
      * 事件推进单个节点: 累计进度(条件系统) + 判定完成。
      */
-    private void evaluateOnEvent(Player player, SimTaskData data, SimBaseData baseData, TaskDetail node,
+    private void evaluateOnEvent(SimPlayerContext ctx, Player player, SimTaskData data,
+                                 SimBaseData baseData, TaskDetail node,
                                  ConditionEvent event, List<Task> changed) {
         if (node == null) {
             return;
@@ -351,6 +357,18 @@ public class SimTaskService {
         }
         SimTaskConfigService.TaskConditionDef def = taskConfig.conditionOf(cfg.getId());
         if (def == null) {
+            return;
+        }
+        if (playerStatService.supports(def.condition())) {
+            boolean relevant = def.condition().evaluate(event).matched()
+                    || (def.condition().spec().id() == PlayerStatService.FREE_MODE
+                    && event instanceof GameConditionEvent);
+            if (!relevant) {
+                return;
+            }
+            if (playerStatService.progress(ctx, def.condition()) >= def.condition().target()) {
+                onComplete(ctx, player, data, baseData, node, cfg, changed);
+            }
             return;
         }
         ConditionUpdate update = def.condition().evaluate(event);
@@ -375,24 +393,28 @@ public class SimTaskService {
                     progress, def.condition().target(), featureId, customId);
         }
         if (progress >= def.condition().target()) {
-            onComplete(player, data, baseData, node, cfg, changed);
+            onComplete(ctx, player, data, baseData, node, cfg, changed);
         }
     }
 
     /**
      * 轮询主线与各成就组的当前节点。成就组可能在轮询中续接(替换同 group 节点), 用 keySet 快照遍历。
      */
-    private void pollStates(Player player, SimTaskData data, SimBaseData baseData, List<Task> changed) {
-        pollState(player, data, baseData, data.getMainTask(), changed);
+    private void pollStates(SimPlayerContext ctx, Player player, SimTaskData data,
+                            SimBaseData baseData, List<Task> changed, boolean includePlayerStats) {
+        pollState(ctx, player, data, baseData, data.getMainTask(), changed, includePlayerStats);
         for (Integer group : new ArrayList<>(data.getAchievements().keySet())) {
-            pollState(player, data, baseData, data.getAchievements().get(group), changed);
+            pollState(ctx, player, data, baseData, data.getAchievements().get(group),
+                    changed, includePlayerStats);
         }
     }
 
     /**
      * 状态轮询(无事件): 开界面/上线时结算已达标的节点(覆盖玩家等级提升、计数已够等场景)。
      */
-    private void pollState(Player player, SimTaskData data, SimBaseData baseData, TaskDetail node, List<Task> changed) {
+    private void pollState(SimPlayerContext ctx, Player player, SimTaskData data,
+                           SimBaseData baseData, TaskDetail node, List<Task> changed,
+                           boolean includePlayerStats) {
         if (node == null || node.getStatus() != TaskConstant.TaskStatus.STATUS_IN_PROGRESS) {
             return;
         }
@@ -401,9 +423,16 @@ public class SimTaskService {
             return;
         }
         SimTaskConfigService.TaskConditionDef def = taskConfig.conditionOf(cfg.getId());
+        if (def != null && playerStatService.supports(def.condition())) {
+            if (includePlayerStats
+                    && playerStatService.progress(ctx, def.condition()) >= def.condition().target()) {
+                onComplete(ctx, player, data, baseData, node, cfg, changed);
+            }
+            return;
+        }
         StateConditionEvent event = def == null ? null : playerState(player, def.condition());
         if (event != null && def.condition().evaluate(event).apply(0) >= def.condition().target()) {
-            onComplete(player, data, baseData, node, cfg, changed);
+            onComplete(ctx, player, data, baseData, node, cfg, changed);
         }
     }
 
@@ -414,7 +443,8 @@ public class SimTaskService {
     /**
      * 节点完成: 置完成态; 无奖励则直接领取并续接, 有奖励则等待客户端领取。
      */
-    private void onComplete(Player player, SimTaskData data, SimBaseData baseData, TaskDetail node, TaskCfg cfg, List<Task> changed) {
+    private void onComplete(SimPlayerContext ctx, Player player, SimTaskData data,
+                            SimBaseData baseData, TaskDetail node, TaskCfg cfg, List<Task> changed) {
         long now = System.currentTimeMillis();
         node.setStatus(TaskConstant.TaskStatus.STATUS_COMPLETED);
         node.setCompleteTime(now);
@@ -429,13 +459,13 @@ public class SimTaskService {
             int conditionId = def == null ? 0 : def.condition().spec().id();
             long target = def == null ? 0 : def.condition().target();
             mainTaskLogger.completed(player.getId(), player.getNickName(), cfg.getId(),
-                    conditionId, currentProgress(player, cfg), target, now);
+                    conditionId, currentProgress(ctx, player, cfg), target, now);
         } else if (cfg.getTaskType() == TaskConstant.TaskType.ACHIEVEMENT) {
             SimTaskConfigService.TaskConditionDef def = taskConfig.conditionOf(cfg.getId());
             int conditionId = def == null ? 0 : def.condition().spec().id();
             long target = def == null ? 0 : def.condition().target();
             achievementTaskLogger.completed(player.getId(), player.getNickName(), cfg.getId(), cfg.getGroup(),
-                    conditionId, currentProgress(player, cfg), target, now);
+                    conditionId, currentProgress(ctx, player, cfg), target, now);
         }
 
         boolean noReward = (cfg.getGetItem() == null || cfg.getGetItem().isEmpty())
@@ -445,7 +475,7 @@ public class SimTaskService {
             node.setRewardTime(now);
             taskLogger.receiveTaskAward(player.getId(), node.getConfigId(), null,
                     cfg.getIntegralNum(), TaskConstant.TaskStatus.STATUS_REWARDED);
-            changed.add(assemble(player, node, cfg));
+            changed.add(assemble(ctx, player, node, cfg));
             if (cfg.getTaskType() == TaskConstant.TaskType.MAIN_LINE) {
                 int nextTaskId = taskConfig.next(cfg.getId());
                 mainTaskLogger.rewarded(player.getId(), player.getNickName(), cfg.getId(),
@@ -462,14 +492,14 @@ public class SimTaskService {
                             cfg.getGroup(), now);
                 }
             }
-            Task next = advance(player, data, node, cfg);
+            Task next = advance(ctx, player, data, node, cfg);
             if (next != null) {
                 changed.add(next);
             }
         } else {
             taskLogger.receiveTaskAward(player.getId(), node.getConfigId(), null,
                     cfg.getIntegralNum(), TaskConstant.TaskStatus.STATUS_COMPLETED);
-            changed.add(assemble(player, node, cfg));
+            changed.add(assemble(ctx, player, node, cfg));
         }
     }
 
@@ -539,7 +569,7 @@ public class SimTaskService {
                         cfg.getGroup(), rewardTime);
             }
         }
-        res.nextTask = advance(player, data, node, cfg);
+        res.nextTask = advance(ctx, player, data, node, cfg);
         //领奖后强制下个 tick 尽快落库(走 autosave 规范路径), 收窄崩溃重复领取窗口
         ctx.setLastSaveTime(0);
         //成就任务末节点奖励含勋章道具, 领取后可能新激活勋章 -> 刷新全服勋章榜分值
@@ -557,7 +587,8 @@ public class SimTaskService {
      *
      * @return 新激活的下一节点协议体, 无后置返回 null
      */
-    private Task advance(Player player, SimTaskData data, TaskDetail node, TaskCfg cfg) {
+    private Task advance(SimPlayerContext ctx, Player player, SimTaskData data,
+                         TaskDetail node, TaskCfg cfg) {
         int nextId = taskConfig.next(node.getConfigId());
         if (nextId <= 0) {
             return null;
@@ -571,7 +602,7 @@ public class SimTaskService {
             logAchievementActivated(player.getId(), next, cfg.getGroup(), node.getConfigId());
         }
         TaskCfg nextCfg = GameDataManager.getTaskCfg(nextId);
-        return nextCfg == null ? null : assemble(player, next, nextCfg);
+        return nextCfg == null ? null : assemble(ctx, player, next, nextCfg);
     }
 
     /**
@@ -580,20 +611,21 @@ public class SimTaskService {
      * 客户端按配置把整条主线都渲染出来, 服务端只跟踪一个"当前节点", 所以"某任务进度不涨"最常见的原因是
      * 它根本还没轮到。这行日志直接给出当前节点 id / 状态 / 进度 / 计数 key, 一眼分辨是没轮到还是真没推进。
      */
-    private void logMainSnapshot(Player player, TaskDetail main) {
+    private void logMainSnapshot(SimPlayerContext ctx, Player player, TaskDetail main) {
         if (main == null) {
             log.info("主线当前节点: 无 (任务链为空或配置未加载) playerId={}", player.getId());
             return;
         }
         TaskCfg cfg = GameDataManager.getTaskCfg(main.getConfigId());
         SimTaskConfigService.TaskConditionDef def = cfg == null ? null : taskConfig.conditionOf(cfg.getId());
-        log.info("主线当前节点: taskId={},status={},进度={}/{},condition={},计数key=count:{}:{}",
+        log.info("主线当前节点: taskId={},status={},进度={}/{},condition={},进度来源={}",
                 main.getConfigId(), main.getStatus(),
-                cfg == null ? -1 : currentProgress(player, cfg),
+                cfg == null ? -1 : currentProgress(ctx, player, cfg),
                 def == null ? -1 : def.condition().target(),
                 cfg == null ? "配置缺失" : cfg.getTaskConditionId(),
-                def == null || cfg == null ? "无" : def.counterType() + prefixOf(cfg),
-                player.getId());
+                def == null || cfg == null ? "无" : playerStatService.supports(def.condition())
+                        ? CountDao.CountType.PLAYER_STAT.getParam().formatted(def.condition().spec().id())
+                        : "count:" + def.counterType() + prefixOf(cfg) + ":" + player.getId());
     }
 
     /**
@@ -629,18 +661,18 @@ public class SimTaskService {
         if (main != null) {
             TaskCfg mainCfg = GameDataManager.getTaskCfg(main.getConfigId());
             if (mainCfg != null) {
-                res.mainTask = assemble(player, main, mainCfg);
+                res.mainTask = assemble(ctx, player, main, mainCfg);
                 res.mainFinished = main.getStatus() == TaskConstant.TaskStatus.STATUS_REWARDED
                         && taskConfig.next(main.getConfigId()) <= 0;
             }
         }
         //客户端按配置渲染整条链, 服务端只推进"当前节点": 排查"某个任务进度不动"先看这行是不是那个 taskId
-        logMainSnapshot(player, main);
+        logMainSnapshot(ctx, player, main);
         List<Task> achievements = new ArrayList<>(data.getAchievements().size());
         for (TaskDetail node : data.getAchievements().values()) {
             TaskCfg cfg = GameDataManager.getTaskCfg(node.getConfigId());
             if (cfg != null) {
-                achievements.add(assemble(player, node, cfg));
+                achievements.add(assemble(ctx, player, node, cfg));
             }
         }
         res.achievementTasks = achievements;
@@ -725,7 +757,7 @@ public class SimTaskService {
     /**
      * 组装任务协议体: configId + 状态 + 单条件(当前进度/目标/是否完成)。进度从条件系统(Redis计数)或玩家状态回读。
      */
-    private Task assemble(Player player, TaskDetail node, TaskCfg cfg) {
+    private Task assemble(SimPlayerContext ctx, Player player, TaskDetail node, TaskCfg cfg) {
         Task task = new Task();
         task.setConfigId(cfg.getId());
         task.setStatus(node.getStatus());
@@ -735,19 +767,22 @@ public class SimTaskService {
         c.setConfigId(cond.getFirst().intValue());
         SimTaskConfigService.TaskConditionDef def = taskConfig.conditionOf(cfg.getId());
         c.setConfigParam(def == null ? cond.getLast() : def.condition().target());
-        c.setProgress(currentProgress(player, cfg));
+        c.setProgress(currentProgress(ctx, player, cfg));
         c.setFinish(node.getStatus() != TaskConstant.TaskStatus.STATUS_IN_PROGRESS);
         task.getConditions().add(c);
         return task;
     }
 
     /**
-     * 当前进度: 状态型(玩家等级)取实时等级, 事件型从条件系统计数(featureId = 条件type + prefix)回读。
+     * 当前进度: 玩家统计型取玩家级统计，状态型取实时状态，其余事件型从任务计数器回读。
      */
-    private long currentProgress(Player player, TaskCfg cfg) {
+    private long currentProgress(SimPlayerContext ctx, Player player, TaskCfg cfg) {
         SimTaskConfigService.TaskConditionDef def = taskConfig.conditionOf(cfg.getId());
         if (def == null) {
             return 0;
+        }
+        if (playerStatService.supports(def.condition())) {
+            return playerStatService.progress(ctx, def.condition());
         }
         StateConditionEvent state = playerState(player, def.condition());
         if (state != null) {

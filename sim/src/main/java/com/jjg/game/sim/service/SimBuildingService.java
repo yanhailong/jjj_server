@@ -401,8 +401,6 @@ public class SimBuildingService implements SimPlayerTickListener, SimTaskStateRe
             res.code = completeBuildingUpgrade(ctx, casino, data, now);
             if (res.code == Code.SUCCESS) {
                 res.level = data.getLevel();
-                //联盟任务: 建筑升级次数 (param=建筑ID, 供 0=任意/指定建筑 过滤)
-                allianceEventService.onBuildingUpgrade(ctx.playerId(), buildingId, data.getLevel());
                 //主线任务: 升级改变各等级持有量 -> 上报 12208 "拥有 N 个 ≥X 级建筑"
                 reportBuildingCounts(ctx);
             }
@@ -526,12 +524,12 @@ public class SimBuildingService implements SimPlayerTickListener, SimTaskStateRe
             Map<BuildingOutputType, Long> perMinute = computePerMinuteOutput(ctx, casino);
             if (!perMinute.isEmpty()) {
                 Map<BuildingOutputType, Long> total = multiply(perMinute, fullMinutes);
-                playerPackService.addItems(ctx.playerId(), toItemMap(total), AddType.SIM_BUILD_MINUTE_REWARDS, null, false);
+                Map<Integer, Long> items = toItemMap(total);
+                playerPackService.addItems(ctx.playerId(), items, AddType.SIM_BUILD_MINUTE_REWARDS, null, false);
                 //经营信息: 累加每分钟自产金币收益
                 long minuteGold = total.getOrDefault(BuildingOutputType.GOLD, 0L);
                 ctx.getSimBaseData().addBusinessIncome(minuteGold);
-                //主线任务: 经营金币收益 -> 推进 12215
-                allianceEventService.onBusinessIncome(ctx.playerId(), minuteGold);
+                allianceEventService.onBusinessIncome(ctx.playerId(), items);
             }
             //仅推进已结算的整分钟, 保留余量
             casino.setLastOutputTime(casino.getLastOutputTime() + fullMinutes * TimeHelper.ONE_MINUTE_OF_MILLIS);
@@ -873,12 +871,12 @@ public class SimBuildingService implements SimPlayerTickListener, SimTaskStateRe
         }
 
         Map<BuildingOutputType, Long> finalReward = computeFinalReward(ctx, reward, watchAd);
-        playerPackService.addItems(ctx.playerId(), toItemMap(finalReward), AddType.SIM_BUILD_OFFLINE_REWARDS, null, false);
+        Map<Integer, Long> items = toItemMap(finalReward);
+        playerPackService.addItems(ctx.playerId(), items, AddType.SIM_BUILD_OFFLINE_REWARDS, null, false);
         //经营信息: 离线产出金币计入经营收益; 看广告领取计入观看广告数
         long offlineGold = finalReward.getOrDefault(BuildingOutputType.GOLD, 0L);
         ctx.getSimBaseData().addBusinessIncome(offlineGold);
-        //主线任务: 离线经营金币收益 -> 推进 12215
-        allianceEventService.onBusinessIncome(ctx.playerId(), offlineGold);
+        allianceEventService.onBusinessIncome(ctx.playerId(), items);
         if (watchAd) {
             ctx.getSimBaseData().incWatchAdCount();
             //主线任务: 观看广告一次 -> 推进 12209
@@ -1001,6 +999,7 @@ public class SimBuildingService implements SimPlayerTickListener, SimTaskStateRe
         if (data.getId() == SimConstant.Building.ID_RESEARCH_DEPART) {
             simCasinoService.updateCasinoUnlock(ctx, casino.getCasinoId(), data.getLevel());
         }
+        allianceEventService.onBuildingUpgrade(ctx.playerId(), data.getId(), data.getLevel());
         log.info("完成建筑升级 playerId={},buildingId={},newLevel={}", casino.getPlayerId(), data.getId(), data.getLevel());
         return Code.SUCCESS;
     }

@@ -66,6 +66,8 @@ public class AbstractPlayerService {
     protected NodeManager nodeManager;
     @Autowired
     protected PlayerSessionService playerSessionService;
+    @Autowired
+    protected PlayerStatService playerStatService;
 
 
     protected String getLockKey(long playerId) {
@@ -507,6 +509,7 @@ public class AbstractPlayerService {
             coreLogger.useDiamond(player, beforeUpdateGold.value, -num, addType, desc);
             result.code = Code.SUCCESS;
             result.data = player;
+            recordCurrencyConsume(playerId, PlayerStatService.DIAMOND_ITEM_ID, num, addType);
             syncOnlinePlayerController(player);
             return result;
         } else {
@@ -878,6 +881,7 @@ public class AbstractPlayerService {
             coreLogger.useGold(p, beforeUpdateGold.value, -num, addType, desc);
             result.code = Code.SUCCESS;
             result.data = p;
+            recordCurrencyConsume(playerId, PlayerStatService.GOLD_ITEM_ID, num, addType);
             syncOnlinePlayerController(p);
             return result;
         } else {
@@ -953,6 +957,8 @@ public class AbstractPlayerService {
         }
         //获取当前节点玩家数据是否在内存中
         if (playerInMemoryNode(playerId, -goldNum, -diamondNum, -shellNum, result, addType, desc)) {
+            recordCurrencyConsume(playerId, PlayerStatService.GOLD_ITEM_ID, goldNum, addType);
+            recordCurrencyConsume(playerId, PlayerStatService.DIAMOND_ITEM_ID, diamondNum, addType);
             return result;
         }
         final long[] beforeCoin = {0, 0, 0};
@@ -1009,6 +1015,8 @@ public class AbstractPlayerService {
             }
             result.code = Code.SUCCESS;
             result.data = p;
+            recordCurrencyConsume(playerId, PlayerStatService.GOLD_ITEM_ID, goldNum, addType);
+            recordCurrencyConsume(playerId, PlayerStatService.DIAMOND_ITEM_ID, diamondNum, addType);
             syncOnlinePlayerController(p);
             return result;
         }
@@ -1070,6 +1078,7 @@ public class AbstractPlayerService {
             coreLogger.useGold(p, beforeCoin.value, -num, addType, desc);
             result.code = Code.SUCCESS;
             result.data = new Pair<>(p, beforeCoin.value);
+            recordCurrencyConsume(playerId, PlayerStatService.GOLD_ITEM_ID, num, addType);
             //是否通知客户端
             if (notify) {
                 sendMessageManager.buildGoldChangeMessage(p, -num);
@@ -1078,6 +1087,12 @@ public class AbstractPlayerService {
             return result;
         }
         return result;
+    }
+
+    private void recordCurrencyConsume(long playerId, int itemId, long count, AddType addType) {
+        if (count > 0 && addType != AddType.FAIL_ROLLBACK) {
+            playerStatService.recordCurrencyConsume(playerId, itemId, count);
+        }
     }
 
     /**
