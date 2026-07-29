@@ -23,6 +23,7 @@ public class SimGuideConfigService implements ConfigExcelChangeListener {
 
     private volatile Map<TriggerKey, List<Integer>> triggerGroups = Collections.emptyMap();
     private volatile Map<Integer, Integer> groupConditions = Collections.emptyMap();
+    private volatile Map<Integer, String> groupPathNames = Collections.emptyMap();
     private volatile Map<Integer, Integer> guideGroups = Collections.emptyMap();
     private volatile Map<Integer, List<Integer>> groupGuideIds = Collections.emptyMap();
     private volatile Map<Integer, Set<Integer>> groupSkipGuideIds = Collections.emptyMap();
@@ -42,6 +43,7 @@ public class SimGuideConfigService implements ConfigExcelChangeListener {
         if (all == null || all.isEmpty()) {
             triggerGroups = Collections.emptyMap();
             groupConditions = Collections.emptyMap();
+            groupPathNames = Collections.emptyMap();
             guideGroups = Collections.emptyMap();
             groupGuideIds = Collections.emptyMap();
             groupSkipGuideIds = Collections.emptyMap();
@@ -50,6 +52,7 @@ public class SimGuideConfigService implements ConfigExcelChangeListener {
         }
         Map<TriggerKey, Set<Integer>> groups = new HashMap<>();
         Map<Integer, Integer> conditions = new HashMap<>();
+        Map<Integer, String> pathNames = new HashMap<>();
         Map<Integer, Integer> guides = new HashMap<>();
         Map<Integer, List<Integer>> guidesByGroup = new HashMap<>();
         Map<Integer, Set<Integer>> skipGuidesByGroup = new HashMap<>();
@@ -65,6 +68,13 @@ public class SimGuideConfigService implements ConfigExcelChangeListener {
             if (oldCondition != null && oldCondition != cfg.getCondition()) {
                 log.warn("同一引导组配置了不同触发类型 groupId={},old={},new={},guideId={}",
                         cfg.getGuideGroupId(), oldCondition, cfg.getCondition(), cfg.getId());
+                continue;
+            }
+            String pathName = normalizePathName(cfg.getPathName());
+            String oldPathName = pathNames.putIfAbsent(cfg.getGuideGroupId(), pathName);
+            if (oldPathName != null && !oldPathName.equals(pathName)) {
+                log.warn("同一引导组配置了不同触发场景 groupId={},old={},new={},guideId={}",
+                        cfg.getGuideGroupId(), oldPathName, pathName, cfg.getId());
                 continue;
             }
             groups.computeIfAbsent(new TriggerKey(cfg.getCondition(), param), ignored -> new LinkedHashSet<>())
@@ -113,12 +123,15 @@ public class SimGuideConfigService implements ConfigExcelChangeListener {
                 Collections.unmodifiableList(new ArrayList<>(value))));
         triggerGroups = Collections.unmodifiableMap(immutable);
         groupConditions = Collections.unmodifiableMap(conditions);
+        groupPathNames = Collections.unmodifiableMap(pathNames);
         guideGroups = Collections.unmodifiableMap(guides);
         groupGuideIds = Collections.unmodifiableMap(guidesByGroup);
         groupSkipGuideIds = Collections.unmodifiableMap(skipGuidesByGroup);
         int skipGuideCount = groupSkipGuideIds.values().stream().mapToInt(Set::size).sum();
-        log.info("加载新手引导触发索引完成 triggerCount={},groupCount={},guideCount={},skipGuideCount={}",
-                triggerGroups.size(), groupConditions.size(), guideGroups.size(), skipGuideCount);
+        long pathRestrictedGroupCount = groupPathNames.values().stream().filter(value -> !value.isEmpty()).count();
+        log.info("加载新手引导触发索引完成 triggerCount={},groupCount={},guideCount={},skipGuideCount={},pathRestrictedGroupCount={}",
+                triggerGroups.size(), groupConditions.size(), guideGroups.size(), skipGuideCount,
+                pathRestrictedGroupCount);
     }
 
     public List<Integer> groupsFor(int condition, int param) {
@@ -128,6 +141,11 @@ public class SimGuideConfigService implements ConfigExcelChangeListener {
 
     public int conditionOfGroup(int guideGroupId) {
         return groupConditions.getOrDefault(guideGroupId, 0);
+    }
+
+    /** 获取引导组要求的触发场景；空字符串表示不限制场景。 */
+    public String pathNameOfGroup(int guideGroupId) {
+        return groupPathNames.getOrDefault(guideGroupId, "");
     }
 
     public boolean containsGroup(int guideGroupId) {
@@ -172,6 +190,10 @@ public class SimGuideConfigService implements ConfigExcelChangeListener {
     private boolean conditionNeedsParam(int condition) {
         return condition != SimConstant.GuideCondition.NEW_PLAYER
                 && condition != SimConstant.GuideCondition.ALLIANCE;
+    }
+
+    private String normalizePathName(String pathName) {
+        return pathName == null ? "" : pathName.trim();
     }
 
     private record TriggerKey(int condition, int param) {

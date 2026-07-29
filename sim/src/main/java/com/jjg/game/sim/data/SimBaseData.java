@@ -22,6 +22,8 @@ public class SimBaseData extends AbstractData {
     //是否已完成新手引导
     private boolean guide;
     private Set<Integer> triggeredGuideGroupIds;
+    // 条件已经满足，但尚未进入 Guide.xlsx.PathName 指定场景的引导组
+    private Set<Integer> scenePendingGuideGroupIds;
     private Set<Integer> completedGuideGroupIds;
     // 已完成的具体引导步骤ID，用于断线后恢复组内进度
     private Set<Integer> completedGuideIds;
@@ -85,6 +87,15 @@ public class SimBaseData extends AbstractData {
         this.triggeredGuideGroupIds = value;
     }
 
+    public Set<Integer> getScenePendingGuideGroupIds() {
+        if (scenePendingGuideGroupIds == null) scenePendingGuideGroupIds = new HashSet<>();
+        return scenePendingGuideGroupIds;
+    }
+
+    public void setScenePendingGuideGroupIds(Set<Integer> value) {
+        this.scenePendingGuideGroupIds = value;
+    }
+
     public Set<Integer> getCompletedGuideGroupIds() {
         if (completedGuideGroupIds == null) completedGuideGroupIds = new HashSet<>();
         return completedGuideGroupIds;
@@ -114,12 +125,30 @@ public class SimBaseData extends AbstractData {
     }
 
     public boolean triggerGuideGroup(int groupId) {
-        return groupId > 0 && !getCompletedGuideGroupIds().contains(groupId)
-                && getTriggeredGuideGroupIds().add(groupId);
+        if (groupId <= 0 || getCompletedGuideGroupIds().contains(groupId)) return false;
+        getScenePendingGuideGroupIds().remove(groupId);
+        return getTriggeredGuideGroupIds().add(groupId);
+    }
+
+    public boolean deferGuideGroupForScene(int groupId) {
+        return groupId > 0
+                && !getCompletedGuideGroupIds().contains(groupId)
+                && !getTriggeredGuideGroupIds().contains(groupId)
+                && getScenePendingGuideGroupIds().add(groupId);
+    }
+
+    public boolean activateScenePendingGuideGroup(int groupId) {
+        if (!getScenePendingGuideGroupIds().remove(groupId)) return false;
+        return triggerGuideGroup(groupId);
+    }
+
+    public void discardScenePendingGuideGroup(int groupId) {
+        getScenePendingGuideGroupIds().remove(groupId);
     }
 
     public boolean completeGuideGroup(int groupId) {
         if (groupId <= 0) return false;
+        getScenePendingGuideGroupIds().remove(groupId);
         getTriggeredGuideGroupIds().add(groupId);
         return getCompletedGuideGroupIds().add(groupId);
     }

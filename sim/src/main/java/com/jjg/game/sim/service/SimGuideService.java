@@ -47,22 +47,79 @@ public class SimGuideService implements ItemAddListener {
         if (groups.isEmpty()) {
             return Collections.emptyList();
         }
+        SimBaseData base = ctx.getSimBaseData();
         List<Integer> triggered = new ArrayList<>(groups.size());
+        List<Integer> deferred = new ArrayList<>(groups.size());
         for (int groupId : groups) {
-            if (ctx.getSimBaseData().triggerGuideGroup(groupId)) {
-                triggered.add(groupId);
+            String requiredPathName = configService.pathNameOfGroup(groupId);
+            if (pathMatches(ctx, requiredPathName)) {
+                if (base.triggerGuideGroup(groupId)) {
+                    triggered.add(groupId);
+                }
+            } else if (base.deferGuideGroupForScene(groupId)) {
+                deferred.add(groupId);
             }
+        }
+        if (triggered.isEmpty() && deferred.isEmpty()) {
+            return Collections.emptyList();
+        }
+        ctx.setLastSaveTime(0);
+        if (!triggered.isEmpty()) {
+            log.info("触发新手引导组 playerId={},condition={},param={},groups={}",
+                    ctx.playerId(), condition, param, triggered);
+            if (notify) {
+                notifyTriggeredGroups(ctx, triggered);
+            }
+        }
+        if (!deferred.isEmpty()) {
+            log.info("新手引导条件已满足，等待进入指定场景 playerId={},condition={},param={},groups={}",
+                    ctx.playerId(), condition, param, deferred);
+        }
+        return triggered.isEmpty()
+                ? Collections.emptyList()
+                : Collections.unmodifiableList(triggered);
+    }
+
+    /** 玩家进入指定 PathName 后，激活此前条件已经满足的引导组。 */
+    public List<Integer> triggerDeferredForPath(SimPlayerContext ctx, String pathName, boolean notify) {
+        if (ctx == null || ctx.getSimBaseData() == null || pathName == null || pathName.isBlank()) {
+            return Collections.emptyList();
+        }
+        SimBaseData base = ctx.getSimBaseData();
+        List<Integer> triggered = new ArrayList<>();
+        boolean stateChanged = false;
+        for (int groupId : new ArrayList<>(base.getScenePendingGuideGroupIds())) {
+            if (!configService.containsGroup(groupId) || base.hasCompletedGuideGroup(groupId)) {
+                base.discardScenePendingGuideGroup(groupId);
+                stateChanged = true;
+                continue;
+            }
+            if (pathName.equals(configService.pathNameOfGroup(groupId))
+                    && base.activateScenePendingGuideGroup(groupId)) {
+                triggered.add(groupId);
+                stateChanged = true;
+            }
+        }
+        if (stateChanged) {
+            ctx.setLastSaveTime(0);
         }
         if (triggered.isEmpty()) {
             return Collections.emptyList();
         }
-        ctx.setLastSaveTime(0);
-        log.info("触发新手引导组 playerId={},condition={},param={},groups={}",
-                ctx.playerId(), condition, param, triggered);
+        log.info("进入指定场景后触发等待中的新手引导组 playerId={},pathName={},groups={}",
+                ctx.playerId(), pathName, triggered);
         if (notify) {
             notifyTriggeredGroups(ctx, triggered);
         }
         return Collections.unmodifiableList(triggered);
+    }
+
+    private boolean pathMatches(SimPlayerContext ctx, String requiredPathName) {
+        if (requiredPathName == null || requiredPathName.isBlank()) return true;
+        if (SimConstant.GuidePath.SIM_HALL.equals(requiredPathName)) {
+            return ctx.getPlayerController() != null && ctx.getPlayerController().getScene() == ctx;
+        }
+        return false;
     }
 
     /** 玩家正常完成一个引导步骤。 */

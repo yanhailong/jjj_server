@@ -228,6 +228,12 @@ public interface SimConstant {
         int GUIDE_GROUP_FINISHED = 8;
     }
 
+    /** Guide.xlsx 的 PathName 约定。 */
+    interface GuidePath {
+        /** 模拟经营大厅界面。 */
+        String SIM_HALL = "1";
+    }
+
     interface Common {
         //默认解锁的场景id
         int DEFAULT_CASINO_ID = 1;
