@@ -15,6 +15,7 @@ import com.jjg.game.core.data.*;
 import com.jjg.game.core.listener.SpecialItemListener;
 import com.jjg.game.core.logger.CoreLogger;
 import com.jjg.game.core.listener.ItemAddListener;
+import com.jjg.game.core.listener.ItemNotEnoughListener;
 import com.jjg.game.core.listener.ItemConsumeListener;
 import com.jjg.game.core.pb.PackItemInfo;
 import com.jjg.game.core.task.manager.TaskManager;
@@ -58,6 +59,9 @@ public class PlayerPackService implements IPlayerRegister {
     private TaskManager taskManager;
     @Autowired(required = false)
     private List<ItemAddListener> itemAddListeners = Collections.emptyList();
+    @Autowired(required = false)
+    private List<ItemNotEnoughListener> itemNotEnoughListeners = Collections.emptyList();
+
     //一个道具只能由一个处理器承载，多个实现会在启动时直接冲突失败，好过静默取其一
     @Autowired(required = false)
     private SpecialItemListener specialItemListener;
@@ -413,6 +417,42 @@ public class PlayerPackService implements IPlayerRegister {
         }
     }
 
+    /**
+     * 仅在扣除失败时逐项复核，找出本次实际不够扣的道具ID并通知监听器。
+     */
+    private void notifyItemsNotEnough(Player player, Collection<Item> requestedItems, AddType addType) {
+        if (player == null || itemNotEnoughListeners.isEmpty()
+                || requestedItems == null || requestedItems.isEmpty()) {
+            return;
+        }
+        Player latestPlayer = corePlayerService.get(player.getId());
+        if (latestPlayer == null) {
+            latestPlayer = player;
+        }
+        Set<Integer> insufficientItemIds = new LinkedHashSet<>();
+        for (Item item : requestedItems) {
+            if (item == null || item.getItemCount() <= 0) {
+                continue;
+            }
+            int code = checkHasItems(latestPlayer, List.of(item));
+            if (code == Code.NOT_ENOUGH || code == Code.NOT_ENOUGH_ITEM) {
+                insufficientItemIds.add(item.getId());
+            }
+        }
+        if (insufficientItemIds.isEmpty()) {
+            return;
+        }
+        Set<Integer> immutable = Collections.unmodifiableSet(insufficientItemIds);
+        for (ItemNotEnoughListener listener : itemNotEnoughListeners) {
+            try {
+                listener.onItemsNotEnough(player.getId(), immutable, addType);
+            } catch (Exception e) {
+                log.error("道具不足监听器异常 listener={},playerId={},itemIds={}",
+                        listener.getClass().getSimpleName(), player.getId(), immutable, e);
+            }
+        }
+    }
+
     private void notifyItemsConsumed(long playerId, Map<Integer, Long> items, AddType addType) {
         if (itemConsumeListeners.isEmpty() || items == null || items.isEmpty()) {
             return;
@@ -527,6 +567,7 @@ public class PlayerPackService implements IPlayerRegister {
         int code = checkHasItems(player, validRemoveItemList);
         if (code != Code.SUCCESS) {
             result.code = code;
+            notifyItemsNotEnough(player, validRemoveItemList, addType);
             return result;
         }
         result.data = new ItemOperationResult();
@@ -543,6 +584,7 @@ public class PlayerPackService implements IPlayerRegister {
                 && !specialItemListener.removeItems(playerId, removedSpecialItemList, addType, desc)) {
             log.warn("扣除特殊道具失败 playerId={},items={},addType={}", playerId, removedSpecialItemList, addType);
             result.code = Code.NOT_ENOUGH_ITEM;
+            notifyItemsNotEnough(player, removedSpecialItemList, addType);
             return result;
         }
 
@@ -558,6 +600,7 @@ public class PlayerPackService implements IPlayerRegister {
                 return result;
             }
             List<Item> packItemList = new ArrayList<>();
+            List<Item> moneyRemoveItemList = new ArrayList<>();
             for (Item item : normalRemoveItemList) {
                 int itemId = item.getId();
                 ItemCfg itemCfg = GameDataManager.getItemCfg(itemId);
@@ -568,16 +611,19 @@ public class PlayerPackService implements IPlayerRegister {
                 //扣除钻石
                 if (itemCfg.getType() == GameConstant.Item.TYPE_DIAMOND) {
                     deductDiamondV += Math.abs(item.getItemCount());
+                    moneyRemoveItemList.add(item);
                     continue;
                 }
                 //累加扣除金币
                 if (itemCfg.getType() == GameConstant.Item.TYPE_GOLD) {
                     deductGoldV += Math.abs(item.getItemCount());
+                    moneyRemoveItemList.add(item);
                     continue;
                 }
                 //累加扣除贝币
                 if (itemCfg.getType() == GameConstant.Item.TYPE_SHELL) {
                     deductShellV += Math.abs(item.getItemCount());
+                    moneyRemoveItemList.add(item);
                     continue;
                 }
                 packItemList.add(item);
@@ -602,6 +648,7 @@ public class PlayerPackService implements IPlayerRegister {
                 //检查道具
                 if (!playerPack.checkHasItems(packItemList)) {
                     result.code = Code.NOT_ENOUGH_ITEM;
+                    notifyItemsNotEnough(player, packItemList, addType);
                     return result;
                 }
                 for (Item item : packItemList) {
@@ -622,6 +669,7 @@ public class PlayerPackService implements IPlayerRegister {
                     }
                     if (!removeResult.success()) {
                         result.code = removeResult.code;
+                        notifyItemsNotEnough(player, List.of(item), addType);
                         return result;
                     }
                     consumedMap.merge(id, count, Long::sum);
@@ -633,6 +681,7 @@ public class PlayerPackService implements IPlayerRegister {
                         corePlayerService.deductMoneyCoin(playerId, deductGoldV, deductDiamondV, deductShellV, addType, true, desc);
                 if (!removeResult.success()) {
                     result.code = removeResult.code;
+                    notifyItemsNotEnough(player, moneyRemoveItemList, addType);
                     return result;
                 }
                 currencyDeducted = true;

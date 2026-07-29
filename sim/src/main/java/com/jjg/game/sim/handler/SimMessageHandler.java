@@ -792,6 +792,7 @@ public class SimMessageHandler implements GmListener {
                 int oldLevel = ctx.getCurrentCasino().getCasinoLevel();
                 ctx.getCurrentCasino().setCasinoLevel(cfg.getLevel());
                 ctx.getSimBaseData().addAllLevel(ctx.getCurrentCasino().getCasinoLevel() - oldLevel);
+                guideService.triggerSceneTotalLevelReached(ctx, ctx.getSimBaseData().getAllLevel(), true);
                 ctx.setLastSaveTime(0);
             } else if ("simBuildLevelUp".equalsIgnoreCase(gmOrders[0])) {
                 int buildingId = Integer.parseInt(gmOrders[1]);

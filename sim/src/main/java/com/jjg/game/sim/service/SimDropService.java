@@ -75,6 +75,7 @@ public class SimDropService {
             casino.setExp(casino.getExp() + SimConstant.Common.SPIN_ADD_EXP);
             if (checkLevelUp(casino)) {
                 base.addAllLevel(1);
+                guideService.triggerSceneTotalLevelReached(ctx, base.getAllLevel(), true);
             }
         }
         //掉落

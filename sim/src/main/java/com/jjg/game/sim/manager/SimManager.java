@@ -14,6 +14,7 @@ import com.jjg.game.core.data.ExitType;
 import com.jjg.game.core.data.Player;
 import com.jjg.game.core.data.PlayerController;
 import com.jjg.game.core.service.CorePlayerService;
+import com.jjg.game.core.service.GameFunctionService;
 import com.jjg.game.core.service.PlayerPackService;
 import com.jjg.game.sampledata.GameDataManager;
 import com.jjg.game.sampledata.bean.ItemCfg;
@@ -125,6 +126,8 @@ public class SimManager {
     @Autowired
     private CorePlayerService corePlayerService;
     @Autowired
+    private GameFunctionService gameFunctionService;
+    @Autowired
     private SimTaskService simTaskService;
     @Autowired
     private SimTaskDao simTaskDao;
@@ -198,9 +201,16 @@ public class SimManager {
                 ctx.getSimBaseData().setLastOfflineTime(0);
             }
             playerController.setScene(ctx);
+            // 条件3使用模拟经营所有场景等级之和 allLevel，进入大厅时补扫后台直改和旧玩家漏触发。
+            int allLevel = ctx.getSimBaseData().getAllLevel();
+            List<Integer> sceneLevelTriggeredGroups = guideService.triggerSceneTotalLevelReached(ctx, allLevel, false);
             // 条件4使用角色系统的玩家等级 Player.level；进入大厅时补扫，覆盖后台直改等级和旧玩家漏触发。
             int playerLevel = playerController.getPlayer() == null ? 0 : playerController.getPlayer().getLevel();
             List<Integer> levelTriggeredGroups = guideService.triggerPlayerLevelReached(ctx, playerLevel, false);
+            // 条件7进入大厅时按当前开放功能补扫，覆盖离线期间或历史玩家漏触发。
+            if (playerController.getPlayer() != null) {
+                guideService.triggerFunctionsUnlocked(ctx, gameFunctionService.getOpenedFuncIdList(playerController.getPlayer()), false);
+            }
             // PathName=1 代表模拟经营大厅；激活其他条件已满足但此前场景不符的等待组。
             guideService.triggerDeferredForPath(ctx, SimConstant.GuidePath.SIM_HALL, false);
             if (!ctx.getSimBaseData().isGuide()) {
@@ -212,6 +222,8 @@ public class SimManager {
             res.guide = ctx.getSimBaseData().isGuide();
             log.info("进入模拟经营大厅检查等级引导 playerId={},playerLevel={},newGroups={},pendingGroups={}",
                     playerController.playerId(), playerLevel, levelTriggeredGroups, res.guideGroupIds);
+            log.info("进入模拟经营大厅检查场景累计等级引导 playerId={},allLevel={},newGroups={}",
+                    playerController.playerId(), allLevel, sceneLevelTriggeredGroups);
 
             res.currentCasinoId = ctx.getCurrentCasino().getCasinoId();
 

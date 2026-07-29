@@ -3,6 +3,7 @@ package com.jjg.game.sim.service;
 import com.jjg.game.core.constant.AddType;
 import com.jjg.game.core.constant.Code;
 import com.jjg.game.core.listener.ItemAddListener;
+import com.jjg.game.core.listener.ItemNotEnoughListener;
 import com.jjg.game.sim.constant.SimConstant;
 import com.jjg.game.sim.data.SimBaseData;
 import com.jjg.game.sim.data.SimPlayerContext;
@@ -26,7 +27,7 @@ import java.util.Set;
 
 /** 服务端按组触发引导，按 GuideId 保存具体步骤进度。 */
 @Service
-public class SimGuideService implements ItemAddListener {
+public class SimGuideService implements ItemAddListener, ItemNotEnoughListener {
     private static final Logger log = LoggerFactory.getLogger(SimGuideService.class);
 
     @Autowired
@@ -78,6 +79,29 @@ public class SimGuideService implements ItemAddListener {
         return triggered.isEmpty()
                 ? Collections.emptyList()
                 : Collections.unmodifiableList(triggered);
+    }
+
+    /**
+     * 按模拟经营所有场景等级之和 SimBaseData.allLevel 补扫条件3引导。
+     * 用于场景升级、开辟新场景、GM 跨级以及进入大厅时补偿漏触发。
+     */
+    public List<Integer> triggerSceneTotalLevelReached(SimPlayerContext ctx, int allLevel, boolean notify) {
+        if (ctx == null || ctx.getSimBaseData() == null || allLevel <= 0) {
+            return Collections.emptyList();
+        }
+        List<Integer> triggered = new ArrayList<>();
+        for (int threshold : configService.paramsAtOrBelow(SimConstant.GuideCondition.SCENE_TOTAL_LEVEL, allLevel)) {
+            triggered.addAll(trigger(ctx, SimConstant.GuideCondition.SCENE_TOTAL_LEVEL, threshold, false));
+        }
+        if (triggered.isEmpty()) {
+            return Collections.emptyList();
+        }
+        if (notify) {
+            notifyTriggeredGroups(ctx, triggered);
+        }
+        log.info("场景累计等级达到条件后触发新手引导 playerId={},allLevel={},groups={}",
+                ctx.playerId(), allLevel, triggered);
+        return Collections.unmodifiableList(triggered);
     }
 
     /**
@@ -277,6 +301,29 @@ public class SimGuideService implements ItemAddListener {
         }
     }
 
+    /** 按当前已经开放的功能ID触发条件7，重复检查由引导组状态自动去重。 */
+    public List<Integer> triggerFunctionsUnlocked(SimPlayerContext ctx, Collection<Integer> functionIds, boolean notify) {
+        if (ctx == null || functionIds == null || functionIds.isEmpty()) {
+            return Collections.emptyList();
+        }
+        Set<Integer> triggered = new LinkedHashSet<>();
+        for (Integer functionId : functionIds) {
+            if (functionId != null && functionId > 0) {
+                triggered.addAll(trigger(ctx, SimConstant.GuideCondition.FUNCTION_UNLOCKED, functionId, false));
+            }
+        }
+        if (triggered.isEmpty()) {
+            return Collections.emptyList();
+        }
+        List<Integer> result = new ArrayList<>(triggered);
+        if (notify) {
+            notifyTriggeredGroups(ctx, result);
+        }
+        log.info("功能解锁后触发新手引导 playerId={},functionIds={},groups={}",
+                ctx.playerId(), functionIds, result);
+        return Collections.unmodifiableList(result);
+    }
+
     @Override
     public void onItemsAdded(long playerId, Map<Integer, Long> items, AddType addType) {
         SimPlayerContext ctx = contextRegistry.getContext(playerId);
@@ -285,6 +332,17 @@ public class SimGuideService implements ItemAddListener {
             return;
         }
         simPackService.forwardPackItemsAdded(playerId, items, addType);
+    }
+
+    @Override
+    public void onItemsNotEnough(long playerId, Set<Integer> itemIds, AddType addType) {
+        SimPlayerContext ctx = contextRegistry.getContext(playerId);
+        if (ctx == null || itemIds == null || itemIds.isEmpty()) {
+            return;
+        }
+        for (int itemId : itemIds) {
+            triggerItemNotEnough(ctx, itemId);
+        }
     }
 
     private List<Integer> finishGroupIfComplete(SimPlayerContext ctx, int guideGroupId) {

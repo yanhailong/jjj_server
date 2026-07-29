@@ -196,7 +196,11 @@ public class SimGuideConfigService implements ConfigExcelChangeListener {
 
     private boolean validCondition(int condition) {
         return condition == SimConstant.GuideCondition.NEW_PLAYER
+                || condition == SimConstant.GuideCondition.SCENE_TOTAL_LEVEL
                 || condition == SimConstant.GuideCondition.PLAYER_LEVEL
+                || condition == SimConstant.GuideCondition.ITEM_NOT_ENOUGH
+                || condition == SimConstant.GuideCondition.ITEM_GAINED
+                || condition == SimConstant.GuideCondition.FUNCTION_UNLOCKED
                 || condition == SimConstant.GuideCondition.GUIDE_GROUP_FINISHED;
     }
 
