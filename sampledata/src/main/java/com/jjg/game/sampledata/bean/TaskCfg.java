@@ -31,8 +31,6 @@ public class TaskCfg extends BaseCfgBean {
   protected List<Integer> MinandMax;
   /** 任务品质 */
   protected int Quality;
-  /** 任务激活类型 */
-  protected int TaskActivateType;
   /** 赛季任务开启天数 */
   protected int day;
   /** 道具奖励 */
@@ -84,11 +82,6 @@ public class TaskCfg extends BaseCfgBean {
   /** 返回任务品质 */
   public int getQuality() {
     return Quality;
-  }
-
-  /** 返回任务激活类型 */
-  public int getTaskActivateType() {
-    return TaskActivateType;
   }
 
   /** 返回赛季任务开启天数 */

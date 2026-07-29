@@ -1388,6 +1388,7 @@ public class GameDataManager {
   public static List<ImmortalHandCfg> getImmortalHandCfgList() {
     return getInstance().getCfgContainer(ImmortalHandCfg.class).getCfgBeanList();
   }
+
   public static IponeAreacodeConfigCfg getIponeAreacodeConfigCfg(int key) {
     return getInstance().getCfgContainer(IponeAreacodeConfigCfg.class).getCfgBeanMap().get(key);
   }
@@ -2340,6 +2341,6 @@ public class GameDataManager {
   }
 
   public static void main(String[] args) throws Exception {
-    loadAllData("D:\\workspace\\number\\gamedoc-vert1.0\\gamedoc\\游戏配置表");
+    loadAllData("E:\\gamedoc\\游戏配置表");
   }
 }

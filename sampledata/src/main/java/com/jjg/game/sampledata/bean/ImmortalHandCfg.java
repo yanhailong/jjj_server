@@ -19,23 +19,18 @@ public class ImmortalHandCfg extends BaseCfgBean {
   /** 配置表工作薄名 */
   public static final String SHEET_NAME = "ImmortalHand";
 
-  /** 区域(1凡界 2灵界 3仙界) */
+  /** 区域 */
   protected int Area;
-  /** 多语言id */
-  protected int nameid;
   /** 牌型倍率 */
   protected int HandMultiplier;
   /** 牌型值 */
   protected int HandValue;
+  /** 多语言id */
+  protected int nameid;
 
-  /** 返回区域(1凡界 2灵界 3仙界) */
+  /** 返回区域 */
   public int getArea() {
     return Area;
-  }
-
-  /** 返回多语言id */
-  public int getNameid() {
-    return nameid;
   }
 
   /** 返回牌型倍率 */
@@ -46,6 +41,11 @@ public class ImmortalHandCfg extends BaseCfgBean {
   /** 返回牌型值 */
   public int getHandValue() {
     return HandValue;
+  }
+
+  /** 返回多语言id */
+  public int getNameid() {
+    return nameid;
   }
 
   @Override
