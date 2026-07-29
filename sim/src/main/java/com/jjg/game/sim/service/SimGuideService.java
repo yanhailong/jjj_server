@@ -59,33 +59,41 @@ public class SimGuideService implements ItemAddListener {
         ctx.setLastSaveTime(0);
         log.info("触发新手引导组 playerId={},condition={},param={},groups={}",
                 ctx.playerId(), condition, param, triggered);
-        if (notify && ctx.getPlayerController() != null) {
-            NotifyGuideTrigger message = new NotifyGuideTrigger(Code.SUCCESS);
-            message.guideGroupIds = triggered;
-            ctx.send(message);
+        if (notify) {
+            notifyTriggeredGroups(ctx, triggered);
         }
         return Collections.unmodifiableList(triggered);
     }
 
     /** 玩家正常完成一个引导步骤。 */
     public ResFinishGuide finish(SimPlayerContext ctx, int guideId) {
+        FinishGuideResult result = finishWithTriggers(ctx, guideId);
+        notifyTriggeredGroups(ctx, result.triggeredGuideGroupIds());
+        return result.response();
+    }
+
+    /**
+     * 玩家正常完成一个引导步骤，但暂不发送由“引导组结束”触发的新引导通知。
+     * 调用方应先发送完成响应，再调用 {@link #notifyTriggeredGroups(SimPlayerContext, List)}。
+     */
+    public FinishGuideResult finishWithTriggers(SimPlayerContext ctx, int guideId) {
         ResFinishGuide res = new ResFinishGuide(Code.SUCCESS);
         res.guideId = guideId;
         if (ctx == null || ctx.getSimBaseData() == null || !configService.containsGuide(guideId)) {
             res.code = Code.PARAM_ERROR;
-            return res;
+            return new FinishGuideResult(res, Collections.emptyList());
         }
         int guideGroupId = configService.groupOfGuide(guideId);
         SimBaseData base = ctx.getSimBaseData();
         if (base.getCompletedGuideIds().contains(guideId)) {
-            return res;
+            return new FinishGuideResult(res, Collections.emptyList());
         }
         if (!base.hasTriggeredGuideGroup(guideGroupId)) {
             res.code = Code.FAIL;
-            return res;
+            return new FinishGuideResult(res, Collections.emptyList());
         }
         boolean firstCompleted = base.completeGuideId(guideId);
-        finishGroupIfComplete(ctx, guideGroupId);
+        List<Integer> triggeredGroups = finishGroupIfComplete(ctx, guideGroupId, false);
         ctx.setLastSaveTime(0);
         log.info("完成新手引导步骤 playerId={},groupId={},guideId={}",
                 ctx.playerId(), guideGroupId, guideId);
@@ -95,7 +103,18 @@ public class SimGuideService implements ItemAddListener {
                     ? "" : ctx.getPlayerController().getPlayer().getNickName();
             guideLogger.playerCompleted(ctx.playerId(), playerName, guideId);
         }
-        return res;
+        return new FinishGuideResult(res, triggeredGroups);
+    }
+
+    /** 发送已经完成状态计算的引导组触发通知。 */
+    public void notifyTriggeredGroups(SimPlayerContext ctx, List<Integer> guideGroupIds) {
+        if (ctx == null || ctx.getPlayerController() == null
+                || guideGroupIds == null || guideGroupIds.isEmpty()) {
+            return;
+        }
+        NotifyGuideTrigger message = new NotifyGuideTrigger(Code.SUCCESS);
+        message.guideGroupIds = guideGroupIds;
+        ctx.send(message);
     }
 
     /**
@@ -188,19 +207,24 @@ public class SimGuideService implements ItemAddListener {
         simPackService.forwardPackItemsAdded(playerId, items, addType);
     }
 
-    private void finishGroupIfComplete(SimPlayerContext ctx, int guideGroupId) {
+    private List<Integer> finishGroupIfComplete(SimPlayerContext ctx, int guideGroupId) {
+        return finishGroupIfComplete(ctx, guideGroupId, true);
+    }
+
+    private List<Integer> finishGroupIfComplete(SimPlayerContext ctx, int guideGroupId, boolean notify) {
         SimBaseData base = ctx.getSimBaseData();
         List<Integer> groupGuideIds = configService.guideIdsOfGroup(guideGroupId);
-        if (groupGuideIds.isEmpty()) return;
+        if (groupGuideIds.isEmpty()) return Collections.emptyList();
         // 同一组允许存在多条入口分支，不能要求所有分支步骤都完成。
         // Guide.xlsx 当前约定组内最大 GuideId 为最终结束步骤。
         int finishGuideId = groupGuideIds.get(groupGuideIds.size() - 1);
         if (base.getCompletedGuideIds().contains(finishGuideId)) {
-            complete(ctx, guideGroupId);
+            return complete(ctx, guideGroupId, notify);
         }
+        return Collections.emptyList();
     }
 
-    private void complete(SimPlayerContext ctx, int guideGroupId) {
+    private List<Integer> complete(SimPlayerContext ctx, int guideGroupId, boolean notify) {
         SimBaseData base = ctx.getSimBaseData();
         boolean firstCompleted = base.completeGuideGroup(guideGroupId);
         // 兼容旧逻辑：完成“创建新号”引导组后，开放游客生成和建筑产出。
@@ -208,7 +232,12 @@ public class SimGuideService implements ItemAddListener {
             base.setGuide(true);
         }
         if (firstCompleted) {
-            trigger(ctx, SimConstant.GuideCondition.GUIDE_GROUP_FINISHED, guideGroupId, true);
+            return trigger(ctx, SimConstant.GuideCondition.GUIDE_GROUP_FINISHED, guideGroupId, notify);
         }
+        return Collections.emptyList();
+    }
+
+    /** 完成引导响应，以及本次完成后新触发但尚未通知的引导组。 */
+    public record FinishGuideResult(ResFinishGuide response, List<Integer> triggeredGuideGroupIds) {
     }
 }
