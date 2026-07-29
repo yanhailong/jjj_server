@@ -301,6 +301,8 @@ public interface SimConstant {
         int ID_WATCH_AD_LIMIT = 137;
         //赛季：免费游戏次数（进阶赛季、循环赛季）
         int ID_SEASON_FEEE_GAME_COUNT = 280;
+        //赛季：赛季机台每次旋转被动触发匹配的概率(百分比, 8% 填 8)
+        int ID_SEASON_PASSIVE_MATCH_PROB = 281;
         //赛季：赛季结算，赛季币返还的比例与上限
         int ID_RETURN_COIN_MAX = 284;
     }

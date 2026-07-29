@@ -12,6 +12,7 @@ import com.jjg.game.core.data.PlayerController;
 import com.jjg.game.core.utils.ItemUtils;
 import com.jjg.game.season.data.SeasonFreeSpinResult;
 import com.jjg.game.season.data.SeasonSlotsSessionData;
+import com.jjg.game.season.pb.res.ResSeasonMatch;
 import com.jjg.game.sim.bridge.ToSimBridge;
 import com.jjg.game.sim.data.SimSkillsData;
 import com.jjg.game.sim.data.SlotsSpinResult;
@@ -173,6 +174,32 @@ public class SlotsRPCLinkManager {
             }
         } catch (Exception e) {
             log.error("赛季免费局申请异常 playerId={},gameType={}", playerGameData.getPlayerId(), gameType, e);
+            return null;
+        }
+    }
+
+    /**
+     * 被动匹配: 同步向 sim 发起一次赛季匹配, 与客户端主动发起的 ReqSeasonMatch 走同一个 RPC 与同一份应答,
+     * 由本节点下发给客户端。sim 不可达/开局被拒时返回 null。
+     */
+    public ResSeasonMatch seasonMatch(SlotsPlayerGameData playerGameData, int gameType, long stake) {
+        try {
+            ClusterClient client = resolveSimClient(playerGameData);
+            if (client == null) {
+                return null;
+            }
+            GameRpcContext rpcContext = GameRpcContext.getContext();
+            RpcReqParameterBuilder previousBuilder = rpcContext.getReqParameterBuilder();
+            try {
+                rpcContext.withReqParameterBuilder(RpcReqParameterBuilder.create()
+                        .addClusterClient(client).setTryMillisPerClient(1000));
+                return toSimBridge.seasonMatch(playerGameData.getPlayerId(), gameType, stake);
+            } finally {
+                rpcContext.setReqParameterBuilder(previousBuilder);
+            }
+        } catch (Exception e) {
+            log.error("赛季被动匹配 RPC 异常 playerId={},gameType={},stake={}",
+                    playerGameData.getPlayerId(), gameType, stake, e);
             return null;
         }
     }

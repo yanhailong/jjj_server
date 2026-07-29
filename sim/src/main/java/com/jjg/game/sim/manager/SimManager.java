@@ -658,7 +658,7 @@ public class SimManager {
             //赛季联动: 宝石掉落/试炼窗口/对局结算 (内部吞异常, 不影响主流程)
             if (!visitTrial) {
                 Map<Integer, Long> gemGains = seasonService.onSpin(ctx, gameType, statInfo,
-                        statInfo == null ? null : conditionEvent);
+                        statInfo == null ? null : conditionEvent, enterType);
                 //宝石入账在 sim 侧, 客户端只认 rpc 返回的这一份掉落, 故并回本次结果一起下发
                 if (result.data != null) {
                     result.data.mergeItems(gemGains);

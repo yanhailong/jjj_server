@@ -57,7 +57,7 @@ public class RpcServerService {
         if (req == null) {
             throw new RuntimeException("调用RPC时，参数为空");
         }
-        log.debug("节点：{} 收到游戏Rpc请求消息:{}", clusterSystem.getNodePath(), req);
+//        log.debug("节点：{} 收到游戏Rpc请求消息:{}", clusterSystem.getNodePath(), req);
         resp.requestId = req.requestId;
         resp.success = false;
         Object provider = clusterRpcService.getProvider(req.serviceClassName);
@@ -165,7 +165,7 @@ public class RpcServerService {
 
         resp.success = true;
         clusterConnect.write(new ClusterMessage(resp));
-        log.debug("向发送方：{} 返回调用RPC结果:{}", clusterConnect.address(), resp);
+//        log.debug("向发送方：{} 返回调用RPC结果:{}", clusterConnect.address(), resp);
     }
 
     /**

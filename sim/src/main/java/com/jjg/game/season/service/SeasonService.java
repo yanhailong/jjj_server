@@ -18,7 +18,6 @@ import com.jjg.game.sim.data.SimPlayerContext;
 import com.jjg.game.sim.data.SpinStatInfo;
 import com.jjg.game.sim.listener.SimPlayerTickListener;
 import com.jjg.game.sim.service.SimAutoSaveService;
-import com.jjg.game.sim.service.SimConditionEventFactory;
 import com.jjg.game.sim.service.SimConfigCacheService;
 import com.jjg.game.social.service.SocialSender;
 import org.slf4j.Logger;
@@ -255,6 +254,10 @@ public class SeasonService implements SimPlayerTickListener {
         gemService.autoSettleFailedCraft(ctx);
     }
 
+    /**
+     * 主动/被动匹配共用的开局入口: 主动由客户端 ReqSeasonMatch 触发, 被动由 slots 侧按概率触发,
+     * 两者都经玩家所在节点 RPC 到 sim owner 节点执行, 再由该节点把本响应下发给客户端。
+     */
     public ResSeasonMatch match(SimPlayerContext ctx, int gameType, long stake) {
         ResSeasonMatch response = new ResSeasonMatch(Code.SUCCESS);
         long systemTime = System.currentTimeMillis();
@@ -371,23 +374,14 @@ public class SeasonService implements SimPlayerTickListener {
     }
 
     /**
-     * slots 普通旋转成功后的赛季联动；无对局结算时不产生通知。内部吞异常, 不影响 slots 主流程。
+     * slots 普通旋转成功后的赛季联动 (宝石掉落/试炼窗口/对局结算)；生产热路径复用同一个条件事件，
+     * 其他赛季结算仍使用原始 SpinStatInfo。内部吞异常, 不影响 slots 主流程。
      *
-     * @return 本次赛季宝石掉落 (itemId -> 数量), 未掉落返回空表
-     */
-    public Map<Integer, Long> onSpin(SimPlayerContext ctx, int gameType, SpinStatInfo statInfo) {
-        GameConditionEvent event = statInfo == null ? null : SimConditionEventFactory.fromSpin(
-                gameType, statInfo.getMultiple(), 0, statInfo);
-        return onSpin(ctx, gameType, statInfo, event);
-    }
-
-    /**
-     * 生产热路径复用同一个条件事件，其他赛季结算仍使用原始 SpinStatInfo。
-     *
+     * @param enterType 进入方式 (ReqChooseWare.enterType): 只有赛季入口的旋转计入对局与代表战绩
      * @return 本次赛季宝石掉落 (itemId -> 数量), 未掉落返回空表
      */
     public Map<Integer, Long> onSpin(SimPlayerContext ctx, int gameType, SpinStatInfo statInfo,
-                                     GameConditionEvent event) {
+                                     GameConditionEvent event, int enterType) {
         //宝石已入账, 对局结算异常也要把掉落交回调用方下发, 故在 try 外持有
         Map<Integer, Long> gemGains = Map.of();
         try {
@@ -401,7 +395,7 @@ public class SeasonService implements SimPlayerTickListener {
             }
             long systemTime = System.currentTimeMillis();
             CommonResult<SeasonMatchResult> result = matchService.onSpin(
-                    ctx, gameType, statInfo, lifecycleService.currentTime(ctx, systemTime));
+                    ctx, gameType, statInfo, enterType, lifecycleService.currentTime(ctx, systemTime));
             if (result.data == null) {
                 //非本局游戏/无对局/重复结算等场景静默跳过, 不向客户端下发错误通知
                 if (!result.success()) {

@@ -38,7 +38,9 @@ import com.jjg.game.sampledata.GameDataManager;
 import com.jjg.game.sampledata.bean.*;
 import com.jjg.game.season.data.SeasonFreeSpinResult;
 import com.jjg.game.season.data.SeasonSlotsSessionData;
+import com.jjg.game.season.pb.res.ResSeasonMatch;
 import com.jjg.game.season.service.SeasonFreeGameService;
+import com.jjg.game.sim.constant.SimConstant;
 import com.jjg.game.sim.data.SimSkillsData;
 import com.jjg.game.sim.data.SimVisitTrialSession;
 import com.jjg.game.sim.data.SpinStatInfo;
@@ -125,6 +127,8 @@ public abstract class AbstractSlotsGameManager<T extends SlotsPlayerGameData, L 
 
     //四档奖池 (mini/minor/major/grand) 的档位数量, 只配单个特殊奖池的游戏不按档位统计
     private static final int JACKPOT_TIER_COUNT = 4;
+    //赛季被动匹配的本地冷却: 开局后 1 分钟内的旋转不再向 sim 发起被动匹配
+    private static final long PASSIVE_MATCH_CD_MILLIS = 60L * 1000;
 
     //游戏类型
     protected int gameType;
@@ -440,6 +444,8 @@ public abstract class AbstractSlotsGameManager<T extends SlotsPlayerGameData, L 
         }
         //公共: 旋转成功后通知 sim 联动 (扣能量/加经验/赌场升级/道具掉落), winTimes 取各游戏写入的 allWinTimes
         if (gameRunInfo != null && gameRunInfo.success()) {
+            //赛季被动匹配: 须先于 notifySpin, 开局后本次旋转即计入对局第一局
+            tryPassiveSeasonMatch(playerController, playerGameData, gameRunInfo.getStake(), freeMode);
             slotsRPCLinkManager.notifySpin(playerGameData, getGameType(), gameRunInfo.getAllWinTimes(),
                     buildSpinStatInfo(gameRunInfo, freeMode), trialPermit);
             //协作任务联动: 扣血/共享事件累计/成败判定 (内部吞异常, 不影响旋转主流程)
@@ -697,6 +703,37 @@ public abstract class AbstractSlotsGameManager<T extends SlotsPlayerGameData, L 
             gameData.setSeasonFreeGameCandidate(false);
         }
         return false;
+    }
+
+    /**
+     * 赛季被动匹配: 赛季入口 (enterType=1) 的每次普通旋转按全局概率触发一次匹配, 玩家不可拒绝。
+     * 命中后与客户端主动发起的 ReqSeasonMatch 走同一个 RPC 与同一份 {@link ResSeasonMatch} 应答,
+     * 由本节点下发; 押注赛季币/选对手/每日次数等都在 sim 侧完成。
+     * 须在通知 sim 本次旋转之前调用, 使开局先于本次旋转上报到达, 本次旋转即计入对局第一局。
+     * 本地冷却只是避免无谓 RPC, 权威冷却仍由 sim 按 SeasonMatch.MatchCD 校验。
+     */
+    protected void tryPassiveSeasonMatch(PlayerController playerController, T gameData, long stake, boolean freeMode) {
+        //免费模式没有真实下注, 不触发按下注额押注的对局
+        if (!gameData.isSeason() || freeMode || stake <= 0) {
+            return;
+        }
+        long now = System.currentTimeMillis();
+        if (now - gameData.getPassiveMatchTime() < PASSIVE_MATCH_CD_MILLIS) {
+            return;
+        }
+        GlobalConfigCfg probCfg = GameDataManager.getGlobalConfigCfg(SimConstant.Global.ID_SEASON_PASSIVE_MATCH_PROB);
+        if (probCfg == null || !RandomUtils.getRandomBoolean100(probCfg.getIntValue())) {
+            return;
+        }
+        ResSeasonMatch res = slotsRPCLinkManager.seasonMatch(gameData, this.gameType, stake);
+        //开局被拒(冷却中/次数已满/赛季币不足等)时 matchId 为 "0", 静默跳过, 不影响本次旋转
+        if (res == null || res.code != Code.SUCCESS || res.matchId == null || "0".equals(res.matchId)) {
+            return;
+        }
+        gameData.setPassiveMatchTime(now);
+        playerController.send(res);
+        log.info("赛季被动匹配触发 playerId = {},gameType = {},stake = {},matchId = {},opponentId = {}",
+                gameData.getPlayerId(), this.gameType, stake, res.matchId, res.opponentId);
     }
 
     /**

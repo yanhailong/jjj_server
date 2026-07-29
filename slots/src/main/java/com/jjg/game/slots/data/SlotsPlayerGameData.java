@@ -461,6 +461,14 @@ public class SlotsPlayerGameData {
         getSeasonSlotsSessionData().setSeasonFreeExhaustedDailyKey(seasonFreeExhaustedDailyKey);
     }
 
+    public long getPassiveMatchTime() {
+        return getSeasonSlotsSessionData().getPassiveMatchTime();
+    }
+
+    public void setPassiveMatchTime(long passiveMatchTime) {
+        getSeasonSlotsSessionData().setPassiveMatchTime(passiveMatchTime);
+    }
+
     public boolean isSeason() {
         return getSeasonSlotsSessionData().isSeasonEnter();
     }

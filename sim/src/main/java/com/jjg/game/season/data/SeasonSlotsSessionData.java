@@ -24,6 +24,8 @@ public class SeasonSlotsSessionData {
     private boolean seasonFreeGameCandidate;
     /** 当日免费次数已耗尽的系统日期 key（yyyyMMdd），跨天后允许重新向 sim 申请。 */
     private int seasonFreeExhaustedDailyKey;
+    /** 上次被动匹配成功开局的系统时间（毫秒），用于冷却期内不再向 sim 发起被动匹配。 */
+    private long passiveMatchTime;
     /** 由所有匹配当前游戏的已镶嵌宝石解锁的下注额，已去重。 */
     private List<Long> bet;
     /** 聚合 SeasonGem.specialMode 后的结果库类型权重增量。 */
@@ -61,6 +63,14 @@ public class SeasonSlotsSessionData {
 
     public void setSeasonFreeExhaustedDailyKey(int seasonFreeExhaustedDailyKey) {
         this.seasonFreeExhaustedDailyKey = seasonFreeExhaustedDailyKey;
+    }
+
+    public long getPassiveMatchTime() {
+        return passiveMatchTime;
+    }
+
+    public void setPassiveMatchTime(long passiveMatchTime) {
+        this.passiveMatchTime = passiveMatchTime;
     }
 
     public List<Long> getBet() {

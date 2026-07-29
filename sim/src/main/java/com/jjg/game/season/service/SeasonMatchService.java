@@ -34,6 +34,10 @@ public class SeasonMatchService {
     private static final Logger log = LoggerFactory.getLogger(SeasonMatchService.class);
     private static final int ADVANCED_SPIN_COUNT = 3;
     private static final int LOOP_SPIN_COUNT = 5;
+    /**
+     * 赛季入口 (ReqChooseWare.enterType=1): 只有该入口的旋转下注赛季币, 才计入对局与代表战绩。
+     */
+    private static final int ENTER_TYPE_SEASON = 1;
     private static final int CANDIDATE_LIMIT = 20;
     private static final int HISTORY_LIMIT = 50;
     /**
@@ -206,20 +210,23 @@ public class SeasonMatchService {
     }
 
     /**
-     * 热路径: 无对局、非本局游戏或无统计信息时静默跳过 (玩家可能同时在玩其他机台)。
+     * 热路径: 无对局、非赛季入口、非本局游戏或无统计信息时静默跳过 (玩家可能同时在玩其他机台)。
      */
-    public CommonResult<SeasonMatchResult> onSpin(SimPlayerContext ctx, int gameType, SpinStatInfo statInfo, long now) {
+    public CommonResult<SeasonMatchResult> onSpin(SimPlayerContext ctx, int gameType, SpinStatInfo statInfo,
+                                                  int enterType, long now) {
         SeasonPlayerData data = ctx.getSeasonPlayerData();
         SeasonMatchSession session = data == null ? null : data.getActiveMatch();
         if (session == null) {
-            seedRepresentativeIfAbsent(ctx, gameType, statInfo);
+            seedRepresentativeIfAbsent(ctx, gameType, statInfo, enterType);
             return new CommonResult<>(Code.SUCCESS);
         }
         if (now - session.getStartedAt() >= MATCH_TIMEOUT_MILLIS) {
             //超时弃赛: 先补 0 结算旧局, 本次旋转不计入
             return settleExpired(ctx, session, now);
         }
-        if (session.getGameType() != gameType || statInfo == null || statInfo.getBet() != session.getStake()) {
+        //对局只认赛季入口的赛季币旋转: 普通入口的金币局即使机台与下注数值相同也不计入
+        if (enterType != ENTER_TYPE_SEASON || session.getGameType() != gameType
+                || statInfo == null || statInfo.getBet() != session.getStake()) {
             return new CommonResult<>(Code.SUCCESS);
         }
         if (session.getPlayerSpinWins().size() < session.getExpectedSpins()) {
@@ -370,10 +377,12 @@ public class SeasonMatchService {
     /**
      * 首场 PK 前使用当前赛季机台的连续 Spin 结果生成一次初始代表数据，避免所有玩家都因没有 PK
      * 历史而无法进入首场匹配。首份数据凑齐后不再由普通 Spin 覆盖，完成 PK 后仍以最新 PK 结果为准。
+     * 只取赛季入口的旋转: 代表数据的下注额/收益要与匹配池的赛季币口径一致。
      */
-    private void seedRepresentativeIfAbsent(SimPlayerContext ctx, int gameType, SpinStatInfo statInfo) {
+    private void seedRepresentativeIfAbsent(SimPlayerContext ctx, int gameType, SpinStatInfo statInfo, int enterType) {
         SeasonPlayerData data = ctx.getSeasonPlayerData();
-        if (data == null || data.seasonPhase() == null || data.seasonPhase() == SeasonPhase.NOVICE
+        if (enterType != ENTER_TYPE_SEASON || data == null || data.seasonPhase() == null
+                || data.seasonPhase() == SeasonPhase.NOVICE
                 || statInfo == null || statInfo.getBet() <= 0) {
             return;
         }
