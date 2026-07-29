@@ -181,11 +181,10 @@ public abstract class AbstractPegasusUnbridleGameManager extends AbstractSlotsGa
             PoolCfg poolCfg = GameDataManager.getPoolCfg(resultLib.firstJackpotId());
             if (poolCfg != null) {
                 //检查是否中大奖
-                CommonResult<Long> result = rewardByRatioSmallPoolCurrency(playerGameData,
+                CommonResult<Long> result = slotsPoolDao.rewardByRatioFromSmallPool(playerGameData.getPlayerId(), this.gameType, playerGameData.getRoomCfgId(),
                         poolCfg.getTruePool(), poolCfg.getId(), AddType.SLOTS_JACKPOT_REWARD);
                 if (result.success()) {
                     gameRunInfo.addSmallPoolGold(result.data);
-                    recordJackpotStat(gameRunInfo, poolCfg.getId(), result.data);
                 }
             }
             //最后一次
