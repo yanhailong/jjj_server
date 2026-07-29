@@ -555,7 +555,7 @@ public class AllianceService {
     public ResHandleApplication handleApplications(Player player, List<Long> applicantIds, boolean agree) {
         ResHandleApplication res = new ResHandleApplication(Code.SUCCESS);
         if (applicantIds == null || applicantIds.isEmpty()) {
-            res.code = Code.PARAM_ERROR;
+            res.code = Code.NO_APPLY;
             log.warn("处理入盟申请失败,列表为空 playerId={}", player.getId());
             return res;
         }

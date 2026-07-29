@@ -72,7 +72,7 @@ public class ChatService {
             int vcode = channel.validate(sender, targetId, content);
             if (vcode != Code.SUCCESS) {
                 res.code = vcode;
-                log.warn("发送聊天信息失败, 频道校验失败 playerId={},channelCode={}", pc.playerId(), channelCode);
+                log.warn("发送聊天信息失败, 频道校验失败 playerId={},channelCode={},code={}", pc.playerId(), channelCode, vcode);
                 return res;
             }
             //全部校验通过后才占用频率配额, 避免无效发送也被惩罚

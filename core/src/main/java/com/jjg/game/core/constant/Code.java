@@ -87,7 +87,7 @@ public interface Code {
     int BAN_CAUSE_BLACK_LIST = 49041;
     // 德州坐下余额不足
     int TEXAS_NOT_ENOUGH = 433;
-    // 使用未拥有的皮肤
+    // 尚未解锁
     int NOT_UNLOCKED = 434;
     //房间玩家长时间未操作，被踢出房间
     int ROOM_PLAYER_IDLE = 16008;
@@ -189,6 +189,11 @@ public interface Code {
     int PHONE_HAS_BIND = 461;
     //未检测到角色信息,请进入游戏绑定登录方式后重试
     int THIRD_NOT_BIND_FORBID_LOGIN = 462;
+    //消息发送失败
+    int SEND_MSG_FAIL = 463;
+    //暂无申请
+    int NO_APPLY = 464;
+
     //南方前进 用户金额不足
     int USER_NOT_GOLD = 300401040;
     //游戏正在维护中

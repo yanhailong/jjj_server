@@ -38,7 +38,7 @@ public class PrivateChatChannel implements ChatChannel {
         }
         if (relationCache.isBlacklisted(targetId, sender.getId())
                 || relationCache.isBlacklisted(sender.getId(), targetId)) {
-            return Code.FORBID;
+            return Code.SEND_MSG_FAIL;
         }
         return Code.SUCCESS;
     }

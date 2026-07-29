@@ -120,9 +120,7 @@ public class AllianceDonateService {
         //计数 + 入账 (贡献值给个人, 声誉给联盟, 贡献度计入周榜)
         assetService.grantContribution(playerId, cfg.getRewardContribution(), cfg.getRewardReputation(), allianceId);
         long newReputation = assetService.grantReputation(allianceId, cfg.getRewardReputation());
-        if(count != null && count > 0){
-            allianceEventService.onDonate(playerId, count);
-        }
+        allianceEventService.onDonate(playerId, 1);
 
         res.rewardContribution = cfg.getRewardContribution();
         res.rewardReputation = cfg.getRewardReputation();

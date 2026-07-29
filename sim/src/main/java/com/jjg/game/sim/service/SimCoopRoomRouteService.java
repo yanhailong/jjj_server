@@ -86,8 +86,7 @@ public class SimCoopRoomRouteService {
         }
         int code = validateGame(ctx, gameType, roomCfgId);
         if (code != Code.SUCCESS) {
-            log.info("创建协作房间失败,游戏校验不通过 playerId={},gameType={},roomCfgId={},reason={}",
-                    playerId, gameType, roomCfgId, code);
+            res.code = code;
             return res;
         }
 
@@ -216,7 +215,7 @@ public class SimCoopRoomRouteService {
         }
         if (!isGameUnlocked(ctx, gameType)) {
             log.info("协作房间游戏未解锁 playerId={},gameType={}", playerId, gameType);
-            return Code.NOT_FOUND;
+            return Code.NOT_UNLOCKED;
         }
         return Code.SUCCESS;
     }
