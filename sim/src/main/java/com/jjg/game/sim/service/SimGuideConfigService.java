@@ -139,6 +139,18 @@ public class SimGuideConfigService implements ConfigExcelChangeListener {
         return triggerGroups.getOrDefault(new TriggerKey(condition, normalized), Collections.emptyList());
     }
 
+    /** 获取指定条件下不高于当前值的全部配置参数，供“达到等级”补扫使用。 */
+    public List<Integer> paramsAtOrBelow(int condition, int currentValue) {
+        if (currentValue <= 0) return Collections.emptyList();
+        List<Integer> params = triggerGroups.keySet().stream()
+                .filter(key -> key.condition() == condition && key.param() > 0 && key.param() <= currentValue)
+                .map(TriggerKey::param)
+                .distinct()
+                .sorted()
+                .toList();
+        return params.isEmpty() ? Collections.emptyList() : params;
+    }
+
     public int conditionOfGroup(int guideGroupId) {
         return groupConditions.getOrDefault(guideGroupId, 0);
     }
@@ -183,13 +195,13 @@ public class SimGuideConfigService implements ConfigExcelChangeListener {
     }
 
     private boolean validCondition(int condition) {
-        return condition >= SimConstant.GuideCondition.NEW_PLAYER
-                && condition <= SimConstant.GuideCondition.GUIDE_GROUP_FINISHED;
+        return condition == SimConstant.GuideCondition.NEW_PLAYER
+                || condition == SimConstant.GuideCondition.PLAYER_LEVEL
+                || condition == SimConstant.GuideCondition.GUIDE_GROUP_FINISHED;
     }
 
     private boolean conditionNeedsParam(int condition) {
-        return condition != SimConstant.GuideCondition.NEW_PLAYER
-                && condition != SimConstant.GuideCondition.ALLIANCE;
+        return condition != SimConstant.GuideCondition.NEW_PLAYER;
     }
 
     private String normalizePathName(String pathName) {

@@ -198,7 +198,9 @@ public class SimManager {
                 ctx.getSimBaseData().setLastOfflineTime(0);
             }
             playerController.setScene(ctx);
-            // PathName=1 代表模拟经营大厅；先激活条件已满足的等待组，再构造进场引导快照。
+            // 按当前持久化等级补扫，覆盖后台直改等级、跨级和旧玩家漏触发。
+            guideService.triggerPlayerLevelReached(ctx, ctx.getSimBaseData().getAllLevel(), false);
+            // PathName=1 代表模拟经营大厅；激活其他条件已满足但此前场景不符的等待组。
             guideService.triggerDeferredForPath(ctx, SimConstant.GuidePath.SIM_HALL, false);
             if (!ctx.getSimBaseData().isGuide()) {
                 guideService.trigger(ctx, SimConstant.GuideCondition.NEW_PLAYER, 0, false);

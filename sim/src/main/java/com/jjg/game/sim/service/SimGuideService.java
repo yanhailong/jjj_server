@@ -80,6 +80,29 @@ public class SimGuideService implements ItemAddListener {
                 : Collections.unmodifiableList(triggered);
     }
 
+    /**
+     * 按当前玩家总等级补扫所有已达到的等级引导。
+     * 用于正常升级、GM 跨级以及进入大厅时对后台直改数据进行补偿。
+     */
+    public List<Integer> triggerPlayerLevelReached(SimPlayerContext ctx, int playerLevel, boolean notify) {
+        if (ctx == null || ctx.getSimBaseData() == null || playerLevel <= 0) {
+            return Collections.emptyList();
+        }
+        List<Integer> triggered = new ArrayList<>();
+        for (int threshold : configService.paramsAtOrBelow(SimConstant.GuideCondition.PLAYER_LEVEL, playerLevel)) {
+            triggered.addAll(trigger(ctx, SimConstant.GuideCondition.PLAYER_LEVEL, threshold, false));
+        }
+        if (triggered.isEmpty()) {
+            return Collections.emptyList();
+        }
+        if (notify) {
+            notifyTriggeredGroups(ctx, triggered);
+        }
+        log.info("玩家等级达到条件后触发新手引导 playerId={},playerLevel={},groups={}",
+                ctx.playerId(), playerLevel, triggered);
+        return Collections.unmodifiableList(triggered);
+    }
+
     /** 玩家进入指定 PathName 后，激活此前条件已经满足的引导组。 */
     public List<Integer> triggerDeferredForPath(SimPlayerContext ctx, String pathName, boolean notify) {
         if (ctx == null || ctx.getSimBaseData() == null || pathName == null || pathName.isBlank()) {

@@ -217,15 +217,17 @@ public interface SimConstant {
     }
 
     interface GuideCondition {
+        // 当前 Guide.xlsx 最终约定：1=创建新号、4=玩家等级达到、8=引导组完成。
         int NEW_PLAYER = 1;
-        int TASK_REWARD = 2;
-        int CASINO_LEVEL = 3;
-        int ITEM_NOT_ENOUGH = 4;
-        int ITEM_GAINED = 5;
-        int EMPLOYEE_DRAW = 6;
-        int ALLIANCE = 7;
-        // 某个引导组完成，参数为已完成的引导组 ID
+        int PLAYER_LEVEL = 4;
         int GUIDE_GROUP_FINISHED = 8;
+
+        // 旧版条件已不再接受配置，仅保留常量以兼容尚未清理的事件调用点。
+        @Deprecated int TASK_REWARD = 2;
+        @Deprecated int ITEM_NOT_ENOUGH = 3;
+        @Deprecated int ITEM_GAINED = 5;
+        @Deprecated int EMPLOYEE_DRAW = 6;
+        @Deprecated int ALLIANCE = 7;
     }
 
     /** Guide.xlsx 的 PathName 约定。 */

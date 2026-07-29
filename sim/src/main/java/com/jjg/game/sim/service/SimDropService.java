@@ -74,9 +74,9 @@ public class SimDropService {
         if (!freeMode) {
             casino.setExp(casino.getExp() + SimConstant.Common.SPIN_ADD_EXP);
             if (checkLevelUp(casino)) {
-                ctx.getSimBaseData().addAllLevel(1);
-                guideService.trigger(ctx, SimConstant.GuideCondition.CASINO_LEVEL,
-                        casino.getCasinoLevel(), true);
+                base.addAllLevel(1);
+                // 条件4按玩家总等级 allLevel 判定；转盘中 PathName 不符时会进入等待队列。
+                guideService.triggerPlayerLevelReached(ctx, base.getAllLevel(), true);
             }
         }
         //掉落
