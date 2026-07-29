@@ -6,6 +6,8 @@ import com.jjg.game.core.base.condition.numeric.GameConditionEvent;
 import com.jjg.game.core.base.condition.numeric.RechargeConditionEvent;
 import com.jjg.game.core.constant.AddType;
 import com.jjg.game.core.listener.ItemConsumeListener;
+import com.jjg.game.core.service.PlayerStatService;
+import com.jjg.game.core.utils.ItemUtils;
 import com.jjg.game.sim.data.SimPlayerContext;
 import com.jjg.game.sim.manager.SimPlayerContextRegistry;
 import com.jjg.game.sim.service.SimConditionEventFactory;
@@ -42,6 +44,8 @@ public class AllianceEventService implements ItemConsumeListener {
     private SimTaskService simTaskService;
     @Autowired
     private SimPlayerContextRegistry simPlayerContextRegistry;
+    @Autowired
+    private PlayerStatService playerStatService;
     @Lazy
     @Autowired
     private SimPackService simPackService;
@@ -73,19 +77,34 @@ public class AllianceEventService implements ItemConsumeListener {
 
     /** 观看广告一次 (清 CD / 领离线收益走广告倍数): 推进 12209。 */
     public void onAdWatch(long playerId) {
+        playerStatService.recordAdWatch(playerId);
         onSimOperation(playerId, SimConditionEventFactory.adWatch());
     }
 
     /** 拜访一次: 推进 12217。 */
     public void onVisit(long playerId) {
+        playerStatService.recordVisit(playerId);
         onSimOperation(playerId, SimConditionEventFactory.visit());
     }
 
     /** 一次经营金币收益 (自产 / 离线 / 游客产出): 推进 12215。 */
     public void onBusinessIncome(long playerId, long gold) {
         if (gold > 0) {
-            onSimOperation(playerId, SimConditionEventFactory.businessIncome(gold));
+            onBusinessIncome(playerId, Map.of(ItemUtils.getGoldItemId(), gold));
         }
+    }
+
+    /** 一次经营收益，按实际到账道具分别累计。 */
+    public void onBusinessIncome(long playerId, Map<Integer, Long> items) {
+        if (items == null || items.isEmpty()) {
+            return;
+        }
+        playerStatService.recordBusinessIncome(playerId, items);
+        items.forEach((itemId, count) -> {
+            if (itemId != null && count != null && count > 0) {
+                onSimOperation(playerId, SimConditionEventFactory.businessIncome(itemId, count));
+            }
+        });
     }
 
     /** 一次道具消费: 推进 12220 (按 itemId 过滤金币 / 钻石)。 */
@@ -106,6 +125,7 @@ public class AllianceEventService implements ItemConsumeListener {
     }
 
     public void onBuildingUpgrade(long playerId, int buildingId, int level) {
+        playerStatService.recordBuildingUpgrade(playerId, buildingId);
         onConditionEvent(playerId, new ActionConditionEvent(ActionConditionEvent.Type.BUILDING_UPGRADE,
                 buildingId, 0, 0, 1, 0, false));
         onConditionEvent(playerId, new ActionConditionEvent(ActionConditionEvent.Type.BUILDING_LEVEL,
@@ -129,6 +149,16 @@ public class AllianceEventService implements ItemConsumeListener {
 
     public void onGuestRecruit(long playerId, boolean paid, long count) {
         onConditionEvent(playerId, new ActionConditionEvent(ActionConditionEvent.Type.GUEST_RECRUIT,
+                0, 0, 0, count, 0, paid));
+    }
+
+    /** 定时或购买生成游客，累计玩家级招商次数。 */
+    public void onGuestGenerated(long playerId, boolean paid, long count) {
+        if (count <= 0) {
+            return;
+        }
+        playerStatService.recordGuestRecruit(playerId, paid, count);
+        onSimOperation(playerId, new ActionConditionEvent(ActionConditionEvent.Type.GUEST_RECRUIT,
                 0, 0, 0, count, 0, paid));
     }
 

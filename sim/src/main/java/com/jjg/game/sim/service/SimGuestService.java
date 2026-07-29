@@ -105,7 +105,8 @@ public class SimGuestService implements SimPlayerTickListener, ItemListener, Sim
             return;
         }
 
-        batchGenerateGuest(ctx, casinoCfg.getVisitorSpawnCount(), casinoCfg, now, null);
+        int generated = batchGenerateGuest(ctx, casinoCfg.getVisitorSpawnCount(), casinoCfg, now, null);
+        allianceEventService.onGuestGenerated(ctx.playerId(), false, generated);
     }
 
     /**
@@ -277,6 +278,7 @@ public class SimGuestService implements SimPlayerTickListener, ItemListener, Sim
             //累加经验
             guest.addExp(configCache.getVisitorLevelCfgMap());
         }
+        allianceEventService.onGuestGenerated(ctx.playerId(), true, res.guests.size());
         ctx.send(res);
     }
 
@@ -337,8 +339,7 @@ public class SimGuestService implements SimPlayerTickListener, ItemListener, Sim
                 //经营信息: 购买游客交互产出金币计入经营收益
                 long destGold = rewardsMap.getOrDefault(ItemUtils.getGoldItemId(), 0L);
                 ctx.getSimBaseData().addBusinessIncome(destGold);
-                //主线任务: 经营金币收益 -> 推进 12215
-                allianceEventService.onBusinessIncome(ctx.playerId(), destGold);
+                allianceEventService.onBusinessIncome(ctx.playerId(), rewardsMap);
             }
             dest.claimed = true;
         }
@@ -363,7 +364,7 @@ public class SimGuestService implements SimPlayerTickListener, ItemListener, Sim
      * @param now
      * @param specifyGuest
      */
-    public void batchGenerateGuest(SimPlayerContext ctx, int num, CasinoStatsSheetCfg casinoCfg, long now, GuestData specifyGuest) {
+    public int batchGenerateGuest(SimPlayerContext ctx, int num, CasinoStatsSheetCfg casinoCfg, long now, GuestData specifyGuest) {
         NotifyGenerateGuest notify = new NotifyGenerateGuest(Code.SUCCESS);
         notify.guests = new ArrayList<>();
 
@@ -380,6 +381,7 @@ public class SimGuestService implements SimPlayerTickListener, ItemListener, Sim
         if (!notify.guests.isEmpty()) {
             ctx.send(notify);
         }
+        return notify.guests.size();
     }
 
     /**
@@ -449,8 +451,7 @@ public class SimGuestService implements SimPlayerTickListener, ItemListener, Sim
         if (!rewardsMap.isEmpty()) {
             long guestGold = rewardsMap.getOrDefault(ItemUtils.getGoldItemId(), 0L);
             ctx.getSimBaseData().addBusinessIncome(guestGold);
-            //主线任务: 经营金币收益 -> 推进 12215
-            allianceEventService.onBusinessIncome(ctx.playerId(), guestGold);
+            allianceEventService.onBusinessIncome(ctx.playerId(), rewardsMap);
         }
 
         //累加经验

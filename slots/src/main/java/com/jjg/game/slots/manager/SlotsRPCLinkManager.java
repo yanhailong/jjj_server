@@ -9,6 +9,7 @@ import com.jjg.game.common.rpc.RpcReqParameterBuilder;
 import com.jjg.game.core.constant.Code;
 import com.jjg.game.core.data.CommonResult;
 import com.jjg.game.core.data.PlayerController;
+import com.jjg.game.core.service.PlayerStatService;
 import com.jjg.game.core.utils.ItemUtils;
 import com.jjg.game.season.data.SeasonFreeSpinResult;
 import com.jjg.game.season.data.SeasonSlotsSessionData;
@@ -44,6 +45,8 @@ public class SlotsRPCLinkManager {
     private ClusterSystem clusterSystem;
     @Autowired
     private SimNodeService simNodeService;
+    @Autowired
+    private PlayerStatService playerStatService;
 
     /**
      * 通知sim节点
@@ -58,6 +61,14 @@ public class SlotsRPCLinkManager {
         if (statInfo != null && statInfo.getSpinId() == 0) {
             //幂等 id: 超时重试复用同一 id, sim 侧凭此拒绝重复投递 (|1 保证非 0)
             statInfo.setSpinId(ThreadLocalRandom.current().nextLong() | 1L);
+        }
+        if (statInfo != null) {
+            long playerId = playerGameData.getPlayerId();
+            playerStatService.recordBigShow(playerId, statInfo.getBigShowId());
+            playerStatService.recordJackpots(playerId, statInfo.getJackpotCounts());
+            if (statInfo.isTriggerFree()) {
+                playerStatService.recordFreeMode(playerId);
+            }
         }
         notifySpin(playerGameData, gameType, winTimes, statInfo, trialPermit, 0);
     }
@@ -414,6 +425,7 @@ public class SlotsRPCLinkManager {
         for (Map.Entry en : result.data.getItemsMap().entrySet()) {
             newMap.put(Integer.parseInt(en.getKey().toString()), Long.parseLong(en.getValue().toString()));
         }
+        playerStatService.recordSlotItems(playerId, gameType, newMap);
         NotifySimDropItem notify = new NotifySimDropItem();
         notify.itemMap = ItemUtils.buildItemInfo(newMap);
         notify.power = result.data.getPower();

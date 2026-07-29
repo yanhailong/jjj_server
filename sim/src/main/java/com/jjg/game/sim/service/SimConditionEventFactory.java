@@ -74,7 +74,7 @@ public final class SimConditionEventFactory {
      * 会把一轮免费局记成很多次触发。
      */
     private static int freeGameTriggers(SpinStatInfo statInfo) {
-        return statInfo != null && !statInfo.isFreeMode() && statInfo.getRemainFreeCount() > 0 ? 1 : 0;
+        return statInfo != null && statInfo.isTriggerFree() ? 1 : 0;
     }
 
     /** 本局收益明细: 金币赢奖 + 本次旋转的道具产出, 空值与非正数安全 (record 构造会拒绝 null)。 */
@@ -137,8 +137,13 @@ public final class SimConditionEventFactory {
      * subject 取金币道具 id, 供 12215 的道具过滤维度匹配 (金币配置未就绪时退化为 0, 本次不推进)。
      */
     public static ActionConditionEvent businessIncome(long gold) {
+        return businessIncome(resolveGoldItemId(), gold);
+    }
+
+    /** 一次指定道具的经营收益。 */
+    public static ActionConditionEvent businessIncome(int itemId, long count) {
         return new ActionConditionEvent(ActionConditionEvent.Type.PRODUCTION_INCOME,
-                resolveGoldItemId(), 0, Math.max(0, gold), 0, 0, false);
+                itemId, 0, Math.max(0, count), 0, 0, false);
     }
 
     /** 一次道具消费: 推进 12220 累积消费 (按 itemId 过滤金币/钻石等)。 */

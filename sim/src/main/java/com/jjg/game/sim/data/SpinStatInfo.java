@@ -33,6 +33,8 @@ public class SpinStatInfo {
     private long spinId;
     //本次旋转是否处于免费模式
     private boolean freeMode;
+    //是否为触发免费
+    private boolean triggerFree;
 
     public SpinStatInfo() {
     }
@@ -115,5 +117,13 @@ public class SpinStatInfo {
 
     public void setFreeMode(boolean freeMode) {
         this.freeMode = freeMode;
+    }
+
+    public boolean isTriggerFree() {
+        return triggerFree;
+    }
+
+    public void setTriggerFree(boolean triggerFree) {
+        this.triggerFree = triggerFree;
     }
 }

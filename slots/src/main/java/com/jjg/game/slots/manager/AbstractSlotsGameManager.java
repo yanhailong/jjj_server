@@ -447,7 +447,7 @@ public abstract class AbstractSlotsGameManager<T extends SlotsPlayerGameData, L 
             //赛季被动匹配: 须先于 notifySpin, 开局后本次旋转即计入对局第一局
             tryPassiveSeasonMatch(playerController, playerGameData, gameRunInfo.getStake(), freeMode);
             slotsRPCLinkManager.notifySpin(playerGameData, getGameType(), gameRunInfo.getAllWinTimes(),
-                    buildSpinStatInfo(gameRunInfo, freeMode), trialPermit);
+                    buildSpinStatInfo(gameRunInfo, freeMode, !freeMode && isFreeMode(playerGameData)), trialPermit);
             //协作任务联动: 扣血/共享事件累计/成败判定 (内部吞异常, 不影响旋转主流程)
             coopRoomManager.onSpin(playerController.playerId(), getGameType(), statusBefore, gameRunInfo);
         } else {
@@ -459,9 +459,10 @@ public abstract class AbstractSlotsGameManager<T extends SlotsPlayerGameData, L 
     /**
      * 由本次旋转结果构建上报 sim 的统计明细 (经营信息 SPINE游戏面板)
      */
-    private SpinStatInfo buildSpinStatInfo(G gameRunInfo, boolean freeMode) {
+    private SpinStatInfo buildSpinStatInfo(G gameRunInfo, boolean freeMode, boolean triggerFree) {
         SpinStatInfo statInfo = new SpinStatInfo();
         statInfo.setFreeMode(freeMode);
+        statInfo.setTriggerFree(triggerFree);
         statInfo.setBet(gameRunInfo.getStake());
         statInfo.setWin(gameRunInfo.getAllWinGold());
         statInfo.setMultiple(gameRunInfo.getAllWinTimes());

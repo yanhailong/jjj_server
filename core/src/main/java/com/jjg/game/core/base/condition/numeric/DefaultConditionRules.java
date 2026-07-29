@@ -140,6 +140,43 @@ final class DefaultConditionRules {
                 (s, e) -> true, (s, e) -> e.value()));
         rules.add(action(12220, 2, 2, 1, ProgressMode.ADD, ActionConditionEvent.Type.ITEM_CONSUME,
                 (s, e) -> e.matchesSubject(s.parameter(0)), (s, e) -> e.value()));
+
+        //12251-12267 与上面的接取型条件判定口径一致，进度由玩家统计提供而非任务计数器。
+        rules.add(game(12251, 3, 3, 2, ProgressMode.ADD,
+                (s, e) -> e.matchesGame(s.parameter(0)), (s, e) -> e.itemGain(s.intParameter(1))));
+        rules.add(game(12252, 2, 2, 1, ProgressMode.ADD,
+                (s, e) -> optional(s.parameter(0), e.awardType()), (s, e) -> 1));
+        rules.add(game(12253, 2, 2, 1, ProgressMode.ADD,
+                (s, e) -> e.jackpotCount(s.intParameter(0)) > 0,
+                (s, e) -> e.jackpotCount(s.intParameter(0))));
+        rules.add(game(12254, 1, 1, 0, ProgressMode.ADD,
+                (s, e) -> e.freeGameTriggers() > 0, (s, e) -> e.freeGameTriggers()));
+        rules.add(action(12255, 2, 2, 1, ProgressMode.ADD, ActionConditionEvent.Type.BUILDING_UPGRADE,
+                (s, e) -> e.matchesSubject(s.parameter(0)), (s, e) -> positiveCount(e)));
+        rules.add(action(12256, 2, 2, 0, ProgressMode.SET, ActionConditionEvent.Type.BUILDING_COUNT,
+                (s, e) -> e.qualifier() >= s.parameter(1), (s, e) -> e.value()));
+        rules.add(action(12257, 1, 1, 0, ProgressMode.ADD, ActionConditionEvent.Type.AD_WATCH,
+                (s, e) -> true, (s, e) -> positiveCount(e)));
+        //12258 已删除，不注册。
+        rules.add(action(12259, 3, 3, 1, ProgressMode.SET, ActionConditionEvent.Type.EMPLOYEE_COUNT,
+                (s, e) -> e.matchesSubject(s.parameter(0)) && e.qualifier() >= s.parameter(2),
+                (s, e) -> e.value()));
+        rules.add(action(12260, 2, 2, 1, ProgressMode.ADD, ActionConditionEvent.Type.GUEST_RECRUIT,
+                (s, e) -> (s.parameter(0) > 0) == e.paid(), (s, e) -> positiveCount(e)));
+        rules.add(action(12261, 2, 2, 0, ProgressMode.SET, ActionConditionEvent.Type.GUEST_COUNT,
+                (s, e) -> e.qualifier() >= s.parameter(1), (s, e) -> e.value()));
+        rules.add(action(12262, 2, 2, 1, ProgressMode.ADD, ActionConditionEvent.Type.PRODUCTION_INCOME,
+                (s, e) -> e.matchesSubject(s.parameter(0)), (s, e) -> e.value()));
+        rules.add(action(12263, 1, 1, 0, ProgressMode.SET, ActionConditionEvent.Type.GAME_UNLOCK,
+                (s, e) -> true, (s, e) -> e.value()));
+        rules.add(action(12264, 1, 1, 0, ProgressMode.ADD, ActionConditionEvent.Type.VISIT,
+                (s, e) -> true, (s, e) -> positiveCount(e)));
+        rules.add(action(12265, 1, 1, 0, ProgressMode.ADD, ActionConditionEvent.Type.LOGIN,
+                (s, e) -> true, (s, e) -> positiveCount(e)));
+        rules.add(action(12266, 1, 1, 0, ProgressMode.SET, ActionConditionEvent.Type.CASINO_UNLOCK,
+                (s, e) -> true, (s, e) -> e.value()));
+        rules.add(action(12267, 2, 2, 1, ProgressMode.ADD, ActionConditionEvent.Type.ITEM_CONSUME,
+                (s, e) -> e.matchesSubject(s.parameter(0)), (s, e) -> e.value()));
     }
 
     private static void addAllianceRules(List<ConditionRule<?>> rules) {

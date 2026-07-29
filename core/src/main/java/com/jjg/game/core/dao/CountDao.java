@@ -222,6 +222,31 @@ public class CountDao {
         return RedisUtils.fromLong(l);
     }
 
+    public long getCountHashLong(String featureId, String customId) {
+        Long value = redissonClient.<String, Long>getMap(getHashKey(featureId), LongCodec.INSTANCE)
+                .get(customId);
+        return value == null ? 0 : value;
+    }
+
+    public long sumCountHashLong(String featureId) {
+        long total = 0;
+        for (Long value : redissonClient.<String, Long>getMap(
+                getHashKey(featureId), LongCodec.INSTANCE).readAllValues()) {
+            if (value != null) {
+                total += value;
+            }
+        }
+        return total;
+    }
+
+    public long incrHashLong(long playerId, String featureId, String customId, long delta) {
+        String hashKey = getHashKey(featureId);
+        RMap<String, Long> map = redissonClient.getMap(hashKey, LongCodec.INSTANCE);
+        long value = map.addAndGet(customId, delta);
+        playerKeyIndex.addHash(playerId, hashKey, customId);
+        return value;
+    }
+
     /**
      * 原子自增（两位小数）
      *
@@ -428,6 +453,14 @@ public class CountDao {
         return absent;
     }
 
+    public boolean setIfAbsentHashLong(long playerId, String featureId, String customId) {
+        String hashKey = getHashKey(featureId);
+        RMap<String, Long> map = redissonClient.getMap(hashKey, LongCodec.INSTANCE);
+        boolean absent = map.fastPutIfAbsent(customId, 1L);
+        playerKeyIndex.addHash(playerId, hashKey, customId);
+        return absent;
+    }
+
     public boolean setIfAbsentHash(String featureId, String customId) {
         String hashKey = getHashKey(featureId);
         RMap<String, Long> map = redissonClient.getMap(hashKey, LongCodec.INSTANCE);
@@ -506,6 +539,8 @@ public class CountDao {
         RECHARGE_COUNT("recharge:count"),
         //玩家计数
         PLAYER_COUNT("player:%s"),
+        //玩家数据统计
+        PLAYER_STAT("stat:%s"),
         //系统参数
         SYSTEM("system"),
         ;
