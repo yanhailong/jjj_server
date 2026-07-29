@@ -102,6 +102,15 @@ public interface BackendGMCmd {
 
     //清除slots状态
     String CLEAN_SLOTS_STATUS = "cleanSlotsStatus";
+    // 后台完成模拟经营新手引导
+    String FINISH_SIM_GUIDE = "finishSimGuide";
+
+    interface SimGuideOperation {
+        // 完成全部引导
+        int FINISH_ALL = 1;
+        // 完成指定引导
+        int FINISH_SPECIFIED = 2;
+    }
 
     //积分大奖修改数据
     String POINTS_REWARD_CHANGE = "pointsRewardChange";
