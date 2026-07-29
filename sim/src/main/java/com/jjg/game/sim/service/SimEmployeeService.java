@@ -15,6 +15,7 @@ import com.jjg.game.sampledata.bean.*;
 import com.jjg.game.sim.constant.BuildingOutputType;
 import com.jjg.game.sim.constant.SimConstant;
 import com.jjg.game.sim.dao.SimEmployeeDao;
+import com.jjg.game.sim.data.SimBaseData;
 import com.jjg.game.sim.data.SimEmployeeData;
 import com.jjg.game.sim.data.SimPlayerContext;
 import com.jjg.game.sim.listener.SimTaskStateReporter;
@@ -54,6 +55,8 @@ public class SimEmployeeService implements SimTaskStateReporter {
     private AllianceEventService allianceEventService;
     @Autowired
     private SimMedalService medalService;
+    @Autowired
+    private SimGuideConfigService guideConfigService;
     //懒加载打破与 SimTaskService 的循环依赖 (对方持有本服务作状态补报口)
     @Autowired
     @Lazy
@@ -136,17 +139,30 @@ public class SimEmployeeService implements SimTaskStateReporter {
             }
 
             //新手引导: 不走随机, 固定召唤 NewbieGuideDraw 配置的雇员
-            boolean guide = ctx.getSimBaseData().isGuide();
+            // 配置格式: [固定道具Id, 关联引导步骤Id...]
+            // 仅当关联步骤所属引导组「已触发且未完成」时固定抽；组完成后恢复随机。
+            // 不能只看 completedGuideIds 是否包含配置步骤：组完成只要求组内最终步骤，
+            // 中间步骤(如1844/1845/1846)可能始终不进 completedGuideIds，会导致永久固定抽。
             int guideItemId = 0;
-            if (!guide) {
-                EmployeePoolCfg employeePoolCfg = GameDataManager.getEmployeePoolCfg(tmpCfg.getDropItem());
-                if (employeePoolCfg == null || employeePoolCfg.getNewbieGuideDraw() <= 0) {
-                    log.warn("招募雇员失败,新手引导卡池配置异常 playerId={},poolId={}", ctx.playerId(), tmpCfg.getDropItem());
-                    res.code = Code.PARAM_ERROR;
-                    ctx.send(res);
-                    return;
+            boolean useNewbieFixedDraw = false;
+            EmployeePoolCfg employeePoolCfg = GameDataManager.getEmployeePoolCfg(tmpCfg.getDropItem());
+            List<Integer> newbieGuideDraw = employeePoolCfg == null ? null : employeePoolCfg.getNewbieGuideDraw();
+            SimBaseData baseData = ctx.getSimBaseData();
+            if (baseData != null && newbieGuideDraw != null && newbieGuideDraw.size() > 1) {
+                for (int i = 1; i < newbieGuideDraw.size(); i++) {
+                    int guideId = newbieGuideDraw.get(i);
+                    if (guideId <= 0) {
+                        continue;
+                    }
+                    int groupId = guideConfigService.groupOfGuide(guideId);
+                    if (groupId > 0
+                            && baseData.hasTriggeredGuideGroup(groupId)
+                            && !baseData.hasCompletedGuideGroup(groupId)) {
+                        useNewbieFixedDraw = true;
+                        guideItemId = newbieGuideDraw.get(0);
+                        break;
+                    }
                 }
-                guideItemId = employeePoolCfg.getNewbieGuideDraw();
             }
 
             Map<Integer, Long> addAllItems = new HashMap<>();
@@ -157,7 +173,7 @@ public class SimEmployeeService implements SimTaskStateReporter {
             for (int i = 0; i < count; i++) {
                 int drawItemId;
                 int rewardCount;
-                if (!guide) {
+                if (useNewbieFixedDraw) {
                     drawItemId = guideItemId;
                     rewardCount = 1;
                 } else {
@@ -566,11 +582,11 @@ public class SimEmployeeService implements SimTaskStateReporter {
         for (Map.Entry<BuildingOutputType, Integer> en : src.entrySet()) {
             BuildingOutputType key = en.getKey();
             if (allowed.contains(key)) {
-                if(key == BuildingOutputType.MANAGE_ARRT){
+                if (key == BuildingOutputType.MANAGE_ARRT) {
                     result.put(BuildingOutputType.SERVICE, en.getValue());
                     result.put(BuildingOutputType.AWARENESS, en.getValue());
                     result.put(BuildingOutputType.EXPOSURE, en.getValue());
-                }else {
+                } else {
                     result.put(key, en.getValue());
                 }
             }

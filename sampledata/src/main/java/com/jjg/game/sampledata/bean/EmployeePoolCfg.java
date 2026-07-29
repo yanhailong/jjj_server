@@ -20,12 +20,12 @@ public class EmployeePoolCfg extends BaseCfgBean {
   public static final String SHEET_NAME = "EmployeePool";
 
   /** 新手引导抽奖 */
-  protected int NewbieGuideDraw;
+  protected List<Integer> NewbieGuideDraw;
   /** 权重_道具ID_数量 */
   protected List<List<Integer>> detailedDropItem;
 
   /** 返回新手引导抽奖 */
-  public int getNewbieGuideDraw() {
+  public List<Integer> getNewbieGuideDraw() {
     return NewbieGuideDraw;
   }
 
