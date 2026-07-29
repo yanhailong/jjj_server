@@ -469,6 +469,18 @@ public class SlotsPlayerGameData {
         getSeasonSlotsSessionData().setPassiveMatchTime(passiveMatchTime);
     }
 
+    public boolean isSeasonMatchActive() {
+        return getSeasonSlotsSessionData().isSeasonMatchActive();
+    }
+
+    public void beginSeasonMatch(long stake, int remainingSpins) {
+        getSeasonSlotsSessionData().beginSeasonMatch(stake, remainingSpins);
+    }
+
+    public void recordSeasonMatchSpin(long stake) {
+        getSeasonSlotsSessionData().recordSeasonMatchSpin(stake);
+    }
+
     public boolean isSeason() {
         return getSeasonSlotsSessionData().isSeasonEnter();
     }

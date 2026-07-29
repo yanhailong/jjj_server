@@ -446,6 +446,8 @@ public abstract class AbstractSlotsGameManager<T extends SlotsPlayerGameData, L 
         if (gameRunInfo != null && gameRunInfo.success()) {
             //赛季被动匹配: 须先于 notifySpin, 开局后本次旋转即计入对局第一局
             tryPassiveSeasonMatch(playerController, playerGameData, gameRunInfo.getStake(), freeMode);
+            //主动/被动匹配共用 expectedSpins；达到局数后清除本地进行中状态，允许后续被动匹配
+            playerGameData.recordSeasonMatchSpin(gameRunInfo.getStake());
             slotsRPCLinkManager.notifySpin(playerGameData, getGameType(), gameRunInfo.getAllWinTimes(),
                     buildSpinStatInfo(gameRunInfo, freeMode, !freeMode && isFreeMode(playerGameData)), trialPermit);
             //协作任务联动: 扣血/共享事件累计/成败判定 (内部吞异常, 不影响旋转主流程)
@@ -715,7 +717,7 @@ public abstract class AbstractSlotsGameManager<T extends SlotsPlayerGameData, L 
      */
     protected void tryPassiveSeasonMatch(PlayerController playerController, T gameData, long stake, boolean freeMode) {
         //免费模式没有真实下注, 不触发按下注额押注的对局
-        if (!gameData.isSeason() || freeMode || stake <= 0) {
+        if (!gameData.isSeason() || gameData.isSeasonMatchActive() || freeMode || stake <= 0) {
             return;
         }
         long now = System.currentTimeMillis();
@@ -731,6 +733,7 @@ public abstract class AbstractSlotsGameManager<T extends SlotsPlayerGameData, L 
         if (res == null || res.code != Code.SUCCESS || res.matchId == null || "0".equals(res.matchId)) {
             return;
         }
+        gameData.beginSeasonMatch(res.stake, res.expectedSpins);
         gameData.setPassiveMatchTime(now);
         playerController.send(res);
         log.info("赛季被动匹配触发 playerId = {},gameType = {},stake = {},matchId = {},opponentId = {}",
