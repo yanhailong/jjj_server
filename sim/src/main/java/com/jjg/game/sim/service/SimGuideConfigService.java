@@ -209,7 +209,18 @@ public class SimGuideConfigService implements ConfigExcelChangeListener {
     }
 
     private String normalizePathName(String pathName) {
-        return pathName == null ? "" : pathName.trim();
+        if (pathName == null) {
+            return "";
+        }
+        String normalized = pathName.trim();
+        // PathName 列定义为 string，但策划填写数字时 Excel 解析器会得到 "1.0"。
+        if (normalized.endsWith(".0")) {
+            String integerPart = normalized.substring(0, normalized.length() - 2);
+            if (!integerPart.isEmpty() && integerPart.chars().allMatch(Character::isDigit)) {
+                return integerPart;
+            }
+        }
+        return normalized;
     }
 
     private record TriggerKey(int condition, int param) {
