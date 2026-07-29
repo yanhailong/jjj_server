@@ -201,6 +201,7 @@ public class SimManager {
             if (!ctx.getSimBaseData().isGuide()) {
                 guideService.trigger(ctx, SimConstant.GuideCondition.NEW_PLAYER, 0, false);
             }
+            guideService.skipReconnectGuides(ctx);
             res.guideGroupIds = ctx.getSimBaseData().pendingGuideGroupIds();
             res.completedGuideIds = ctx.getSimBaseData().completedGuideIds();
             res.guide = ctx.getSimBaseData().isGuide();

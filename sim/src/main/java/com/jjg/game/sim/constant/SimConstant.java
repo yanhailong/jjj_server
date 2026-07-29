@@ -224,6 +224,8 @@ public interface SimConstant {
         int ITEM_GAINED = 5;
         int EMPLOYEE_DRAW = 6;
         int ALLIANCE = 7;
+        // 某个引导组完成，参数为已完成的引导组 ID
+        int GUIDE_GROUP_FINISHED = 8;
     }
 
     interface Common {

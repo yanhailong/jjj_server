@@ -25,6 +25,8 @@ public class GuideCfg extends BaseCfgBean {
   protected int GuideGroupId;
   /** 引导列表ID */
   protected List<Integer> GuideIdList;
+  /** 跳过引导ID */
+  protected List<Integer> SkipGuideId;
   /** 触发场景 */
   protected String PathName;
   /** 跳过引导ID */
@@ -45,6 +47,11 @@ public class GuideCfg extends BaseCfgBean {
   /** 返回引导列表ID */
   public List<Integer> getGuideIdList() {
     return GuideIdList;
+  }
+
+  /** 返回跳过引导ID */
+  public List<Integer> getSkipGuideId() {
+    return SkipGuideId;
   }
 
   /** 返回触发场景 */

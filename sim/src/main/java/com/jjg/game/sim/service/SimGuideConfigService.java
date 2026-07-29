@@ -25,6 +25,7 @@ public class SimGuideConfigService implements ConfigExcelChangeListener {
     private volatile Map<Integer, Integer> groupConditions = Collections.emptyMap();
     private volatile Map<Integer, Integer> guideGroups = Collections.emptyMap();
     private volatile Map<Integer, List<Integer>> groupGuideIds = Collections.emptyMap();
+    private volatile Map<Integer, Set<Integer>> groupSkipGuideIds = Collections.emptyMap();
 
     @Override
     public void initSampleCallbackCollector() {
@@ -43,6 +44,7 @@ public class SimGuideConfigService implements ConfigExcelChangeListener {
             groupConditions = Collections.emptyMap();
             guideGroups = Collections.emptyMap();
             groupGuideIds = Collections.emptyMap();
+            groupSkipGuideIds = Collections.emptyMap();
             log.warn("加载新手引导触发索引失败: Guide 配置为空");
             return;
         }
@@ -50,6 +52,7 @@ public class SimGuideConfigService implements ConfigExcelChangeListener {
         Map<Integer, Integer> conditions = new HashMap<>();
         Map<Integer, Integer> guides = new HashMap<>();
         Map<Integer, List<Integer>> guidesByGroup = new HashMap<>();
+        Map<Integer, Set<Integer>> skipGuidesByGroup = new HashMap<>();
         for (GuideCfg cfg : all) {
             if (cfg == null || cfg.getGuideGroupId() <= 0 || !validCondition(cfg.getCondition())) {
                 continue;
@@ -89,6 +92,21 @@ public class SimGuideConfigService implements ConfigExcelChangeListener {
             }
             guidesByGroup.put(cfg.getGuideGroupId(),
                     Collections.unmodifiableList(new ArrayList<>(normalizedGuideIds)));
+            Set<Integer> normalizedSkipGuideIds = new LinkedHashSet<>();
+            List<Integer> configuredSkipGuideIds = cfg.getSkipGuideId();
+            if (configuredSkipGuideIds != null) {
+                for (Integer guideId : configuredSkipGuideIds) {
+                    if (guideId == null || guideId <= 0) continue;
+                    if (!normalizedGuideIds.contains(guideId)) {
+                        log.warn("跳过引导ID不属于当前引导组，已忽略 groupId={},guideId={}",
+                                cfg.getGuideGroupId(), guideId);
+                        continue;
+                    }
+                    normalizedSkipGuideIds.add(guideId);
+                }
+            }
+            skipGuidesByGroup.put(cfg.getGuideGroupId(),
+                    Collections.unmodifiableSet(normalizedSkipGuideIds));
         }
         Map<TriggerKey, List<Integer>> immutable = new HashMap<>();
         groups.forEach((key, value) -> immutable.put(key,
@@ -97,8 +115,10 @@ public class SimGuideConfigService implements ConfigExcelChangeListener {
         groupConditions = Collections.unmodifiableMap(conditions);
         guideGroups = Collections.unmodifiableMap(guides);
         groupGuideIds = Collections.unmodifiableMap(guidesByGroup);
-        log.info("加载新手引导触发索引完成 triggerCount={},groupCount={},guideCount={}",
-                triggerGroups.size(), groupConditions.size(), guideGroups.size());
+        groupSkipGuideIds = Collections.unmodifiableMap(skipGuidesByGroup);
+        int skipGuideCount = groupSkipGuideIds.values().stream().mapToInt(Set::size).sum();
+        log.info("加载新手引导触发索引完成 triggerCount={},groupCount={},guideCount={},skipGuideCount={}",
+                triggerGroups.size(), groupConditions.size(), guideGroups.size(), skipGuideCount);
     }
 
     public List<Integer> groupsFor(int condition, int param) {
@@ -131,6 +151,11 @@ public class SimGuideConfigService implements ConfigExcelChangeListener {
 
     }
 
+    /** 获取指定引导组中允许在重新进入大厅时自动完成的步骤ID。 */
+    public Set<Integer> skipGuideIdsOfGroup(int guideGroupId) {
+        return groupSkipGuideIds.getOrDefault(guideGroupId, Collections.emptySet());
+    }
+
     /** 获取配置中的全部引导步骤ID。 */
     public List<Integer> allGuideIds() {
         List<Integer> result = new ArrayList<>(guideGroups.keySet());
@@ -141,7 +166,7 @@ public class SimGuideConfigService implements ConfigExcelChangeListener {
 
     private boolean validCondition(int condition) {
         return condition >= SimConstant.GuideCondition.NEW_PLAYER
-                && condition <= SimConstant.GuideCondition.ALLIANCE;
+                && condition <= SimConstant.GuideCondition.GUIDE_GROUP_FINISHED;
     }
 
     private boolean conditionNeedsParam(int condition) {

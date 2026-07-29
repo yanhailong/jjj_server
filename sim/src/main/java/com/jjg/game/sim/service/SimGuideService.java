@@ -85,7 +85,7 @@ public class SimGuideService implements ItemAddListener {
             return res;
         }
         boolean firstCompleted = base.completeGuideId(guideId);
-        finishGroupIfComplete(base, guideGroupId);
+        finishGroupIfComplete(ctx, guideGroupId);
         ctx.setLastSaveTime(0);
         log.info("完成新手引导步骤 playerId={},groupId={},guideId={}",
                 ctx.playerId(), guideGroupId, guideId);
@@ -115,7 +115,7 @@ public class SimGuideService implements ItemAddListener {
         SimBaseData base = ctx.getSimBaseData();
         for (int guideId : uniqueIds) {
             base.completeGuideId(guideId);
-            finishGroupIfComplete(base, configService.groupOfGuide(guideId));
+            finishGroupIfComplete(ctx, configService.groupOfGuide(guideId));
         }
         ctx.setLastSaveTime(0);
         log.info("GM强制完成指定引导步骤 playerId={},guideIds={}", ctx.playerId(), uniqueIds);
@@ -130,6 +130,37 @@ public class SimGuideService implements ItemAddListener {
             log.info("GM强制完成全部引导 playerId={},guideCount={}", ctx.playerId(), allGuideIds.size());
         }
         return code;
+    }
+
+    /**
+     * 玩家进入大厅或断线重连时，跳过无法恢复表现的当前步骤。
+     * 只从组内第一个未完成步骤开始连续跳过，不能越过正常引导步骤。
+     */
+    public List<Integer> skipReconnectGuides(SimPlayerContext ctx) {
+        if (ctx == null || ctx.getSimBaseData() == null) {
+            return Collections.emptyList();
+        }
+        SimBaseData base = ctx.getSimBaseData();
+        List<Integer> skipped = new ArrayList<>();
+        for (int groupId : base.pendingGuideGroupIds()) {
+            List<Integer> guideIds = configService.guideIdsOfGroup(groupId);
+            Set<Integer> skipGuideIds = configService.skipGuideIdsOfGroup(groupId);
+            if (guideIds.isEmpty() || skipGuideIds.isEmpty()) continue;
+            for (int guideId : guideIds) {
+                if (base.getCompletedGuideIds().contains(guideId)) continue;
+                if (!skipGuideIds.contains(guideId)) break;
+                if (base.completeGuideId(guideId)) {
+                    skipped.add(guideId);
+                    finishGroupIfComplete(ctx, groupId);
+                }
+            }
+        }
+        if (!skipped.isEmpty()) {
+            ctx.setLastSaveTime(0);
+            log.info("玩家进入大厅自动跳过不可恢复引导步骤 playerId={},guideIds={}",
+                    ctx.playerId(), skipped);
+        }
+        return Collections.unmodifiableList(skipped);
     }
 
     public void triggerItemNotEnough(SimPlayerContext ctx, int itemId) {
@@ -157,22 +188,27 @@ public class SimGuideService implements ItemAddListener {
         simPackService.forwardPackItemsAdded(playerId, items, addType);
     }
 
-    private void finishGroupIfComplete(SimBaseData base, int guideGroupId) {
+    private void finishGroupIfComplete(SimPlayerContext ctx, int guideGroupId) {
+        SimBaseData base = ctx.getSimBaseData();
         List<Integer> groupGuideIds = configService.guideIdsOfGroup(guideGroupId);
         if (groupGuideIds.isEmpty()) return;
         // 同一组允许存在多条入口分支，不能要求所有分支步骤都完成。
         // Guide.xlsx 当前约定组内最大 GuideId 为最终结束步骤。
         int finishGuideId = groupGuideIds.get(groupGuideIds.size() - 1);
         if (base.getCompletedGuideIds().contains(finishGuideId)) {
-            complete(base, guideGroupId);
+            complete(ctx, guideGroupId);
         }
     }
 
-    private void complete(SimBaseData base, int guideGroupId) {
-        base.completeGuideGroup(guideGroupId);
+    private void complete(SimPlayerContext ctx, int guideGroupId) {
+        SimBaseData base = ctx.getSimBaseData();
+        boolean firstCompleted = base.completeGuideGroup(guideGroupId);
         // 兼容旧逻辑：完成“创建新号”引导组后，开放游客生成和建筑产出。
         if (configService.conditionOfGroup(guideGroupId) == SimConstant.GuideCondition.NEW_PLAYER) {
             base.setGuide(true);
+        }
+        if (firstCompleted) {
+            trigger(ctx, SimConstant.GuideCondition.GUIDE_GROUP_FINISHED, guideGroupId, true);
         }
     }
 }
