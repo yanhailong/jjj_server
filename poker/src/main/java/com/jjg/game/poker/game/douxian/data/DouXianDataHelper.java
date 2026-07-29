@@ -4,10 +4,14 @@ import com.jjg.game.core.data.Card;
 import com.jjg.game.core.utils.ItemUtils;
 import com.jjg.game.poker.game.common.data.PokerCard;
 import com.jjg.game.poker.game.common.data.PokerDataHelper;
+import com.jjg.game.poker.game.douxian.constant.DouXianConstant;
+import com.jjg.game.poker.game.douxian.constant.DouXianZone;
 import com.jjg.game.poker.game.douxian.room.data.DouXianGameDataVo;
+import com.jjg.game.poker.game.douxian.util.IDouXianHandType;
 import com.jjg.game.sampledata.GameDataManager;
 import com.jjg.game.sampledata.bean.GlobalConfigCfg;
 import com.jjg.game.sampledata.bean.ImmortalCardCfg;
+import com.jjg.game.sampledata.bean.ImmortalHandCfg;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -46,6 +50,42 @@ public final class DouXianDataHelper {
     public static int getPoolId(DouXianGameDataVo gameDataVo) {
         ImmortalCardCfg cfg = getImmortalCardCfg(gameDataVo);
         return cfg == null ? 0 : cfg.getPoolId();
+    }
+
+    /**
+     * 从 ImmortalCard.xlsx 获取当前房间的回合倍率。配置缺失时保留代码默认值，避免房间直接崩溃。
+     */
+    public static int getRoundMultiplier(DouXianGameDataVo gameDataVo, int round) {
+        ImmortalCardCfg cfg = getImmortalCardCfg(gameDataVo);
+        if (cfg != null && cfg.getRoundMultiplier() != null) {
+            Integer multiplier = cfg.getRoundMultiplier().get(round);
+            if (multiplier != null && multiplier > 0) {
+                return multiplier;
+            }
+        }
+        log.error("斗仙牌回合倍率配置缺失或非法，使用默认值 roomCfgId:{} round:{}",
+                gameDataVo.getRoomCfg().getId(), round);
+        return DouXianConstant.getRoundMultiplier(round);
+    }
+
+    /** 从 ImmortalHand.xlsx 获取牌型配置，并校验配置所属区域。 */
+    public static ImmortalHandCfg getImmortalHandCfg(IDouXianHandType handType, DouXianZone zone) {
+        ImmortalHandCfg cfg = GameDataManager.getImmortalHandCfg(handType.getConfigId());
+        if (cfg == null) {
+            log.error("斗仙牌找不到牌型配置 handType:{} configId:{}", handType, handType.getConfigId());
+            return null;
+        }
+        if (cfg.getArea() != zone.getId()) {
+            log.error("斗仙牌牌型配置区域错误 handType:{} configId:{} expectedArea:{} actualArea:{}",
+                    handType, handType.getConfigId(), zone.getId(), cfg.getArea());
+            return null;
+        }
+        return cfg;
+    }
+
+    public static int getHandTypeNameId(IDouXianHandType handType, DouXianZone zone) {
+        ImmortalHandCfg cfg = getImmortalHandCfg(handType, zone);
+        return cfg == null ? 0 : cfg.getNameid();
     }
 
     /**

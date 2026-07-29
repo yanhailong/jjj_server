@@ -43,6 +43,7 @@ import java.util.Map;
 public class DouXianSettlementPhase extends BasePokerPhase<DouXianGameDataVo> {
 
     private List<Long> needRechargePlayerIds = List.of();
+    private int settlementEffectTime = DouXianConstant.Time.SETTLEMENT_EFFECT_BUFFER_TIME;
 
     public DouXianSettlementPhase(AbstractPhaseGameController<Room_ChessCfg, DouXianGameDataVo> gameController) {
         super(gameController);
@@ -55,13 +56,13 @@ public class DouXianSettlementPhase extends BasePokerPhase<DouXianGameDataVo> {
 
     @Override
     public int getPhaseRunTime() {
-        return DouXianConstant.Time.SETTLEMENT_EFFECT_TIME;
+        return settlementEffectTime;
     }
 
     @Override
     public void phaseDoAction() {
-        super.phaseDoAction();
         if (!(gameController instanceof BasePokerGameController<DouXianGameDataVo> controller)) {
+            super.phaseDoAction();
             return;
         }
         int round = gameDataVo.getRound();
@@ -83,7 +84,7 @@ public class DouXianSettlementPhase extends BasePokerPhase<DouXianGameDataVo> {
             for (DouXianZone zone : openZones) {
                 DouXianZoneCards zc = gameDataVo.getPlayerZoneCards(playerId).get(zone);
                 List<com.jjg.game.core.data.Card> cards = DouXianDataHelper.toCards(gameDataVo, zc.getAllCards());
-                DouXianHandResult result = DouXianHandEvaluator.evaluateZone(zone, cards, round);
+                DouXianHandResult result = DouXianHandEvaluator.evaluateZone(gameDataVo, zone, cards, round);
                 zoneResults.put(zone, result);
                 sb.append(zone).append(DouXianDataHelper.cardsToString(cards))
                         .append('=').append(result.getHandType().getDisplayName())
@@ -180,8 +181,26 @@ public class DouXianSettlementPhase extends BasePokerPhase<DouXianGameDataVo> {
         notify.pairResults = pairResults;
         broadcastMsgToRoom(notify);
 
-        detectSpecialRuleTriggers(pairResults);
+        int specialRuleCount = round < DouXianConstant.Common.TOTAL_ROUND
+                ? detectSpecialRuleTriggers(pairResults) : 0;
+        settlementEffectTime = calculateSettlementEffectTime(openZones.size(), pairResults, specialRuleCount);
+        super.phaseDoAction();
+        log.info("斗仙牌结算表现等待 roomCfgId:{} round:{} openZoneCount:{} specialRuleCount:{} waitTime:{}ms",
+                gameDataVo.getRoomCfg().getId(), round, openZones.size(), specialRuleCount, settlementEffectTime);
         needRechargePlayerIds = detectNeedRecharge(controller, activePlayerIds);
+    }
+
+    private int calculateSettlementEffectTime(int openZoneCount,
+                                              List<DouXianPairSettlementInfo> pairResults,
+                                              int specialRuleCount) {
+        int zoneEffectTime = openZoneCount * DouXianConstant.Time.SETTLEMENT_ZONE_EFFECT_TIME;
+        boolean hasGrandWin = pairResults.stream().anyMatch(pair -> pair.grandWinPlayerId != 0);
+        int grandWinEffectTime = hasGrandWin ? DouXianConstant.Time.SETTLEMENT_GRAND_WIN_EFFECT_TIME : 0;
+        int specialRuleEffectTime = specialRuleCount * DouXianConstant.Time.SETTLEMENT_SPECIAL_RULE_EFFECT_TIME;
+        return zoneEffectTime
+                + grandWinEffectTime
+                + specialRuleEffectTime
+                + DouXianConstant.Time.SETTLEMENT_EFFECT_BUFFER_TIME;
     }
 
     private void logPairTheoretical(DouXianPairSettlementInfo pair) {
@@ -248,7 +267,7 @@ public class DouXianSettlementPhase extends BasePokerPhase<DouXianGameDataVo> {
     /**
      * 统计每个玩家本回合全胜了几个人、被几个人全胜，达到2人触发得证大道/隐忍渡劫。DESIGN.md 三
      */
-    private void detectSpecialRuleTriggers(List<DouXianPairSettlementInfo> pairResults) {
+    private int detectSpecialRuleTriggers(List<DouXianPairSettlementInfo> pairResults) {
         Map<Long, Integer> grandWinAsWinner = new HashMap<>();
         Map<Long, Integer> grandWinAsLoser = new HashMap<>();
         for (DouXianPairSettlementInfo pair : pairResults) {
@@ -287,6 +306,7 @@ public class DouXianSettlementPhase extends BasePokerPhase<DouXianGameDataVo> {
             notify.ruleInfos = ruleInfos;
             broadcastMsgToRoom(notify);
         }
+        return ruleInfos.size();
     }
 
     /**
@@ -306,6 +326,10 @@ public class DouXianSettlementPhase extends BasePokerPhase<DouXianGameDataVo> {
     @Override
     public void phaseFinish() {
         if (!(gameController instanceof DouXianGameController controller)) {
+            return;
+        }
+        if (gameDataVo.getRound() >= DouXianConstant.Common.TOTAL_ROUND) {
+            controller.finishRoundCycle();
             return;
         }
         if (!needRechargePlayerIds.isEmpty()) {

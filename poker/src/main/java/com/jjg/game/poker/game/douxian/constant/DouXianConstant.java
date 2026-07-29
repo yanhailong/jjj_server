@@ -43,10 +43,16 @@ public interface DouXianConstant {
         int PLAY_CARD_TIME = 30_000;
         //弃牌倒计时
         int DISCARD_TIME = 20_000;
-        //斗法/结算特效停留
-        int SETTLEMENT_EFFECT_TIME = 1_000;
+        //每个已开放境界的结算表现：比牌3秒、结果展示2秒
+        int SETTLEMENT_ZONE_EFFECT_TIME = 5_000;
+        //全胜飞行和爆炸表现预留
+        int SETTLEMENT_GRAND_WIN_EFFECT_TIME = 2_000;
+        //每名特殊规则触发玩家的表现预留
+        int SETTLEMENT_SPECIAL_RULE_EFFECT_TIME = 1_500;
+        //进入下一阶段前的消息传输和客户端协程调度缓冲
+        int SETTLEMENT_EFFECT_BUFFER_TIME = 1_000;
         //飞升动画停留
-        int TIER_ADVANCE_EFFECT_TIME = 1_000;
+        int TIER_ADVANCE_EFFECT_TIME = 3_000;
         //即时充值复活倒计时
         int RECHARGE_TIME = 30_000;
     }
@@ -97,5 +103,7 @@ public interface DouXianConstant {
         int REQ_DOU_XIAN_GO_READY = BASE_MSG_PREFIX | 0x13;
         //通知玩家准备状态
         int NOTIFY_DOU_XIAN_PLAYER_READY = BASE_MSG_PREFIX | 0x14;
+        //通知进入弃牌/换牌阶段
+        int NOTIFY_DOU_XIAN_DISCARD_START = BASE_MSG_PREFIX | 0x15;
     }
 }

@@ -89,7 +89,7 @@ public class DouXianGameController extends BasePokerGameController<DouXianGameDa
         RepsDouXianRoomBaseInfo baseInfo = new RepsDouXianRoomBaseInfo();
         baseInfo.phase = getCurrentGamePhase();
         baseInfo.round = gameDataVo.getRound();
-        baseInfo.roundMultiplier = DouXianConstant.getRoundMultiplier(Math.max(gameDataVo.getRound(), 1));
+        baseInfo.roundMultiplier = DouXianDataHelper.getRoundMultiplier(gameDataVo, Math.max(gameDataVo.getRound(), 1));
         baseInfo.playerInfos = new ArrayList<>();
         // WAIT_READY阶段游戏还没真正开局，getActivePlayerIds()依赖的playerSeatInfoList要等tryStartGame成功才会
         // 填充，这时候只能从seatInfo(坐下即有，不等开局)拿座上玩家，否则等待准备的房间列表会是空的
@@ -298,6 +298,11 @@ public class DouXianGameController extends BasePokerGameController<DouXianGameDa
         gameDataVo.getConfirmedPlayerIds().remove(remove.getPlayerId());
         gameDataVo.getConcededPlayerIds().remove(remove.getPlayerId());
         gameDataVo.getHostingPlayerIds().remove(remove.getPlayerId());
+        gameDataVo.getHostingCancelledPlayerIdsThisPhase().remove(remove.getPlayerId());
+        GamePlayer leavingPlayer = gameDataVo.getGamePlayer(remove.getPlayerId());
+        if (leavingPlayer != null) {
+            leavingPlayer.setHosting(false);
+        }
         gameDataVo.getPendingSpecialRule().remove(remove.getPlayerId());
         gameDataVo.getRechargingPlayerIds().remove(remove.getPlayerId());
         log.info("斗仙牌玩家离开房间，已清理局内数据 playerId:{} roomCfgId:{}",
@@ -377,7 +382,15 @@ public class DouXianGameController extends BasePokerGameController<DouXianGameDa
         NotifyDouXianPlaceCardResult notify = new NotifyDouXianPlaceCardResult();
         notify.code = code;
         notify.playerId = playerId;
+        notify.selfHandCardIds = getSelfHandCardIds(playerId);
+        notify.selfZonePlacements = DouXianBuilder.buildZonePlacements(playerId, gameDataVo, true);
+        notify.hasSelfSnapshot = true;
         broadcastToPlayers(RoomMessageBuilder.newBuilder().sendPlayer(playerId, notify));
+    }
+
+    private List<Integer> getSelfHandCardIds(long playerId) {
+        return DouXianDataHelper.getClientCardIds(gameDataVo,
+                gameDataVo.getHandCards().getOrDefault(playerId, List.of()));
     }
 
     /**
@@ -391,6 +404,9 @@ public class DouXianGameController extends BasePokerGameController<DouXianGameDa
         selfNotify.placement = DouXianBuilder.buildZonePlacements(playerId, gameDataVo, true).stream()
                 .filter(p -> p.zoneId == zone.getId()).findFirst().orElse(null);
         selfNotify.remainHandCardNum = remainHandCardNum;
+        selfNotify.selfHandCardIds = getSelfHandCardIds(playerId);
+        selfNotify.selfZonePlacements = DouXianBuilder.buildZonePlacements(playerId, gameDataVo, true);
+        selfNotify.hasSelfSnapshot = true;
         broadcastToPlayers(RoomMessageBuilder.newBuilder().sendPlayer(playerId, selfNotify));
 
         NotifyDouXianPlaceCardResult othersNotify = new NotifyDouXianPlaceCardResult();
@@ -448,7 +464,7 @@ public class DouXianGameController extends BasePokerGameController<DouXianGameDa
             }
             List<Integer> cardIds = gameDataVo.getPlayerZoneCards(playerId).get(zone).getAllCards();
             List<Card> cards = DouXianDataHelper.toCards(gameDataVo, cardIds);
-            DouXianHandResult result = DouXianHandEvaluator.evaluateZone(zone, cards, round);
+            DouXianHandResult result = DouXianHandEvaluator.evaluateZone(gameDataVo, zone, cards, round);
             sb.append(zone).append(DouXianDataHelper.cardsToString(cards))
                     .append('=').append(result.getHandType().getDisplayName())
                     .append('(').append(result.getAetherValue()).append(") ");
@@ -486,7 +502,7 @@ public class DouXianGameController extends BasePokerGameController<DouXianGameDa
             }
             List<Card> carried = DouXianDataHelper.toCards(gameDataVo, zoneCards.getCarriedCards());
             List<Card> candidates = DouXianDataHelper.toCards(gameDataVo, hand);
-            DouXianHandResult best = DouXianHandEvaluator.findBestZone(zone, carried, candidates, round);
+            DouXianHandResult best = DouXianHandEvaluator.findBestZone(gameDataVo, zone, carried, candidates, round);
             List<Card> chosenNew = best.getCards().subList(carried.size(), best.getCards().size());
             for (Card card : chosenNew) {
                 int cfgId = DouXianDataHelper.toCfgId(card);
@@ -534,8 +550,13 @@ public class DouXianGameController extends BasePokerGameController<DouXianGameDa
     public void forceFinishPlayCardPhase() {
         for (Long playerId : gameDataVo.getActivePlayerIds()) {
             if (!gameDataVo.getConfirmedPlayerIds().contains(playerId)) {
-                boolean firstTimeout = gameDataVo.getHostingPlayerIds().add(playerId);
+                boolean cancelledThisPhase = gameDataVo.getHostingCancelledPlayerIdsThisPhase().contains(playerId);
+                boolean firstTimeout = !cancelledThisPhase && gameDataVo.getHostingPlayerIds().add(playerId);
                 if (firstTimeout) {
+                    GamePlayer gamePlayer = gameDataVo.getGamePlayer(playerId);
+                    if (gamePlayer != null) {
+                        gamePlayer.setHosting(true);
+                    }
                     log.warn("斗仙牌出牌超时，玩家进入托管 playerId:{}", playerId);
                     NotifyDouXianHostingState hostingNotify = new NotifyDouXianHostingState();
                     hostingNotify.playerId = playerId;
@@ -577,6 +598,8 @@ public class DouXianGameController extends BasePokerGameController<DouXianGameDa
                     NotifyDouXianDiscardResult error = new NotifyDouXianDiscardResult();
                     error.code = Code.PARAM_ERROR;
                     error.playerId = playerId;
+                    error.selfHandCardIds = getSelfHandCardIds(playerId);
+                    error.hasSelfSnapshot = true;
                     broadcastToPlayers(RoomMessageBuilder.newBuilder().sendPlayer(playerId, error));
                     return;
                 }
@@ -621,12 +644,22 @@ public class DouXianGameController extends BasePokerGameController<DouXianGameDa
     }
 
     private void broadcastDiscardResult(long playerId, boolean noDiscard, int discardCount) {
-        NotifyDouXianDiscardResult notify = new NotifyDouXianDiscardResult();
-        notify.playerId = playerId;
-        notify.noDiscard = noDiscard;
-        notify.discardCount = discardCount;
-        notify.allDiscarded = isAllActiveDiscarded();
-        broadcastToPlayers(RoomMessageBuilder.newBuilder().toAllPlayer().setData(notify));
+        boolean allDiscarded = isAllActiveDiscarded();
+        NotifyDouXianDiscardResult selfNotify = new NotifyDouXianDiscardResult();
+        selfNotify.playerId = playerId;
+        selfNotify.noDiscard = noDiscard;
+        selfNotify.discardCount = discardCount;
+        selfNotify.allDiscarded = allDiscarded;
+        selfNotify.selfHandCardIds = getSelfHandCardIds(playerId);
+        selfNotify.hasSelfSnapshot = true;
+        broadcastToPlayers(RoomMessageBuilder.newBuilder().sendPlayer(playerId, selfNotify));
+
+        NotifyDouXianDiscardResult othersNotify = new NotifyDouXianDiscardResult();
+        othersNotify.playerId = playerId;
+        othersNotify.noDiscard = noDiscard;
+        othersNotify.discardCount = discardCount;
+        othersNotify.allDiscarded = allDiscarded;
+        broadcastToPlayers(RoomMessageBuilder.newBuilder().toAllPlayer().exceptPlayer(playerId).setData(othersNotify));
     }
 
     private boolean isAllActiveDiscarded() {
@@ -649,7 +682,16 @@ public class DouXianGameController extends BasePokerGameController<DouXianGameDa
     }
 
     public void reqCancelHosting(long playerId, ReqDouXianCancelHosting req) {
+        log.info("斗仙牌收到取消托管请求 playerId:{} phase:{} hostingBefore:{}",
+                playerId, getCurrentGamePhase(), gameDataVo.getHostingPlayerIds().contains(playerId));
         boolean wasHosting = gameDataVo.getHostingPlayerIds().remove(playerId);
+        GamePlayer gamePlayer = gameDataVo.getGamePlayer(playerId);
+        if (gamePlayer != null) {
+            gamePlayer.setHosting(false);
+        }
+        if (getCurrentGamePhase() == EGamePhase.PLAY_CART) {
+            gameDataVo.getHostingCancelledPlayerIdsThisPhase().add(playerId);
+        }
         // 无论玩家是否处于托管中都要回包，否则客户端在状态不同步时(比如托管已被服务器清除)发这个请求会收不到任何响应
         NotifyDouXianHostingState notify = new NotifyDouXianHostingState();
         notify.playerId = playerId;

@@ -47,6 +47,7 @@ public class DouXianPlayCardPhase extends BasePokerPhase<DouXianGameDataVo> {
     public void phaseDoAction() {
         super.phaseDoAction();
         gameDataVo.getConfirmedPlayerIds().clear();
+        gameDataVo.getHostingCancelledPlayerIdsThisPhase().clear();
         log.info("斗仙牌进入出牌阶段 round:{} 托管中玩家:{} 机器人会按各自延迟自动摆牌，30s后未确认的会被强制托管",
                 gameDataVo.getRound(), gameDataVo.getHostingPlayerIds());
         if (gameController instanceof DouXianGameController controller) {

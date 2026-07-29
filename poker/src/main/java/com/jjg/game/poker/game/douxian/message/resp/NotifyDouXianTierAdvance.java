@@ -21,4 +21,8 @@ public class NotifyDouXianTierAdvance extends AbstractNotice {
     public int discardedToPoolCount;
     @ProtoDesc("是否为第一回合(用于仙界解锁特效)")
     public boolean firstRound;
+    @ProtoDesc("飞升后的完整本人手牌(客户端牌id)，仅本人可见")
+    public List<Integer> selfHandCardIds;
+    @ProtoDesc("是否携带本人完整手牌快照，用于兼容旧协议")
+    public boolean hasSelfSnapshot;
 }

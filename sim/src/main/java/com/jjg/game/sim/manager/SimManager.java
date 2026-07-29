@@ -201,6 +201,7 @@ public class SimManager {
             if (!ctx.getSimBaseData().isGuide()) {
                 guideService.trigger(ctx, SimConstant.GuideCondition.NEW_PLAYER, 0, false);
             }
+            guideService.skipReconnectGuides(ctx);
             res.guideGroupIds = ctx.getSimBaseData().pendingGuideGroupIds();
             res.completedGuideIds = ctx.getSimBaseData().completedGuideIds();
             res.guide = ctx.getSimBaseData().isGuide();
@@ -350,6 +351,16 @@ public class SimManager {
      */
     public ResFinishGuide onFinishGuide(long playerId, int guideId) {
         return guideService.finish(simPlayerContextRegistry.getContext(playerId), guideId);
+    }
+
+    /** 完成引导并暂存新触发的引导组，由消息处理器控制响应与通知的发送顺序。 */
+    public SimGuideService.FinishGuideResult onFinishGuideWithTriggers(long playerId, int guideId) {
+        return guideService.finishWithTriggers(simPlayerContextRegistry.getContext(playerId), guideId);
+    }
+
+    /** 发送完成引导后新触发的引导组通知。 */
+    public void notifyGuideTriggers(long playerId, List<Integer> guideGroupIds) {
+        guideService.notifyTriggeredGroups(simPlayerContextRegistry.getContext(playerId), guideGroupIds);
     }
 
     /**

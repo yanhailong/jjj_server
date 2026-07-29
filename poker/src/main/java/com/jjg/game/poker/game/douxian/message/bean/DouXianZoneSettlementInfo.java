@@ -25,4 +25,8 @@ public class DouXianZoneSettlementInfo {
     public String loserHandTypeName;
     @ProtoDesc("本次结算实际变化的金额(已按封顶/最小输赢裁剪)")
     public long changeValue;
+    @ProtoDesc("赢家牌型多语言id(来自ImmortalHand.xlsx)")
+    public int winnerHandTypeNameId;
+    @ProtoDesc("输家牌型多语言id(来自ImmortalHand.xlsx)")
+    public int loserHandTypeNameId;
 }

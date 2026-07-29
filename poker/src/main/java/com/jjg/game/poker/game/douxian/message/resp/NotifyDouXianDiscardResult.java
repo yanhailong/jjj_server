@@ -6,6 +6,8 @@ import com.jjg.game.common.proto.ProtoDesc;
 import com.jjg.game.common.proto.ProtobufMessage;
 import com.jjg.game.poker.game.douxian.constant.DouXianConstant;
 
+import java.util.List;
+
 /**
  * 弃牌阶段结果通知，DESIGN.md 8.11
  */
@@ -20,4 +22,8 @@ public class NotifyDouXianDiscardResult extends AbstractNotice {
     public int discardCount;
     @ProtoDesc("是否所有玩家都已完成弃牌(true时客户端应进入下一回合)")
     public boolean allDiscarded;
+    @ProtoDesc("弃牌后的完整本人手牌(客户端牌id)，仅弃牌玩家本人可见")
+    public List<Integer> selfHandCardIds;
+    @ProtoDesc("是否携带本人完整手牌快照，用于兼容旧协议")
+    public boolean hasSelfSnapshot;
 }

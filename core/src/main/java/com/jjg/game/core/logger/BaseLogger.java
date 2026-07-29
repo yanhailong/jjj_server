@@ -17,6 +17,7 @@ import org.apache.commons.lang3.StringUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.kafka.core.KafkaTemplate;
 
 import java.util.List;
@@ -31,6 +32,8 @@ public class BaseLogger {
     protected NodeConfig nodeConfig;
     @Autowired
     protected KafkaTemplate<String, String> kafkaTemplate;
+    @Value("${game.kafka.log-enabled:true}")
+    protected boolean kafkaLogEnabled = true;
 
     protected final ObjectMapper objectMapper = new ObjectMapper();
 
@@ -520,6 +523,9 @@ public class BaseLogger {
     /***********************************************************************************************/
 
     protected void sendLog(String topic, Player player, JSONObject json) {
+        if (!kafkaLogEnabled) {
+            return;
+        }
         if (player instanceof RobotPlayer) {
             return;
         }

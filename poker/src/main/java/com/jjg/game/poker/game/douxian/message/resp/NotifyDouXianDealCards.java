@@ -5,6 +5,7 @@ import com.jjg.game.common.pb.AbstractNotice;
 import com.jjg.game.common.proto.ProtoDesc;
 import com.jjg.game.common.proto.ProtobufMessage;
 import com.jjg.game.poker.game.douxian.constant.DouXianConstant;
+import com.jjg.game.poker.game.douxian.message.bean.DouXianZonePlacementInfo;
 
 import java.util.List;
 
@@ -24,4 +25,10 @@ public class NotifyDouXianDealCards extends AbstractNotice {
     public List<Integer> openZoneIds;
     @ProtoDesc("出牌阶段结束时间")
     public long overTime;
+    @ProtoDesc("自己的完整手牌(客户端牌id)，仅本人可见")
+    public List<Integer> selfHandCardIds;
+    @ProtoDesc("自己的三个区域完整状态，仅本人可见")
+    public List<DouXianZonePlacementInfo> selfZonePlacements;
+    @ProtoDesc("是否携带本人完整手牌/区域快照，用于兼容旧协议")
+    public boolean hasSelfSnapshot;
 }

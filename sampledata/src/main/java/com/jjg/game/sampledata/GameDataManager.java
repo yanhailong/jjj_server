@@ -177,6 +177,8 @@ public class GameDataManager {
     containerMap.put(GrowthFundCfg.class, new GrowthFundCfgContainer());
     containerMap.put(GuideCfg.class, new GuideCfgContainer());
     containerMap.put(GuideDetailsCfg.class, new GuideDetailsCfgContainer());
+    containerMap.put(ImmortalCardCfg.class, new ImmortalCardCfgContainer());
+    containerMap.put(ImmortalHandCfg.class, new ImmortalHandCfgContainer());
     containerMap.put(IponeAreacodeConfigCfg.class, new IponeAreacodeConfigCfgContainer());
     containerMap.put(ItemCfg.class, new ItemCfgContainer());
     containerMap.put(LoginConfigCfg.class, new LoginConfigCfgContainer());
@@ -1363,6 +1365,29 @@ public class GameDataManager {
     return getInstance().getCfgContainer(GuideDetailsCfg.class).getCfgBeanList();
   }
 
+  public static ImmortalCardCfg getImmortalCardCfg(int key) {
+    return getInstance().getCfgContainer(ImmortalCardCfg.class).getCfgBeanMap().get(key);
+  }
+
+  public static Map<Integer, ImmortalCardCfg> getImmortalCardCfgMap() {
+    return getInstance().getCfgContainer(ImmortalCardCfg.class).getCfgBeanMap();
+  }
+
+  public static List<ImmortalCardCfg> getImmortalCardCfgList() {
+    return getInstance().getCfgContainer(ImmortalCardCfg.class).getCfgBeanList();
+  }
+
+  public static ImmortalHandCfg getImmortalHandCfg(int key) {
+    return getInstance().getCfgContainer(ImmortalHandCfg.class).getCfgBeanMap().get(key);
+  }
+
+  public static Map<Integer, ImmortalHandCfg> getImmortalHandCfgMap() {
+    return getInstance().getCfgContainer(ImmortalHandCfg.class).getCfgBeanMap();
+  }
+
+  public static List<ImmortalHandCfg> getImmortalHandCfgList() {
+    return getInstance().getCfgContainer(ImmortalHandCfg.class).getCfgBeanList();
+  }
   public static IponeAreacodeConfigCfg getIponeAreacodeConfigCfg(int key) {
     return getInstance().getCfgContainer(IponeAreacodeConfigCfg.class).getCfgBeanMap().get(key);
   }

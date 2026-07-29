@@ -3,6 +3,9 @@ package com.jjg.game.poker.game.douxian.util;
 import com.jjg.game.core.data.Card;
 import com.jjg.game.poker.game.douxian.constant.DouXianConstant;
 import com.jjg.game.poker.game.douxian.constant.DouXianZone;
+import com.jjg.game.poker.game.douxian.data.DouXianDataHelper;
+import com.jjg.game.poker.game.douxian.room.data.DouXianGameDataVo;
+import com.jjg.game.sampledata.bean.ImmortalHandCfg;
 
 import java.util.ArrayList;
 import java.util.Comparator;
@@ -27,14 +30,22 @@ public final class DouXianHandEvaluator {
     // ------------------------------------------------------------------
 
     public static DouXianHandResult evaluateZone(DouXianZone zone, List<Card> cards, int round) {
+        return evaluateZone(null, zone, cards, round);
+    }
+
+    public static DouXianHandResult evaluateZone(DouXianGameDataVo gameDataVo, DouXianZone zone, List<Card> cards, int round) {
         return switch (zone) {
-            case MORTAL -> evaluateZone2(cards, round);
-            case SPIRIT -> evaluateZone3(cards, round);
-            case IMMORTAL -> evaluateZone5(cards, round);
+            case MORTAL -> evaluateZone2(gameDataVo, cards, round);
+            case SPIRIT -> evaluateZone3(gameDataVo, cards, round);
+            case IMMORTAL -> evaluateZone5(gameDataVo, cards, round);
         };
     }
 
     public static DouXianHandResult evaluateZone2(List<Card> cards, int round) {
+        return evaluateZone2(null, cards, round);
+    }
+
+    public static DouXianHandResult evaluateZone2(DouXianGameDataVo gameDataVo, List<Card> cards, int round) {
         Card a = cards.get(0);
         Card b = cards.get(1);
         boolean sameSuit = a.getSuit() == b.getSuit();
@@ -56,10 +67,14 @@ public final class DouXianHandEvaluator {
             type = DouXianHandType2.SAN_SHOU;
             dominant = Math.max(a.getRank(), b.getRank());
         }
-        return buildResult(DouXianZone.MORTAL, type, dominant, cards, round);
+        return buildResult(gameDataVo, DouXianZone.MORTAL, type, dominant, cards, round);
     }
 
     public static DouXianHandResult evaluateZone3(List<Card> cards, int round) {
+        return evaluateZone3(null, cards, round);
+    }
+
+    public static DouXianHandResult evaluateZone3(DouXianGameDataVo gameDataVo, List<Card> cards, int round) {
         List<Integer> ranks = cards.stream().map(Card::getRank).collect(Collectors.toList());
         Map<Integer, Long> rankCounts = ranks.stream().collect(Collectors.groupingBy(r -> r, Collectors.counting()));
         boolean sameSuit = cards.stream().map(Card::getSuit).distinct().count() == 1;
@@ -89,10 +104,14 @@ public final class DouXianHandEvaluator {
             type = DouXianHandType3.SAN_SHOU;
             dominant = ranks.stream().max(Integer::compareTo).orElseThrow();
         }
-        return buildResult(DouXianZone.SPIRIT, type, dominant, cards, round);
+        return buildResult(gameDataVo, DouXianZone.SPIRIT, type, dominant, cards, round);
     }
 
     public static DouXianHandResult evaluateZone5(List<Card> cards, int round) {
+        return evaluateZone5(null, cards, round);
+    }
+
+    public static DouXianHandResult evaluateZone5(DouXianGameDataVo gameDataVo, List<Card> cards, int round) {
         List<Integer> ranksDesc = cards.stream().map(Card::getRank)
                 .sorted(Comparator.reverseOrder()).collect(Collectors.toList());
         boolean sameSuit = cards.stream().map(Card::getSuit).distinct().count() == 1;
@@ -137,21 +156,24 @@ public final class DouXianHandEvaluator {
             type = DouXianHandType5.SAN_SHOU;
             dominant = ranksDesc.getFirst();
         }
-        return buildResult(DouXianZone.IMMORTAL, type, dominant, cards, round);
+        return buildResult(gameDataVo, DouXianZone.IMMORTAL, type, dominant, cards, round);
     }
 
     // ------------------------------------------------------------------
     // 灵力值计算：（主体牌型点数大小 × 牌型倍率 + 牌型值）× 回合倍率
     // ------------------------------------------------------------------
 
-    public static long calcAether(IDouXianHandType handType, int dominantRank, int round) {
-        int roundMultiplier = DouXianConstant.getRoundMultiplier(round);
-        return (long) (dominantRank * handType.getMultiplier() + handType.getValue()) * roundMultiplier;
+    public static long calcAether(DouXianGameDataVo gameDataVo, DouXianZone zone, IDouXianHandType handType, int dominantRank, int round) {
+        ImmortalHandCfg handCfg = gameDataVo == null ? null : DouXianDataHelper.getImmortalHandCfg(handType, zone);
+        int roundMultiplier = gameDataVo == null ? DouXianConstant.getRoundMultiplier(round) : DouXianDataHelper.getRoundMultiplier(gameDataVo, round);
+        int handMultiplier = handCfg == null ? handType.getMultiplier() : handCfg.getHandMultiplier();
+        int handValue = handCfg == null ? handType.getValue() : handCfg.getHandValue();
+        return (long) (dominantRank * handMultiplier + handValue) * roundMultiplier;
     }
 
-    private static DouXianHandResult buildResult(DouXianZone zone, IDouXianHandType type, int dominant,
+    private static DouXianHandResult buildResult(DouXianGameDataVo gameDataVo, DouXianZone zone, IDouXianHandType type, int dominant,
                                                    List<Card> cards, int round) {
-        return new DouXianHandResult(zone, type, dominant, cards, calcAether(type, dominant, round));
+        return new DouXianHandResult(zone, type, dominant, cards, calcAether(gameDataVo, zone, type, dominant, round));
     }
 
     // ------------------------------------------------------------------
@@ -160,7 +182,11 @@ public final class DouXianHandEvaluator {
     // ------------------------------------------------------------------
 
     public static DouXianHandResult findBestZone(DouXianZone zone, List<Card> candidates, int round) {
-        return findBestZone(zone, List.of(), candidates, round);
+        return findBestZone(null, zone, candidates, round);
+    }
+
+    public static DouXianHandResult findBestZone(DouXianGameDataVo gameDataVo, DouXianZone zone, List<Card> candidates, int round) {
+        return findBestZone(gameDataVo, zone, List.of(), candidates, round);
     }
 
     /**
@@ -168,20 +194,24 @@ public final class DouXianHandEvaluator {
      * 锁定牌本身不参与挑选、必须原样保留。
      */
     public static DouXianHandResult findBestZone(DouXianZone zone, List<Card> carried, List<Card> candidates, int round) {
+        return findBestZone(null, zone, carried, candidates, round);
+    }
+
+    public static DouXianHandResult findBestZone(DouXianGameDataVo gameDataVo, DouXianZone zone, List<Card> carried, List<Card> candidates, int round) {
         int need = zone.getCapacity() - carried.size();
         if (need <= 0) {
-            return evaluateZone(zone, carried, round);
+            return evaluateZone(gameDataVo, zone, carried, round);
         }
         if (need == candidates.size()) {
             List<Card> full = new ArrayList<>(carried);
             full.addAll(candidates);
-            return evaluateZone(zone, full, round);
+            return evaluateZone(gameDataVo, zone, full, round);
         }
         DouXianHandResult best = null;
         for (List<Card> combo : combinations(candidates, need)) {
             List<Card> full = new ArrayList<>(carried);
             full.addAll(combo);
-            DouXianHandResult res = evaluateZone(zone, full, round);
+            DouXianHandResult res = evaluateZone(gameDataVo, zone, full, round);
             if (best == null || res.getAetherValue() > best.getAetherValue()) {
                 best = res;
             }

@@ -5,6 +5,7 @@ import com.jjg.game.alliance.service.AllianceCacheService;
 import com.jjg.game.alliance.service.AllianceEventService;
 import com.jjg.game.common.rpc.RpcCallSetting;
 import com.jjg.game.core.constant.AddType;
+import com.jjg.game.core.constant.BackendGMCmd;
 import com.jjg.game.core.constant.Code;
 import com.jjg.game.core.dao.AccountDao;
 import com.jjg.game.core.data.*;
@@ -21,6 +22,7 @@ import com.jjg.game.season.pb.res.ResSeasonTrialProgress;
 import com.jjg.game.season.service.SeasonService;
 import com.jjg.game.sim.bridge.ToSimBridge;
 import com.jjg.game.sim.data.*;
+import com.jjg.game.sim.logger.SimGuideLogger;
 import com.jjg.game.sim.manager.SimManager;
 import com.jjg.game.sim.manager.SimPlayerContextRegistry;
 import com.jjg.game.sim.service.SimCoopTaskService;
@@ -66,6 +68,8 @@ public class HallRPCController extends CoreRPCController implements GmToHallBrid
     private SimPackService simPackService;
     @Autowired
     private SimGuideService simGuideService;
+    @Autowired
+    private SimGuideLogger simGuideLogger;
     @Autowired
     private ChatService chatService;
 
@@ -121,6 +125,25 @@ public class HallRPCController extends CoreRPCController implements GmToHallBrid
             log.error("", e);
             return Code.EXCEPTION;
         }
+    }
+
+    @Override
+    @RpcCallSetting(processorModKey = "#arg0")
+    public int finishSimGuide(long playerId, int operationType, List<Integer> guideIds) {
+        int code;
+        if (operationType == BackendGMCmd.SimGuideOperation.FINISH_ALL) {
+            code = simManager.onGmFinishAllGuides(playerId);
+        } else if (operationType == BackendGMCmd.SimGuideOperation.FINISH_SPECIFIED) {
+            code = simManager.onGmFinishGuides(playerId, guideIds);
+        } else {
+            return Code.PARAM_ERROR;
+        }
+        if (code == Code.SUCCESS) {
+            simGuideLogger.completed(playerId, operationType, guideIds);
+        }
+        log.info("后台完成新手引导处理结束 playerId={},operationType={},guideIds={},code={}",
+                playerId, operationType, guideIds, code);
+        return code;
     }
 
     @Override
