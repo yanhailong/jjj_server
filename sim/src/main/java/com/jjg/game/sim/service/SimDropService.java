@@ -38,6 +38,8 @@ public class SimDropService {
     private PlayerPackService playerPackService;
     @Autowired
     private SimGuideService guideService;
+    @Autowired
+    private SimTaskService taskService;
 
     /**
      * 玩家每次 slots 旋转触发 (运行在 hall 的 RPC 线程, 直接操作 ctx 内存数据)
@@ -76,6 +78,7 @@ public class SimDropService {
             if (checkLevelUp(casino)) {
                 base.addAllLevel(1);
                 guideService.triggerSceneTotalLevelReached(ctx, base.getAllLevel(), true);
+                taskService.onConditionEvent(ctx, SimConditionEventFactory.sceneTotalLevel(base.getAllLevel()));
             }
         }
         //掉落

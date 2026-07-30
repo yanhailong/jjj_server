@@ -32,6 +32,7 @@ public class PlayerStatService {
     public static final int LOGIN_DAYS = 12265;
     public static final int CASINO_UNLOCK = 12266;
     public static final int CURRENCY_CONSUME = 12267;
+    public static final int SCENE_TOTAL_LEVEL = 12268;
 
     public static final int GOLD_ITEM_ID = 1990000;
     public static final int DIAMOND_ITEM_ID = 1980000;
@@ -43,7 +44,7 @@ public class PlayerStatService {
     }
 
     public static boolean supports(int conditionId) {
-        return conditionId >= SLOT_ITEM && conditionId <= CURRENCY_CONSUME && conditionId != 12258;
+        return conditionId >= SLOT_ITEM && conditionId <= SCENE_TOTAL_LEVEL && conditionId != 12258;
     }
 
     public static boolean recorded(int conditionId) {

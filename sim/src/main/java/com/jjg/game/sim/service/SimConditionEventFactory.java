@@ -152,6 +152,11 @@ public final class SimConditionEventFactory {
                 itemId, 0, Math.max(0, count), 0, 0, false);
     }
 
+    public static ActionConditionEvent sceneTotalLevel(long allLevel) {
+        return new ActionConditionEvent(ActionConditionEvent.Type.SCENE_TOTAL_LEVEL,
+                0, 0, Math.max(0, allLevel), 0, 0, false);
+    }
+
     /**
      * 生成"拥有型"计数条件的事件序列 (12208 建筑 / 12212 雇员 / 12214 游客)。
      * <p>

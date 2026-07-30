@@ -262,6 +262,8 @@ public class SimCasinoService implements SimTaskStateReporter {
         simSkillService.initUnlock(ctx, casinoId);
         ctx.getSimBaseData().addAllLevel(casino.getCasinoLevel());
         simGuideService.triggerSceneTotalLevelReached(ctx, ctx.getSimBaseData().getAllLevel(), true);
+        simTaskService.onConditionEvent(ctx,
+                SimConditionEventFactory.sceneTotalLevel(ctx.getSimBaseData().getAllLevel()));
         //TODO 初始游客: VisitorQuest 无场景维度配置, 待策划补充配置后在此初始化 guestMap
         log.info("创建新场景 playerId={},casinoId={},statsId={},buildingCount={}", ctx.playerId(), casinoId, statsId,
                 casino.getBuildingData() == null ? 0 : casino.getBuildingData().size());

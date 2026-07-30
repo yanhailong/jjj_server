@@ -29,6 +29,8 @@ public class GuideCfg extends BaseCfgBean {
   protected String PathName;
   /** 跳过奖励界面引导ID */
   protected List<Integer> SkipGuideId;
+  /** 是否开启 */
+  protected boolean isOpen;
   /** 条件参数 */
   protected int param;
 
@@ -55,6 +57,11 @@ public class GuideCfg extends BaseCfgBean {
   /** 返回跳过奖励界面引导ID */
   public List<Integer> getSkipGuideId() {
     return SkipGuideId;
+  }
+
+  /** 返回是否开启 */
+  public boolean getIsOpen() {
+    return isOpen;
   }
 
   /** 返回条件参数 */

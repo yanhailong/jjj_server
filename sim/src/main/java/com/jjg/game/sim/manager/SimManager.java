@@ -634,9 +634,11 @@ public class SimManager {
                     playerId, gameType, winTimes, enterType,
                     statInfo != null ? JSONObject.toJSONString(statInfo) : "null",
                     trialPermit != null ? JSONObject.toJSONString(trialPermit) : "null");
+            boolean visitTrial = trialPermit != null && trialPermit.isTrial();
             SimPlayerContext ctx = this.simPlayerContextRegistry.getContext(playerId);
             if (ctx == null) {
-                if (changeNode) {
+                // 已授权的试玩结果必须完成结算；即使异步回调到达前上下文已被清理，也要恢复后继续发放房主抽成。
+                if (changeNode || visitTrial) {
                     ctx = createContextByPlayerId(playerId);
                 }
 
@@ -654,7 +656,6 @@ public class SimManager {
                 return new CommonResult<>(Code.REPEAT_OP);
             }
 
-            boolean visitTrial = trialPermit != null && trialPermit.isTrial();
             boolean freeMode = statInfo != null && statInfo.isFreeMode();
             //免费模式 / 赛季入口: 不消耗体力 (与 SimDropService 扣能逻辑一致)
             int spinCostPower = (freeMode || enterType > 0) ? 0 : SimConstant.Common.SPIN_COST_POWER;

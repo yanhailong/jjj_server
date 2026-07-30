@@ -51,6 +51,8 @@ public class SimPlayerStatService {
                     condition.spec().intParameter(1));
             case PlayerStatService.GAME_UNLOCK -> unlockedGameCount(ctx);
             case PlayerStatService.CASINO_UNLOCK -> unlockedCasinoCount(ctx);
+            case PlayerStatService.SCENE_TOTAL_LEVEL -> ctx.getSimBaseData() == null
+                    ? 0 : ctx.getSimBaseData().getAllLevel();
             default -> 0;
         };
     }

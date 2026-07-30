@@ -177,6 +177,8 @@ final class DefaultConditionRules {
                 (s, e) -> true, (s, e) -> e.value()));
         rules.add(action(12267, 2, 2, 1, ProgressMode.ADD, ActionConditionEvent.Type.ITEM_CONSUME,
                 (s, e) -> e.matchesSubject(s.parameter(0)), (s, e) -> e.value()));
+        rules.add(action(12268, 1, 1, 0, ProgressMode.SET, ActionConditionEvent.Type.SCENE_TOTAL_LEVEL,
+                (s, e) -> true, (s, e) -> e.value()));
     }
 
     private static void addAllianceRules(List<ConditionRule<?>> rules) {

@@ -26,6 +26,7 @@ public record ActionConditionEvent(Type type, int subjectId, int relatedId, long
         VISIT,
         LOGIN,
         CASINO_UNLOCK,
+        SCENE_TOTAL_LEVEL,
         ITEM_CONSUME,
         CARD_POOL_DRAW,
         ALLIANCE_DONATE,
