@@ -638,6 +638,13 @@ public class SimGuestService implements SimPlayerTickListener, ItemListener, Sim
             log.warn("解锁游客时，当前场景数据不存在 playerId={},currentCasinoId={}", ctx.playerId(), ctx.getSimBaseData().getCurrentCasinoId());
             return Code.NOT_FOUND;
         }
+        return unlockGuest(casino, guestId);
+    }
+
+    /**
+     * 解锁游客
+     */
+    public int unlockGuest(SimCasinoData casino, int guestId) {
         GuestData guest = casino.findGuestData(guestId);
         if (guest == null) {
             VisitorQuestCfg cfg = GameDataManager.getVisitorQuestCfg(guestId);
@@ -650,7 +657,7 @@ public class SimGuestService implements SimPlayerTickListener, ItemListener, Sim
             guest.setLevel(1);
             guest.setStar(1);
             casino.addGuest(guest);
-            unlockBonds(ctx, Collections.singletonList(guestId));
+            unlockBonds(casino, Collections.singletonList(guestId));
         }
         log.info("解锁游客成功 guestId={}", guestId);
         return Code.SUCCESS;
@@ -925,7 +932,7 @@ public class SimGuestService implements SimPlayerTickListener, ItemListener, Sim
                 for (Map.Entry<Integer, Integer> en : addGuest.entrySet()) {
                     guestIds.add(en.getKey());
                 }
-                unlockBonds(ctx, guestIds);
+                unlockBonds(ctx.getCurrentCasino(), guestIds);
             }
 
             res.shardInfos = recruitItems;
@@ -1003,9 +1010,9 @@ public class SimGuestService implements SimPlayerTickListener, ItemListener, Sim
     /**
      * 解锁羁绊
      *
-     * @param ctx
+     * @param casino
      */
-    private void unlockBonds(SimPlayerContext ctx, List<Integer> guestIds) {
+    private void unlockBonds(SimCasinoData casino, List<Integer> guestIds) {
         if (guestIds == null || guestIds.isEmpty()) {
             return;
         }
@@ -1021,7 +1028,7 @@ public class SimGuestService implements SimPlayerTickListener, ItemListener, Sim
             bonds:
             for (int bondsCfgId : bondsIds) {
                 //是否已解锁这个羁绊
-                if (ctx.getCurrentCasino().containsGuestBonds(bondsCfgId)) {
+                if (casino.containsGuestBonds(bondsCfgId)) {
                     continue;
                 }
 
@@ -1033,30 +1040,30 @@ public class SimGuestService implements SimPlayerTickListener, ItemListener, Sim
 
                 if (visitorBondsCfg.getMembers() != null && !visitorBondsCfg.getMembers().isEmpty()) {
                     for (int memberGuestId : visitorBondsCfg.getMembers()) {
-                        GuestData guestData = ctx.getCurrentCasino().findGuestData(memberGuestId);
+                        GuestData guestData = casino.findGuestData(memberGuestId);
                         if (guestData == null) {
                             continue bonds;
                         }
                     }
                 }
                 //添加羁绊
-                ctx.getCurrentCasino().addGuestBonds(visitorBondsCfg.getId());
+                casino.addGuestBonds(visitorBondsCfg.getId());
 
                 if (visitorBondsCfg.getReward() != null && !visitorBondsCfg.getReward().isEmpty()) {
                     for (Map.Entry<Integer, Long> en : visitorBondsCfg.getReward().entrySet()) {
                         addItems.merge(en.getKey(), en.getValue(), Long::sum);
                     }
                 }
-                log.info("成功解锁羁绊 playerId={},bondsId={}", ctx.playerId(), visitorBondsCfg.getId());
+                log.info("成功解锁羁绊 playerId={},bondsId={}", casino.getPlayerId(), visitorBondsCfg.getId());
             }
         }
 
         if (!addItems.isEmpty()) {
-            CommonResult<ItemOperationResult> addResult = playerPackService.addItems(ctx.playerId(), addItems, AddType.SIM_UNLOCK_BONDS, null, true);
+            CommonResult<ItemOperationResult> addResult = playerPackService.addItems(casino.getPlayerId(), addItems, AddType.SIM_UNLOCK_BONDS, null, true);
             if (addResult.success()) {
-                log.info("解锁羁绊添加道具成功 playerId={},addItems={}", ctx.playerId(), addItems);
+                log.info("解锁羁绊添加道具成功 playerId={},addItems={}", casino.getPlayerId(), addItems);
             } else {
-                log.warn("解锁羁绊添加道具失败 playerId={},addItems={},code={}", ctx.playerId(), addItems, addResult.code);
+                log.warn("解锁羁绊添加道具失败 playerId={},addItems={},code={}", casino.getPlayerId(), addItems, addResult.code);
             }
         }
     }

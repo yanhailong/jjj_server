@@ -435,6 +435,9 @@ public class SimManager {
             baseData.setPlayerId(playerId);
         }
 
+        //TODO 先特殊处理
+        baseData.setGuide(true);
+
         ctx.setSimBaseData(baseData);
         simMedalService.refreshMedalBonusCache(ctx);
         //加载技能 (须在加载场景数据之前: initUnlock 依赖已入内存的技能等级)

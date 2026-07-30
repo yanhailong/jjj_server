@@ -256,7 +256,7 @@ public class SimCasinoService implements SimTaskStateReporter {
         //自动解锁: UnlockType=false 且无解锁条件(UnlockMethod) 的建筑, 创建场景时直接以初始等级解锁
         autoUnlockBuildings(casino, casinoId);
         //自动解锁游客
-        autoUnlockGuest(ctx, casinoId);
+        autoUnlockGuest(casino, casinoId);
 
         updateCasinoUnlock(ctx, casinoId, INITIAL_BUILDING_LEVEL);
         simSkillService.initUnlock(ctx, casinoId);
@@ -299,14 +299,14 @@ public class SimCasinoService implements SimTaskStateReporter {
      *
      * @param casinoId 场景id (= BuildingAreaTableCfg.RegionID)
      */
-    private void autoUnlockGuest(SimPlayerContext ctx, int casinoId) {
+    private void autoUnlockGuest(SimCasinoData casino, int casinoId) {
         List<VisitorQuestCfg> cfgs = configCacheService.getRegionVistorCfgMap().get(casinoId);
         if (cfgs == null || cfgs.isEmpty()) {
             return;
         }
         for (VisitorQuestCfg c : cfgs) {
             if (c.getIsDefaultUnlocked()) {
-                simGuestService.unlockGuest(ctx, c.getId());
+                simGuestService.unlockGuest(casino, c.getId());
             }
         }
     }
