@@ -196,17 +196,17 @@ public interface MessageConst {
         //模拟经营游戏
         int SIM_GAME = 0x54;
         //聊天
-        int SOCIAL = 0x56;
+        int SOCIAL = 0x58;
         //联盟
-        int ALLIANCE = 0x57;
-        //赛季
-        int SEASON = 0x59;
+        int ALLIANCE = 0x59;
         //南方前进-血战
         int TO_SOUTH_BLOOD = 0x5A;
         //南方前进-免费
         int TO_SOUTH_FREE = 0x5B;
         //斗仙牌
         int DOU_XIAN_TYPE = 0x5C;
+        //赛季
+        int SEASON = 0x5D;
     }
 
     interface ToClientConst {
