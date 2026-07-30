@@ -64,6 +64,12 @@ public class DouXianGameDataVo extends BasePokerGameDataVo {
     private final Map<Long, Integer> pendingSpecialRule = new HashMap<>();
 
     /**
+     * GM强制本回合触发的特殊规则：playerId -> 规则类型(1得证大道 2隐忍渡劫)。
+     * 结算阶段读取一次后立即清空，不影响后续回合。
+     */
+    private final Map<Long, Integer> gmForcedSpecialRule = new HashMap<>();
+
+    /**
      * 正在"即时充值复活"倒计时中的玩家，DESIGN.md 8.9
      */
     private final Set<Long> rechargingPlayerIds = new HashSet<>();
@@ -142,6 +148,10 @@ public class DouXianGameDataVo extends BasePokerGameDataVo {
         return pendingSpecialRule;
     }
 
+    public Map<Long, Integer> getGmForcedSpecialRule() {
+        return gmForcedSpecialRule;
+    }
+
     public Set<Long> getRechargingPlayerIds() {
         return rechargingPlayerIds;
     }
@@ -206,6 +216,7 @@ public class DouXianGameDataVo extends BasePokerGameDataVo {
         hostingPlayerIds.clear();
         hostingCancelledPlayerIdsThisPhase.clear();
         pendingSpecialRule.clear();
+        gmForcedSpecialRule.clear();
         rechargingPlayerIds.clear();
         gameStartBalance.clear();
         roundStartBalance.clear();

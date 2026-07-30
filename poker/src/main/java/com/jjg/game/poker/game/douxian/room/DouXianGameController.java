@@ -3,6 +3,7 @@ package com.jjg.game.poker.game.douxian.room;
 import com.jjg.game.core.constant.AddType;
 import com.jjg.game.core.constant.Code;
 import com.jjg.game.core.constant.EGameType;
+import com.jjg.game.core.data.CommonResult;
 import com.jjg.game.core.data.PlayerController;
 import com.jjg.game.core.data.Room;
 import com.jjg.game.core.data.RoomPlayer;
@@ -10,6 +11,8 @@ import com.jjg.game.core.data.RoomType;
 import com.jjg.game.core.data.Card;
 import com.jjg.game.core.utils.ItemUtils;
 import com.jjg.game.poker.game.common.BasePokerGameController;
+import com.jjg.game.poker.game.common.data.PokerCard;
+import com.jjg.game.poker.game.common.data.PokerDataHelper;
 import com.jjg.game.poker.game.common.data.PlayerSeatInfo;
 import com.jjg.game.poker.game.common.message.req.ReqPokerBet;
 import com.jjg.game.poker.game.common.message.req.ReqPokerSampleCardOperation;
@@ -54,7 +57,9 @@ import com.jjg.game.sampledata.bean.ImmortalCardCfg;
 import com.jjg.game.sampledata.bean.Room_ChessCfg;
 
 import java.util.ArrayList;
+import java.util.Collections;
 import java.util.HashSet;
+import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
@@ -289,6 +294,276 @@ public class DouXianGameController extends BasePokerGameController<DouXianGameDa
     @Override
     public void dealBet(long playerId, ReqPokerBet reqPokerBet) {
         log.warn("斗仙牌没有下注阶段，忽略该下注请求 playerId:{}", playerId);
+    }
+
+    /**
+     * GM立即替换当前手牌。指定牌会从公共牌库、其他玩家手牌或场上区域中交换出来，
+     * 被换走的位置使用玩家原手牌（不足时使用公共牌库）补回，保证整副牌不重复。
+     */
+    public CommonResult<String> gmReplaceHandCards(long playerId, List<int[]> cardSpecs) {
+        CommonResult<String> result = new CommonResult<>(Code.SUCCESS);
+        if (getCurrentGamePhase() != EGamePhase.PLAY_CART) {
+            result.code = Code.FAIL;
+            result.data = "只能在斗仙牌出牌阶段使用card命令，当前阶段：" + getCurrentGamePhase();
+            return result;
+        }
+        if (!gameDataVo.getActivePlayerIds().contains(playerId)) {
+            result.code = Code.FAIL;
+            result.data = "玩家当前不在斗仙牌对局中";
+            return result;
+        }
+        if (gameDataVo.getConfirmedPlayerIds().contains(playerId)) {
+            result.code = Code.FAIL;
+            result.data = "玩家本回合已经确认出牌，不能再替换手牌";
+            return result;
+        }
+        if (cardSpecs == null || cardSpecs.isEmpty() || cardSpecs.size() > DouXianConstant.Common.HAND_CARD_NUM) {
+            result.code = Code.FAIL;
+            result.data = "指定手牌数量必须为1到" + DouXianConstant.Common.HAND_CARD_NUM + "张";
+            return result;
+        }
+
+        Map<Integer, PokerCard> cardMap = PokerDataHelper.getCardListMap(gameDataVo.getPoolId());
+        if (cardMap == null || cardMap.isEmpty()) {
+            result.code = Code.FAIL;
+            result.data = "当前斗仙牌牌池未初始化";
+            return result;
+        }
+        LinkedHashSet<Integer> desiredCardSet = new LinkedHashSet<>();
+        for (int[] spec : cardSpecs) {
+            Integer cfgId = cardMap.values().stream()
+                    .filter(card -> card.getSuit() == spec[0] && card.getRank() == spec[1])
+                    .map(PokerCard::getPokerPoolId)
+                    .findFirst().orElse(null);
+            if (cfgId == null) {
+                result.code = Code.FAIL;
+                result.data = "当前牌池中找不到指定牌，花色：" + spec[0] + "，点数：" + spec[1];
+                return result;
+            }
+            if (!desiredCardSet.add(cfgId)) {
+                result.code = Code.FAIL;
+                result.data = "指定手牌不能重复";
+                return result;
+            }
+        }
+
+        List<Integer> deck = gameDataVo.getCards();
+        List<Integer> hand = gameDataVo.getHandCards().get(playerId);
+        if (deck == null || hand == null) {
+            result.code = Code.FAIL;
+            result.data = "当前对局尚未完成发牌，不能替换手牌";
+            return result;
+        }
+
+        List<Integer> oldHand = new ArrayList<>(hand);
+        Set<Integer> oldHandSet = new HashSet<>(oldHand);
+        List<Integer> replacementCards = oldHand.stream()
+                .filter(cardId -> !desiredCardSet.contains(cardId))
+                .collect(java.util.stream.Collectors.toCollection(ArrayList::new));
+        List<GmCardLocation> sourceLocations = new ArrayList<>();
+        int nonDeckSourceCount = 0;
+        for (Integer desiredCard : desiredCardSet) {
+            if (oldHandSet.contains(desiredCard)) {
+                continue;
+            }
+            GmCardLocation location = findGmCardLocation(playerId, desiredCard, deck);
+            if (location == null) {
+                result.code = Code.FAIL;
+                result.data = "指定牌当前不在牌局中：" + DouXianDataHelper.cfgIdsToString(gameDataVo, List.of(desiredCard));
+                return result;
+            }
+            sourceLocations.add(location);
+            if (!location.deck()) {
+                nonDeckSourceCount++;
+            }
+        }
+
+        List<Integer> borrowedFromDeck = new ArrayList<>();
+        int missingReplacementCount = nonDeckSourceCount - replacementCards.size();
+        if (missingReplacementCount > 0) {
+            for (Integer cardId : deck) {
+                if (!desiredCardSet.contains(cardId)) {
+                    borrowedFromDeck.add(cardId);
+                    replacementCards.add(cardId);
+                    if (borrowedFromDeck.size() == missingReplacementCount) {
+                        break;
+                    }
+                }
+            }
+            if (borrowedFromDeck.size() < missingReplacementCount) {
+                result.code = Code.FAIL;
+                result.data = "公共牌库没有足够的牌用于完成手牌交换";
+                return result;
+            }
+        }
+
+        for (Integer cardId : borrowedFromDeck) {
+            deck.remove(Integer.valueOf(cardId));
+        }
+        int replacementIndex = 0;
+        for (GmCardLocation location : sourceLocations) {
+            if (location.deck()) {
+                deck.remove(Integer.valueOf(location.cardId()));
+            } else {
+                location.container().set(location.index(), replacementCards.get(replacementIndex++));
+            }
+        }
+        hand.clear();
+        hand.addAll(desiredCardSet);
+        while (replacementIndex < replacementCards.size()) {
+            deck.add(replacementCards.get(replacementIndex++));
+        }
+        Collections.shuffle(deck);
+
+        refreshPlayerSnapshotsAfterGm();
+        result.data = "当前手牌已立即替换为：" + DouXianDataHelper.cfgIdsToString(gameDataVo, hand);
+        log.info("斗仙牌GM替换手牌成功 playerId:{} 替换前:{} 替换后:{} 公共牌库剩余:{}",
+                playerId, DouXianDataHelper.cfgIdsToString(gameDataVo, oldHand),
+                DouXianDataHelper.cfgIdsToString(gameDataVo, hand), deck.size());
+        return result;
+    }
+
+    /**
+     * GM跳转到指定回合。跳过的回合不进行结算，当前牌局会重建为目标回合刚发牌时的合法状态。
+     * 第2~4回合为每名玩家随机生成灵界2张、仙界3张飞升锁定牌，再由正常发牌阶段补满8张手牌。
+     */
+    public CommonResult<String> gmJumpToRound(long playerId, int targetRound) {
+        CommonResult<String> result = new CommonResult<>(Code.SUCCESS);
+        if (targetRound < 1 || targetRound > DouXianConstant.Common.TOTAL_ROUND) {
+            result.code = Code.FAIL;
+            result.data = "斗仙牌回合必须在1到" + DouXianConstant.Common.TOTAL_ROUND + "之间";
+            return result;
+        }
+        if (getCurrentGamePhase() == EGamePhase.WAIT_READY || gameDataVo.getPlayerSeatInfoList().isEmpty()) {
+            result.code = Code.FAIL;
+            result.data = "斗仙牌尚未开局，不能跳转回合";
+            return result;
+        }
+        if (!gameDataVo.getActivePlayerIds().contains(playerId)) {
+            result.code = Code.FAIL;
+            result.data = "玩家当前不在斗仙牌对局中";
+            return result;
+        }
+
+        int sourceRound = gameDataVo.getRound();
+        EGamePhase sourcePhase = getCurrentGamePhase();
+        removePokerPhaseTimer();
+        gameDataVo.resetData(this);
+        genPlayerSeatInfoList(gameDataVo.getSeatInfo(), gameDataVo.getPlayerSeatInfoList());
+        DouXianDataHelper.shuffleNewDeck(gameDataVo);
+
+        while (gameDataVo.getRound() < targetRound) {
+            gameDataVo.nextRound();
+        }
+        for (Long activePlayerId : gameDataVo.getActivePlayerIds()) {
+            gameDataVo.getGameStartBalance().put(activePlayerId, getTransactionItemNum(activePlayerId));
+            for (int skippedRound = 1; skippedRound < targetRound; skippedRound++) {
+                gameDataVo.recordRoundChange(activePlayerId, 0L);
+            }
+        }
+
+        if (targetRound > 1) {
+            prepareGmCarriedCards();
+        }
+
+        addPokerPhaseTimer(new DouXianDealPhase(this));
+        refreshPlayerSnapshotsAfterGm();
+        result.data = "已跳转到斗仙牌第" + targetRound + "回合开局，跳过回合未结算";
+        log.info("斗仙牌GM跳回合成功 playerId:{} sourceRound:{} sourcePhase:{} targetRound:{} deckRemain:{}",
+                playerId, sourceRound, sourcePhase, targetRound, gameDataVo.getCards().size());
+        return result;
+    }
+
+    /** GM强制当前玩家在本回合结算时触发得证大道或隐忍渡劫，仅覆盖特殊规则判定，不修改真实输赢。 */
+    public CommonResult<String> gmForceSpecialRule(long playerId, int ruleType) {
+        CommonResult<String> result = new CommonResult<>(Code.SUCCESS);
+        if (ruleType != 1 && ruleType != 2) {
+            result.code = Code.FAIL;
+            result.data = "未知的斗仙牌特殊规则类型：" + ruleType;
+            return result;
+        }
+        if (getCurrentGamePhase() != EGamePhase.PLAY_CART) {
+            result.code = Code.FAIL;
+            result.data = "只能在斗仙牌出牌阶段设置特殊规则，当前阶段：" + getCurrentGamePhase();
+            return result;
+        }
+        int round = gameDataVo.getRound();
+        if (round < 2 || round >= DouXianConstant.Common.TOTAL_ROUND) {
+            result.code = Code.FAIL;
+            result.data = "特殊规则GM只能在第2或第3回合使用，当前为第" + round + "回合";
+            return result;
+        }
+        if (!gameDataVo.getActivePlayerIds().contains(playerId)) {
+            result.code = Code.FAIL;
+            result.data = "玩家当前不在斗仙牌对局中";
+            return result;
+        }
+
+        gameDataVo.getGmForcedSpecialRule().put(playerId, ruleType);
+        String ruleName = ruleType == 1 ? "得证大道" : "隐忍渡劫";
+        result.data = "已设置本回合结算时强制触发：" + ruleName;
+        log.info("斗仙牌GM强制特殊规则设置成功 playerId:{} round:{} ruleType:{} ruleName:{}",
+                playerId, round, ruleType, ruleName);
+        return result;
+    }
+
+    private void prepareGmCarriedCards() {
+        for (PlayerSeatInfo seatInfo : gameDataVo.getPlayerSeatInfoList()) {
+            if (seatInfo.isDelState()) {
+                continue;
+            }
+            Map<DouXianZone, DouXianZoneCards> zones = gameDataVo.getPlayerZoneCards(seatInfo.getPlayerId());
+            zones.get(DouXianZone.SPIRIT).getCarriedCards()
+                    .addAll(DouXianDataHelper.drawCards(gameDataVo, DouXianZone.MORTAL.getCapacity()));
+            zones.get(DouXianZone.IMMORTAL).getCarriedCards()
+                    .addAll(DouXianDataHelper.drawCards(gameDataVo, DouXianZone.SPIRIT.getCapacity()));
+        }
+    }
+
+    private GmCardLocation findGmCardLocation(long gmPlayerId, int cardId, List<Integer> deck) {
+        int deckIndex = deck.indexOf(cardId);
+        if (deckIndex >= 0) {
+            return new GmCardLocation(cardId, deck, deckIndex, true);
+        }
+        for (Map.Entry<Long, List<Integer>> entry : gameDataVo.getHandCards().entrySet()) {
+            if (entry.getKey() == gmPlayerId) {
+                continue;
+            }
+            int index = entry.getValue().indexOf(cardId);
+            if (index >= 0) {
+                return new GmCardLocation(cardId, entry.getValue(), index, false);
+            }
+        }
+        Set<Long> playerIds = new HashSet<>(gameDataVo.getHandCards().keySet());
+        for (PlayerSeatInfo seatInfo : gameDataVo.getPlayerSeatInfoList()) {
+            playerIds.add(seatInfo.getPlayerId());
+        }
+        for (Long playerId : playerIds) {
+            for (DouXianZoneCards zoneCards : gameDataVo.getPlayerZoneCards(playerId).values()) {
+                int carriedIndex = zoneCards.getCarriedCards().indexOf(cardId);
+                if (carriedIndex >= 0) {
+                    return new GmCardLocation(cardId, zoneCards.getCarriedCards(), carriedIndex, false);
+                }
+                int newCardIndex = zoneCards.getNewCards().indexOf(cardId);
+                if (newCardIndex >= 0) {
+                    return new GmCardLocation(cardId, zoneCards.getNewCards(), newCardIndex, false);
+                }
+            }
+        }
+        return null;
+    }
+
+    /** GM换牌可能交换了其他玩家或场上牌，统一按每个接收者视角重新发送脱敏房间快照。 */
+    private void refreshPlayerSnapshotsAfterGm() {
+        for (SeatInfo seatInfo : gameDataVo.getSeatInfo().values()) {
+            PlayerController playerController = getRoomController().getPlayerController(seatInfo.getPlayerId());
+            if (playerController != null) {
+                respRoomInitInfoAction(playerController);
+            }
+        }
+    }
+
+    private record GmCardLocation(int cardId, List<Integer> container, int index, boolean deck) {
     }
 
     @Override
