@@ -217,7 +217,7 @@ public class SimManager {
                 guideService.trigger(ctx, SimConstant.GuideCondition.NEW_PLAYER, 0, false);
             }
             guideService.skipReconnectGuides(ctx);
-            res.guideGroupIds = ctx.getSimBaseData().pendingGuideGroupIds();
+            res.guideGroupIds = guideService.pendingOpenGuideGroupIds(ctx);
             res.completedGuideIds = ctx.getSimBaseData().completedGuideIds();
             res.guide = ctx.getSimBaseData().isGuide();
             log.info("进入模拟经营大厅检查等级引导 playerId={},playerLevel={},newGroups={},pendingGroups={}",
