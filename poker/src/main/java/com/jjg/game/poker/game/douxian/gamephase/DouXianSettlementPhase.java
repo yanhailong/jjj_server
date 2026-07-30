@@ -283,8 +283,19 @@ public class DouXianSettlementPhase extends BasePokerPhase<DouXianGameDataVo> {
         for (Long playerId : gameDataVo.getActivePlayerIds()) {
             int winCount = grandWinAsWinner.getOrDefault(playerId, 0);
             int loseCount = grandWinAsLoser.getOrDefault(playerId, 0);
+            Integer forcedRuleType = gameDataVo.getGmForcedSpecialRule().get(playerId);
             DouXianSpecialRuleInfo info = null;
-            if (winCount >= triggerCount) {
+            if (forcedRuleType != null && forcedRuleType == 1) {
+                gameDataVo.getPendingSpecialRule().put(playerId, 1);
+                info = new DouXianSpecialRuleInfo();
+                info.ruleType = 1;
+                info.triggerPlayerCount = Math.max(winCount, triggerCount);
+            } else if (forcedRuleType != null && forcedRuleType == 2) {
+                gameDataVo.getPendingSpecialRule().put(playerId, 2);
+                info = new DouXianSpecialRuleInfo();
+                info.ruleType = 2;
+                info.triggerPlayerCount = Math.max(loseCount, triggerCount);
+            } else if (winCount >= triggerCount) {
                 gameDataVo.getPendingSpecialRule().put(playerId, 1);
                 info = new DouXianSpecialRuleInfo();
                 info.ruleType = 1;
@@ -301,6 +312,7 @@ public class DouXianSettlementPhase extends BasePokerPhase<DouXianGameDataVo> {
                 log.info("斗仙牌特殊规则触发 playerId:{} ruleType:{} triggerCount:{}", playerId, info.ruleType, info.triggerPlayerCount);
             }
         }
+        gameDataVo.getGmForcedSpecialRule().clear();
         if (!ruleInfos.isEmpty()) {
             NotifyDouXianSpecialRuleTrigger notify = new NotifyDouXianSpecialRuleTrigger();
             notify.ruleInfos = ruleInfos;
