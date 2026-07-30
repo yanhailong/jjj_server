@@ -23,7 +23,7 @@ import org.springframework.stereotype.Component;
  * @date 2025/12/2 17:37
  */
 @Component
-@MessageType(MessageConst.MessageTypeDef.CHRISTMAS_NIGHT_TYPE)
+@MessageType(MessageConst.MessageTypeDef.ACE_DJ)
 public class AceDjMessageHandler {
     private Logger log = LoggerFactory.getLogger(getClass());
 
