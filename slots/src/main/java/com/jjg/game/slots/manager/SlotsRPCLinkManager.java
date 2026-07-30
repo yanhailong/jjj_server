@@ -204,7 +204,7 @@ public class SlotsRPCLinkManager {
             try {
                 rpcContext.withReqParameterBuilder(RpcReqParameterBuilder.create()
                         .addClusterClient(client).setTryMillisPerClient(1000));
-                return toSimBridge.seasonMatch(playerGameData.getPlayerId(), gameType, stake);
+                return toSimBridge.passiveSeasonMatch(playerGameData.getPlayerId(), gameType, stake);
             } finally {
                 rpcContext.setReqParameterBuilder(previousBuilder);
             }
@@ -421,13 +421,16 @@ public class SlotsRPCLinkManager {
             return;
         }
 
-        Map<Integer, Long> newMap = new HashMap<>();
-        for (Map.Entry en : result.data.getItemsMap().entrySet()) {
-            newMap.put(Integer.parseInt(en.getKey().toString()), Long.parseLong(en.getValue().toString()));
-        }
-        playerStatService.recordSlotItems(playerId, gameType, newMap);
         NotifySimDropItem notify = new NotifySimDropItem();
-        notify.itemMap = ItemUtils.buildItemInfo(newMap);
+        if(result.data.getItemsMap() != null && !result.data.getItemsMap().isEmpty()) {
+            Map<Integer, Long> newMap = new HashMap<>();
+            for (Map.Entry en : result.data.getItemsMap().entrySet()) {
+                newMap.put(Integer.parseInt(en.getKey().toString()), Long.parseLong(en.getValue().toString()));
+            }
+            playerStatService.recordSlotItems(playerId, gameType, newMap);
+            notify.itemMap = ItemUtils.buildItemInfo(newMap);
+        }
+
         notify.power = result.data.getPower();
         notify.researchPoint = result.data.getResearchPoints();
         playerController.send(notify);

@@ -204,6 +204,17 @@ public class HallRPCController extends CoreRPCController implements GmToHallBrid
 
     @Override
     @RpcCallSetting(processorModKey = "#arg0")
+    public ResSeasonMatch passiveSeasonMatch(long playerId, int gameType, long stake) {
+        SimPlayerContext ctx = this.simPlayerContextRegistry.getContext(playerId);
+        if (ctx == null) {
+            log.warn("赛季被动匹配失败，未找到玩家 sim 数据 playerId={}", playerId);
+            return new ResSeasonMatch(Code.NOT_FOUND);
+        }
+        return seasonService.passiveMatch(ctx, gameType, stake);
+    }
+
+    @Override
+    @RpcCallSetting(processorModKey = "#arg0")
     public ResSeasonTrialProgress seasonTrialProgress(long playerId) {
         SimPlayerContext ctx = this.simPlayerContextRegistry.getContext(playerId);
         if (ctx == null) {

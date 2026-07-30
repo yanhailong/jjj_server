@@ -62,6 +62,8 @@ public class SimDropService {
             return result;
         }
 
+        SlotsSpinResult slotsSpinResult = new SlotsSpinResult();
+
         //免费模式 / enterType>0(赛季、拜访等入口): 不消耗能量 (与 SimManager.spinCostPower 一致)
         if (!freeMode && enterType <= 0) {
             if (base.getPower() < SimConstant.Common.SPIN_COST_POWER) {
@@ -71,31 +73,30 @@ public class SimDropService {
                 return result;
             }
             base.setPower(base.getPower() - SimConstant.Common.SPIN_COST_POWER);
-        }
-        //非免费局计场景经验 (含赛季/拜访入口, 与是否扣能无关)
-        if (!freeMode) {
+
             casino.setExp(casino.getExp() + SimConstant.Common.SPIN_ADD_EXP);
             if (checkLevelUp(casino)) {
                 base.addAllLevel(1);
                 guideService.triggerSceneTotalLevelReached(ctx, base.getAllLevel(), true);
                 taskService.onConditionEvent(ctx, SimConditionEventFactory.sceneTotalLevel(base.getAllLevel()));
             }
-        }
-        //掉落
-        Map<Integer, Long> dropResult = rollDrop(base, gameType, winTimes);
 
-        //入账 (掉落可能含能量/知名度等特殊资源, 统一走 addItems 路由)
-        if (!dropResult.isEmpty()) {
-            CommonResult<ItemOperationResult> addResult = playerPackService.addItems(ctx.playerId(), dropResult, AddType.SIM_SLOTS_DROP, null, false);
-            if (!addResult.success()) {
-                log.info("slots 掉落失败 playerId={},gameType={},winTimes={},code={}", ctx.playerId(), gameType, winTimes, addResult.code);
-                result.code = addResult.code;
-                return result;
+            //掉落
+            Map<Integer, Long> dropResult = rollDrop(base, gameType, winTimes);
+
+            //入账 (掉落可能含能量/知名度等特殊资源, 统一走 addItems 路由)
+            if (!dropResult.isEmpty()) {
+                CommonResult<ItemOperationResult> addResult = playerPackService.addItems(ctx.playerId(), dropResult, AddType.SIM_SLOTS_DROP, null, false);
+                if (!addResult.success()) {
+                    log.info("slots 掉落失败 playerId={},gameType={},winTimes={},code={}", ctx.playerId(), gameType, winTimes, addResult.code);
+                    result.code = addResult.code;
+                    return result;
+                }
             }
+
+            slotsSpinResult.setItemsMap(dropResult);
         }
 
-        SlotsSpinResult slotsSpinResult = new SlotsSpinResult();
-        slotsSpinResult.setItemsMap(dropResult);
         slotsSpinResult.setPower(base.getPower());
 
         ItemCfg itemCfg = configCacheService.getResearchPointItemCfg(0);

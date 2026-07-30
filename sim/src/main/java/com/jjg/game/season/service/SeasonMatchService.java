@@ -2,9 +2,11 @@ package com.jjg.game.season.service;
 
 import com.jjg.game.common.utils.RandomUtils;
 import com.jjg.game.common.utils.WeightRandom;
+import com.jjg.game.core.constant.AddType;
 import com.jjg.game.core.constant.Code;
 import com.jjg.game.core.data.CommonResult;
 import com.jjg.game.core.data.RobotPlayer;
+import com.jjg.game.core.service.PlayerPackService;
 import com.jjg.game.core.utils.RobotUtil;
 import com.jjg.game.sampledata.bean.SeasonMatchCfg;
 import com.jjg.game.sampledata.bean.SeasonSimulationDataCfg;
@@ -25,6 +27,7 @@ import org.springframework.stereotype.Service;
 
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Map;
 
 /**
  * 赛季异步匹配和基于 slots 上报结果的结算服务。
@@ -34,6 +37,8 @@ public class SeasonMatchService {
     private static final Logger log = LoggerFactory.getLogger(SeasonMatchService.class);
     private static final int ADVANCED_SPIN_COUNT = 3;
     private static final int LOOP_SPIN_COUNT = 5;
+    private static final int ACTIVE_MATCH_ITEM_ID = 1130001;
+    private static final long ACTIVE_MATCH_ITEM_COUNT = 1L;
     /**
      * 赛季入口 (ReqChooseWare.enterType=1): 只有该入口的旋转下注赛季币, 才计入对局与代表战绩。
      */
@@ -56,19 +61,31 @@ public class SeasonMatchService {
     private final SimAutoSaveService autoSaveService;
     private final RobotUtil robotUtil;
     private final SimConfigCacheService simConfigCacheService;
+    private final PlayerPackService playerPackService;
 
     public SeasonMatchService(SeasonConfigService configService, SeasonPlayerDao seasonPlayerDao,
                               SeasonEconomyService economyService, SimAutoSaveService autoSaveService,
-                              RobotUtil robotUtil, SimConfigCacheService simConfigCacheService) {
+                              RobotUtil robotUtil, SimConfigCacheService simConfigCacheService,
+                              PlayerPackService playerPackService) {
         this.configService = configService;
         this.seasonPlayerDao = seasonPlayerDao;
         this.economyService = economyService;
         this.autoSaveService = autoSaveService;
         this.robotUtil = robotUtil;
         this.simConfigCacheService = simConfigCacheService;
+        this.playerPackService = playerPackService;
     }
 
     public CommonResult<SeasonMatchSession> start(SimPlayerContext ctx, int gameType, long stake, long now) {
+        return start(ctx, gameType, stake, now, true);
+    }
+
+    public CommonResult<SeasonMatchSession> startPassive(SimPlayerContext ctx, int gameType, long stake, long now) {
+        return start(ctx, gameType, stake, now, false);
+    }
+
+    private CommonResult<SeasonMatchSession> start(SimPlayerContext ctx, int gameType, long stake, long now,
+                                                   boolean consumeActiveMatchItem) {
         SeasonPlayerData data = ctx.getSeasonPlayerData();
         if (data == null || data.seasonPhase() == null || data.seasonPhase() == SeasonPhase.NOVICE) {
             return failStart(Code.NOT_UNLOCKED, ctx, gameType, stake, "阶段未开放");
@@ -136,6 +153,14 @@ public class SeasonMatchService {
             session.setOpponentSpinWins(opponent.getRepresentativeSpinWins().subList(0, expectedSpins));
         }
 
+        if (consumeActiveMatchItem) {
+            CommonResult<?> itemResult = playerPackService.removeItems(ctx.getPlayer(),
+                    Map.of(ACTIVE_MATCH_ITEM_ID, ACTIVE_MATCH_ITEM_COUNT), AddType.USE_ITEM,
+                    "season-active-match");
+            if (!itemResult.success()) {
+                return failStart(itemResult.code, ctx, gameType, stake, "主动匹配道具不足");
+            }
+        }
         data.setSeasonCoin(data.getSeasonCoin() - stake);
         data.setActiveMatch(session);
         data.setLastMatchTime(now);
