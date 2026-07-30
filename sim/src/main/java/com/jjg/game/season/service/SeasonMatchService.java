@@ -85,7 +85,7 @@ public class SeasonMatchService {
     }
 
     private CommonResult<SeasonMatchSession> start(SimPlayerContext ctx, int gameType, long stake, long now,
-                                                   boolean consumeActiveMatchItem) {
+                                                   boolean activeMatch) {
         SeasonPlayerData data = ctx.getSeasonPlayerData();
         if (data == null || data.seasonPhase() == null || data.seasonPhase() == SeasonPhase.NOVICE) {
             return failStart(Code.NOT_UNLOCKED, ctx, gameType, stake, "阶段未开放");
@@ -115,12 +115,13 @@ public class SeasonMatchService {
                 && data.getDailyPostLimitBet() >= cfg.getBetAmount()) {
             return failStart(Code.BET_TO_LIMIT, ctx, gameType, stake, "超出赢取上限后的下注量");
         }
-        if (data.getSeasonCoin() < stake) {
-            return failStart(Code.NOT_ENOUGH, ctx, gameType, stake, "赛季币不足");
-        }
-
         int expectedSpins = data.seasonPhase() == SeasonPhase.ADVANCED
                 ? ADVANCED_SPIN_COUNT : LOOP_SPIN_COUNT;
+        long requiredCoin = activeMatch ? stake : stake * expectedSpins;
+        if (data.getSeasonCoin() < requiredCoin) {
+            return failStart(Code.NOT_ENOUGH, ctx, gameType, stake,
+                    "赛季币不足,required=" + requiredCoin);
+        }
         List<SeasonPlayerData> candidates = seasonPlayerDao.findMatchCandidates(
                 data.getSeasonKey(), ctx.playerId(), gameType, stake, expectedSpins, CANDIDATE_LIMIT);
 
@@ -144,6 +145,7 @@ public class SeasonMatchService {
         session.setOpponentTierId(opponent.getTierId());
         session.setGameType(gameType);
         session.setStake(stake);
+        session.setStakeEscrowed(activeMatch);
         session.setExpectedSpins(expectedSpins);
         session.setStartedAt(now);
 
@@ -153,7 +155,7 @@ public class SeasonMatchService {
             session.setOpponentSpinWins(opponent.getRepresentativeSpinWins().subList(0, expectedSpins));
         }
 
-        if (consumeActiveMatchItem) {
+        if (activeMatch) {
             CommonResult<?> itemResult = playerPackService.removeItems(ctx.getPlayer(),
                     Map.of(ACTIVE_MATCH_ITEM_ID, ACTIVE_MATCH_ITEM_COUNT), AddType.USE_ITEM,
                     "season-active-match");
@@ -161,7 +163,9 @@ public class SeasonMatchService {
                 return failStart(itemResult.code, ctx, gameType, stake, "主动匹配道具不足");
             }
         }
-        data.setSeasonCoin(data.getSeasonCoin() - stake);
+        if (session.isStakeEscrowed()) {
+            data.setSeasonCoin(data.getSeasonCoin() - stake);
+        }
         data.setActiveMatch(session);
         data.setLastMatchTime(now);
         data.setDailyMatchCount(data.getDailyMatchCount() + 1);
@@ -345,8 +349,10 @@ public class SeasonMatchService {
         long playerTotal = sum(session.getPlayerSpinWins());
         long opponentTotal = sum(session.getOpponentSpinWins());
         long rawChange = playerTotal - opponentTotal;
-        // 退还发起方押注后按分差结算; 仅改发起方币/日统计/战绩
-        data.setSeasonCoin(data.getSeasonCoin() + session.getStake());
+        // 主动匹配先退还托管押注，再统一按分差结算；被动匹配未预扣，无需返还。
+        if (session.isStakeEscrowed()) {
+            data.setSeasonCoin(data.getSeasonCoin() + session.getStake());
+        }
         long actualChange = rawChange;
         SeasonMatchCfg cfg = configService.matchForDay(currentDay(data, now));
         if (rawChange > 0) {

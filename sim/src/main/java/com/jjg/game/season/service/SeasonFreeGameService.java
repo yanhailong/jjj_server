@@ -24,7 +24,7 @@ import java.time.ZoneId;
 /**
  * 赛季每日免费局 (进阶/循环赛季): 每天前 N 局赛季机台默认下注的普通旋转不扣下注额, 收益照常。
  * 次数记在 {@link SeasonPlayerData#getDailyFreeGameUsed()} 上, 随现有 dailyKey 机制每日 0 点重置;
- * PK 对局中的旋转不占用免费次数。消耗入口是 slots 扣费前的同步 RPC, 本服务在玩家线程执行。
+ * PK 对局中的旋转同样优先消耗免费次数。消费入口是 slots 扣费前的同步 RPC, 本服务在玩家线程执行。
  */
 @Service
 public class SeasonFreeGameService {
@@ -73,11 +73,6 @@ public class SeasonFreeGameService {
         if (total <= 0 || snapshot.phase() == SeasonPhase.NOVICE
                 || cfg == null || cfg.getAvailableGames() != gameType) {
             result.setReason(SeasonFreeSpinResult.REASON_UNAVAILABLE);
-            return new CommonResult<>(Code.SUCCESS, result);
-        }
-        //PK 对局中的旋转按对局结算, 不占用免费次数
-        if (data.getActiveMatch() != null) {
-            result.setReason(SeasonFreeSpinResult.REASON_IN_MATCH);
             return new CommonResult<>(Code.SUCCESS, result);
         }
         if (used >= total) {

@@ -12,9 +12,6 @@ public class SeasonFreeSpinResult {
     public static final int REASON_UNAVAILABLE = 1;
     /** 今日免费次数已用完: slots 可按天缓存, 当日不再申请 */
     public static final int REASON_EXHAUSTED = 2;
-    /** PK 对局进行中: 临时不可用, 不缓存 */
-    public static final int REASON_IN_MATCH = 3;
-
     private boolean free;
     private int remaining;
     private int reason;

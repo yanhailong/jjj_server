@@ -733,6 +733,7 @@ public abstract class AbstractSlotsGameManager<T extends SlotsPlayerGameData, L 
         if (res == null || res.code != Code.SUCCESS || res.matchId == null || "0".equals(res.matchId)) {
             return;
         }
+        gameData.setSeasonCoinBalance(res.seasonCoin);
         gameData.beginSeasonMatch(res.stake, res.expectedSpins);
         gameData.setPassiveMatchTime(now);
         playerController.send(res);

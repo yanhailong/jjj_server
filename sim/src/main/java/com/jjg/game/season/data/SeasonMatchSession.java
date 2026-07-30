@@ -16,6 +16,8 @@ public class SeasonMatchSession {
     private int opponentTierId;
     private int gameType;
     private long stake;
+    /** 主动匹配是否已托管 stake；被动匹配只验资，不预扣。 */
+    private boolean stakeEscrowed;
     private int expectedSpins;
     private long startedAt;
     private List<Long> opponentSpinWins = new ArrayList<>();
@@ -83,6 +85,14 @@ public class SeasonMatchSession {
 
     public void setStake(long stake) {
         this.stake = stake;
+    }
+
+    public boolean isStakeEscrowed() {
+        return stakeEscrowed;
+    }
+
+    public void setStakeEscrowed(boolean stakeEscrowed) {
+        this.stakeEscrowed = stakeEscrowed;
     }
 
     public int getExpectedSpins() {
