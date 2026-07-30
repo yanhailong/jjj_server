@@ -213,8 +213,10 @@ public class SimManager {
             }
             // PathName=1 代表模拟经营大厅；激活其他条件已满足但此前场景不符的等待组。
             guideService.triggerDeferredForPath(ctx, SimConstant.GuidePath.SIM_HALL, false);
+            List<Integer> newPlayerTriggeredGroups = List.of();
             if (!ctx.getSimBaseData().isGuide()) {
-                guideService.trigger(ctx, SimConstant.GuideCondition.NEW_PLAYER, 0, false);
+                newPlayerTriggeredGroups = guideService.trigger(
+                        ctx, SimConstant.GuideCondition.NEW_PLAYER, 0, false);
             }
             guideService.skipReconnectGuides(ctx);
             res.guideGroupIds = guideService.pendingOpenGuideGroupIds(ctx);
@@ -224,6 +226,9 @@ public class SimManager {
                     playerController.playerId(), playerLevel, levelTriggeredGroups, res.guideGroupIds);
             log.info("进入模拟经营大厅检查场景累计等级引导 playerId={},allLevel={},newGroups={}",
                     playerController.playerId(), allLevel, sceneLevelTriggeredGroups);
+            log.info("进入模拟经营大厅检查新号引导 playerId={},guideCompleted={},newGroups={},pendingGroups={}",
+                    playerController.playerId(), ctx.getSimBaseData().isGuide(),
+                    newPlayerTriggeredGroups, res.guideGroupIds);
 
             res.currentCasinoId = ctx.getCurrentCasino().getCasinoId();
 
@@ -434,9 +439,6 @@ public class SimManager {
             baseData = new SimBaseData();
             baseData.setPlayerId(playerId);
         }
-
-        //TODO 先特殊处理
-        baseData.setGuide(true);
 
         ctx.setSimBaseData(baseData);
         simMedalService.refreshMedalBonusCache(ctx);
