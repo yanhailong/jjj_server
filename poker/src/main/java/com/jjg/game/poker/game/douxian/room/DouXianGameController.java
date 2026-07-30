@@ -84,6 +84,17 @@ public class DouXianGameController extends BasePokerGameController<DouXianGameDa
     }
 
     @Override
+    public void reconnect(PlayerController playerController) {
+        long playerId = playerController.playerId();
+        boolean wasHosting = clearHostingState(playerId, false);
+        super.reconnect(playerController);
+        if (wasHosting) {
+            broadcastHostingState(playerId, false);
+            log.info("斗仙牌玩家重连自动取消托管 playerId:{} phase:{}", playerId, getCurrentGamePhase());
+        }
+    }
+
+    @Override
     public void respRoomInitInfoAction(PlayerController playerController) {
         long viewerId = playerController.playerId();
         RepsDouXianRoomBaseInfo baseInfo = new RepsDouXianRoomBaseInfo();
@@ -684,22 +695,31 @@ public class DouXianGameController extends BasePokerGameController<DouXianGameDa
     public void reqCancelHosting(long playerId, ReqDouXianCancelHosting req) {
         log.info("斗仙牌收到取消托管请求 playerId:{} phase:{} hostingBefore:{}",
                 playerId, getCurrentGamePhase(), gameDataVo.getHostingPlayerIds().contains(playerId));
+        boolean wasHosting = clearHostingState(playerId, true);
+        // 无论玩家是否处于托管中都要回包，否则客户端在状态不同步时也会收不到取消结果。
+        broadcastHostingState(playerId, false);
+        if (wasHosting) {
+            log.info("斗仙牌玩家取消托管 playerId:{}", playerId);
+        }
+    }
+
+    private boolean clearHostingState(long playerId, boolean forcePhaseProtection) {
         boolean wasHosting = gameDataVo.getHostingPlayerIds().remove(playerId);
         GamePlayer gamePlayer = gameDataVo.getGamePlayer(playerId);
         if (gamePlayer != null) {
             gamePlayer.setHosting(false);
         }
-        if (getCurrentGamePhase() == EGamePhase.PLAY_CART) {
+        if (getCurrentGamePhase() == EGamePhase.PLAY_CART && (wasHosting || forcePhaseProtection)) {
             gameDataVo.getHostingCancelledPlayerIdsThisPhase().add(playerId);
         }
-        // 无论玩家是否处于托管中都要回包，否则客户端在状态不同步时(比如托管已被服务器清除)发这个请求会收不到任何响应
+        return wasHosting;
+    }
+
+    private void broadcastHostingState(long playerId, boolean hosting) {
         NotifyDouXianHostingState notify = new NotifyDouXianHostingState();
         notify.playerId = playerId;
-        notify.hosting = false;
+        notify.hosting = hosting;
         broadcastToPlayers(RoomMessageBuilder.newBuilder().toAllPlayer().setData(notify));
-        if (wasHosting) {
-            log.info("斗仙牌玩家取消托管 playerId:{}", playerId);
-        }
     }
 
     // ------------------------------------------------------------------
