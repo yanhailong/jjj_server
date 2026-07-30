@@ -1320,8 +1320,10 @@ public abstract class AbstractSlotsGameManager<T extends SlotsPlayerGameData, L 
 
             applyEntrySessionData(playerGameData, simSkillsData, seasonSessionData, seasonEntry);
             applyVisitSession(playerGameData, activeVisit ? visitSession : null);
-            playerGameData.setSeasonFreeGameCandidate(seasonFreeGameService.freeGameCandidate(
-                    playerController.playerId(), this.gameType, System.currentTimeMillis()));
+            if (!seasonEntry) {
+                playerGameData.setSeasonFreeGameCandidate(seasonFreeGameService.freeGameCandidate(
+                        playerController.playerId(), this.gameType, System.currentTimeMillis()));
+            }
             playerGameData.setSimClient(simClusterClient);
             playerGameData.setEnterType(enterType);
             return playerGameData;
@@ -1359,8 +1361,10 @@ public abstract class AbstractSlotsGameManager<T extends SlotsPlayerGameData, L 
 
         applyEntrySessionData(playerGameData, simSkillsData, seasonSessionData, seasonEntry);
         applyVisitSession(playerGameData, activeVisit ? visitSession : null);
-        playerGameData.setSeasonFreeGameCandidate(seasonFreeGameService.freeGameCandidate(
-                playerId, this.gameType, System.currentTimeMillis()));
+        if (!seasonEntry) {
+            playerGameData.setSeasonFreeGameCandidate(seasonFreeGameService.freeGameCandidate(
+                    playerId, this.gameType, System.currentTimeMillis()));
+        }
         playerGameData.setSimClient(simClusterClient);
 
         //保存到缓存中

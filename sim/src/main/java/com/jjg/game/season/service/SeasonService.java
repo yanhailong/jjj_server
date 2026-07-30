@@ -203,9 +203,10 @@ public class SeasonService implements SimPlayerTickListener {
      * 创建从赛季入口进入 slots 所需的权威会话快照。
      */
     public SeasonSlotsSessionData slotsSessionData(SimPlayerContext ctx, int gameType) {
-        lifecycleService.ensureCurrent(ctx, System.currentTimeMillis());
+        SeasonSnapshot snapshot = lifecycleService.ensureCurrent(ctx, System.currentTimeMillis());
         SeasonPlayerData data = ctx.getSeasonPlayerData();
         SeasonSlotsSessionData result = gemService.buildSlotsSessionData(data, gameType);
+        result.setSeasonFreeGameCandidate(freeGameService.freeGameCandidate(snapshot, gameType));
         SeasonMatchSession match = data.getActiveMatch();
         if (match != null && match.getGameType() == gameType) {
             int remainingSpins = match.getExpectedSpins() - match.getPlayerSpinWins().size();

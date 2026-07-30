@@ -25,6 +25,7 @@ import org.springframework.stereotype.Service;
 
 import java.lang.reflect.InvocationTargetException;
 import java.lang.reflect.Method;
+import java.lang.reflect.Type;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -75,6 +76,7 @@ public class RpcServerService {
         List<Object> parameterNameOfData = JSON.parseArray(req.parameterTypeWithData);
         Class<?>[] parameterTypes = new Class[parameterNameOfData.size()];
         // 数据
+        Object[] rawArgs = new Object[parameterNameOfData.size()];
         Object[] args = new Object[parameterNameOfData.size()];
         int i = 0;
         try {
@@ -91,17 +93,22 @@ public class RpcServerService {
                 } else {
                     parameterTypes[i] = Class.forName(paramType);
                 }
-                args[i] = convertArgument(rawArg, parameterTypes[i]);
+                rawArgs[i] = rawArg;
                 if (parameterTypes[i].isAnnotationPresent(Param.class)) {
                     Param param = parameterTypes[i].getAnnotation(Param.class);
                     paramsName[i] = param.value();
                 } else {
                     paramsName[i] = "arg" + i;
                 }
-                context.setVariable(paramsName[i], args[i]);
                 i++;
             }
             Method method = provider.getClass().getMethod(req.serviceMethodName, parameterTypes);
+            Method rpcMethod = Class.forName(req.serviceClassName).getMethod(req.serviceMethodName, parameterTypes);
+            Type[] genericParameterTypes = rpcMethod.getGenericParameterTypes();
+            for (int argIndex = 0; argIndex < args.length; argIndex++) {
+                args[argIndex] = convertArgument(rawArgs[argIndex], genericParameterTypes[argIndex]);
+                context.setVariable(paramsName[argIndex], args[argIndex]);
+            }
             RpcCallSetting rpcCallSettingAnno = method.getAnnotation(RpcCallSetting.class);
             Number processorId = Long.MIN_VALUE;
             if (rpcCallSettingAnno != null) {
@@ -133,10 +140,14 @@ public class RpcServerService {
 
     /**
      * 将 Fastjson 解析出的 JSONObject/JSONArray 等中间类型转换为 RPC 方法声明的参数类型。
-     * 基础类型、Map/List 实现以及 null 已经可直接用于反射调用，保持原值不变。
+     * 使用带泛型的 Type，确保 Map/List 内部的 key/value/element 也按声明类型转换。
      */
-    private Object convertArgument(Object rawArg, Class<?> parameterType) {
-        if (rawArg == null || parameterType.isPrimitive() || parameterType.isInstance(rawArg)) {
+    private Object convertArgument(Object rawArg, Type parameterType) {
+        if (rawArg == null) {
+            return rawArg;
+        }
+        if (parameterType instanceof Class<?> parameterClass
+                && (parameterClass.isPrimitive() || parameterClass.isInstance(rawArg))) {
             return rawArg;
         }
         return TypeUtils.cast(rawArg, parameterType, ParserConfig.getGlobalInstance());

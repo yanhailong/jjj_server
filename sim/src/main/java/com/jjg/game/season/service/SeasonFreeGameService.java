@@ -114,12 +114,27 @@ public class SeasonFreeGameService {
             if (now < data.getStartTime() || now >= data.getEndTime()) {
                 return false;
             }
-            SeasonStartCfg cfg = configService.season(data.getSeasonId());
-            return cfg != null && cfg.getAvailableGames() == gameType;
+            return phaseAllowsFreeGame(data.getSeasonId(), phase, gameType);
         } catch (Exception e) {
             log.error("赛季免费局候选判定异常 playerId={},gameType={}", playerId, gameType, e);
             return false;
         }
+    }
+
+    /**
+     * 使用 sim 内存中的权威赛季快照判定免费候选，避免首次进入时读取到尚未落库的 Mongo 旧数据。
+     */
+    public boolean freeGameCandidate(SeasonSnapshot snapshot, int gameType) {
+        return freeGameCount() > 0 && snapshot != null
+                && phaseAllowsFreeGame(snapshot.seasonId(), snapshot.phase(), gameType);
+    }
+
+    private boolean phaseAllowsFreeGame(int seasonId, SeasonPhase phase, int gameType) {
+        if (phase == null || phase == SeasonPhase.NOVICE) {
+            return false;
+        }
+        SeasonStartCfg cfg = configService.season(seasonId);
+        return cfg != null && cfg.getAvailableGames() == gameType;
     }
 
     /**
