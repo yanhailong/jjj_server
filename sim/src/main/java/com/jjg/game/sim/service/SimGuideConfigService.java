@@ -57,7 +57,14 @@ public class SimGuideConfigService implements ConfigExcelChangeListener {
         Map<Integer, List<Integer>> guidesByGroup = new HashMap<>();
         Map<Integer, Set<Integer>> skipGuidesByGroup = new HashMap<>();
         for (GuideCfg cfg : all) {
-            if (cfg == null || cfg.getGuideGroupId() <= 0 || !validCondition(cfg.getCondition())) {
+            if (cfg == null) {
+                continue;
+            }
+            // 关闭的引导组不建立任何触发、步骤或跳过索引，后续不会参与条件判断。
+            if (!cfg.getIsOpen()) {
+                continue;
+            }
+            if (cfg.getGuideGroupId() <= 0 || !validCondition(cfg.getCondition())) {
                 continue;
             }
             int param = conditionNeedsParam(cfg.getCondition()) ? cfg.getParam() : 0;

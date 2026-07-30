@@ -221,6 +221,17 @@ public class SimGuideService implements ItemAddListener, ItemNotEnoughListener {
         ctx.send(message);
     }
 
+    /** 只返回当前配置仍开启的待进行引导组，避免已关闭的历史触发状态继续下发。 */
+    public List<Integer> pendingOpenGuideGroupIds(SimPlayerContext ctx) {
+        if (ctx == null || ctx.getSimBaseData() == null) {
+            return Collections.emptyList();
+        }
+        List<Integer> pending = ctx.getSimBaseData().pendingGuideGroupIds().stream()
+                .filter(configService::containsGroup)
+                .toList();
+        return pending.isEmpty() ? Collections.emptyList() : pending;
+    }
+
     /**
      * GM 强制完成指定引导步骤。先校验全部 ID，再统一修改，避免部分成功。
      */
