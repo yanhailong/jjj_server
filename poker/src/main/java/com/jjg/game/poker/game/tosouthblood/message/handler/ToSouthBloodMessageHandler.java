@@ -16,7 +16,7 @@ import com.jjg.game.sampledata.bean.RoomCfg;
 import org.springframework.stereotype.Component;
 
 @Component
-@MessageType(value = MessageConst.MessageTypeDef.TO_SOUTH)
+@MessageType(value = MessageConst.MessageTypeDef.TO_SOUTH_BLOOD)
 public class ToSouthBloodMessageHandler {
 
     private final RoomManager roomManager;
