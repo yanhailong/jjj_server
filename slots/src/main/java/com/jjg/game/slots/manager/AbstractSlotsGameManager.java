@@ -2607,6 +2607,10 @@ public abstract class AbstractSlotsGameManager<T extends SlotsPlayerGameData, L 
      * @return
      */
     protected List<Integer> checkLibPool(L resultLib, T playerGameData) {
+        if(playerGameData.isGmPoolOpen()){
+            return resultLib.getJackpotIds();
+        }
+
         //获取玩家累计贡献金额
         long contribt = playerGameData.getAllContribtPoolGold();
         if (contribt < 1) {

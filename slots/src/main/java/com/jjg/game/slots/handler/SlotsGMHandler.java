@@ -108,7 +108,7 @@ public class SlotsGMHandler implements GmListener {
                     return res;
                 }
 
-                res.code = slotsRPCLinkManager.skillLevelUp(playerGameData,skillId);
+                res.code = slotsRPCLinkManager.skillLevelUp(playerGameData, skillId);
             } else if ("coopProgress".equalsIgnoreCase(gmOrders[0])) {
                 //协作任务: 给所在房间累计共享进度 (联调成功结算路径)
                 int count = gmOrders.length > 1 ? Integer.parseInt(gmOrders[1]) : 1;
@@ -116,6 +116,24 @@ public class SlotsGMHandler implements GmListener {
             } else if ("coopExhaust".equalsIgnoreCase(gmOrders[0])) {
                 //协作任务: 耗尽全员血条 (联调失败结算路径)
                 res.code = coopRoomManager.gmExhaust(playerController.playerId());
+            } else if ("jackpool".equalsIgnoreCase(gmOrders[0])) {
+                String param = gmOrders[1];
+
+                AbstractSlotsGameManager<?, ?, ?> gameManager = slotsFactoryManager.getGameManager(playerController.getPlayer().getGameType(), playerController.getPlayer().getRoomCfgId());
+                SlotsPlayerGameData playerGameData = gameManager == null ? null : gameManager.getPlayerGameData(playerController.playerId());
+
+                if (playerGameData == null) {
+                    res.code = Code.FAIL;
+                    log.warn("gm修改奖池开关失败，未找到玩家信息 playerId={}", playerController.playerId());
+                    return res;
+                }
+
+                if ("true".equalsIgnoreCase(param)) {
+                    playerGameData.setGmPoolOpen(true);
+                } else {
+                    playerGameData.setGmPoolOpen(false);
+                }
+                res.code = Code.SUCCESS;
             } else {
                 res.code = Code.NOT_FOUND;
             }

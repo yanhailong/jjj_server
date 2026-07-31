@@ -65,6 +65,9 @@ public class SlotsPlayerGameData {
     //用于测试
     @Transient
     protected transient LinkedList<TestLibData> testLibDataList;
+    //用于测试
+    @Transient
+    protected transient boolean gmPoolOpen;
     //创建该对象的时间(及进入游戏的时间)
     @Transient
     protected transient int createTime;
@@ -511,5 +514,13 @@ public class SlotsPlayerGameData {
 
     public void setEnterType(int enterType) {
         this.enterType = enterType;
+    }
+
+    public boolean isGmPoolOpen() {
+        return gmPoolOpen;
+    }
+
+    public void setGmPoolOpen(boolean gmPoolOpen) {
+        this.gmPoolOpen = gmPoolOpen;
     }
 }
