@@ -394,7 +394,34 @@ public class DouXianGameController extends BasePokerGameController<DouXianGameDa
                 gameDataVo.getRoomCfg().getId(), playerResults);
         goBackWaitReadyPhase();
         gameDataVo.resetData(this);
+        removeOfflineRealPlayersAfterGrandSettlement();
         tryStartNextGame();
+    }
+
+    /**
+     * 掉线玩家在牌局进行中只会被标记为离线并保留在房间中，便于中途重连。
+     * 整局大结算后已经没有继续保留的必要，此时统一走正常退出流程，清除房间成员关系及持久化 roomId，
+     * 避免玩家隔很久再次登录时仍被自动拉回已经结束的斗仙牌房间。
+     */
+    private void removeOfflineRealPlayersAfterGrandSettlement() {
+        List<GamePlayer> players = new ArrayList<>(gameDataVo.getGamePlayerMap().values());
+        for (GamePlayer gamePlayer : players) {
+            if (gamePlayer instanceof GameRobotPlayer) {
+                continue;
+            }
+            long playerId = gamePlayer.getId();
+            RoomPlayer roomPlayer = getRoom().getRoomPlayers().get(playerId);
+            if (roomPlayer == null || roomPlayer.isOnline()) {
+                continue;
+            }
+            int code = getRoomController().getRoomManager().exitRoom(playerId);
+            if (code == Code.SUCCESS) {
+                log.info("斗仙牌大结算后清理离线玩家成功 playerId:{} roomId:{}", playerId, getRoom().getId());
+            } else {
+                log.warn("斗仙牌大结算后清理离线玩家失败 playerId:{} roomId:{} code:{}",
+                        playerId, getRoom().getId(), code);
+            }
+        }
     }
 
     @Override
