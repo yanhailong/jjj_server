@@ -266,6 +266,7 @@ public class SimBuildingService implements SimPlayerTickListener, SimTaskStateRe
             data.setId(buildingId);
             data.setLevel(INITIAL_LEVEL);
             casino.putBuilding(data);
+            allianceEventService.onBuildingLevel(ctx.playerId(), buildingId, data.getLevel());
             //主线任务: 新建筑改变各等级持有量 -> 上报 12208 "拥有 N 个 ≥X 级建筑"
             reportBuildingCounts(ctx);
             log.info("解锁建筑成功 playerId={},buildingId={}", ctx.playerId(), buildingId);

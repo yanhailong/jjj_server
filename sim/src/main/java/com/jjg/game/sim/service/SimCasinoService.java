@@ -99,6 +99,12 @@ public class SimCasinoService implements SimTaskStateReporter {
             }
             SimCasinoData casino = buildNewCasino(ctx, targetCasinoId);
             simCasinoDao.save(casino);
+            if (casino.getBuildingData() != null) {
+                casino.getBuildingData().values().forEach(building ->
+                        simTaskService.onConditionEvent(ctx, new ActionConditionEvent(
+                                ActionConditionEvent.Type.BUILDING_LEVEL, building.getId(), 0,
+                                building.getLevel(), 1, 0, false)));
+            }
             log.info("开辟新场景成功 playerId={},casinoId={}", ctx.playerId(), targetCasinoId);
         } catch (Exception e) {
             log.error("", e);

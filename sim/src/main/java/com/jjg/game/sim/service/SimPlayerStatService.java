@@ -3,6 +3,7 @@ package com.jjg.game.sim.service;
 import com.jjg.game.core.base.condition.numeric.PreparedCondition;
 import com.jjg.game.core.service.PlayerStatService;
 import com.jjg.game.sampledata.GameDataManager;
+import com.jjg.game.sampledata.bean.BuildingAreaTableCfg;
 import com.jjg.game.sampledata.bean.EmployeeProfileCfg;
 import com.jjg.game.sim.dao.SimCasinoDao;
 import com.jjg.game.sim.data.BuildingData;
@@ -45,6 +46,8 @@ public class SimPlayerStatService {
             return playerStatService.progress(ctx.playerId(), condition);
         }
         return switch (conditionId) {
+            case PlayerStatService.BUILDING_LEVEL -> buildingLevel(ctx,
+                    condition.spec().intParameter(0));
             case PlayerStatService.BUILDING_COUNT -> buildingCount(ctx,
                     condition.spec().intParameter(1));
             case PlayerStatService.EMPLOYEE_COUNT -> employeeCount(ctx,
@@ -73,6 +76,30 @@ public class SimPlayerStatService {
             }
         }
         return count;
+    }
+
+    private long buildingLevel(SimPlayerContext ctx, int buildingId) {
+        if (buildingId <= 0) {
+            long maxLevel = 0;
+            for (SimCasinoData casino : allCasinos(ctx)) {
+                if (casino.getBuildingData() == null) {
+                    continue;
+                }
+                for (BuildingData building : casino.getBuildingData().values()) {
+                    if (building != null) {
+                        maxLevel = Math.max(maxLevel, building.getLevel());
+                    }
+                }
+            }
+            return maxLevel;
+        }
+        BuildingAreaTableCfg cfg = GameDataManager.getBuildingAreaTableCfg(buildingId);
+        if (cfg == null) {
+            return 0;
+        }
+        SimCasinoData casino = casino(ctx, cfg.getRegionID());
+        BuildingData building = casino == null ? null : casino.findBuilding(buildingId);
+        return building == null ? 0 : building.getLevel();
     }
 
     private long employeeCount(SimPlayerContext ctx, int professionId, int minStar) {
@@ -117,11 +144,14 @@ public class SimPlayerStatService {
         if (casinoId <= 0) {
             return ctx.getSimBaseData() == null ? 0 : ctx.getSimBaseData().getAllLevel();
         }
-        SimCasinoData casino = ctx.getCurrentCasino();
-        if (casino == null || casino.getCasinoId() != casinoId) {
-            casino = simCasinoDao.findOne(ctx.playerId(), casinoId);
-        }
+        SimCasinoData casino = casino(ctx, casinoId);
         return casino == null ? 0 : casino.getCasinoLevel();
+    }
+
+    private SimCasinoData casino(SimPlayerContext ctx, int casinoId) {
+        SimCasinoData current = ctx.getCurrentCasino();
+        return current != null && current.getCasinoId() == casinoId
+                ? current : simCasinoDao.findOne(ctx.playerId(), casinoId);
     }
 
     private long combatPower(SimPlayerContext ctx, int gameType) {
