@@ -69,6 +69,7 @@ public class ChatService {
             }
 
             Player sender = pc.getPlayer();
+            targetId = channel.resolveTargetId(sender, targetId);
             int vcode = channel.validate(sender, targetId, content);
             if (vcode != Code.SUCCESS) {
                 res.code = vcode;
@@ -142,6 +143,7 @@ public class ChatService {
             if (sender == null) {
                 return Code.NOT_FOUND;
             }
+            targetId = channel.resolveTargetId(sender, targetId);
             int vcode = channel.validate(sender, targetId, content);
             if (vcode != Code.SUCCESS) {
                 log.warn("服务端代发聊天失败, 频道校验失败 senderId={},channelCode={},code={}", senderId, channelCode, vcode);
@@ -189,10 +191,11 @@ public class ChatService {
         msg.setFromNick(sender.getNickName());
         msg.setFromHeadImg(sender.getHeadImgId());
         msg.setFromHeadFrame(sender.getHeadFrameId());
-        if (channelCode == ChatChannelType.ROOM.getCode()) {
-            msg.setChannelSubId(targetId);
-        } else {
+        if (channelCode == ChatChannelType.PRIVATE.getCode()) {
             msg.setToId(targetId);
+        } else if (channelCode == ChatChannelType.ROOM.getCode()
+                || channelCode == ChatChannelType.ALLIANCE.getCode()) {
+            msg.setChannelSubId(targetId);
         }
         msg.setContent(content);
         msg.setTime(System.currentTimeMillis());

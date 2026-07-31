@@ -10,9 +10,13 @@ import com.jjg.game.social.data.ChatMessage;
 public interface RoomChatProvider {
 
     /**
-     * 当前玩家是否属于指定房间，并由本实现负责该房间。
+     * 获取当前玩家在本实现中的房间id，不属于本类房间时返回 0。
      */
-    boolean accepts(long playerId, long roomId);
+    long roomIdOf(long playerId);
+
+    default boolean accepts(long playerId, long roomId) {
+        return roomId > 0 && roomIdOf(playerId) == roomId;
+    }
 
     /**
      * 向消息所属房间的在线成员广播。

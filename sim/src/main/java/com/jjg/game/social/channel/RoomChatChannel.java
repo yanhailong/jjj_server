@@ -47,6 +47,20 @@ public class RoomChatChannel implements ChatChannel {
     }
 
     @Override
+    public long resolveTargetId(Player sender, long targetId) {
+        if (sender == null || targetId > 0) {
+            return targetId;
+        }
+        for (RoomChatProvider provider : providers) {
+            long roomId = provider.roomIdOf(sender.getId());
+            if (roomId > 0) {
+                return roomId;
+            }
+        }
+        return targetId;
+    }
+
+    @Override
     public int validate(Player sender, long targetId, String content) {
         if (sender == null || targetId <= 0) {
             return Code.PARAM_ERROR;

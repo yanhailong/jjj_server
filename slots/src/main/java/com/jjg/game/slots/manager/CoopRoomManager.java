@@ -780,9 +780,9 @@ public class CoopRoomManager implements RoomChatProvider {
     }
 
     @Override
-    public boolean accepts(long playerId, long roomId) {
+    public long roomIdOf(long playerId) {
         CoopRoom room = roomOf(playerId);
-        return room != null && room.getRoomId() == roomId && room.getMembers().containsKey(playerId);
+        return room != null && room.getMembers().containsKey(playerId) ? room.getRoomId() : 0;
     }
 
     @Override

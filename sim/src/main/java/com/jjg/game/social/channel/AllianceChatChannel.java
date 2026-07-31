@@ -50,8 +50,20 @@ public class AllianceChatChannel implements ChatChannel {
     }
 
     @Override
+    public long resolveTargetId(Player sender, long targetId) {
+        if (sender == null || targetId > 0) {
+            return targetId;
+        }
+        return allianceProvider.getAllianceId(sender.getId());
+    }
+
+    @Override
     public int validate(Player sender, long targetId, String content) {
-        if (allianceProvider.getAllianceId(sender.getId()) <= 0) {
+        if (sender == null) {
+            return Code.PARAM_ERROR;
+        }
+        long allianceId = allianceProvider.getAllianceId(sender.getId());
+        if (allianceId <= 0 || targetId != allianceId) {
             return Code.FORBID;
         }
         return Code.SUCCESS;
