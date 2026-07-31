@@ -1,5 +1,6 @@
 package com.jjg.game.poker.game.douxian.room;
 
+import com.jjg.game.common.utils.CommonUtil;
 import com.jjg.game.core.constant.AddType;
 import com.jjg.game.core.constant.Code;
 import com.jjg.game.core.constant.EGameType;
@@ -46,6 +47,8 @@ import com.jjg.game.poker.game.douxian.room.data.DouXianGameDataVo;
 import com.jjg.game.poker.game.douxian.util.DouXianHandEvaluator;
 import com.jjg.game.poker.game.douxian.util.DouXianHandResult;
 import com.jjg.game.poker.game.texas.data.SeatInfo;
+import com.jjg.game.poker.manager.PokerRPCLinkManager;
+import com.jjg.game.poker.manager.PokerSeasonAccount;
 import com.jjg.game.room.constant.EGamePhase;
 import com.jjg.game.room.controller.AbstractRoomController;
 import com.jjg.game.room.controller.GameController;
@@ -58,6 +61,7 @@ import com.jjg.game.sampledata.bean.Room_ChessCfg;
 
 import java.util.ArrayList;
 import java.util.Collections;
+import java.util.HashMap;
 import java.util.HashSet;
 import java.util.LinkedHashSet;
 import java.util.List;
@@ -74,6 +78,9 @@ import java.util.Set;
 @GameController(gameType = EGameType.DOU_XIAN, roomType = RoomType.POKER_ROOM)
 public class DouXianGameController extends BasePokerGameController<DouXianGameDataVo> {
 
+    private final Map<Long, PokerSeasonAccount> seasonAccounts = new HashMap<>();
+    private PokerRPCLinkManager pokerRPCLinkManager;
+
     public DouXianGameController(AbstractRoomController<Room_ChessCfg, ? extends Room> roomController) {
         super(roomController);
     }
@@ -89,8 +96,101 @@ public class DouXianGameController extends BasePokerGameController<DouXianGameDa
     }
 
     @Override
+    public long getTransactionItemNum(long playerId) {
+        PokerSeasonAccount account = seasonAccounts.get(playerId);
+        return account == null ? super.getTransactionItemNum(playerId) : account.getBalance();
+    }
+
+    @Override
+    public int deductItem(long playerId, long num, AddType deductType, String desc, boolean isNotify) {
+        PokerSeasonAccount account = seasonAccounts.get(playerId);
+        if (account == null) {
+            return super.deductItem(playerId, num, deductType, desc, isNotify);
+        }
+        if (num <= 0) {
+            return Code.FAIL;
+        }
+        CommonResult<Long> result = getPokerRPCLinkManager().deductSeasonCoin(account, num);
+        log.info("斗仙牌赛季币扣除 playerId:{} amount:{} code:{} balance:{}",
+                playerId, num, result.code, account.getBalance());
+        return result.code;
+    }
+
+    @Override
+    public int addItem(long playerId, long num, AddType addType, String desc, boolean isNotify) {
+        PokerSeasonAccount account = seasonAccounts.get(playerId);
+        if (account == null) {
+            return super.addItem(playerId, num, addType, desc, isNotify);
+        }
+        if (playerId <= 0 || num <= 0) {
+            return Code.FAIL;
+        }
+        CommonResult<Long> result = getPokerRPCLinkManager().addSeasonCoin(account, num);
+        log.info("斗仙牌赛季币增加 playerId:{} amount:{} code:{} balance:{}",
+                playerId, num, result.code, account.getBalance());
+        return result.code;
+    }
+
+    public boolean isSeasonCurrencyPlayer(long playerId) {
+        return seasonAccounts.containsKey(playerId);
+    }
+
+    /**
+     * 斗仙牌单笔玩家间结算。先扣输家再加赢家；加款失败时尝试原路退回输家，避免静默丢币。
+     */
+    public boolean transferSettlementItem(long winnerId, long loserId, long amount) {
+        if (amount <= 0) {
+            return true;
+        }
+        int deductCode = deductItem(loserId, amount, AddType.GAME_SETTLEMENT,
+                "斗仙牌结算扣除", true);
+        if (deductCode != Code.SUCCESS) {
+            log.error("斗仙牌结算扣除失败 winnerId:{} loserId:{} amount:{} code:{}",
+                    winnerId, loserId, amount, deductCode);
+            return false;
+        }
+        int addCode = addItem(winnerId, amount, AddType.GAME_SETTLEMENT,
+                "斗仙牌结算增加", true);
+        if (addCode == Code.SUCCESS) {
+            return true;
+        }
+        int rollbackCode = addItem(loserId, amount, AddType.FAIL_ROLLBACK,
+                "斗仙牌结算加款失败回滚", true);
+        log.error("斗仙牌结算增加失败，已尝试回滚 winnerId:{} loserId:{} amount:{} addCode:{} rollbackCode:{}",
+                winnerId, loserId, amount, addCode, rollbackCode);
+        return false;
+    }
+
+    private PokerRPCLinkManager getPokerRPCLinkManager() {
+        if (pokerRPCLinkManager == null) {
+            pokerRPCLinkManager = CommonUtil.getContext().getBean(PokerRPCLinkManager.class);
+        }
+        return pokerRPCLinkManager;
+    }
+
+    private void bindSeasonAccount(PlayerController playerController) {
+        PokerSeasonAccount account = getPokerRPCLinkManager().bindSeasonAccount(
+                playerController.playerId(), playerController.ipAddress());
+        if (account == null) {
+            seasonAccounts.remove(playerController.playerId());
+        } else {
+            seasonAccounts.put(playerController.playerId(), account);
+        }
+    }
+
+    @Override
     public void reconnect(PlayerController playerController) {
         long playerId = playerController.playerId();
+        PokerSeasonAccount account = seasonAccounts.get(playerId);
+        if (account == null) {
+            bindSeasonAccount(playerController);
+        } else {
+            CommonResult<Long> refreshResult = getPokerRPCLinkManager()
+                    .refreshSeasonCoin(account, playerController.ipAddress());
+            if (!refreshResult.success()) {
+                log.warn("斗仙牌赛季玩家重连刷新余额失败 playerId:{} code:{}", playerId, refreshResult.code);
+            }
+        }
         boolean wasHosting = clearHostingState(playerId, false);
         super.reconnect(playerController);
         if (wasHosting) {
@@ -579,7 +679,16 @@ public class DouXianGameController extends BasePokerGameController<DouXianGameDa
     }
 
     @Override
+    public void onPlayerJoinRoomAction(GamePlayer gamePlayer) {
+        PlayerController playerController = getRoomController().getPlayerController(gamePlayer.getId());
+        if (playerController != null && !playerController.isRobotPlayer()) {
+            bindSeasonAccount(playerController);
+        }
+    }
+
+    @Override
     public void onPlayerLeaveRoomAction(RoomPlayer roomPlayer, SeatInfo remove) {
+        seasonAccounts.remove(remove.getPlayerId());
         gameDataVo.getHandCards().remove(remove.getPlayerId());
         gameDataVo.getConfirmedPlayerIds().remove(remove.getPlayerId());
         gameDataVo.getConcededPlayerIds().remove(remove.getPlayerId());
@@ -1027,10 +1136,28 @@ public class DouXianGameController extends BasePokerGameController<DouXianGameDa
             sendRechargeError(playerId, Code.NOT_ENOUGH_ITEM);
             return;
         }
-        changeCurrency(gamePlayer, Map.of(
-                ItemUtils.getDiamondItemId(), -cost.diamondCost(),
-                ItemUtils.getGoldItemId(), cost.goldReward()
-        ), AddType.ITEM_EXCHANGE, "斗仙牌即时充值复活", true);
+        if (isSeasonCurrencyPlayer(playerId)) {
+            long beforeDiamond = gamePlayer.getDiamond();
+            changeCurrency(gamePlayer, Map.of(ItemUtils.getDiamondItemId(), -cost.diamondCost()),
+                    AddType.ITEM_EXCHANGE, "斗仙牌赛季币即时充值复活", true);
+            if (gamePlayer.getDiamond() != beforeDiamond - cost.diamondCost()) {
+                sendRechargeError(playerId, Code.FAIL);
+                return;
+            }
+            int addCode = addItem(playerId, cost.goldReward(), AddType.ITEM_EXCHANGE,
+                    "斗仙牌赛季币即时充值复活", true);
+            if (addCode != Code.SUCCESS) {
+                changeCurrency(gamePlayer, Map.of(ItemUtils.getDiamondItemId(), cost.diamondCost()),
+                        AddType.FAIL_ROLLBACK, "斗仙牌赛季币充值失败退回钻石", true);
+                sendRechargeError(playerId, addCode);
+                return;
+            }
+        } else {
+            changeCurrency(gamePlayer, Map.of(
+                    ItemUtils.getDiamondItemId(), -cost.diamondCost(),
+                    ItemUtils.getGoldItemId(), cost.goldReward()
+            ), AddType.ITEM_EXCHANGE, "斗仙牌即时充值复活", true);
+        }
         gameDataVo.getRechargingPlayerIds().remove(playerId);
         NotifyDouXianRecharge notify = new NotifyDouXianRecharge();
         notify.playerId = playerId;
