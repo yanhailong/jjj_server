@@ -27,4 +27,6 @@ public class SeasonShopItemInfo {
     public int languageId;
     @ProtoDesc("客户端资源名")
     public String icon;
+    @ProtoDesc("宝石属性")
+    public int gemBuff;
 }

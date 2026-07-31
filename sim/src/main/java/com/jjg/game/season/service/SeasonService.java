@@ -629,6 +629,12 @@ public class SeasonService implements SimPlayerTickListener {
                 .getOrDefault(cfg.getId(), 0);
         info.languageId = cfg.getLanguage();
         info.icon = cfg.getIcon();
+
+        //检查该道具是否为宝石
+        SeasonGemCfg seasonGemCfg = configService.gemByItemId(cfg.getId());
+        if(seasonGemCfg != null) {
+            info.gemBuff = seasonGemCfg.getStatBoost();
+        }
         return info;
     }
 
