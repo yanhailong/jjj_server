@@ -7,8 +7,13 @@ import com.jjg.game.social.data.ChatMessage;
 import com.jjg.game.social.pb.SocialPbConverter;
 import com.jjg.game.social.pb.res.NotifyChat;
 import com.jjg.game.social.service.SocialSender;
+import com.jjg.game.social.service.SystemMessageService;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Component;
+
+import java.util.ArrayList;
+import java.util.Comparator;
+import java.util.List;
 
 /**
  * 系统消息频道 (运营公告等, 仅服务端下发, 全服可见)。
@@ -23,6 +28,8 @@ public class SystemChatChannel implements ChatChannel {
     private ChannelMessageCache cache;
     @Autowired
     private SocialSender sender;
+    @Autowired
+    private SystemMessageService systemMessageService;
 
     @Override
     public ChatChannelType type() {
@@ -45,6 +52,16 @@ public class SystemChatChannel implements ChatChannel {
 
     @Override
     public ChatHistory loadHistory(long playerId, long targetId, String cursor) {
-        return ChatHistory.of(cache.latest(SocialConst.RedisKey.SYSTEM_CHANNEL, SocialConst.Cfg.CHAT_PULL_SIZE));
+        ChatMessage playerMessage = systemMessageService.getPlayerMessage(playerId);
+        int globalMessageSize = playerMessage == null
+                ? SocialConst.Cfg.CHAT_PULL_SIZE
+                : Math.max(0, SocialConst.Cfg.CHAT_PULL_SIZE - 1);
+        List<ChatMessage> messages = new ArrayList<>(
+                cache.latest(SocialConst.RedisKey.SYSTEM_CHANNEL, globalMessageSize));
+        if (playerMessage != null) {
+            messages.add(playerMessage);
+            messages.sort(Comparator.comparingLong(ChatMessage::getTime).thenComparingLong(ChatMessage::getId));
+        }
+        return ChatHistory.of(messages);
     }
 }

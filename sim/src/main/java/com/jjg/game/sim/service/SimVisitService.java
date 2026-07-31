@@ -21,6 +21,7 @@ import com.jjg.game.sampledata.GameDataManager;
 import com.jjg.game.sampledata.bean.CasinoStatsSheetCfg;
 import com.jjg.game.sampledata.bean.GiftListCfg;
 import com.jjg.game.sampledata.bean.ItemCfg;
+import com.jjg.game.sim.constant.SimConstant;
 import com.jjg.game.sim.constant.SimVisitConstant;
 import com.jjg.game.sim.dao.SimCasinoDao;
 import com.jjg.game.sim.dao.SimPlayerGameDao;
@@ -488,7 +489,7 @@ public class SimVisitService {
             return new CommonResult<>(Code.FORBID, permit);
         }
         if (!freeMode) {
-            base.setPower(base.getPower() - 1);
+            base.setPower(base.getPower() - SimConstant.Common.SPIN_COST_POWER);
         }
         String permitId = String.valueOf(snowflakeManager.nextId());
         try {
@@ -496,7 +497,7 @@ public class SimVisitService {
                     configService.getTrialSessionSeconds());
         } catch (Exception e) {
             if (!freeMode) {
-                base.setPower(base.getPower() + 1);
+                base.setPower(base.getPower() + SimConstant.Common.SPIN_COST_POWER);
             }
             quotaService.rollback(SimVisitConstant.QuotaType.TRIAL, ctx.playerId(), 1);
             log.error("保存试玩旋转许可失败 playerId={}", ctx.playerId(), e);
@@ -522,7 +523,7 @@ public class SimVisitService {
         }
         SimBaseData base = ctx.getSimBaseData();
         if (base != null && !permit.isFreeMode()) {
-            base.setPower(base.getPower() + 1);
+            base.setPower(base.getPower() + SimConstant.Common.SPIN_COST_POWER);
         }
         quotaService.rollback(SimVisitConstant.QuotaType.TRIAL, ctx.playerId(), 1);
         return true;
