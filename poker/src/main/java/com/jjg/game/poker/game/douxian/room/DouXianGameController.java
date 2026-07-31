@@ -67,6 +67,7 @@ import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
+import java.util.concurrent.ThreadLocalRandom;
 
 /**
  * 斗仙牌房间控制器。
@@ -1059,7 +1060,7 @@ public class DouXianGameController extends BasePokerGameController<DouXianGameDa
 
     /**
      * 托管/超时时自动弃牌(固定选择"不弃")，调用场景和为什么不能在这里直接做"提前结束阶段"检查，
-     * 跟 {@link #autoFillAndConfirm} 完全一样，机器人想要提前结束阶段的效果见 {@link #robotAutoNoDiscard}。
+     * 跟 {@link #autoFillAndConfirm} 完全一样。机器人使用独立的概率策略，见 {@link #robotAutoDiscard}。
      */
     public void autoNoDiscard(long playerId) {
         if (gameDataVo.getDiscardedPlayerIds().contains(playerId)) {
@@ -1070,15 +1071,43 @@ public class DouXianGameController extends BasePokerGameController<DouXianGameDa
     }
 
     /**
-     * 供机器人调度(异步回调，安全)调用：自动弃牌之后，跟玩家主动弃牌(reqDiscard)一样检查是否
-     * 全部完成弃牌，是的话提前结束弃牌阶段，不用死等到20s超时。
+     * 机器人弃牌策略：20%不弃、20%全弃、60%随机弃1~2张。
+     * 最终统一走玩家弃牌入口，复用请求校验、牌库回收、本人快照以及阶段提前结束逻辑。
      */
-    public void robotAutoNoDiscard(long playerId) {
-        autoNoDiscard(playerId);
-        if (isAllActiveDiscarded()) {
-            removePokerPhaseTimer();
-            currentGamePhase.phaseFinish();
+    public void robotAutoDiscard(long playerId) {
+        if (getCurrentGamePhase() != EGamePhase.DISCARD
+                || gameDataVo.getConcededPlayerIds().contains(playerId)
+                || gameDataVo.getDiscardedPlayerIds().contains(playerId)) {
+            return;
         }
+
+        List<Integer> hand = gameDataVo.getHandCards().getOrDefault(playerId, List.of());
+        int probability = ThreadLocalRandom.current().nextInt(100);
+        ReqDouXianDiscard req = new ReqDouXianDiscard();
+        req.cardIds = new ArrayList<>();
+        String strategy;
+
+        if (hand.isEmpty() || probability < 20) {
+            req.noDiscard = true;
+            strategy = "不弃";
+        } else {
+            List<Integer> candidates = new ArrayList<>(hand);
+            Collections.shuffle(candidates, ThreadLocalRandom.current());
+            int discardCount;
+            if (probability < 40) {
+                discardCount = candidates.size();
+                strategy = "全弃";
+            } else {
+                discardCount = Math.min(ThreadLocalRandom.current().nextInt(1, 3), candidates.size());
+                strategy = "随机弃" + discardCount + "张";
+            }
+            req.noDiscard = false;
+            req.cardIds = DouXianDataHelper.getClientCardIds(gameDataVo, candidates.subList(0, discardCount));
+        }
+
+        log.info("斗仙牌机器人弃牌决策 playerId:{} probability:{} strategy:{} handSize:{}",
+                playerId, probability, strategy, hand.size());
+        reqDiscard(playerId, req);
     }
 
     private void broadcastDiscardResult(long playerId, boolean noDiscard, int discardCount) {

@@ -17,7 +17,7 @@ import org.slf4j.LoggerFactory;
  * 给的延迟去执行，看起来像是"在思考"而不是卡到最后一刻。
  * <p>
  * 出牌/弃牌调用的是 {@link DouXianGameController#robotAutoFillAndConfirm}/
- * {@link DouXianGameController#robotAutoNoDiscard} 这两个包装方法，不是直接调
+ * {@link DouXianGameController#robotAutoDiscard} 这两个机器人入口，不是直接调
  * autoFillAndConfirm/autoNoDiscard——这里是机器人调度回调触发的异步入口，可以安全地在自动确认
  * 之后顺带检查"是否全部完成"、提前结束阶段，机器人如果刚好是最后一个确认的人，不用干等到超时。
  */
@@ -27,7 +27,7 @@ public class DouXianRobotHandler extends BasePokerRobotProcessorHandler<DouXianG
 
     //出牌阶段：摆牌+确认
     public static final int PLAY_CARD = 1;
-    //弃牌阶段：选择不弃(和托管默认行为一致，DESIGN.md 5.)
+    //弃牌阶段：20%不弃、20%全弃、60%随机弃1~2张
     public static final int DISCARD = 2;
     //等待阶段：自动准备，DESIGN.md 3.1 匹配阶段
     public static final int GO_READY = 3;
@@ -58,7 +58,7 @@ public class DouXianRobotHandler extends BasePokerRobotProcessorHandler<DouXianG
                 if (controller.getCurrentGamePhase() != EGamePhase.DISCARD) {
                     return;
                 }
-                controller.robotAutoNoDiscard(playerId);
+                controller.robotAutoDiscard(playerId);
             }
             case GO_READY -> {
                 if (controller.getCurrentGamePhase() != EGamePhase.WAIT_READY) {
