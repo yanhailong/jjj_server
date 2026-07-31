@@ -49,7 +49,7 @@ public interface ChatChannel {
      * 频道特有校验 (成员资格、黑名单等)。返回 {@link Code#SUCCESS} 表示通过。
      *
      * @param sender   发送者
-     * @param targetId 目标玩家id (私聊用, 其它频道为 0)
+     * @param targetId 私聊目标玩家id或房间频道的房间id，其它频道为 0
      * @param content  内容(已通过字数/频率校验)
      */
     default int validate(Player sender, long targetId, String content) {

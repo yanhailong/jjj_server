@@ -52,19 +52,19 @@ public class ChatService {
             ChatChannel channel = registry.get(channelCode);
             if (channel == null || !channel.clientSendable()) {
                 res.code = Code.PARAM_ERROR;
-                log.warn("发送聊天信息失败, channel匹配失败 playerId={},channelCode={}", pc.playerId(), channelCode);
+                log.warn("发送聊天信息失败, channel匹配失败 playerId={},channelCode={},targetId={}", pc.playerId(), channelCode, targetId);
                 return res;
             }
             if (content == null || content.trim().isEmpty()) {
                 res.code = Code.PARAM_ERROR;
-                log.warn("发送聊天信息失败, 内容不能为空 playerId={},channelCode={}", pc.playerId(), channelCode);
+                log.warn("发送聊天信息失败, 内容不能为空 playerId={},channelCode={},targetId={}", pc.playerId(), channelCode, targetId);
                 return res;
             }
             content = content.trim();
             int maxLen = channel.maxContentLength();
             if (maxLen > 0 && content.length() > maxLen) {
                 res.code = Code.PARAM_ERROR;
-                log.warn("发送聊天信息失败, 内容长度超过限制 playerId={},channelCode={},len={},maxLen={}", pc.playerId(), channelCode, content.length(), maxLen);
+                log.warn("发送聊天信息失败, 内容长度超过限制 playerId={},channelCode={},targetId={},len={},maxLen={}", pc.playerId(), channelCode, targetId, content.length(), maxLen);
                 return res;
             }
 
@@ -72,19 +72,19 @@ public class ChatService {
             int vcode = channel.validate(sender, targetId, content);
             if (vcode != Code.SUCCESS) {
                 res.code = vcode;
-                log.warn("发送聊天信息失败, 频道校验失败 playerId={},channelCode={},code={}", pc.playerId(), channelCode, vcode);
+                log.warn("发送聊天信息失败, 频道校验失败 playerId={},channelCode={},targetId={},code={}", pc.playerId(), channelCode, targetId, vcode);
                 return res;
             }
             //全部校验通过后才占用频率配额, 避免无效发送也被惩罚
             if (!rateLimiter.tryAcquire(pc.playerId(), channelCode, channel.sendIntervalMs())) {
                 res.code = Code.PARAM_ERROR;
-                log.warn("发送聊天信息失败, 发送频率超过限制 playerId={},channelCode={}", pc.playerId(), channelCode);
+                log.warn("发送聊天信息失败, 发送频率超过限制 playerId={},channelCode={},targetId={}", pc.playerId(), channelCode, targetId);
                 return res;
             }
             //频道全局配额 (全服扇出型频道封顶总量); 放在个人限频之后, 刷屏请求不空耗全局配额
             if (!channel.tryAcquireGlobalQuota()) {
                 res.code = Code.PARAM_ERROR;
-                log.warn("发送聊天信息失败, 频道全局限流 playerId={},channelCode={}", pc.playerId(), channelCode);
+                log.warn("发送聊天信息失败, 频道全局限流 playerId={},channelCode={},targetId={}", pc.playerId(), channelCode, targetId);
                 return res;
             }
 
@@ -189,7 +189,11 @@ public class ChatService {
         msg.setFromNick(sender.getNickName());
         msg.setFromHeadImg(sender.getHeadImgId());
         msg.setFromHeadFrame(sender.getHeadFrameId());
-        msg.setToId(targetId);
+        if (channelCode == ChatChannelType.ROOM.getCode()) {
+            msg.setChannelSubId(targetId);
+        } else {
+            msg.setToId(targetId);
+        }
         msg.setContent(content);
         msg.setTime(System.currentTimeMillis());
         return msg;

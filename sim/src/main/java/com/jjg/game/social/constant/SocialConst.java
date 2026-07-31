@@ -148,6 +148,12 @@ public interface SocialConst {
         //服务器常驻缓存条数
         int ALLIANCE_CACHE_SIZE = 200;
 
+        //--------- 房间聊天 ---------
+        //单条消息最大字数
+        int ROOM_MSG_MAX_LEN = 300;
+        //同一玩家最小发送间隔(秒)
+        int ROOM_SEND_INTERVAL_SEC = 1;
+
         //--------- 私聊 ---------
         //单条消息最大字数
         int PRIVATE_MSG_MAX_LEN = 300;
