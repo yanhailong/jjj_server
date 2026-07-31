@@ -187,23 +187,26 @@ public class SlotsPlayerEventListener implements SessionEnterListener, SessionCl
         }
 
         AbstractSlotsGameManager<?, ?, ?> gameManager = slotsFactoryManager.getGameManager(playerController.getPlayer().getGameType(), playerController.getPlayer().getRoomCfgId());
-        if (gameManager == null) {
-            log.debug("退出游戏时，获取游戏管理器失败 playerId = {},gameType = {}", playerController.playerId(), playerController.getPlayer().getGameType());
-            return result;
-        }
-        SlotsPlayerGameData playerGameData = gameManager.getPlayerGameData(playerController);
-        if (playerGameData == null) {
-            return result;
-        }
-        boolean canExit = gameManager.canExit(playerGameData);
+        SlotsPlayerGameData playerGameData = gameManager == null ? null : gameManager.getPlayerGameData(playerController);
+        boolean canExit = playerGameData == null || gameManager.canExit(playerGameData);
         //特殊状态下，玩家无法主动退出
         if (exitType == ExitType.INITIATIVE && !canExit) {
             result.code = Code.FAIL;
             return result;
         }
+        int coopExitCode = coopRoomManager.onPlayerExit(playerController.playerId(), exitType);
+        if (coopExitCode != Code.SUCCESS) {
+            result.code = coopExitCode;
+            return result;
+        }
+        if (gameManager == null) {
+            log.debug("退出游戏时，获取游戏管理器失败 playerId = {},gameType = {}", playerController.playerId(), playerController.getPlayer().getGameType());
+            return result;
+        }
+        if (playerGameData == null) {
+            return result;
+        }
         playerGameData = gameManager.exit(playerController, exitType);
-        //协作房间成员离开节点: 等待中按退出处理(房主=解散), 进行中仅标记离线待重连
-        coopRoomManager.onPlayerExit(playerController.playerId());
         playerSessionService.offline(playerController.getPlayer(), exitType == ExitType.DROPPED);
         //计算玩游戏的时长
         int onlineTimeLen = 0;

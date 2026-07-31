@@ -13,6 +13,7 @@ import com.jjg.game.core.constant.Code;
 import com.jjg.game.core.base.condition.numeric.ConditionUpdate;
 import com.jjg.game.core.base.condition.numeric.GameConditionEvent;
 import com.jjg.game.core.data.CommonResult;
+import com.jjg.game.core.data.ExitType;
 import com.jjg.game.core.data.ItemOperationResult;
 import com.jjg.game.core.data.Player;
 import com.jjg.game.core.data.PlayerController;
@@ -719,21 +720,27 @@ public class CoopRoomManager {
     }
 
     /**
-     * 玩家退出 slots 节点钩子: 等待中按退出处理(房主=解散); 进行中仅标记离线, 断线重连可回归。
+     * 玩家退出 slots 节点钩子: 等待中按退出处理(房主=解散); 进行中拒绝主动退出，非主动离开仅标记离线供重连。
      */
-    public void onPlayerExit(long playerId) {
+    public int onPlayerExit(long playerId, ExitType exitType) {
         CoopRoom room = roomOf(playerId);
         if (room == null) {
-            return;
+            return Code.SUCCESS;
         }
         synchronized (room) {
             CoopMember member = room.getMembers().get(playerId);
             if (member == null) {
-                return;
+                return Code.SUCCESS;
             }
             switch (room.getStatus()) {
-                case CoopTaskConst.RoomStatus.WAITING, CoopTaskConst.RoomStatus.FINISHED -> exit(room, playerId);
+                case CoopTaskConst.RoomStatus.WAITING, CoopTaskConst.RoomStatus.FINISHED -> {
+                    return exit(room, playerId);
+                }
                 case CoopTaskConst.RoomStatus.RUNNING -> {
+                    if (exitType == ExitType.INITIATIVE) {
+                        log.info("协作房间进行中,拒绝玩家主动退出 playerId={},roomId={}", playerId, room.getRoomId());
+                        return Code.FORBID;
+                    }
                     member.setOnline(false);
                     member.setPlayerController(null);
                     broadcastUpdate(room, 0);
@@ -742,6 +749,7 @@ public class CoopRoomManager {
                 }
             }
         }
+        return Code.SUCCESS;
     }
 
     /**
