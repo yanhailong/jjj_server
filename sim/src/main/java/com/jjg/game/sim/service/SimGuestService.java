@@ -60,6 +60,8 @@ public class SimGuestService implements SimPlayerTickListener, ItemListener, Sim
     private SimPlayerContextRegistry simPlayerContextRegistry;
     @Autowired
     private AllianceEventService allianceEventService;
+    @Autowired
+    private SimGuideConfigService guideConfigService;
     //懒加载打破与 SimTaskService 的循环依赖 (对方持有本服务作状态补报口)
     @Autowired
     @Lazy
@@ -80,7 +82,7 @@ public class SimGuestService implements SimPlayerTickListener, ItemListener, Sim
      */
     public void generateGuestEvent(SimPlayerContext ctx, long now) {
         //新手引导未完成不生成
-        if (!ctx.getSimBaseData().isGuide()) {
+        if (!ctx.getSimBaseData().isGuide() || newGuide(ctx.getSimBaseData())) {
             return;
         }
         //当前场景
@@ -107,6 +109,20 @@ public class SimGuestService implements SimPlayerTickListener, ItemListener, Sim
 
         int generated = batchGenerateGuest(ctx, casinoCfg.getVisitorSpawnCount(), casinoCfg, now, null);
         allianceEventService.onGuestGenerated(ctx.playerId(), false, generated);
+    }
+
+    private boolean newGuide(SimBaseData simBaseData) {
+        if (configCache.getGenGuestGuideSet() == null || configCache.getGenGuestGuideSet().isEmpty()) {
+            return true;
+        }
+
+        for (int guideId : configCache.getGenGuestGuideSet()) {
+            int groupId = guideConfigService.groupOfGuide(guideId);
+            if (groupId > 0 && (simBaseData.hasTriggeredGuideGroup(groupId) || simBaseData.hasCompletedGuideGroup(groupId))) {
+                return true;
+            }
+        }
+        return false;
     }
 
     /**
@@ -847,19 +863,9 @@ public class SimGuestService implements SimPlayerTickListener, ItemListener, Sim
                 }
             }
 
-            //新手引导: 不走随机, 固定召唤 NewbieGuideDraw 配置的游客
-            boolean guide = ctx.getSimBaseData().isGuide();
-            int guideItemId = 0;
-            if (!guide) {
-                VisitorPoolCfg visitorPoolCfg = GameDataManager.getVisitorPoolCfg(tmpCfg.getDropItem());
-                if (visitorPoolCfg == null || visitorPoolCfg.getNewbieGuideDraw() <= 0) {
-                    log.warn("招募游客失败,新手引导卡池配置异常 playerId={},poolId={}", ctx.playerId(), tmpCfg.getDropItem());
-                    res.code = Code.PARAM_ERROR;
-                    ctx.send(res);
-                    return;
-                }
-                guideItemId = visitorPoolCfg.getNewbieGuideDraw();
-            }
+            VisitorPoolCfg visitorPoolCfg = GameDataManager.getVisitorPoolCfg(tmpCfg.getDropItem());
+            List<Integer> newbieGuideDraw = visitorPoolCfg == null ? null : visitorPoolCfg.getNewbieGuideDraw();
+            int guideItemId = guideConfigService.newbieFixedDrawItemId(ctx.getSimBaseData(), newbieGuideDraw);
 
             Map<Integer, Long> addAllItems = new HashMap<>();
             List<RecruitItemInfo> recruitItems = new ArrayList<>();
@@ -870,7 +876,7 @@ public class SimGuestService implements SimPlayerTickListener, ItemListener, Sim
             for (int i = 0; i < count; i++) {
                 int drawItemId;
                 int rewardCount;
-                if (!guide) {
+                if (guideItemId > 0) {
                     drawItemId = guideItemId;
                     rewardCount = 1;
                 } else {

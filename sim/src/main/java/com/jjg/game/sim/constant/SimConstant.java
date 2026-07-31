@@ -325,6 +325,8 @@ public interface SimConstant {
         int ID_SEASON_PASSIVE_MATCH_PROB = 281;
         //赛季：赛季结算，赛季币返还的比例与上限
         int ID_RETURN_COIN_MAX = 284;
+        //完成这些新手引导才能生成游客
+        int GEN_GUEST_GUIDE = 300;
     }
 
     /**

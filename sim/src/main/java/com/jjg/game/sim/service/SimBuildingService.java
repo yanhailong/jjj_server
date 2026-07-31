@@ -507,10 +507,6 @@ public class SimBuildingService implements SimPlayerTickListener, SimTaskStateRe
      */
     private void output(SimPlayerContext ctx, long now) {
         try {
-            //新手引导未完成不产出 (与游客生成一致)
-            if (!ctx.getSimBaseData().isGuide()) {
-                return;
-            }
             SimCasinoData casino = ctx.getCurrentCasino();
             if (casino == null) {
                 return;

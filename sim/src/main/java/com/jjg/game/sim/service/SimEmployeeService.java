@@ -15,7 +15,6 @@ import com.jjg.game.sampledata.bean.*;
 import com.jjg.game.sim.constant.BuildingOutputType;
 import com.jjg.game.sim.constant.SimConstant;
 import com.jjg.game.sim.dao.SimEmployeeDao;
-import com.jjg.game.sim.data.SimBaseData;
 import com.jjg.game.sim.data.SimEmployeeData;
 import com.jjg.game.sim.data.SimPlayerContext;
 import com.jjg.game.sim.listener.SimTaskStateReporter;
@@ -138,32 +137,9 @@ public class SimEmployeeService implements SimTaskStateReporter {
                 }
             }
 
-            //新手引导: 不走随机, 固定召唤 NewbieGuideDraw 配置的雇员
-            // 配置格式: [固定道具Id, 关联引导步骤Id...]
-            // 仅当关联步骤所属引导组「已触发且未完成」时固定抽；组完成后恢复随机。
-            // 不能只看 completedGuideIds 是否包含配置步骤：组完成只要求组内最终步骤，
-            // 中间步骤(如1844/1845/1846)可能始终不进 completedGuideIds，会导致永久固定抽。
-            int guideItemId = 0;
-            boolean useNewbieFixedDraw = false;
             EmployeePoolCfg employeePoolCfg = GameDataManager.getEmployeePoolCfg(tmpCfg.getDropItem());
             List<Integer> newbieGuideDraw = employeePoolCfg == null ? null : employeePoolCfg.getNewbieGuideDraw();
-            SimBaseData baseData = ctx.getSimBaseData();
-            if (baseData != null && newbieGuideDraw != null && newbieGuideDraw.size() > 1) {
-                for (int i = 1; i < newbieGuideDraw.size(); i++) {
-                    int guideId = newbieGuideDraw.get(i);
-                    if (guideId <= 0) {
-                        continue;
-                    }
-                    int groupId = guideConfigService.groupOfGuide(guideId);
-                    if (groupId > 0
-                            && baseData.hasTriggeredGuideGroup(groupId)
-                            && !baseData.hasCompletedGuideGroup(groupId)) {
-                        useNewbieFixedDraw = true;
-                        guideItemId = newbieGuideDraw.get(0);
-                        break;
-                    }
-                }
-            }
+            int guideItemId = guideConfigService.newbieFixedDrawItemId(ctx.getSimBaseData(), newbieGuideDraw);
 
             Map<Integer, Long> addAllItems = new HashMap<>();
             List<RecruitItemInfo> recruitItems = new ArrayList<>();
@@ -173,7 +149,7 @@ public class SimEmployeeService implements SimTaskStateReporter {
             for (int i = 0; i < count; i++) {
                 int drawItemId;
                 int rewardCount;
-                if (useNewbieFixedDraw) {
+                if (guideItemId > 0) {
                     drawItemId = guideItemId;
                     rewardCount = 1;
                 } else {

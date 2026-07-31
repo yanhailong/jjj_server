@@ -109,6 +109,8 @@ public class SimConfigCacheService implements ConfigExcelChangeListener {
     //赛季结算赛季币返还: [0]返还比例(百分比), [1]返还上限
     private int[] seasonReturnMaxArr = new int[2];
 
+    private Set<Integer> genGuestGuideSet = null;
+
     @Autowired
     public SimConfigCacheService(ConditionRuleRegistry conditionRules) {
         this.conditionRules = conditionRules;
@@ -437,6 +439,17 @@ public class SimConfigCacheService implements ConfigExcelChangeListener {
             //返还的上限
             tmpSeasonReturnMaxArr[1] = Integer.parseInt(s[1]);
             this.seasonReturnMaxArr = tmpSeasonReturnMaxArr;
+        }
+
+        //完成这些新手引导才能生成游客
+        GlobalConfigCfg genGuestGuideCfg = GameDataManager.getGlobalConfigCfg(SimConstant.Global.GEN_GUEST_GUIDE);
+        if (genGuestGuideCfg != null) {
+            Set<Integer> tmpGenGuestGuideSet = new HashSet<>();
+            String[] s = genGuestGuideCfg.getValue().split("_");
+            for (String s1 : s) {
+                tmpGenGuestGuideSet.add(Integer.parseInt(s1));
+            }
+            this.genGuestGuideSet = tmpGenGuestGuideSet;
         }
     }
 
@@ -851,5 +864,9 @@ public class SimConfigCacheService implements ConfigExcelChangeListener {
 
     public Map<Integer, List<VisitorQuestCfg>> getRegionVistorCfgMap() {
         return regionVistorCfgMap;
+    }
+
+    public Set<Integer> getGenGuestGuideSet() {
+        return genGuestGuideSet;
     }
 }

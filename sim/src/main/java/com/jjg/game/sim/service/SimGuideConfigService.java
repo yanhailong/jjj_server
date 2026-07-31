@@ -4,6 +4,7 @@ import com.jjg.game.core.listener.ConfigExcelChangeListener;
 import com.jjg.game.sampledata.GameDataManager;
 import com.jjg.game.sampledata.bean.GuideCfg;
 import com.jjg.game.sim.constant.SimConstant;
+import com.jjg.game.sim.data.SimBaseData;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Component;
@@ -180,6 +181,34 @@ public class SimGuideConfigService implements ConfigExcelChangeListener {
     public int groupOfGuide(int guideId) {
         return guideGroups.getOrDefault(guideId, 0);
 
+    }
+
+    /**
+     * 获取新手引导期间应固定抽取的道具 ID，未命中返回 0。
+     * 配置格式为 [固定道具 ID, 关联引导步骤 ID...]；任一关联步骤所属引导组
+     * 已触发且未完成时启用固定抽取，引导组完成后恢复随机抽取。
+     */
+    public int newbieFixedDrawItemId(SimBaseData baseData, List<Integer> newbieGuideDraw) {
+        if (baseData == null || newbieGuideDraw == null || newbieGuideDraw.size() < 2) {
+            return 0;
+        }
+        Integer fixedItemId = newbieGuideDraw.get(0);
+        if (fixedItemId == null || fixedItemId <= 0) {
+            return 0;
+        }
+        for (int i = 1; i < newbieGuideDraw.size(); i++) {
+            Integer guideId = newbieGuideDraw.get(i);
+            if (guideId == null || guideId <= 0) {
+                continue;
+            }
+            int groupId = groupOfGuide(guideId);
+            if (groupId > 0
+                    && baseData.hasTriggeredGuideGroup(groupId)
+                    && !baseData.hasCompletedGuideGroup(groupId)) {
+                return fixedItemId;
+            }
+        }
+        return 0;
     }
 
     /** 获取指定引导组包含的全部步骤ID。 */
