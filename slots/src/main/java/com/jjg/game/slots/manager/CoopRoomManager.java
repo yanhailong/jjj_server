@@ -42,7 +42,11 @@ import com.jjg.game.slots.pb.ResCoopRoomOp;
 import com.jjg.game.slots.pb.ResEnterCoopRoom;
 import com.jjg.game.slots.data.GameRunInfo;
 import com.jjg.game.social.bridge.ToSocialBridge;
+import com.jjg.game.social.channel.RoomChatProvider;
 import com.jjg.game.social.constant.ChatChannelType;
+import com.jjg.game.social.data.ChatMessage;
+import com.jjg.game.social.pb.SocialPbConverter;
+import com.jjg.game.social.pb.res.NotifyChat;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -70,7 +74,7 @@ import java.util.concurrent.TimeUnit;
  * @date 2026/7/6
  */
 @Component
-public class CoopRoomManager {
+public class CoopRoomManager implements RoomChatProvider {
     private static final Logger log = LoggerFactory.getLogger(CoopRoomManager.class);
 
     @ClusterRpcReference
@@ -773,6 +777,26 @@ public class CoopRoomManager {
 
     public int activeRoomCount() {
         return rooms.size();
+    }
+
+    @Override
+    public boolean accepts(long playerId, long roomId) {
+        CoopRoom room = roomOf(playerId);
+        return room != null && room.getRoomId() == roomId && room.getMembers().containsKey(playerId);
+    }
+
+    @Override
+    public void broadcast(ChatMessage message) {
+        CoopRoom room = roomOf(message.getFromId());
+        if (room == null || room.getRoomId() != message.getChannelSubId()
+                || !room.getMembers().containsKey(message.getFromId())) {
+            log.warn("协作房间聊天广播失败,发送者不在房间 playerId={},roomId={}",
+                    message.getFromId(), message.getChannelSubId());
+            return;
+        }
+        NotifyChat notify = new NotifyChat(Code.SUCCESS);
+        notify.msg = SocialPbConverter.toChatMsgInfo(message);
+        broadcast(room, notify);
     }
 
     /**

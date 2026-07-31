@@ -3,19 +3,20 @@ package com.jjg.game.social.channel;
 import com.jjg.game.core.constant.Code;
 import com.jjg.game.core.data.Player;
 import com.jjg.game.social.constant.ChatChannelType;
+import com.jjg.game.social.constant.SocialConst;
 import com.jjg.game.social.data.ChatMessage;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Component;
 
 import java.util.Collections;
+import java.util.List;
 
 /**
- * 房间频道 (预留占位)。
+ * 房间频道。
  * <p>
- * 房间内公共聊天/表情/道具互动依赖 slots 房间模型({@code SlotsRoomController}), 位于游戏节点。
- * 本期仅占位以展示频道接入方式: 后续由游戏节点通过 {@code ToSocialBridge} 投递, 或在游戏节点实现
- * 真正的 RoomChatChannel(基于房间成员广播 {@code SlotsRoomController#notifyAllPlayers})。
+ * 房间模型位于各游戏节点，由 {@link RoomChatProvider} 提供成员校验和实时广播。
  *
  * @author 11
  * @date 2026/6/9
@@ -23,6 +24,12 @@ import java.util.Collections;
 @Component
 public class RoomChatChannel implements ChatChannel {
     private static final Logger log = LoggerFactory.getLogger(RoomChatChannel.class);
+    private final List<RoomChatProvider> providers;
+
+    @Autowired
+    public RoomChatChannel(List<RoomChatProvider> providers) {
+        this.providers = List.copyOf(providers);
+    }
 
     @Override
     public ChatChannelType type() {
@@ -30,23 +37,45 @@ public class RoomChatChannel implements ChatChannel {
     }
 
     @Override
-    public boolean clientSendable() {
-        //大厅社交节点暂不处理房间频道, 待游戏节点接入
-        return false;
+    public int maxContentLength() {
+        return SocialConst.Cfg.ROOM_MSG_MAX_LEN;
+    }
+
+    @Override
+    public long sendIntervalMs() {
+        return SocialConst.Cfg.ROOM_SEND_INTERVAL_SEC * 1000L;
     }
 
     @Override
     public int validate(Player sender, long targetId, String content) {
-        return Code.FORBID;
+        if (sender == null || targetId <= 0) {
+            return Code.PARAM_ERROR;
+        }
+        return provider(sender.getId(), targetId) == null ? Code.FORBID : Code.SUCCESS;
     }
 
     @Override
     public void dispatch(ChatMessage msg) {
-        log.warn("房间频道尚未在大厅节点接入, 忽略消息 fromId={}", msg.getFromId());
+        RoomChatProvider provider = provider(msg.getFromId(), msg.getChannelSubId());
+        if (provider == null) {
+            log.warn("房间聊天投递失败,发送者不在房间 playerId={},roomId={}",
+                    msg.getFromId(), msg.getChannelSubId());
+            return;
+        }
+        provider.broadcast(msg);
     }
 
     @Override
     public ChatHistory loadHistory(long playerId, long targetId, String cursor) {
         return ChatHistory.of(Collections.emptyList());
+    }
+
+    private RoomChatProvider provider(long playerId, long roomId) {
+        for (RoomChatProvider provider : providers) {
+            if (provider.accepts(playerId, roomId)) {
+                return provider;
+            }
+        }
+        return null;
     }
 }

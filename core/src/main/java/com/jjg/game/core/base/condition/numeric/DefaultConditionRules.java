@@ -140,6 +140,8 @@ final class DefaultConditionRules {
                 (s, e) -> true, (s, e) -> e.value()));
         rules.add(action(12220, 2, 2, 1, ProgressMode.ADD, ActionConditionEvent.Type.ITEM_CONSUME,
                 (s, e) -> e.matchesSubject(s.parameter(0)), (s, e) -> e.value()));
+        rules.add(game(12221, 2, 2, 1, ProgressMode.ADD,
+                (s, e) -> e.matchesGame(s.parameter(0)), (s, e) -> 1));
 
         //12251-12272 与上面的接取型条件判定口径一致，进度由玩家统计提供而非任务计数器。
         rules.add(game(12251, 3, 3, 2, ProgressMode.ADD,
