@@ -152,9 +152,9 @@ public final class SimConditionEventFactory {
                 itemId, 0, Math.max(0, count), 0, 0, false);
     }
 
-    public static ActionConditionEvent sceneTotalLevel(long allLevel) {
+    public static ActionConditionEvent sceneLevel(int casinoId, long level) {
         return new ActionConditionEvent(ActionConditionEvent.Type.SCENE_TOTAL_LEVEL,
-                0, 0, Math.max(0, allLevel), 0, 0, false);
+                casinoId, 0, Math.max(0, level), 0, 0, false);
     }
 
     /**

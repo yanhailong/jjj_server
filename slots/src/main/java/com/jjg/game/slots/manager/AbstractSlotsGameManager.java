@@ -28,6 +28,7 @@ import com.jjg.game.core.constant.*;
 import com.jjg.game.core.data.*;
 import com.jjg.game.core.listener.ConfigExcelChangeListener;
 import com.jjg.game.core.manager.CoreMarqueeManager;
+import com.jjg.game.core.service.PlayerStatService;
 import com.jjg.game.core.task.manager.TaskManager;
 import com.jjg.game.core.task.param.TaskConditionParam10001;
 import com.jjg.game.core.task.param.TaskConditionParam10003;
@@ -98,6 +99,8 @@ public abstract class AbstractSlotsGameManager<T extends SlotsPlayerGameData, L 
     protected GameEventManager gameEventManager;
     @Autowired
     protected TaskManager taskManager;
+    @Autowired
+    protected PlayerStatService playerStatService;
     @Autowired
     protected WealthRouletteController wealthRouletteController;
     @Autowired
@@ -560,6 +563,7 @@ public abstract class AbstractSlotsGameManager<T extends SlotsPlayerGameData, L 
             result.code = poolResult.code;
             return result;
         }
+        playerStatService.recordSlotBet(playerGameData.getPlayerId(), this.gameType);
 
         Player player = poolResult.data.getFirst();
 

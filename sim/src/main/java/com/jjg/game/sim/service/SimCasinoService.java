@@ -5,6 +5,7 @@ import com.jjg.game.alliance.service.AllianceCacheService;
 import com.jjg.game.alliance.service.AllianceHelpService;
 import com.jjg.game.core.base.condition.numeric.ActionConditionEvent;
 import com.jjg.game.core.constant.Code;
+import com.jjg.game.core.service.PlayerStatService;
 import com.jjg.game.sampledata.GameDataManager;
 import com.jjg.game.sampledata.bean.*;
 import com.jjg.game.sim.constant.BuildingOutputType;
@@ -65,6 +66,8 @@ public class SimCasinoService implements SimTaskStateReporter {
     private SimGuestService simGuestService;
     @Autowired
     private SimGuideService simGuideService;
+    @Autowired
+    private PlayerStatService playerStatService;
 
 
     /**
@@ -254,7 +257,8 @@ public class SimCasinoService implements SimTaskStateReporter {
         }
 
         //自动解锁: UnlockType=false 且无解锁条件(UnlockMethod) 的建筑, 创建场景时直接以初始等级解锁
-        autoUnlockBuildings(casino, casinoId);
+        int unlockedGames = autoUnlockBuildings(casino, casinoId);
+        playerStatService.recordGameUnlock(ctx.playerId(), unlockedGames);
         //自动解锁游客
         autoUnlockGuest(casino, casinoId);
 
@@ -263,7 +267,7 @@ public class SimCasinoService implements SimTaskStateReporter {
         ctx.getSimBaseData().addAllLevel(casino.getCasinoLevel());
         simGuideService.triggerSceneTotalLevelReached(ctx, ctx.getSimBaseData().getAllLevel(), true);
         simTaskService.onConditionEvent(ctx,
-                SimConditionEventFactory.sceneTotalLevel(ctx.getSimBaseData().getAllLevel()));
+                SimConditionEventFactory.sceneLevel(casinoId, casino.getCasinoLevel()));
         //TODO 初始游客: VisitorQuest 无场景维度配置, 待策划补充配置后在此初始化 guestMap
         log.info("创建新场景 playerId={},casinoId={},statsId={},buildingCount={}", ctx.playerId(), casinoId, statsId,
                 casino.getBuildingData() == null ? 0 : casino.getBuildingData().size());
@@ -276,7 +280,8 @@ public class SimCasinoService implements SimTaskStateReporter {
      *
      * @param casinoId 场景id (= BuildingAreaTableCfg.RegionID)
      */
-    private void autoUnlockBuildings(SimCasinoData casino, int casinoId) {
+    private int autoUnlockBuildings(SimCasinoData casino, int casinoId) {
+        int unlockedGames = 0;
         for (BuildingAreaTableCfg cfg : GameDataManager.getBuildingAreaTableCfgList()) {
             if (cfg.getRegionID() != casinoId) {
                 continue;
@@ -291,7 +296,11 @@ public class SimCasinoService implements SimTaskStateReporter {
             data.setId(cfg.getId());
             data.setLevel(INITIAL_BUILDING_LEVEL);
             casino.putBuilding(data);
+            if (data.getId() == SimConstant.Building.ID_RESEARCH_DEPART) {
+                unlockedGames += configCacheService.unlockedGameCountAtLevel(casinoId, data.getLevel());
+            }
         }
+        return unlockedGames;
     }
 
     /**

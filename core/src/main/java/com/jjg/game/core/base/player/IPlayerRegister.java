@@ -1,7 +1,7 @@
 package com.jjg.game.core.base.player;
 
 import com.jjg.game.common.baselogic.IGameSysFuncInterface;
-import com.jjg.game.core.data.Player;
+import com.jjg.game.core.data.PlayerController;
 
 /**
  * 玩家注册类
@@ -13,5 +13,5 @@ public interface IPlayerRegister extends IGameSysFuncInterface {
     /**
      * 玩家注册
      */
-    void playerRegister(Player player);
+    void playerRegister(PlayerController playerController);
 }

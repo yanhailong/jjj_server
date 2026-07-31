@@ -33,6 +33,10 @@ public class PlayerStatService {
     public static final int CASINO_UNLOCK = 12266;
     public static final int CURRENCY_CONSUME = 12267;
     public static final int SCENE_TOTAL_LEVEL = 12268;
+    public static final int SKILL_COMBAT_POWER = 12269;
+    public static final int GUEST_POOL_DRAW = 12270;
+    public static final int EMPLOYEE_POOL_DRAW = 12271;
+    public static final int SLOT_BET = 12272;
 
     public static final int GOLD_ITEM_ID = 1990000;
     public static final int DIAMOND_ITEM_ID = 1980000;
@@ -44,13 +48,14 @@ public class PlayerStatService {
     }
 
     public static boolean supports(int conditionId) {
-        return conditionId >= SLOT_ITEM && conditionId <= SCENE_TOTAL_LEVEL && conditionId != 12258;
+        return conditionId >= SLOT_ITEM && conditionId <= SLOT_BET && conditionId != 12258;
     }
 
     public static boolean recorded(int conditionId) {
         return switch (conditionId) {
             case SLOT_ITEM, BIG_SHOW, JACKPOT, FREE_MODE, BUILDING_UPGRADE, AD_WATCH,
-                    GUEST_RECRUIT, BUSINESS_INCOME, VISIT, LOGIN_DAYS, CURRENCY_CONSUME -> true;
+                    GUEST_RECRUIT, BUSINESS_INCOME, GAME_UNLOCK, VISIT, LOGIN_DAYS,
+                    CURRENCY_CONSUME, GUEST_POOL_DRAW, EMPLOYEE_POOL_DRAW, SLOT_BET -> true;
             default -> false;
         };
     }
@@ -60,18 +65,12 @@ public class PlayerStatService {
             return;
         }
         items.forEach((itemId, count) -> {
-            if (itemId == null || count == null || count <= 0) {
+            if (itemId == null || itemId <= 0 || count == null || count <= 0) {
                 return;
             }
             incrementPlayerDimension(SLOT_ITEM, playerId, gameType, itemId, count);
             if (gameType != 0) {
                 incrementPlayerDimension(SLOT_ITEM, playerId, 0, itemId, count);
-            }
-            if (itemId != 0) {
-                incrementPlayerDimension(SLOT_ITEM, playerId, gameType, 0, count);
-                if (gameType != 0) {
-                    incrementPlayerDimension(SLOT_ITEM, playerId, 0, 0, count);
-                }
             }
         });
     }
@@ -128,6 +127,31 @@ public class PlayerStatService {
         });
     }
 
+    public void recordGameUnlock(long playerId, long count) {
+        if (count > 0) {
+            incrementPlayer(GAME_UNLOCK, playerId, count);
+        }
+    }
+
+    public void recordGuestPoolDraw(long playerId, long count) {
+        if (count > 0) {
+            incrementPlayer(GUEST_POOL_DRAW, playerId, count);
+        }
+    }
+
+    public void recordEmployeePoolDraw(long playerId, long count) {
+        if (count > 0) {
+            incrementPlayer(EMPLOYEE_POOL_DRAW, playerId, count);
+        }
+    }
+
+    public void recordSlotBet(long playerId, int gameType) {
+        incrementDimensionPlayer(SLOT_BET, gameType, playerId, 1);
+        if (gameType != 0) {
+            incrementDimensionPlayer(SLOT_BET, 0, playerId, 1);
+        }
+    }
+
     public void recordVisit(long playerId) {
         incrementPlayer(VISIT, playerId, 1);
     }
@@ -166,10 +190,14 @@ public class PlayerStatService {
                     condition.spec().intParameter(0) > 0 ? 1 : 0, playerId);
             case BUSINESS_INCOME -> getPlayerItemOrSum(BUSINESS_INCOME, playerId,
                     condition.spec().intParameter(0));
+            case GAME_UNLOCK -> getPlayer(GAME_UNLOCK, playerId);
             case VISIT -> getPlayer(VISIT, playerId);
             case LOGIN_DAYS -> getPlayer(LOGIN_DAYS, playerId);
             case CURRENCY_CONSUME -> getDimensionPlayer(CURRENCY_CONSUME,
                     condition.spec().intParameter(0), playerId);
+            case GUEST_POOL_DRAW -> getPlayer(GUEST_POOL_DRAW, playerId);
+            case EMPLOYEE_POOL_DRAW -> getPlayer(EMPLOYEE_POOL_DRAW, playerId);
+            case SLOT_BET -> getDimensionPlayer(SLOT_BET, condition.spec().intParameter(0), playerId);
             default -> 0;
         };
     }

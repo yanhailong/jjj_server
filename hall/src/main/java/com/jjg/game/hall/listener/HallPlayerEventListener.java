@@ -5,7 +5,6 @@ import com.jjg.game.activity.sharepromote.controller.SharePromoteController;
 import com.jjg.game.common.baselogic.function.SystemInterfaceHolder;
 import com.jjg.game.common.cluster.ClusterSystem;
 import com.jjg.game.common.curator.MarsNode;
-import com.jjg.game.common.curator.NodeManager;
 import com.jjg.game.common.listener.SessionCloseListener;
 import com.jjg.game.common.listener.SessionEnterListener;
 import com.jjg.game.common.listener.SessionLoginListener;
@@ -17,16 +16,19 @@ import com.jjg.game.core.base.player.IPlayerLoginSuccess;
 import com.jjg.game.core.base.player.IPlayerRegister;
 import com.jjg.game.core.constant.Code;
 import com.jjg.game.core.constant.GameConstant;
-import com.jjg.game.core.dao.*;
+import com.jjg.game.core.dao.AccountDao;
+import com.jjg.game.core.dao.CommonDao;
+import com.jjg.game.core.dao.CountDao;
+import com.jjg.game.core.dao.PlayerSessionTokenDao;
 import com.jjg.game.core.data.*;
 import com.jjg.game.core.manager.CoreMarqueeManager;
 import com.jjg.game.core.manager.RedDotManager;
 import com.jjg.game.core.pb.MarqueeInfo;
 import com.jjg.game.core.recharge.service.RechargeService;
 import com.jjg.game.core.service.CarouselService;
-import com.jjg.game.core.service.PlayerStatService;
 import com.jjg.game.core.service.PlayerSessionService;
 import com.jjg.game.core.service.PlayerSnapshotService;
+import com.jjg.game.core.service.PlayerStatService;
 import com.jjg.game.core.task.manager.TaskManager;
 import com.jjg.game.hall.dao.HallRoomDao;
 import com.jjg.game.hall.dao.LikeGameDao;
@@ -73,11 +75,7 @@ public class HallPlayerEventListener implements SessionCloseListener, SessionEnt
     @Autowired
     private HallLogger hallLogger;
     @Autowired
-    private NodeManager nodeManager;
-    @Autowired
     private HallService hallService;
-    @Autowired
-    private PlayerLastGameInfoDao playerLastGameInfoDao;
     @Autowired
     private CoreMarqueeManager marqueeManager;
     @Autowired
@@ -203,8 +201,6 @@ public class HallPlayerEventListener implements SessionCloseListener, SessionEnt
                             player.setLoginType(loginType);
                             player.setDeviceType(playerSessionToken.getDevice());
                             player.setSubChannel(playerSessionToken.getSubChannel());
-                            // 调用注册接口类
-                            SystemInterfaceHolder.callGameSysAction(IPlayerRegister.class, (f) -> f.playerRegister(player));
                             register[0] = true;
                         }
                     });
@@ -333,6 +329,8 @@ public class HallPlayerEventListener implements SessionCloseListener, SessionEnt
                 hallLogger.level(player, 1, 1, null, null);
                 sharePromoteController.bindSuperPlayer(player, playerSessionToken.getSharId());
                 playerSessionToken.setSharId(null);
+                // 调用注册接口类
+                SystemInterfaceHolder.callGameSysAction(IPlayerRegister.class, (f) -> f.playerRegister(playerController));
             }
 
             //更新token过期时间

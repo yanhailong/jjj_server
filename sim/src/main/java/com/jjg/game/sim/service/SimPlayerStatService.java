@@ -11,6 +11,8 @@ import com.jjg.game.sim.data.SimCasinoData;
 import com.jjg.game.sim.data.SimCasinoUnlock;
 import com.jjg.game.sim.data.SimEmployeeData;
 import com.jjg.game.sim.data.SimPlayerContext;
+import com.jjg.game.sim.data.SimSkillsData;
+import org.springframework.context.annotation.Lazy;
 import org.springframework.stereotype.Service;
 
 import java.util.HashMap;
@@ -24,13 +26,13 @@ import java.util.Map;
 public class SimPlayerStatService {
     private final PlayerStatService playerStatService;
     private final SimCasinoDao simCasinoDao;
-    private final SimConfigCacheService configCacheService;
+    private final SimSkillService simSkillService;
 
     public SimPlayerStatService(PlayerStatService playerStatService, SimCasinoDao simCasinoDao,
-                                SimConfigCacheService configCacheService) {
+                                @Lazy SimSkillService simSkillService) {
         this.playerStatService = playerStatService;
         this.simCasinoDao = simCasinoDao;
-        this.configCacheService = configCacheService;
+        this.simSkillService = simSkillService;
     }
 
     public boolean supports(PreparedCondition condition) {
@@ -49,10 +51,11 @@ public class SimPlayerStatService {
                     condition.spec().intParameter(0), condition.spec().intParameter(2));
             case PlayerStatService.GUEST_COUNT -> guestCount(ctx,
                     condition.spec().intParameter(1));
-            case PlayerStatService.GAME_UNLOCK -> unlockedGameCount(ctx);
             case PlayerStatService.CASINO_UNLOCK -> unlockedCasinoCount(ctx);
-            case PlayerStatService.SCENE_TOTAL_LEVEL -> ctx.getSimBaseData() == null
-                    ? 0 : ctx.getSimBaseData().getAllLevel();
+            case PlayerStatService.SCENE_TOTAL_LEVEL -> sceneLevel(ctx,
+                    condition.spec().intParameter(0));
+            case PlayerStatService.SKILL_COMBAT_POWER -> combatPower(ctx,
+                    condition.spec().intParameter(0));
             default -> 0;
         };
     }
@@ -104,18 +107,29 @@ public class SimPlayerStatService {
         return count;
     }
 
-    private long unlockedGameCount(SimPlayerContext ctx) {
-        SimCasinoUnlock unlock = ctx.getCasinoUnlock();
-        if (unlock == null || unlock.getResearchLevelMap() == null) {
-            return 0;
-        }
-        return configCacheService.findUnlockedGames(unlock.getResearchLevelMap()).size();
-    }
-
     private long unlockedCasinoCount(SimPlayerContext ctx) {
         SimCasinoUnlock unlock = ctx.getCasinoUnlock();
         return unlock == null || unlock.getResearchLevelMap() == null
                 ? 0 : unlock.getResearchLevelMap().size();
+    }
+
+    private long sceneLevel(SimPlayerContext ctx, int casinoId) {
+        if (casinoId <= 0) {
+            return ctx.getSimBaseData() == null ? 0 : ctx.getSimBaseData().getAllLevel();
+        }
+        SimCasinoData casino = ctx.getCurrentCasino();
+        if (casino == null || casino.getCasinoId() != casinoId) {
+            casino = simCasinoDao.findOne(ctx.playerId(), casinoId);
+        }
+        return casino == null ? 0 : casino.getCasinoLevel();
+    }
+
+    private long combatPower(SimPlayerContext ctx, int gameType) {
+        if (gameType <= 0) {
+            return simSkillService.computeCombatPower(ctx);
+        }
+        SimSkillsData skillsData = ctx.getSkillData(gameType);
+        return skillsData == null ? 0 : simSkillService.oneGameCombatPower(skillsData);
     }
 
     /**

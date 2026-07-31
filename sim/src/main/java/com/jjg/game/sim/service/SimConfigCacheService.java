@@ -652,6 +652,15 @@ public class SimConfigCacheService implements ConfigExcelChangeListener {
         return tmpMap == null ? null : tmpMap.get(gameType);
     }
 
+    public int unlockedGameCountAtLevel(int regionId, int level) {
+        if (this.researchInstituteCfgMap == null) {
+            return 0;
+        }
+        Map<Integer, ResearchInstituteCfg> levelMap = this.researchInstituteCfgMap.get(regionId);
+        ResearchInstituteCfg cfg = levelMap == null ? null : levelMap.get(level);
+        return cfg != null && cfg.getGameType() > 0 ? 1 : 0;
+    }
+
     /**
      * 研究院等级快照下已研发(解锁)的游戏并集: 任一场景的研究院等级达到该游戏配置等级即视为已研发。
      * 语义同大厅游戏列表, 供经营看板与任务条件 12216 共用。

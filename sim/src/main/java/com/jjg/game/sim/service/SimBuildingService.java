@@ -10,6 +10,7 @@ import com.jjg.game.core.constant.AddType;
 import com.jjg.game.core.constant.Code;
 import com.jjg.game.core.pb.KVInfo;
 import com.jjg.game.core.service.PlayerPackService;
+import com.jjg.game.core.service.PlayerStatService;
 import com.jjg.game.core.utils.ItemUtils;
 import com.jjg.game.sampledata.GameDataManager;
 import com.jjg.game.sampledata.bean.BuildingAreaTableCfg;
@@ -57,6 +58,8 @@ public class SimBuildingService implements SimPlayerTickListener, SimTaskStateRe
     private SimEmployeeService employeeService;
     @Autowired
     private PlayerPackService playerPackService;
+    @Autowired
+    private PlayerStatService playerStatService;
     @Autowired
     private AllianceHelpService allianceHelpService;
     @Autowired
@@ -997,6 +1000,8 @@ public class SimBuildingService implements SimPlayerTickListener, SimTaskStateRe
         data.setProgress(0);
         //研发部升级 -> 同步研究院等级快照 (游戏解锁判定/大厅游戏列表的数据源)
         if (data.getId() == SimConstant.Building.ID_RESEARCH_DEPART) {
+            playerStatService.recordGameUnlock(ctx.playerId(),
+                    configCache.unlockedGameCountAtLevel(casino.getCasinoId(), data.getLevel()));
             simCasinoService.updateCasinoUnlock(ctx, casino.getCasinoId(), data.getLevel());
         }
         allianceEventService.onBuildingUpgrade(ctx.playerId(), data.getId(), data.getLevel());

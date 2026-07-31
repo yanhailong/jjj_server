@@ -2,7 +2,6 @@ package com.jjg.game.core.service;
 
 import cn.hutool.core.collection.CollectionUtil;
 import cn.hutool.core.util.IdUtil;
-import com.alibaba.fastjson.JSON;
 import com.jjg.game.common.protostuff.PFSession;
 import com.jjg.game.common.utils.TimeHelper;
 import com.jjg.game.core.base.player.IPlayerLoginSuccess;
@@ -23,10 +22,10 @@ import com.jjg.game.sampledata.bean.ItemCfg;
 import com.jjg.game.sampledata.bean.LoginConfigCfg;
 import com.jjg.game.sampledata.bean.MailCfg;
 import org.apache.commons.lang3.StringUtils;
-import org.springframework.dao.DuplicateKeyException;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.dao.DuplicateKeyException;
 import org.springframework.stereotype.Service;
 
 import java.util.*;
@@ -654,14 +653,14 @@ public class MailService implements IRedDotService, IPlayerLoginSuccess, IPlayer
     }
 
     @Override
-    public void playerRegister(Player player) {
-        LoginType loginType = player.getLoginType();
+    public void playerRegister(PlayerController playerController) {
+        LoginType loginType = playerController.getPlayer().getLoginType();
         if (loginType == null) {
             return;
         }
 
         //检查绑定奖励是否开启
-        boolean rewardOpen = loginConfigService.isRewardOpen(player.getChannel().getValue(), player.getLoginType().getValue());
+        boolean rewardOpen = loginConfigService.isRewardOpen(playerController.getPlayer().getChannel().getValue(), playerController.getPlayer().getLoginType().getValue());
         if (!rewardOpen) {
             return;
         }
@@ -682,10 +681,10 @@ public class MailService implements IRedDotService, IPlayerLoginSuccess, IPlayer
         } else if (loginType == LoginType.PHONE) {
             mailId = GameConstant.Mail.ID_BIND_PHONE;
         } else {
-            log.debug("注册时未找到该登录方式奖励的邮件id playerId = {},loginType = {}", player.getId(), loginType);
+            log.debug("注册时未找到该登录方式奖励的邮件id playerId = {},loginType = {}", playerController.playerId(), loginType);
             return;
 //            mailId = GameConstant.Mail.ID_BIND_GOOGLE;
         }
-        addCfgMail(player.getId(), mailId, ItemUtils.buildItems(loginConfigCfg.getAwardItem()), AddType.PLAYER_REGISTER);
+        addCfgMail(playerController.playerId(), mailId, ItemUtils.buildItems(loginConfigCfg.getAwardItem()), AddType.PLAYER_REGISTER);
     }
 }
