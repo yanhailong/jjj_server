@@ -57,6 +57,13 @@ public interface DouXianConstant {
         int RECHARGE_TIME = 30_000;
     }
 
+    interface MatchState {
+        int IDLE = 0;
+        int MATCHING = 1;
+        int SUCCESS = 2;
+        int TIMEOUT = 3;
+    }
+
     static int getRoundMultiplier(int round) {
         return Common.ROUND_MULTIPLIER[round - 1];
     }
@@ -105,5 +112,6 @@ public interface DouXianConstant {
         int NOTIFY_DOU_XIAN_PLAYER_READY = BASE_MSG_PREFIX | 0x14;
         //通知进入弃牌/换牌阶段
         int NOTIFY_DOU_XIAN_DISCARD_START = BASE_MSG_PREFIX | 0x15;
+        int NOTIFY_DOU_XIAN_MATCH_STATE = BASE_MSG_PREFIX | 0x16;
     }
 }

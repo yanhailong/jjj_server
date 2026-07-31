@@ -3,6 +3,7 @@ package com.jjg.game.poker.game.douxian.gamephase;
 import com.jjg.game.core.constant.AddType;
 import com.jjg.game.core.constant.Code;
 import com.jjg.game.poker.game.common.BasePokerGameController;
+import com.jjg.game.poker.game.common.PokerBuilder;
 import com.jjg.game.poker.game.common.gamephase.BasePokerPhase;
 import com.jjg.game.poker.game.douxian.constant.DouXianConstant;
 import com.jjg.game.poker.game.douxian.constant.DouXianZone;
@@ -182,6 +183,10 @@ public class DouXianSettlementPhase extends BasePokerPhase<DouXianGameDataVo> {
         notify.round = round;
         notify.playerReveals = playerReveals;
         notify.pairResults = pairResults;
+        notify.playerInfos = gameDataVo.getSeatInfo().values().stream()
+                .filter(seatInfo -> seatInfo.isSeatDown() && activePlayerIds.contains(seatInfo.getPlayerId()))
+                .map(seatInfo -> PokerBuilder.getPokerPlayerInfo(seatInfo, controller))
+                .toList();
         broadcastMsgToRoom(notify);
 
         int specialRuleCount = round < DouXianConstant.Common.TOTAL_ROUND
