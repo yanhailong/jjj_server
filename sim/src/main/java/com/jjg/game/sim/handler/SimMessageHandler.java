@@ -105,9 +105,9 @@ public class SimMessageHandler implements GmListener {
     public void reqFinishGuide(PlayerController playerController, ReqFinishGuide req) {
         SimGuideService.FinishGuideResult result =
                 simManager.onFinishGuideWithTriggers(playerController.playerId(), req.guideId);
-        // 同一线程、同一玩家连接依次入发送队列，保证前端先收到完成响应，再收到新引导通知。
+        // 先发送完成响应，再稍作延迟通知由条件8触发的新引导组，给前端留出上一组的结束表现时间。
         playerController.send(result.response());
-        simManager.notifyGuideTriggers(playerController.playerId(), result.triggeredGuideGroupIds());
+        simManager.notifyGuideTriggersDelayed(playerController.playerId(), result.triggeredGuideGroupIds());
     }
 
     //--------------------------Casino相关 begin--------------------------

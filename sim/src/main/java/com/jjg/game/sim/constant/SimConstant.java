@@ -230,6 +230,11 @@ public interface SimConstant {
         @Deprecated int TASK_REWARD = 2;
     }
 
+    interface GuideTiming {
+        /** 完成上一引导组后，延迟通知条件8触发的新引导组，给客户端留出结束表现时间。 */
+        long GROUP_FINISH_NOTIFY_DELAY_MILLIS = 300L;
+    }
+
     /** Guide.xlsx 的 PathName 约定。 */
     interface GuidePath {
         /** 模拟经营大厅界面。 */
