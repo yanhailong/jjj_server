@@ -137,6 +137,8 @@ public interface SocialConst {
         //--------- 系统消息 ---------
         //服务器常驻缓存条数
         int SYSTEM_CACHE_SIZE = 300;
+        //玩家定向系统消息保留天数(TTL 自动过期)
+        int SYSTEM_KEEP_DAYS = 7;
 
         //--------- 联盟聊天 ---------
         //单条消息最大字数

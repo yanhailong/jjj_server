@@ -2,6 +2,7 @@ package com.jjg.game.social.manager;
 
 import com.jjg.game.social.service.ChatService;
 import com.jjg.game.social.service.PrivateChatService;
+import com.jjg.game.social.service.SystemMessageService;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -24,9 +25,12 @@ public class SocialManager {
     private PrivateChatService privateChatService;
     @Autowired
     private ChatService chatService;
+    @Autowired
+    private SystemMessageService systemMessageService;
 
     public void init() {
         privateChatService.init();
+        systemMessageService.init();
         log.info("社交模块初始化完成");
     }
 

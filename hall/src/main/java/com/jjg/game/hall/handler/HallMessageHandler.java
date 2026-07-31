@@ -1196,6 +1196,8 @@ public class HallMessageHandler implements GmListener, ChooseWareListener, Choos
                 CommonResult<ItemOperationResult> addItems = playerPackService.addItems(context.playerId(), rewards, AddType.PLAYER_REGISTER, null, true);
                 if (!addItems.success()) {
                     log.error("玩家领取注册奖励失败 playerId:{}", playerController.playerId());
+                } else {
+                    log.info("玩家领取新手奖励成功 playerid={},rewards={}", playerController.playerId(), rewards);
                 }
                 playerController.send(res);
                 return;

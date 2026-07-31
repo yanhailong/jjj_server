@@ -1,19 +1,16 @@
 package com.jjg.game.social.service;
 
-import com.jjg.game.core.base.player.IPlayerRegister;
 import com.jjg.game.core.constant.Code;
 import com.jjg.game.core.data.Player;
 import com.jjg.game.core.data.PlayerController;
 import com.jjg.game.core.manager.SnowflakeManager;
 import com.jjg.game.core.service.CorePlayerService;
-import com.jjg.game.sim.constant.SimConstant;
 import com.jjg.game.social.channel.ChatChannel;
 import com.jjg.game.social.channel.ChatChannelRegistry;
 import com.jjg.game.social.channel.ChatHistory;
 import com.jjg.game.social.constant.ChatChannelType;
 import com.jjg.game.social.data.ChatMessage;
 import com.jjg.game.social.pb.SocialPbConverter;
-import com.jjg.game.social.pb.res.NotifyChat;
 import com.jjg.game.social.pb.res.ResChatHistory;
 import com.jjg.game.social.pb.res.ResSendChat;
 import com.jjg.game.social.pb.struct.ChatMsgInfo;
@@ -34,7 +31,7 @@ import java.util.List;
  * @date 2026/6/9
  */
 @Component
-public class ChatService implements IPlayerRegister {
+public class ChatService {
     private static final Logger log = LoggerFactory.getLogger(ChatService.class);
 
     @Autowired
@@ -184,26 +181,6 @@ public class ChatService implements IPlayerRegister {
         channel.dispatch(msg);
     }
 
-    /**
-     * 向指定玩家下发系统消息，不写入全服系统消息缓存。
-     */
-    public void sendSystemMessage(PlayerController playerController, String content) {
-        if (playerController == null || content == null || content.isEmpty()) {
-            return;
-        }
-        ChatMessage msg = new ChatMessage();
-        msg.setId(snowflakeManager.nextId());
-        msg.setChannel(ChatChannelType.SYSTEM.getCode());
-        msg.setFromId(0);
-        msg.setToId(playerController.playerId());
-        msg.setContent(content);
-        msg.setTime(System.currentTimeMillis());
-
-        NotifyChat notify = new NotifyChat(Code.SUCCESS);
-        notify.msg = SocialPbConverter.toChatMsgInfo(msg);
-        playerController.send(notify);
-    }
-
     private ChatMessage buildMessage(int channelCode, Player sender, long targetId, String content) {
         ChatMessage msg = new ChatMessage();
         msg.setId(snowflakeManager.nextId());
@@ -216,10 +193,5 @@ public class ChatService implements IPlayerRegister {
         msg.setContent(content);
         msg.setTime(System.currentTimeMillis());
         return msg;
-    }
-
-    @Override
-    public void playerRegister(PlayerController playerController) {
-        sendSystemMessage(playerController, SimConstant.Common.SYSTEM_WELCOME_MSG);
     }
 }
