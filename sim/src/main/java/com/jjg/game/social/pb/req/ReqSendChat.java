@@ -17,7 +17,7 @@ import com.jjg.game.social.constant.SocialConst;
 public class ReqSendChat extends AbstractMessage {
     @ProtoDesc("频道 1.世界 2.系统 3.私聊 4.联盟 5.房间")
     public int channel;
-    @ProtoDesc("目标  channel=3时为玩家id  channel=4时为联盟id  channel=5时为房间id")
+    @ProtoDesc("目标  channel=3时为玩家id  channel=4时为联盟id(0表示当前联盟)  channel=5时为房间id(0表示当前房间)")
     public long targetId;
     @ProtoDesc("内容")
     public String content;

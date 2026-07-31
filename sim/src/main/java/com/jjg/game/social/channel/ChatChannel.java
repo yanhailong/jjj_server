@@ -46,6 +46,13 @@ public interface ChatChannel {
     }
 
     /**
+     * 将客户端目标转换为频道实际目标。房间频道可在客户端未传房间id时按发送者当前房间补齐。
+     */
+    default long resolveTargetId(Player sender, long targetId) {
+        return targetId;
+    }
+
+    /**
      * 频道特有校验 (成员资格、黑名单等)。返回 {@link Code#SUCCESS} 表示通过。
      *
      * @param sender   发送者

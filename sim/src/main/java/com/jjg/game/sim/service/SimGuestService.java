@@ -82,7 +82,7 @@ public class SimGuestService implements SimPlayerTickListener, ItemListener, Sim
      */
     public void generateGuestEvent(SimPlayerContext ctx, long now) {
         //新手引导未完成不生成
-        if (!newGuide(ctx.getSimBaseData()) || !ctx.getSimBaseData().isGuide()) {
+        if (!newGuide(ctx.getSimBaseData()) && !ctx.getSimBaseData().isGuide()) {
             return;
         }
         //当前场景
