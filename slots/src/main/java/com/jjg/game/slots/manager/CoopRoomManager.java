@@ -292,7 +292,7 @@ public class CoopRoomManager {
     }
 
     /**
-     * 退出房间: 未开始时房主退出=解散, 协助者退出=移除; 开始后不可退出; 已结算自由退出。
+     * 退出房间: 未开始或已结算时房主退出=解散, 协助者退出=移除; 开始后不可退出。
      */
     private int exit(CoopRoom room, long playerId) {
         int status = room.getStatus();
@@ -300,7 +300,8 @@ public class CoopRoomManager {
             //需求: 游戏已开始, 无法退出房间
             return Code.FORBID;
         }
-        if (status == CoopTaskConst.RoomStatus.WAITING && playerId == room.getOwnerId()) {
+        if ((status == CoopTaskConst.RoomStatus.WAITING || status == CoopTaskConst.RoomStatus.FINISHED)
+                && playerId == room.getOwnerId()) {
             dissolve(room);
             return Code.SUCCESS;
         }
@@ -537,11 +538,10 @@ public class CoopRoomManager {
                 ConditionUpdate update = rule.condition().evaluate(conditionEvent);
                 room.setSharedProgress(update.apply(room.getSharedProgress()));
 
-                boolean quotaExhausted = allQuotaExhausted(room);
-                if (quotaExhausted && room.getSharedProgress() >= rule.modeCount()) {
+                if (room.getSharedProgress() >= rule.modeCount()) {
                     //触发结算: 结果广播(低频)在 settle 内锁内完成, 不再单独发本次 spin (结果已含最终进度)
                     settle(room, true);
-                } else if (quotaExhausted) {
+                } else if (allQuotaExhausted(room)) {
                     settle(room, false);
                 } else {
                     //未结算: 高频 spin 增量广播移出锁, 锁内仅快照接收方 (保证接收集与本次进度原子一致)
@@ -638,7 +638,7 @@ public class CoopRoomManager {
             if (member.getPlayerId() != room.getOwnerId()) {
                 helperIds.add(member.getPlayerId());
             }
-            memberRoomIndex.remove(member.getPlayerId(), room.getRoomId());
+            //释放 Redis 占用以允许参与下一局；本地索引保留到玩家退出或房间解散，供结算页继续操作。
             roomRecordDao.releasePlayerRoom(member.getPlayerId(), room.getRoomId());
         }
         room.setSettlementHelperIds(helperIds);
