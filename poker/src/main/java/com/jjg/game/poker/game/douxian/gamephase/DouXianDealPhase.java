@@ -1,7 +1,6 @@
 package com.jjg.game.poker.game.douxian.gamephase;
 
 import com.jjg.game.poker.game.common.BasePokerGameController;
-import com.jjg.game.poker.game.common.data.PlayerSeatInfo;
 import com.jjg.game.poker.game.common.gamephase.BasePokerPhase;
 import com.jjg.game.poker.game.douxian.constant.DouXianConstant;
 import com.jjg.game.poker.game.douxian.constant.DouXianZone;
@@ -70,11 +69,8 @@ public class DouXianDealPhase extends BasePokerPhase<DouXianGameDataVo> {
             log.info("斗仙牌回合开始金币快照 round:{} playerId:{} balance:{}", round, playerId, balance);
         }
 
-        for (PlayerSeatInfo seatInfo : gameDataVo.getPlayerSeatInfoList()) {
-            if (seatInfo.isDelState()) {
-                continue;
-            }
-            long playerId = seatInfo.getPlayerId();
+        // 认输玩家仍保留座位用于最终结算，但不能再参与后续回合的补牌。
+        for (Long playerId : gameDataVo.getActivePlayerIds()) {
             List<Integer> hand = gameDataVo.getHandCards().computeIfAbsent(playerId, k -> new ArrayList<>());
             int need = DouXianConstant.Common.HAND_CARD_NUM - hand.size();
             List<Integer> drawn = need > 0 ? DouXianDataHelper.drawCards(gameDataVo, need) : List.of();
