@@ -206,6 +206,9 @@ public interface Code {
     //联盟建筑加速:对方今日被帮助次数已达上限
     int ALLIANCE_HELPED_LIMIT = 4010040;
 
+    // 建筑求助分享上限
+    int BUILDING_SHARE_LIMIT = 4056184;
+
     //人数已满
     int PEOPLE_FULL = 4056011;
     //当日已达任务次数上限

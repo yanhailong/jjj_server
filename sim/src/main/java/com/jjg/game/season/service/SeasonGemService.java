@@ -26,6 +26,7 @@ import java.util.ArrayList;
 import java.util.Collections;
 import java.util.Comparator;
 import java.util.HashMap;
+import java.util.LinkedHashMap;
 import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Map;
@@ -122,7 +123,7 @@ public class SeasonGemService {
      * 为赛季 slots 会话生成宝石效果快照。
      *
      * <p>只使用与当前 {@code gameType} 匹配的已镶嵌宝石。同一种宝石可以镶嵌在多个槽位，
-     * 因此概率权重按槽位逐个累加；下注额属于“解锁”语义，只保留去重后的并集。</p>
+     * 因此概率权重按槽位逐个累加；下注额按每行三个槽位内相同宝石数量解锁，最后取去重并集。</p>
      */
     public SeasonSlotsSessionData buildSlotsSessionData(SeasonPlayerData data, int gameType) {
         SeasonSlotsSessionData result = new SeasonSlotsSessionData();
@@ -135,6 +136,7 @@ public class SeasonGemService {
         }
 
         LinkedHashSet<Long> unlockedBets = new LinkedHashSet<>();
+        Map<Integer, Map<Integer, Integer>> betGemCountsByRow = new LinkedHashMap<>();
         Map<Integer, Integer> libTypeWeightDelta = new HashMap<>();
         Map<Integer, Map<Integer, Integer>> sectionWeightDelta = new HashMap<>();
 
@@ -146,13 +148,29 @@ public class SeasonGemService {
                     if (cfg == null || cfg.getGameID() != gameType) {
                         return;
                     }
-                    if (cfg.getBet() != null) {
-                        cfg.getBet().stream().filter(Objects::nonNull).forEach(unlockedBets::add);
-                    }
+                    int row = (entry.getKey() - 1) / SLOTS_PER_TYPE;
+                    betGemCountsByRow.computeIfAbsent(row, ignored -> new LinkedHashMap<>())
+                            .merge(entry.getValue(), 1, Integer::sum);
                     mergeDelta(libTypeWeightDelta, cfg.getSpecialMode());
                     mergeSectionDelta(sectionWeightDelta, cfg.getWinRate());
                     mergeSectionDelta(sectionWeightDelta, cfg.getSpecialModeProbUp());
                 });
+
+        betGemCountsByRow.values().forEach(gemCounts ->
+                gemCounts.forEach((itemId, count) -> {
+                    SeasonGemCfg cfg = configService.gemByItemId(itemId);
+                    if (cfg == null) {
+                        return;
+                    }
+                    Map<Integer, List<Long>> betByCount = cfg.getBet();
+                    if (betByCount == null) {
+                        return;
+                    }
+                    List<Long> bets = betByCount.get(count);
+                    if (bets != null) {
+                        bets.stream().filter(Objects::nonNull).forEach(unlockedBets::add);
+                    }
+                }));
 
         result.setBet(new ArrayList<>(unlockedBets));
         result.setLibTypeWeightDelta(libTypeWeightDelta);
