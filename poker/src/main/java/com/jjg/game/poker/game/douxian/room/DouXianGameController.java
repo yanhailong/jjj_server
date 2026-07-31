@@ -199,6 +199,22 @@ public class DouXianGameController extends BasePokerGameController<DouXianGameDa
         }
     }
 
+    /**
+     * 客户端重新打开斗仙牌界面时走的是 ReqPokerRoomBaseInfo，而不是房间层的 reconnect。
+     * 因此这里也要取消托管，否则玩家离开界面期间进入托管后，重新进入仍会被跨回合自动摆牌，
+     * 表现为刚返回就连续跳过当前回合。
+     */
+    @Override
+    public void respRoomInitInfo(PlayerController playerController) {
+        long playerId = playerController.playerId();
+        boolean wasHosting = clearHostingState(playerId, false);
+        super.respRoomInitInfo(playerController);
+        if (wasHosting) {
+            broadcastHostingState(playerId, false);
+            log.info("斗仙牌玩家重新进入房间自动取消托管 playerId:{} phase:{}", playerId, getCurrentGamePhase());
+        }
+    }
+
     @Override
     public void respRoomInitInfoAction(PlayerController playerController) {
         long viewerId = playerController.playerId();
