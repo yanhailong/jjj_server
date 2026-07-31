@@ -117,12 +117,10 @@ public class SimGuestService implements SimPlayerTickListener, ItemListener, Sim
         }
 
         for (int guideId : configCache.getGenGuestGuideSet()) {
-            int groupId = guideConfigService.groupOfGuide(guideId);
-            if (groupId > 0 && (simBaseData.hasTriggeredGuideGroup(groupId) || simBaseData.hasCompletedGuideGroup(groupId))) {
+            if(simBaseData.hasCompletedGuideId(guideId)){
                 return true;
             }
         }
-        System.out.println(111);
         return false;
     }
 

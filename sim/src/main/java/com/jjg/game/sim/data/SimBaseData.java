@@ -124,6 +124,13 @@ public class SimBaseData extends AbstractData {
         return result;
     }
 
+    public boolean hasCompletedGuideId(int guideId) {
+        if(completedGuideIds == null || completedGuideIds.isEmpty()){
+            return false;
+        }
+        return completedGuideIds.contains(guideId);
+    }
+
     public boolean triggerGuideGroup(int groupId) {
         if (groupId <= 0 || getCompletedGuideGroupIds().contains(groupId)) return false;
         getScenePendingGuideGroupIds().remove(groupId);
