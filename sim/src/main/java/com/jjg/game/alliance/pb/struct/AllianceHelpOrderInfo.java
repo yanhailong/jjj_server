@@ -32,6 +32,6 @@ public class AllianceHelpOrderInfo {
     public long createTime;
     @ProtoDesc("我是否已帮助过该单")
     public boolean myHelped;
-    @ProtoDesc("结束时间(ms)")
+    @ProtoDesc("结束时间(ms): 建筑加速为建筑升级 CD 结束时间")
     public long endTime;
 }

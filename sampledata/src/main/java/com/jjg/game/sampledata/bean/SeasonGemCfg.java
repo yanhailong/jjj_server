@@ -24,7 +24,7 @@ public class SeasonGemCfg extends BaseCfgBean {
   /** 属性提升 */
   protected int StatBoost;
   /** 金额解锁 */
-  protected List<Long> bet;
+  protected Map<Integer,List<Long>> bet;
   /** 游戏ID */
   protected int gameID;
   /** 道具ID */
@@ -49,7 +49,7 @@ public class SeasonGemCfg extends BaseCfgBean {
   }
 
   /** 返回金额解锁 */
-  public List<Long> getBet() {
+  public Map<Integer,List<Long>> getBet() {
     return bet;
   }
 

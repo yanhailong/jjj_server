@@ -21,8 +21,11 @@ import com.jjg.game.core.data.Player;
 import com.jjg.game.core.manager.SnowflakeManager;
 import com.jjg.game.core.service.CorePlayerService;
 import com.jjg.game.sampledata.GameDataManager;
+import com.jjg.game.sampledata.bean.BuildingAreaTableCfg;
 import com.jjg.game.sampledata.bean.GlobalConfigCfg;
+import com.jjg.game.sim.dao.SimCasinoDao;
 import com.jjg.game.sim.data.BuildingData;
+import com.jjg.game.sim.data.SimCasinoData;
 import com.jjg.game.sim.data.SimPlayerContext;
 import com.jjg.game.sim.manager.SimPlayerContextRegistry;
 import com.jjg.game.sim.service.SimConfigCacheService;
@@ -86,6 +89,8 @@ public class AllianceHelpService {
     private CorePlayerService corePlayerService;
     @Autowired
     private SimPlayerContextRegistry simPlayerContextRegistry;
+    @Autowired
+    private SimCasinoDao simCasinoDao;
 
     // =====================================================================
     // 求助
@@ -135,7 +140,8 @@ public class AllianceHelpService {
         } else {
             //目标必须是本人正在升级CD中的建筑: 否则帮助只会累计到一个不会被消费的 key,
             //白扣帮助者次数且无任何效果
-            if (!upgradingBuilding(playerId, targetId)) {
+            BuildingData building = findBuildingData(playerId, targetId);
+            if (building == null || !building.isUpgrading(System.currentTimeMillis())) {
                 res.code = Code.NOT_FOUND;
                 log.warn("发起联盟求助失败,目标建筑不在升级CD中 playerId={},targetId={}", playerId, targetId);
                 return res;
@@ -146,7 +152,7 @@ public class AllianceHelpService {
         //同目标重复求助拦截 (扫当前订单, 订单量有界)
         for (AllianceHelpOrder order : alliance.getHelpOrders().values()) {
             if (order.getOwnerId() == playerId && order.getType() == type && order.getTargetId() == targetId) {
-                res.code = Code.REPEAT_OP;
+                res.code = Code.BUILDING_SHARE_LIMIT;
                 log.warn("发起联盟求助失败,同目标已有求助订单 playerId={},type={},targetId={},orderId={}", playerId, type, targetId, order.getOrderId());
                 return res;
             }
@@ -176,7 +182,8 @@ public class AllianceHelpService {
                 String.valueOf(order.getOrderId()));
 
         Player self = corePlayerService.get(playerId);
-        res.order = AlliancePbConverter.toHelpOrderInfo(order, self == null ? "" : self.getNickName(), playerId);
+        res.order = AlliancePbConverter.toHelpOrderInfo(order, self == null ? "" : self.getNickName(), playerId,
+                helpOrderEndTime(order));
         AlliancePlayerData latest = alliancePlayerDao.getOrEmpty(playerId);
         int latestSeeked = speedup ? latest.speedupSeekCountOf(today) : latest.seekHelpCountOf(today);
         res.remainSeek = Math.max(0, seekLimit - latestSeeked);
@@ -362,12 +369,13 @@ public class AllianceHelpService {
         AllianceHelpOrder view = snapshotAfterHelp(order, helperId, helpTime);
         Player owner = corePlayerService.get(view.getOwnerId());
         String ownerNick = owner == null ? "" : owner.getNickName();
+        long endTime = helpOrderEndTime(view);
         for (Long memberId : alliance.getMembers().keySet()) {
             if (memberId == null) {
                 continue;
             }
             ResGetHelpInfo res = new ResGetHelpInfo(Code.SUCCESS);
-            res.helpOrderInfo = AlliancePbConverter.toHelpOrderInfo(view, ownerNick, memberId);
+            res.helpOrderInfo = AlliancePbConverter.toHelpOrderInfo(view, ownerNick, memberId, endTime);
             socialSender.sendTo(memberId, res);
         }
     }
@@ -415,12 +423,12 @@ public class AllianceHelpService {
             res.code = Code.NOT_FOUND;
             res.helpOrderInfo = new AllianceHelpOrderInfo();
             res.helpOrderInfo.orderId = orderId;
-            log.warn("获取求助信息失败，未找到求助信息 playerId={},allianceId={}", playerId, allianceId);
+            log.warn("获取求助信息失败，未找到求助信息 playerId={},allianceId={},orderId={}", playerId, allianceId,orderId);
             return res;
         }
         Player owner = corePlayerService.get(order.getOwnerId());
         res.helpOrderInfo = AlliancePbConverter.toHelpOrderInfo(order,
-                owner == null ? "" : owner.getNickName(), playerId);
+                owner == null ? "" : owner.getNickName(), playerId, helpOrderEndTime(order));
         return res;
     }
 
@@ -463,7 +471,7 @@ public class AllianceHelpService {
         for (AllianceHelpOrder order : valid) {
             Player owner = playerMap.get(order.getOwnerId());
             res.orders.add(AlliancePbConverter.toHelpOrderInfo(order,
-                    owner == null ? "" : owner.getNickName(), playerId));
+                    owner == null ? "" : owner.getNickName(), playerId, helpOrderEndTime(order)));
         }
 
         AlliancePlayerData playerData = alliancePlayerDao.getOrEmpty(playerId);
@@ -520,17 +528,30 @@ public class AllianceHelpService {
         }
     }
 
-    /**
-     * 目标建筑是否处于升级 CD。发起求助必然在求助者自己的节点执行, ctx 在本地;
-     * 取不到 ctx/场景时放行, 不误伤。
-     */
-    private boolean upgradingBuilding(long playerId, int buildingId) {
-        SimPlayerContext ctx = simPlayerContextRegistry.getContext(playerId);
-        if (ctx == null || ctx.getCurrentCasino() == null) {
-            return true;
+    private long helpOrderEndTime(AllianceHelpOrder order) {
+        if (order.getType() != AllianceConst.HelpType.BUILD_SPEEDUP) {
+            return order.getCreateTime() + AllianceConst.Cfg.HELP_ORDER_VALID_MILLS;
         }
-        BuildingData building = ctx.getCurrentCasino().findBuilding(buildingId);
-        return building != null && building.isUpgrading(System.currentTimeMillis());
+        BuildingData building = findBuildingData(order.getOwnerId(), (int) order.getTargetId());
+        return building == null ? 0 : building.getCdEndTime();
+    }
+
+    /**
+     * 按建筑配置所属场景定位 BuildingData。本地在线玩家优先读内存态，
+     * 目标场景未在本地加载时读持久化场景。
+     */
+    private BuildingData findBuildingData(long playerId, int buildingId) {
+        BuildingAreaTableCfg cfg = GameDataManager.getBuildingAreaTableCfg(buildingId);
+        if (cfg == null) {
+            return null;
+        }
+        SimPlayerContext ctx = simPlayerContextRegistry.getContext(playerId);
+        if (ctx != null && ctx.getCurrentCasino() != null
+                && ctx.getCurrentCasino().getCasinoId() == cfg.getRegionID()) {
+            return ctx.getCurrentCasino().findBuilding(buildingId);
+        }
+        SimCasinoData casino = simCasinoDao.findOne(playerId, cfg.getRegionID());
+        return casino == null ? null : casino.findBuilding(buildingId);
     }
 
     private boolean expired(AllianceHelpOrder order, long now) {
