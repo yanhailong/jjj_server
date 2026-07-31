@@ -132,6 +132,11 @@ public class AllianceEventService implements ItemConsumeListener {
                 buildingId, 0, level, 1, 0, false));
     }
 
+    public void onBuildingLevel(long playerId, int buildingId, int level) {
+        onSimOperation(playerId, new ActionConditionEvent(ActionConditionEvent.Type.BUILDING_LEVEL,
+                buildingId, 0, level, 1, 0, false));
+    }
+
     public void onCardPoolDraw(long playerId, int poolId, long count) {
         onConditionEvent(playerId, new ActionConditionEvent(ActionConditionEvent.Type.CARD_POOL_DRAW,
                 poolId, 0, 0, count, 0, false));

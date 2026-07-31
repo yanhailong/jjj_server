@@ -16,6 +16,7 @@ import java.util.Map;
 public class PlayerStatService {
     private static final Logger log = LoggerFactory.getLogger(PlayerStatService.class);
 
+    public static final int BUILDING_LEVEL = 12207;
     public static final int SLOT_ITEM = 12251;
     public static final int BIG_SHOW = 12252;
     public static final int JACKPOT = 12253;
@@ -48,7 +49,8 @@ public class PlayerStatService {
     }
 
     public static boolean supports(int conditionId) {
-        return conditionId >= SLOT_ITEM && conditionId <= SLOT_BET && conditionId != 12258;
+        return conditionId == BUILDING_LEVEL
+                || conditionId >= SLOT_ITEM && conditionId <= SLOT_BET && conditionId != 12258;
     }
 
     public static boolean recorded(int conditionId) {
