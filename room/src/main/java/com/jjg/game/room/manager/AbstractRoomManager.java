@@ -456,27 +456,37 @@ public abstract class AbstractRoomManager implements ApplicationContextAware, Co
                         playerController.getPlayer().getGameType(), playerController.roomId(), playerController.playerId());
                 return;
             }
-            Map<Long, RoomPlayer> roomPlayers = roomController.getRoom().getRoomPlayers();
-            RoomPlayer roomPlayer = roomPlayers.get(playerController.playerId());
-            if (Objects.isNull(roomPlayer)) {
-                log.warn("掉线退出房间失败，该用户数据不存在 gameType = {},roomId = {},playerId = {}",
-                        playerController.getPlayer().getGameType(), playerController.roomId(), playerController.playerId());
-                return;
+            synchronized (roomController) {
+                // 快速重连时，新会话可能已经替换了房间中的 PlayerController，旧会话的 sessionClose 才姗姗来迟。
+                // 旧回调不能再保存旧数据或把 RoomPlayer.online 改回 false，否则会破坏刚完成的重连。
+                PlayerController currentPlayerController = roomController.getPlayerController(playerController.playerId());
+                if (currentPlayerController != playerController) {
+                    log.info("忽略已被新会话接管的旧掉线回调 gameType = {},roomId = {},playerId = {}",
+                            playerController.getPlayer().getGameType(), playerController.roomId(), playerController.playerId());
+                    return;
+                }
+                Map<Long, RoomPlayer> roomPlayers = roomController.getRoom().getRoomPlayers();
+                RoomPlayer roomPlayer = roomPlayers.get(playerController.playerId());
+                if (Objects.isNull(roomPlayer)) {
+                    log.warn("掉线退出房间失败，该用户数据不存在 gameType = {},roomId = {},playerId = {}",
+                            playerController.getPlayer().getGameType(), playerController.roomId(), playerController.playerId());
+                    return;
+                }
+                GamePlayer gamePlayer = roomController.getGameController().getGamePlayer(playerController.playerId());
+                if (gamePlayer == null) {
+                    log.warn("掉线退出房间失败，该用户游戏数据不存在 gameType = {},roomId = {},playerId = {}",
+                            playerController.getPlayer().getGameType(), playerController.roomId(), playerController.playerId());
+                    return;
+                }
+                // 房间断线逻辑
+                roomController.disconnected(playerController);
+                //掉线时回存一次
+                roomController.getGameController().directlySavePlayerData(gamePlayer, true);
+                taskManager.saveTask(playerController.playerId());
+                //更新在线状态
+                roomController.updateRoomPlayer(playerController.getPlayer().getGameType(), playerController.roomId(), playerController.playerId(),
+                        (newRoomPlayer) -> newRoomPlayer.setOnline(false));
             }
-            GamePlayer gamePlayer = roomController.getGameController().getGamePlayer(playerController.playerId());
-            if (gamePlayer == null) {
-                log.warn("掉线退出房间失败，该用户游戏数据不存在 gameType = {},roomId = {},playerId = {}",
-                        playerController.getPlayer().getGameType(), playerController.roomId(), playerController.playerId());
-                return;
-            }
-            // 房间断线逻辑
-            roomController.disconnected(playerController);
-            //掉线时回存一次
-            roomController.getGameController().directlySavePlayerData(gamePlayer, true);
-            taskManager.saveTask(playerController.playerId());
-            //更新在线状态
-            roomController.updateRoomPlayer(playerController.getPlayer().getGameType(), playerController.roomId(), playerController.playerId(),
-                    (newRoomPlayer) -> newRoomPlayer.setOnline(false));
         } catch (Exception e) {
             log.error("掉线退出时异常：{}", e.getMessage(), e);
         }

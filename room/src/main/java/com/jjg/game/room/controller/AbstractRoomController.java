@@ -130,7 +130,7 @@ public abstract class AbstractRoomController<RC extends RoomCfg, R extends Room>
      *
      * @param reconnect 重连标识
      */
-    public CommonResult<R> joinRoom(PlayerController playerController, AtomicBoolean reconnect) {
+    public synchronized CommonResult<R> joinRoom(PlayerController playerController, AtomicBoolean reconnect) {
         CommonResult<R> result = new CommonResult<>(Code.SUCCESS);
         try {
             //检查玩家在不在房间
@@ -156,11 +156,16 @@ public abstract class AbstractRoomController<RC extends RoomCfg, R extends Room>
                 updateRoomPlayer(room.getGameType(), room.getId(), playerController.playerId(), (newRoomPlayer) -> newRoomPlayer.setOnline(true));
                 reconnect.set(true);
             } else {
-                log.error("玩家已经在房间中 roomId = {},playerId = {}", room.getId(), playerController.playerId());
                 if (playerController.isRobotPlayer()) {
+                    log.error("机器人已经在房间中 roomId = {},playerId = {}", room.getId(), playerController.playerId());
                     result.code = Code.REPEAT_JOIN_ROOM;
                     return result;
                 }
+                // 真人快速重连时，新连接可能先于旧连接的异步 sessionClose 到达。
+                // 此时 RoomPlayer.online 仍为 true，但必须复用原 GamePlayer，不能按新玩家覆盖局内手牌和阶段数据。
+                reconnect.set(true);
+                log.info("玩家新会话接管房间，按断线重连处理 roomId = {},playerId = {}",
+                        room.getId(), playerController.playerId());
             }
             gameController.onPlayerJoinRoom(playerController, reconnect);
             playerControllers.put(playerController.playerId(), playerController);
