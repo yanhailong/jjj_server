@@ -1,6 +1,7 @@
 package com.jjg.game.sim.constant;
 
 import com.jjg.game.common.constant.MessageConst;
+import com.jjg.game.core.constant.GameConstant;
 
 /**
  * @author 11
@@ -342,7 +343,7 @@ public interface SimConstant {
         //加速卡
         int ID_CLEAR_CD = 1024007;
         //赛季币
-        int ID_SEASON_COIN = 1960000;
+        int ID_SEASON_COIN = GameConstant.Item.ID_SEASON_COIN;
 
         //联盟-声誉值
         int ID_ALLIANCE_REPUTATION = 1024011;

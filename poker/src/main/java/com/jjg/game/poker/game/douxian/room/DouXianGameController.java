@@ -4,6 +4,7 @@ import com.jjg.game.common.utils.CommonUtil;
 import com.jjg.game.core.constant.AddType;
 import com.jjg.game.core.constant.Code;
 import com.jjg.game.core.constant.EGameType;
+import com.jjg.game.core.constant.GameConstant;
 import com.jjg.game.core.data.CommonResult;
 import com.jjg.game.core.data.PlayerController;
 import com.jjg.game.core.data.Room;
@@ -99,17 +100,42 @@ public class DouXianGameController extends BasePokerGameController<DouXianGameDa
 
     @Override
     public long getTransactionItemNum(long playerId) {
+        if (!isSeasonCurrencyRoom()) {
+            return super.getTransactionItemNum(playerId);
+        }
+        GamePlayer gamePlayer = getGamePlayer(playerId);
+        if (gamePlayer instanceof GameRobotPlayer) {
+            return gamePlayer.getGold();
+        }
         PokerSeasonAccount account = seasonAccounts.get(playerId);
-        return account == null ? super.getTransactionItemNum(playerId) : account.getBalance();
+        if (account == null) {
+            log.error("斗仙牌赛季币账户未绑定，拒绝回退普通货币余额 playerId:{} roomCfgId:{}",
+                    playerId, gameDataVo.getRoomCfg().getId());
+            return 0;
+        }
+        return account.getBalance();
     }
 
     @Override
     public int deductItem(long playerId, long num, AddType deductType, String desc, boolean isNotify) {
-        PokerSeasonAccount account = seasonAccounts.get(playerId);
-        if (account == null) {
+        if (!isSeasonCurrencyRoom()) {
             return super.deductItem(playerId, num, deductType, desc, isNotify);
         }
         if (num <= 0) {
+            return Code.FAIL;
+        }
+        GamePlayer gamePlayer = getGamePlayer(playerId);
+        if (gamePlayer instanceof GameRobotPlayer) {
+            if (gamePlayer.getGold() < num) {
+                return Code.NOT_ENOUGH;
+            }
+            gamePlayer.setGold(gamePlayer.getGold() - num);
+            return Code.SUCCESS;
+        }
+        PokerSeasonAccount account = seasonAccounts.get(playerId);
+        if (account == null) {
+            log.error("斗仙牌赛季币账户未绑定，拒绝扣款 playerId:{} amount:{} roomCfgId:{}",
+                    playerId, num, gameDataVo.getRoomCfg().getId());
             return Code.FAIL;
         }
         CommonResult<Long> result = getPokerRPCLinkManager().deductSeasonCoin(account, num);
@@ -120,11 +146,22 @@ public class DouXianGameController extends BasePokerGameController<DouXianGameDa
 
     @Override
     public int addItem(long playerId, long num, AddType addType, String desc, boolean isNotify) {
-        PokerSeasonAccount account = seasonAccounts.get(playerId);
-        if (account == null) {
+        if (!isSeasonCurrencyRoom()) {
             return super.addItem(playerId, num, addType, desc, isNotify);
         }
         if (playerId <= 0 || num <= 0) {
+            return Code.FAIL;
+        }
+        GamePlayer gamePlayer = getGamePlayer(playerId);
+        if (gamePlayer instanceof GameRobotPlayer) {
+            long balance = gamePlayer.getGold();
+            gamePlayer.setGold(num > Long.MAX_VALUE - balance ? Long.MAX_VALUE : balance + num);
+            return Code.SUCCESS;
+        }
+        PokerSeasonAccount account = seasonAccounts.get(playerId);
+        if (account == null) {
+            log.error("斗仙牌赛季币账户未绑定，拒绝加款 playerId:{} amount:{} roomCfgId:{}",
+                    playerId, num, gameDataVo.getRoomCfg().getId());
             return Code.FAIL;
         }
         CommonResult<Long> result = getPokerRPCLinkManager().addSeasonCoin(account, num);
@@ -134,7 +171,11 @@ public class DouXianGameController extends BasePokerGameController<DouXianGameDa
     }
 
     public boolean isSeasonCurrencyPlayer(long playerId) {
-        return seasonAccounts.containsKey(playerId);
+        return isSeasonCurrencyRoom() && !(getGamePlayer(playerId) instanceof GameRobotPlayer);
+    }
+
+    private boolean isSeasonCurrencyRoom() {
+        return getGameTransactionItemId() == GameConstant.Item.ID_SEASON_COIN;
     }
 
     /**
@@ -171,6 +212,10 @@ public class DouXianGameController extends BasePokerGameController<DouXianGameDa
     }
 
     private void bindSeasonAccount(PlayerController playerController) {
+        if (!isSeasonCurrencyRoom()) {
+            seasonAccounts.remove(playerController.playerId());
+            return;
+        }
         PokerSeasonAccount account = getPokerRPCLinkManager().bindSeasonAccount(
                 playerController.playerId(), playerController.ipAddress());
         if (account == null) {
@@ -183,15 +228,19 @@ public class DouXianGameController extends BasePokerGameController<DouXianGameDa
     @Override
     public void reconnect(PlayerController playerController) {
         long playerId = playerController.playerId();
-        PokerSeasonAccount account = seasonAccounts.get(playerId);
-        if (account == null) {
-            bindSeasonAccount(playerController);
-        } else {
-            CommonResult<Long> refreshResult = getPokerRPCLinkManager()
-                    .refreshSeasonCoin(account, playerController.ipAddress());
-            if (!refreshResult.success()) {
-                log.warn("斗仙牌赛季玩家重连刷新余额失败 playerId:{} code:{}", playerId, refreshResult.code);
+        if (isSeasonCurrencyRoom()) {
+            PokerSeasonAccount account = seasonAccounts.get(playerId);
+            if (account == null) {
+                bindSeasonAccount(playerController);
+            } else {
+                CommonResult<Long> refreshResult = getPokerRPCLinkManager()
+                        .refreshSeasonCoin(account, playerController.ipAddress());
+                if (!refreshResult.success()) {
+                    log.warn("斗仙牌赛季玩家重连刷新余额失败 playerId:{} code:{}", playerId, refreshResult.code);
+                }
             }
+        } else {
+            seasonAccounts.remove(playerId);
         }
         boolean wasHosting = clearHostingState(playerId, false);
         super.reconnect(playerController);

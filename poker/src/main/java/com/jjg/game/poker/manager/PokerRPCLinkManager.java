@@ -7,8 +7,6 @@ import com.jjg.game.common.rpc.GameRpcContext;
 import com.jjg.game.common.rpc.RpcReqParameterBuilder;
 import com.jjg.game.core.constant.Code;
 import com.jjg.game.core.data.CommonResult;
-import com.jjg.game.core.data.PlayerSessionInfo;
-import com.jjg.game.core.service.PlayerSessionService;
 import com.jjg.game.sim.bridge.ToSimBridge;
 import com.jjg.game.sim.service.SimNodeService;
 import org.slf4j.Logger;
@@ -31,18 +29,12 @@ public class PokerRPCLinkManager {
     private ClusterSystem clusterSystem;
     @Autowired
     private SimNodeService simNodeService;
-    @Autowired
-    private PlayerSessionService playerSessionService;
 
     /**
-     * 赛季入口创建账户并同步余额；普通入口返回null。
-     * SIM不可达时仍返回零余额赛季账户，避免错误回退为金币。
+     * 为已确认使用赛季币的房间创建账户并同步余额。
+     * 是否使用赛季币由调用方根据房间交易道具判断；SIM不可达时仍返回零余额账户，避免错误回退为金币。
      */
     public PokerSeasonAccount bindSeasonAccount(long playerId, String ip) {
-        PlayerSessionInfo sessionInfo = playerSessionService.getInfo(playerId);
-        if (sessionInfo == null || sessionInfo.getEnterType() != 1) {
-            return null;
-        }
         PokerSeasonAccount account = new PokerSeasonAccount(playerId, ip);
         CommonResult<Long> result = getSeasonCoin(account);
         if (result.success() && result.data != null) {
