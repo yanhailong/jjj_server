@@ -39,6 +39,7 @@ import com.jjg.game.poker.game.douxian.message.resp.NotifyDouXianConfirmResult;
 import com.jjg.game.poker.game.douxian.message.resp.NotifyDouXianDiscardResult;
 import com.jjg.game.poker.game.douxian.message.resp.NotifyDouXianGrandSettlement;
 import com.jjg.game.poker.game.douxian.message.resp.NotifyDouXianHostingState;
+import com.jjg.game.poker.game.douxian.message.resp.NotifyDouXianMatchState;
 import com.jjg.game.poker.game.douxian.message.resp.NotifyDouXianPlaceCardResult;
 import com.jjg.game.poker.game.douxian.message.resp.NotifyDouXianPlayerReady;
 import com.jjg.game.poker.game.douxian.message.resp.NotifyDouXianRecharge;
@@ -242,6 +243,11 @@ public class DouXianGameController extends BasePokerGameController<DouXianGameDa
         }
         baseInfo.overTime = gameDataVo.getPhaseEndTime();
         baseInfo.betBase = gameDataVo.getRoomCfg().getBetBase();
+        baseInfo.matchState = gameDataVo.getMatchState();
+        baseInfo.matchEndTime = gameDataVo.getMatchState() == DouXianConstant.MatchState.MATCHING
+                ? gameDataVo.getMatchEndTime() : 0;
+        baseInfo.matchPlayerNum = getMatchPlayerNum();
+        baseInfo.matchMaxPlayerNum = DouXianConstant.Common.PLAYER_NUM;
         ImmortalCardCfg cardCfg = DouXianDataHelper.getImmortalCardCfg(gameDataVo);
         if (cardCfg != null) {
             baseInfo.minWinLimit = cardCfg.getWinLoss();
@@ -261,6 +267,9 @@ public class DouXianGameController extends BasePokerGameController<DouXianGameDa
         if (getCurrentGamePhase() != EGamePhase.WAIT_READY) {
             return false;
         }
+        if (gameDataVo.getMatchState() != DouXianConstant.MatchState.MATCHING) {
+            return false;
+        }
         // 给还没准备、还没安排过自动准备调度的机器人补一个调度，人齐之前/每局结束重置之后都会重新触发
         for (SeatInfo seatInfo : gameDataVo.getSeatInfo().values()) {
             if (!seatInfo.isSeatDown()) {
@@ -275,7 +284,7 @@ public class DouXianGameController extends BasePokerGameController<DouXianGameDa
                 scheduleRobotReady(robotPlayer);
             }
         }
-        if (!gameDataVo.canStartGame()) {
+        if (getMatchPlayerNum() != DouXianConstant.Common.PLAYER_NUM) {
             return false;
         }
         for (SeatInfo seatInfo : gameDataVo.getSeatInfo().values()) {
@@ -283,6 +292,7 @@ public class DouXianGameController extends BasePokerGameController<DouXianGameDa
                 return false;
             }
         }
+        completeMatching();
         genPlayerSeatInfoList(gameDataVo.getSeatInfo(), gameDataVo.getPlayerSeatInfoList());
         DouXianDataHelper.shuffleNewDeck(gameDataVo);
         // 开局前携带金币快照，DESIGN.md 6.2 "小额玩家保护"判定依据之一
@@ -336,15 +346,26 @@ public class DouXianGameController extends BasePokerGameController<DouXianGameDa
             return;
         }
         if (req.status == 1) {
+            GamePlayer gamePlayer = gameDataVo.getGamePlayer(playerId);
+            if (!(gamePlayer instanceof GameRobotPlayer)) {
+                startMatching();
+            }
             if (gameDataVo.getReadyPlayerIds().add(playerId)) {
                 broadcastReadyState(playerId, 1);
                 log.info("斗仙牌玩家准备 playerId:{}", playerId);
-                tryStartGame();
             }
+            tryStartGame();
         } else {
             if (gameDataVo.getReadyPlayerIds().remove(playerId)) {
                 broadcastReadyState(playerId, 2);
                 log.info("斗仙牌玩家取消准备 playerId:{}", playerId);
+            }
+            if (gameDataVo.getMatchState() == DouXianConstant.MatchState.MATCHING) {
+                if (hasReadyRealPlayer()) {
+                    broadcastMatchState();
+                } else {
+                    cancelMatching();
+                }
             }
         }
     }
@@ -354,6 +375,107 @@ public class DouXianGameController extends BasePokerGameController<DouXianGameDa
         notify.playerId = playerId;
         notify.status = status;
         broadcastToPlayers(RoomMessageBuilder.newBuilder().toAllPlayer().setData(notify));
+    }
+
+    private void startMatching() {
+        if (gameDataVo.getMatchState() == DouXianConstant.MatchState.MATCHING) {
+            return;
+        }
+        long now = System.currentTimeMillis();
+        gameDataVo.setMatchState(DouXianConstant.MatchState.MATCHING);
+        gameDataVo.setMatchEndTime(now + DouXianConstant.Time.MATCH_TIME);
+        gameDataVo.setMatchRobotFillTime(now + DouXianConstant.Time.MATCH_ROBOT_FILL_TIME);
+        broadcastMatchState();
+        log.info("斗仙牌开始匹配 roomId:{} currentPlayerNum:{} maxPlayerNum:{} endTime:{}",
+                getRoom().getId(), getMatchPlayerNum(), DouXianConstant.Common.PLAYER_NUM, gameDataVo.getMatchEndTime());
+    }
+
+    private void completeMatching() {
+        gameDataVo.setMatchState(DouXianConstant.MatchState.SUCCESS);
+        gameDataVo.setMatchEndTime(0);
+        gameDataVo.setMatchRobotFillTime(0);
+        broadcastMatchState();
+        log.info("斗仙牌匹配成功 roomId:{} playerNum:{}", getRoom().getId(), getMatchPlayerNum());
+    }
+
+    private void cancelMatching() {
+        gameDataVo.setMatchState(DouXianConstant.MatchState.IDLE);
+        gameDataVo.setMatchEndTime(0);
+        gameDataVo.setMatchRobotFillTime(0);
+        broadcastMatchState();
+        recycleWaitingRobots();
+        log.info("斗仙牌取消匹配 roomId:{}", getRoom().getId());
+    }
+
+    private void recycleWaitingRobots() {
+        List<PlayerController> robotControllers = new ArrayList<>();
+        for (SeatInfo seatInfo : gameDataVo.getSeatInfo().values()) {
+            GamePlayer gamePlayer = gameDataVo.getGamePlayer(seatInfo.getPlayerId());
+            if (!(gamePlayer instanceof GameRobotPlayer)) {
+                continue;
+            }
+            PlayerController playerController = getRoomController().getPlayerController(seatInfo.getPlayerId());
+            if (playerController != null) {
+                robotControllers.add(playerController);
+            }
+        }
+        if (!robotControllers.isEmpty()) {
+            getRoomController().getRoomManager().robotPlayerExitRoom(robotControllers);
+        }
+    }
+
+    private void broadcastMatchState() {
+        NotifyDouXianMatchState notify = new NotifyDouXianMatchState();
+        notify.state = gameDataVo.getMatchState();
+        notify.endTime = notify.state == DouXianConstant.MatchState.MATCHING ? gameDataVo.getMatchEndTime() : 0;
+        notify.currentPlayerNum = getMatchPlayerNum();
+        notify.maxPlayerNum = DouXianConstant.Common.PLAYER_NUM;
+        broadcastToPlayers(RoomMessageBuilder.newBuilder().toAllPlayer().setData(notify));
+    }
+
+    private int getMatchPlayerNum() {
+        return (int) gameDataVo.getSeatInfo().values().stream().filter(SeatInfo::isSeatDown).count();
+    }
+
+    private boolean hasReadyRealPlayer() {
+        for (SeatInfo seatInfo : gameDataVo.getSeatInfo().values()) {
+            long readyPlayerId = seatInfo.getPlayerId();
+            if (!seatInfo.isSeatDown() || !gameDataVo.getReadyPlayerIds().contains(readyPlayerId)) {
+                continue;
+            }
+            GamePlayer gamePlayer = gameDataVo.getGamePlayer(readyPlayerId);
+            RoomPlayer roomPlayer = getRoomController().getRoomPlayer(readyPlayerId);
+            if (!(gamePlayer instanceof GameRobotPlayer) && roomPlayer != null && roomPlayer.isOnline()) {
+                return true;
+            }
+        }
+        return false;
+    }
+
+    private boolean hasSeatedRealPlayer() {
+        for (SeatInfo seatInfo : gameDataVo.getSeatInfo().values()) {
+            if (seatInfo.isSeatDown()
+                    && !(gameDataVo.getGamePlayer(seatInfo.getPlayerId()) instanceof GameRobotPlayer)) {
+                return true;
+            }
+        }
+        return false;
+    }
+
+    @Override
+    public void roomTick() {
+        super.roomTick();
+        if (getCurrentGamePhase() != EGamePhase.WAIT_READY
+                || gameDataVo.getMatchState() != DouXianConstant.MatchState.MATCHING
+                || gameDataVo.getMatchEndTime() <= 0
+                || System.currentTimeMillis() < gameDataVo.getMatchEndTime()) {
+            return;
+        }
+        gameDataVo.setMatchState(DouXianConstant.MatchState.TIMEOUT);
+        gameDataVo.setMatchRobotFillTime(0);
+        broadcastMatchState();
+        recycleWaitingRobots();
+        log.info("斗仙牌匹配超时 roomId:{} currentPlayerNum:{}", getRoom().getId(), getMatchPlayerNum());
     }
 
     /**
@@ -731,11 +853,22 @@ public class DouXianGameController extends BasePokerGameController<DouXianGameDa
     }
 
     @Override
+    public void onRobotPlayerJoinRoom(PlayerController playerController, GamePlayer gamePlayer) {
+        super.onRobotPlayerJoinRoom(playerController, gamePlayer);
+        if (getCurrentGamePhase() == EGamePhase.WAIT_READY
+                && gameDataVo.getMatchState() == DouXianConstant.MatchState.MATCHING) {
+            broadcastMatchState();
+        }
+    }
+
+    @Override
     public void onPlayerLeaveRoomAction(RoomPlayer roomPlayer, SeatInfo remove) {
         seasonAccounts.remove(remove.getPlayerId());
         gameDataVo.getHandCards().remove(remove.getPlayerId());
         gameDataVo.getConfirmedPlayerIds().remove(remove.getPlayerId());
         gameDataVo.getConcededPlayerIds().remove(remove.getPlayerId());
+        gameDataVo.getReadyPlayerIds().remove(remove.getPlayerId());
+        gameDataVo.getReadyTimerScheduled().remove(remove.getPlayerId());
         gameDataVo.getHostingPlayerIds().remove(remove.getPlayerId());
         gameDataVo.getHostingCancelledPlayerIdsThisPhase().remove(remove.getPlayerId());
         GamePlayer leavingPlayer = gameDataVo.getGamePlayer(remove.getPlayerId());
@@ -744,13 +877,38 @@ public class DouXianGameController extends BasePokerGameController<DouXianGameDa
         }
         gameDataVo.getPendingSpecialRule().remove(remove.getPlayerId());
         gameDataVo.getRechargingPlayerIds().remove(remove.getPlayerId());
+        if (getCurrentGamePhase() == EGamePhase.WAIT_READY
+                && !(leavingPlayer instanceof GameRobotPlayer)
+                && !hasSeatedRealPlayer()) {
+            cancelMatching();
+        } else if (getCurrentGamePhase() == EGamePhase.WAIT_READY) {
+            if (gameDataVo.getMatchState() == DouXianConstant.MatchState.MATCHING) {
+                if (hasReadyRealPlayer()) {
+                    broadcastMatchState();
+                } else {
+                    cancelMatching();
+                }
+            } else if (gameDataVo.getMatchState() == DouXianConstant.MatchState.SUCCESS) {
+                if (hasReadyRealPlayer()) {
+                    startMatching();
+                } else {
+                    cancelMatching();
+                }
+            }
+        }
         log.info("斗仙牌玩家离开房间，已清理局内数据 playerId:{} roomCfgId:{}",
                 remove.getPlayerId(), gameDataVo.getRoomCfg().getId());
     }
 
     @Override
     public boolean canJoinRobot() {
-        return getCurrentGamePhase() == EGamePhase.WAIT_READY;
+        long now = System.currentTimeMillis();
+        return getCurrentGamePhase() == EGamePhase.WAIT_READY
+                && gameDataVo.getMatchState() == DouXianConstant.MatchState.MATCHING
+                && now >= gameDataVo.getMatchRobotFillTime()
+                && now < gameDataVo.getMatchEndTime()
+                && getMatchPlayerNum() < DouXianConstant.Common.PLAYER_NUM
+                && hasReadyRealPlayer();
     }
 
     // ------------------------------------------------------------------

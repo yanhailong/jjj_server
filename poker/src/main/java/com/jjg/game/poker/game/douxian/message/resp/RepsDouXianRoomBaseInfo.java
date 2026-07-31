@@ -31,4 +31,12 @@ public class RepsDouXianRoomBaseInfo extends AbstractNotice {
     public long maxWinLimit;
     @ProtoDesc("底分")
     public long betBase;
+    @ProtoDesc("匹配状态(0未匹配 1匹配中 2匹配成功 3匹配超时)")
+    public int matchState;
+    @ProtoDesc("匹配倒计时结束时间戳(毫秒)，非匹配中为0")
+    public long matchEndTime;
+    @ProtoDesc("当前已入座人数")
+    public int matchPlayerNum;
+    @ProtoDesc("匹配目标人数")
+    public int matchMaxPlayerNum;
 }

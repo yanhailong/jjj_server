@@ -5,6 +5,7 @@ import com.jjg.game.common.pb.AbstractNotice;
 import com.jjg.game.common.proto.ProtoDesc;
 import com.jjg.game.common.proto.ProtobufMessage;
 import com.jjg.game.poker.game.douxian.constant.DouXianConstant;
+import com.jjg.game.poker.game.common.message.bean.PokerPlayerInfo;
 import com.jjg.game.poker.game.douxian.message.bean.DouXianPairSettlementInfo;
 import com.jjg.game.poker.game.douxian.message.bean.DouXianRevealInfo;
 
@@ -22,4 +23,6 @@ public class NotifyDouXianSettlement extends AbstractNotice {
     public List<DouXianRevealInfo> playerReveals;
     @ProtoDesc("两两结算结果列表")
     public List<DouXianPairSettlementInfo> pairResults;
+    @ProtoDesc("结算完成后的玩家余额快照，前端用于牌桌金币刷新和最终校准")
+    public List<PokerPlayerInfo> playerInfos;
 }

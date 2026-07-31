@@ -3,6 +3,7 @@ package com.jjg.game.poker.game.douxian.room.data;
 import com.jjg.game.poker.game.common.BasePokerGameController;
 import com.jjg.game.poker.game.common.BasePokerGameDataVo;
 import com.jjg.game.poker.game.common.data.PlayerSeatInfo;
+import com.jjg.game.poker.game.douxian.constant.DouXianConstant;
 import com.jjg.game.poker.game.douxian.constant.DouXianZone;
 import com.jjg.game.poker.game.douxian.data.DouXianDataHelper;
 import com.jjg.game.poker.game.douxian.data.DouXianZoneCards;
@@ -98,6 +99,15 @@ public class DouXianGameDataVo extends BasePokerGameDataVo {
      */
     private final Set<Long> readyTimerScheduled = new HashSet<>();
 
+    /** Server-authoritative matchmaking state used while the room is in WAIT_READY. */
+    private int matchState = DouXianConstant.MatchState.IDLE;
+
+    /** Match countdown deadline in epoch milliseconds. */
+    private long matchEndTime;
+
+    /** Robots may start filling empty seats after this epoch-millisecond timestamp. */
+    private long matchRobotFillTime;
+
     /**
      * 玩家id -> 每回合结算后的净输赢(不含充值复活换来的金币，那是兑换不是输赢)，下标0对应
      * 该玩家参与的第1个回合，只记录实际打过结算的回合(比如认输之后就不会再有新的记录)。
@@ -172,6 +182,30 @@ public class DouXianGameDataVo extends BasePokerGameDataVo {
         return readyTimerScheduled;
     }
 
+    public int getMatchState() {
+        return matchState;
+    }
+
+    public void setMatchState(int matchState) {
+        this.matchState = matchState;
+    }
+
+    public long getMatchEndTime() {
+        return matchEndTime;
+    }
+
+    public void setMatchEndTime(long matchEndTime) {
+        this.matchEndTime = matchEndTime;
+    }
+
+    public long getMatchRobotFillTime() {
+        return matchRobotFillTime;
+    }
+
+    public void setMatchRobotFillTime(long matchRobotFillTime) {
+        this.matchRobotFillTime = matchRobotFillTime;
+    }
+
     public Map<Long, List<Long>> getRoundChangeList() {
         return roundChangeList;
     }
@@ -222,6 +256,9 @@ public class DouXianGameDataVo extends BasePokerGameDataVo {
         roundStartBalance.clear();
         readyPlayerIds.clear();
         readyTimerScheduled.clear();
+        matchState = DouXianConstant.MatchState.IDLE;
+        matchEndTime = 0;
+        matchRobotFillTime = 0;
         roundChangeList.clear();
     }
 }
