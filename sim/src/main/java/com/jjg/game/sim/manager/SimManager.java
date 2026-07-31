@@ -382,9 +382,42 @@ public class SimManager {
         return guideService.finishWithTriggers(simPlayerContextRegistry.getContext(playerId), guideId);
     }
 
-    /** 发送完成引导后新触发的引导组通知。 */
-    public void notifyGuideTriggers(long playerId, List<Integer> guideGroupIds) {
-        guideService.notifyTriggeredGroups(simPlayerContextRegistry.getContext(playerId), guideGroupIds);
+    /**
+     * 延迟发送完成引导组后由条件8触发的新引导通知。
+     * 状态在完成请求中立即生效；这里只延迟客户端通知，避免与上一组结束表现挤在一起。
+     */
+    public void notifyGuideTriggersDelayed(long playerId, List<Integer> guideGroupIds) {
+        if (guideGroupIds == null || guideGroupIds.isEmpty()) {
+            return;
+        }
+        SimPlayerContext scheduledContext = simPlayerContextRegistry.getContext(playerId);
+        if (scheduledContext == null) {
+            return;
+        }
+        List<Integer> groupSnapshot = List.copyOf(guideGroupIds);
+        WheelTimerUtil.schedule(() ->
+                        PlayerExecutorGroupDisruptor.getDefaultExecutor().publishWithFallback(
+                                playerId, 0, new BaseHandler<String>() {
+                                    @Override
+                                    public void action() {
+                                        SimPlayerContext currentContext =
+                                                simPlayerContextRegistry.getContext(playerId);
+                                        if (currentContext != scheduledContext
+                                                || currentContext.getPlayerController() == null
+                                                || currentContext.getPlayerController().getScene() != currentContext) {
+                                            log.info("跳过延迟的新手引导组通知 playerId={},groups={}",
+                                                    playerId, groupSnapshot);
+                                            return;
+                                        }
+                                        guideService.notifyTriggeredGroups(currentContext, groupSnapshot);
+                                        log.info("延迟发送新手引导组通知 playerId={},delayMs={},groups={}",
+                                                playerId,
+                                                SimConstant.GuideTiming.GROUP_FINISH_NOTIFY_DELAY_MILLIS,
+                                                groupSnapshot);
+                                    }
+                                }.setHandlerParamWithSelf("sim guide group finish delayed notify")),
+                SimConstant.GuideTiming.GROUP_FINISH_NOTIFY_DELAY_MILLIS,
+                TimeUnit.MILLISECONDS);
     }
 
     /**

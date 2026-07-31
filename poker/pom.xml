@@ -32,6 +32,12 @@
             <version>1.0-VERT-JJG-RELEASES</version>
         </dependency>
         <dependency>
+            <groupId>com.jjg.game</groupId>
+            <artifactId>sim</artifactId>
+            <version>1.0-VERT-JJG-RELEASES</version>
+            <optional>true</optional>
+        </dependency>
+        <dependency>
             <groupId>org.springframework.boot</groupId>
             <artifactId>spring-boot-starter-test</artifactId>
             <scope>test</scope>

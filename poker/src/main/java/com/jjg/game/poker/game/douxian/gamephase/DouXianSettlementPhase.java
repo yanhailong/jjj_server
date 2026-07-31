@@ -1,6 +1,7 @@
 package com.jjg.game.poker.game.douxian.gamephase;
 
 import com.jjg.game.core.constant.AddType;
+import com.jjg.game.core.constant.Code;
 import com.jjg.game.poker.game.common.BasePokerGameController;
 import com.jjg.game.poker.game.common.gamephase.BasePokerPhase;
 import com.jjg.game.poker.game.douxian.constant.DouXianConstant;
@@ -140,7 +141,9 @@ public class DouXianSettlementPhase extends BasePokerPhase<DouXianGameDataVo> {
             if (debt.winnerId == 0) {
                 continue;
             }
-            applyTransfer(controller, debt.winnerId, debt.loserId, debt.changeValue);
+            if (!applyTransfer(controller, debt.winnerId, debt.loserId, debt.changeValue)) {
+                debt.changeValue = 0;
+            }
             if (theoretical != debt.changeValue) {
                 log.info("斗仙牌结算封顶生效 zoneId:{} 赢家:{} 输家:{} 理论:{} -> 实际:{}(被裁减{})",
                         debt.zoneId, debt.winnerId, debt.loserId, theoretical, debt.changeValue, theoretical - debt.changeValue);
@@ -256,12 +259,24 @@ public class DouXianSettlementPhase extends BasePokerPhase<DouXianGameDataVo> {
         return pair;
     }
 
-    private void applyTransfer(BasePokerGameController<DouXianGameDataVo> controller, long winnerId, long loserId, long changeValue) {
+    private boolean applyTransfer(BasePokerGameController<DouXianGameDataVo> controller,
+                                  long winnerId, long loserId, long changeValue) {
         if (changeValue <= 0) {
-            return;
+            return true;
         }
-        controller.deductItem(loserId, changeValue, AddType.GAME_SETTLEMENT);
-        controller.addItem(winnerId, changeValue, AddType.GAME_SETTLEMENT);
+        if (controller instanceof DouXianGameController douXianController) {
+            return douXianController.transferSettlementItem(winnerId, loserId, changeValue);
+        }
+        int deductCode = controller.deductItem(loserId, changeValue, AddType.GAME_SETTLEMENT);
+        if (deductCode != Code.SUCCESS) {
+            return false;
+        }
+        int addCode = controller.addItem(winnerId, changeValue, AddType.GAME_SETTLEMENT);
+        if (addCode == Code.SUCCESS) {
+            return true;
+        }
+        controller.addItem(loserId, changeValue, AddType.FAIL_ROLLBACK);
+        return false;
     }
 
     /**
