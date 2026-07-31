@@ -39,6 +39,9 @@ public class GameConstant {
     }
 
     public interface Item {
+        // 赛季币
+        int ID_SEASON_COIN = 1960000;
+
         //可使用道具
         int TYPE_CAN_USE = 1;
         //可合成道具

@@ -3,6 +3,7 @@ package com.jjg.game.room.services;
 import com.jjg.game.common.curator.MarsCurator;
 import com.jjg.game.common.protostuff.PFSession;
 import com.jjg.game.common.utils.RandomUtils;
+import com.jjg.game.core.constant.GameConstant;
 import com.jjg.game.core.data.PlayerController;
 import com.jjg.game.core.data.RobotPlayer;
 import com.jjg.game.core.data.Room;
@@ -276,7 +277,7 @@ public class RobotService implements IRoomStartListener, ConfigExcelChangeListen
      * 后续新增货币时，只需在这里加入 itemId 和金额生成方式。
      */
     private List<RobotCurrencyDefinition> getRobotCurrencyDefinitions() {
-        List<RobotCurrencyDefinition> definitions = new ArrayList<>(2);
+        List<RobotCurrencyDefinition> definitions = new ArrayList<>(3);
         int goldItemId = ItemUtils.getGoldItemId();
         if (goldItemId > 0) {
             definitions.add(new RobotCurrencyDefinition(goldItemId, this::getRobotRealMoney, RobotPlayer::setGold));
@@ -285,6 +286,9 @@ public class RobotService implements IRoomStartListener, ConfigExcelChangeListen
         if (shellItemId > 0) {
             definitions.add(new RobotCurrencyDefinition(shellItemId, this::getRobotRealConchMoney, RobotPlayer::setShell));
         }
+        // 赛季币只用于房间内机器人模拟结算，不访问 SIM；复用普通金币携带区间和 Player.gold 作为临时余额。
+        definitions.add(new RobotCurrencyDefinition(GameConstant.Item.ID_SEASON_COIN,
+                this::getRobotRealMoney, RobotPlayer::setGold));
         return definitions;
     }
 
