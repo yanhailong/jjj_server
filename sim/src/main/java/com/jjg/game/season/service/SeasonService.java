@@ -267,20 +267,21 @@ public class SeasonService implements SimPlayerTickListener {
      * 两者都经玩家所在节点 RPC 到 sim owner 节点执行, 再由该节点把本响应下发给客户端。
      */
     public ResSeasonMatch match(SimPlayerContext ctx, int gameType, long stake) {
-        return match(ctx, gameType, stake, false);
+        return match(ctx, gameType, stake, false, 0);
     }
 
-    public ResSeasonMatch passiveMatch(SimPlayerContext ctx, int gameType, long stake) {
-        return match(ctx, gameType, stake, true);
+    public ResSeasonMatch passiveMatch(SimPlayerContext ctx, int gameType, long stake, long excludedSpinId) {
+        return match(ctx, gameType, stake, true, excludedSpinId);
     }
 
-    private ResSeasonMatch match(SimPlayerContext ctx, int gameType, long stake, boolean passive) {
+    private ResSeasonMatch match(SimPlayerContext ctx, int gameType, long stake, boolean passive,
+                                 long excludedSpinId) {
         ResSeasonMatch response = new ResSeasonMatch(Code.SUCCESS);
         long systemTime = System.currentTimeMillis();
         lifecycleService.ensureCurrent(ctx, systemTime);
         long now = lifecycleService.currentTime(ctx, systemTime);
         CommonResult<SeasonMatchSession> result = passive
-                ? matchService.startPassive(ctx, gameType, stake, now)
+                ? matchService.startPassive(ctx, gameType, stake, now, excludedSpinId)
                 : matchService.start(ctx, gameType, stake, now);
         response.code = result.code;
 

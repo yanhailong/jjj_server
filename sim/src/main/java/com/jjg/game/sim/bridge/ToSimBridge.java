@@ -62,7 +62,7 @@ public interface ToSimBridge extends IGameRpc {
     /**
      * 发起一次不消耗主动匹配道具的被动赛季匹配。
      */
-    ResSeasonMatch passiveSeasonMatch(long playerId, int gameType, long stake);
+    ResSeasonMatch passiveSeasonMatch(long playerId, int gameType, long stake, long excludedSpinId);
 
     /**
      * 获取进行中的赛季试炼进度，始终在玩家的 sim owner 节点执行。

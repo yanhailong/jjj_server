@@ -77,15 +77,16 @@ public class SeasonMatchService {
     }
 
     public CommonResult<SeasonMatchSession> start(SimPlayerContext ctx, int gameType, long stake, long now) {
-        return start(ctx, gameType, stake, now, true);
+        return start(ctx, gameType, stake, now, true, 0);
     }
 
-    public CommonResult<SeasonMatchSession> startPassive(SimPlayerContext ctx, int gameType, long stake, long now) {
-        return start(ctx, gameType, stake, now, false);
+    public CommonResult<SeasonMatchSession> startPassive(SimPlayerContext ctx, int gameType, long stake, long now,
+                                                         long excludedSpinId) {
+        return start(ctx, gameType, stake, now, false, excludedSpinId);
     }
 
     private CommonResult<SeasonMatchSession> start(SimPlayerContext ctx, int gameType, long stake, long now,
-                                                   boolean activeMatch) {
+                                                   boolean activeMatch, long excludedSpinId) {
         SeasonPlayerData data = ctx.getSeasonPlayerData();
         if (data == null || data.seasonPhase() == null || data.seasonPhase() == SeasonPhase.NOVICE) {
             return failStart(Code.NOT_UNLOCKED, ctx, gameType, stake, "阶段未开放");
@@ -146,6 +147,7 @@ public class SeasonMatchService {
         session.setGameType(gameType);
         session.setStake(stake);
         session.setStakeEscrowed(activeMatch);
+        session.setExcludedSpinId(activeMatch ? 0 : excludedSpinId);
         session.setExpectedSpins(expectedSpins);
         session.setStartedAt(now);
 
@@ -256,6 +258,10 @@ public class SeasonMatchService {
         //对局只认赛季入口的赛季币旋转: 普通入口的金币局即使机台与下注数值相同也不计入
         if (enterType != ENTER_TYPE_SEASON || session.getGameType() != gameType
                 || statInfo == null || statInfo.getBet() != session.getStake()) {
+            return new CommonResult<>(Code.SUCCESS);
+        }
+        //被动匹配由一次已完成的旋转触发；该旋转只负责开局，不属于通知后的对局局数。
+        if (statInfo.getSpinId() != 0 && statInfo.getSpinId() == session.getExcludedSpinId()) {
             return new CommonResult<>(Code.SUCCESS);
         }
         if (session.getPlayerSpinWins().size() < session.getExpectedSpins()) {

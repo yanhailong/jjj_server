@@ -447,12 +447,17 @@ public abstract class AbstractSlotsGameManager<T extends SlotsPlayerGameData, L 
         }
         //公共: 旋转成功后通知 sim 联动 (扣能量/加经验/赌场升级/道具掉落), winTimes 取各游戏写入的 allWinTimes
         if (gameRunInfo != null && gameRunInfo.success()) {
-            //赛季被动匹配: 须先于 notifySpin, 开局后本次旋转即计入对局第一局
-            tryPassiveSeasonMatch(playerController, playerGameData, gameRunInfo.getStake(), freeMode);
-            //主动/被动匹配共用 expectedSpins；达到局数后清除本地进行中状态，允许后续被动匹配
-            playerGameData.recordSeasonMatchSpin(gameRunInfo.getStake());
+            SpinStatInfo statInfo = buildSpinStatInfo(
+                    gameRunInfo, freeMode, !freeMode && isFreeMode(playerGameData));
+            long spinId = slotsRPCLinkManager.ensureSpinId(statInfo);
+            //新触发的被动匹配从下一次旋转开始计数；已有对局仍正常记录本次旋转
+            boolean passiveMatchStarted = tryPassiveSeasonMatch(
+                    playerController, playerGameData, gameRunInfo.getStake(), freeMode, spinId);
+            if (!passiveMatchStarted) {
+                playerGameData.recordSeasonMatchSpin(gameRunInfo.getStake());
+            }
             slotsRPCLinkManager.notifySpin(playerGameData, getGameType(), gameRunInfo.getAllWinTimes(),
-                    buildSpinStatInfo(gameRunInfo, freeMode, !freeMode && isFreeMode(playerGameData)), trialPermit);
+                    statInfo, trialPermit);
             //协作任务联动: 扣血/共享事件累计/成败判定 (内部吞异常, 不影响旋转主流程)
             coopRoomManager.onSpin(playerController.playerId(), getGameType(), statusBefore, gameRunInfo);
         } else {
@@ -716,33 +721,37 @@ public abstract class AbstractSlotsGameManager<T extends SlotsPlayerGameData, L 
      * 赛季被动匹配: 赛季入口 (enterType=1) 的每次普通旋转按全局概率触发一次匹配, 玩家不可拒绝。
      * 命中后与客户端主动发起的 ReqSeasonMatch 走同一个 RPC 与同一份 {@link ResSeasonMatch} 应答,
      * 由本节点下发; 押注赛季币/选对手/每日次数等都在 sim 侧完成。
-     * 须在通知 sim 本次旋转之前调用, 使开局先于本次旋转上报到达, 本次旋转即计入对局第一局。
+     * 须在通知 sim 本次旋转之前调用；通过 excludedSpinId 明确排除触发匹配的当前旋转，
+     * 对局从客户端收到匹配通知后的下一次旋转开始计数。
      * 本地冷却只是避免无谓 RPC, 权威冷却仍由 sim 按 SeasonMatch.MatchCD 校验。
      */
-    protected void tryPassiveSeasonMatch(PlayerController playerController, T gameData, long stake, boolean freeMode) {
+    protected boolean tryPassiveSeasonMatch(PlayerController playerController, T gameData, long stake,
+                                            boolean freeMode, long excludedSpinId) {
         //免费模式没有真实下注, 不触发按下注额押注的对局
         if (!gameData.isSeason() || gameData.isSeasonMatchActive() || freeMode || stake <= 0) {
-            return;
+            return false;
         }
         long now = System.currentTimeMillis();
         if (now - gameData.getPassiveMatchTime() < PASSIVE_MATCH_CD_MILLIS) {
-            return;
+            return false;
         }
         GlobalConfigCfg probCfg = GameDataManager.getGlobalConfigCfg(SimConstant.Global.ID_SEASON_PASSIVE_MATCH_PROB);
         if (probCfg == null || !RandomUtils.getRandomBoolean100(probCfg.getIntValue())) {
-            return;
+            return false;
         }
-        ResSeasonMatch res = slotsRPCLinkManager.seasonMatch(gameData, this.gameType, stake);
+        ResSeasonMatch res = slotsRPCLinkManager.seasonMatch(
+                gameData, this.gameType, stake, excludedSpinId);
         //开局被拒(冷却中/次数已满/赛季币不足等)时 matchId 为 "0", 静默跳过, 不影响本次旋转
         if (res == null || res.code != Code.SUCCESS || res.matchId == null || "0".equals(res.matchId)) {
-            return;
+            return false;
         }
         gameData.setSeasonCoinBalance(res.seasonCoin);
         gameData.beginSeasonMatch(res.stake, res.expectedSpins);
         gameData.setPassiveMatchTime(now);
         playerController.send(res);
-        log.info("赛季被动匹配触发 playerId = {},gameType = {},stake = {},matchId = {},opponentId = {}",
-                gameData.getPlayerId(), this.gameType, stake, res.matchId, res.opponentId);
+        log.info("赛季被动匹配触发 playerId = {},gameType = {},stake = {},matchId = {},opponentId = {},excludedSpinId = {}",
+                gameData.getPlayerId(), this.gameType, stake, res.matchId, res.opponentId, excludedSpinId);
+        return true;
     }
 
     /**
