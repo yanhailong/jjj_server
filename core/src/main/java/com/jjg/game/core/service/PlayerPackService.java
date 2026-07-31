@@ -1059,8 +1059,8 @@ public class PlayerPackService implements IPlayerRegister {
     }
 
     @Override
-    public void playerRegister(Player player) {
-        PlayerPack pack = new PlayerPack(player.getId());
+    public void playerRegister(PlayerController playerController) {
+        PlayerPack pack = new PlayerPack(playerController.playerId());
         redisSave(pack);
     }
 

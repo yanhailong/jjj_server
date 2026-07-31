@@ -307,6 +307,8 @@ public interface SimConstant {
         int SPIN_COST_POWER = 100;
         //slots 每次旋转增加的场景经验 (与消耗的能量保持一致)
         int SPIN_ADD_EXP = 1;
+
+        String SYSTEM_WELCOME_MSG = "Welcome to Casino Tycoon ! Experience diverse management and unique game features, and build your own path to Financial Freedom. Enjoy your game!";
     }
 
     interface Global {

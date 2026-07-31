@@ -78,7 +78,8 @@ public class SimDropService {
             if (checkLevelUp(casino)) {
                 base.addAllLevel(1);
                 guideService.triggerSceneTotalLevelReached(ctx, base.getAllLevel(), true);
-                taskService.onConditionEvent(ctx, SimConditionEventFactory.sceneTotalLevel(base.getAllLevel()));
+                taskService.onConditionEvent(ctx, SimConditionEventFactory.sceneLevel(
+                        casino.getCasinoId(), casino.getCasinoLevel()));
             }
 
             //掉落

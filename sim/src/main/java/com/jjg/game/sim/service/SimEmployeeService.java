@@ -235,6 +235,7 @@ public class SimEmployeeService implements SimTaskStateReporter {
             res.shardInfos = recruitItems;
             //联盟任务: 卡池抽奖次数 (param=卡池ID, 供 0=任意/指定卡池 过滤; 10 连计为 10 次)
             allianceEventService.onCardPoolDraw(ctx.playerId(), tmpCfg.getId(), count);
+            allianceEventService.onEmployeePoolDraw(ctx.playerId(), count);
             recruitedProfessions.forEach((professionId, recruited) ->
                     allianceEventService.onEmployeeRecruit(ctx.playerId(), professionId, recruited));
             //主线任务: 招募改变各职业各星级持有量 -> 上报 12212 "拥有 N 个 X 星雇员"

@@ -141,7 +141,7 @@ final class DefaultConditionRules {
         rules.add(action(12220, 2, 2, 1, ProgressMode.ADD, ActionConditionEvent.Type.ITEM_CONSUME,
                 (s, e) -> e.matchesSubject(s.parameter(0)), (s, e) -> e.value()));
 
-        //12251-12267 与上面的接取型条件判定口径一致，进度由玩家统计提供而非任务计数器。
+        //12251-12272 与上面的接取型条件判定口径一致，进度由玩家统计提供而非任务计数器。
         rules.add(game(12251, 3, 3, 2, ProgressMode.ADD,
                 (s, e) -> e.matchesGame(s.parameter(0)), (s, e) -> e.itemGain(s.intParameter(1))));
         rules.add(game(12252, 2, 2, 1, ProgressMode.ADD,
@@ -177,8 +177,16 @@ final class DefaultConditionRules {
                 (s, e) -> true, (s, e) -> e.value()));
         rules.add(action(12267, 2, 2, 1, ProgressMode.ADD, ActionConditionEvent.Type.ITEM_CONSUME,
                 (s, e) -> e.matchesSubject(s.parameter(0)), (s, e) -> e.value()));
-        rules.add(action(12268, 1, 1, 0, ProgressMode.SET, ActionConditionEvent.Type.SCENE_TOTAL_LEVEL,
-                (s, e) -> true, (s, e) -> e.value()));
+        rules.add(action(12268, 2, 2, 1, ProgressMode.SET, ActionConditionEvent.Type.SCENE_TOTAL_LEVEL,
+                (s, e) -> e.matchesSubject(s.parameter(0)), (s, e) -> e.value()));
+        rules.add(action(12269, 2, 2, 1, ProgressMode.SET, ActionConditionEvent.Type.GAME_RESEARCH,
+                (s, e) -> e.matchesSubject(s.parameter(0)), (s, e) -> e.value()));
+        rules.add(action(12270, 1, 1, 0, ProgressMode.ADD, ActionConditionEvent.Type.GUEST_POOL_DRAW,
+                (s, e) -> true, (s, e) -> positiveCount(e)));
+        rules.add(action(12271, 1, 1, 0, ProgressMode.ADD, ActionConditionEvent.Type.EMPLOYEE_POOL_DRAW,
+                (s, e) -> true, (s, e) -> positiveCount(e)));
+        rules.add(game(12272, 2, 2, 1, ProgressMode.ADD,
+                (s, e) -> e.matchesGame(s.parameter(0)), (s, e) -> 1));
     }
 
     private static void addAllianceRules(List<ConditionRule<?>> rules) {

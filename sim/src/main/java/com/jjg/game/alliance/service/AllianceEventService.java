@@ -137,6 +137,24 @@ public class AllianceEventService implements ItemConsumeListener {
                 poolId, 0, 0, count, 0, false));
     }
 
+    public void onGuestPoolDraw(long playerId, long count) {
+        if (count <= 0) {
+            return;
+        }
+        playerStatService.recordGuestPoolDraw(playerId, count);
+        onSimOperation(playerId, new ActionConditionEvent(ActionConditionEvent.Type.GUEST_POOL_DRAW,
+                0, 0, 0, count, 0, false));
+    }
+
+    public void onEmployeePoolDraw(long playerId, long count) {
+        if (count <= 0) {
+            return;
+        }
+        playerStatService.recordEmployeePoolDraw(playerId, count);
+        onSimOperation(playerId, new ActionConditionEvent(ActionConditionEvent.Type.EMPLOYEE_POOL_DRAW,
+                0, 0, 0, count, 0, false));
+    }
+
     public void onGameResearch(long playerId, int gameType) {
         onConditionEvent(playerId, new ActionConditionEvent(ActionConditionEvent.Type.GAME_RESEARCH,
                 gameType, 0, 0, 1, 0, false));

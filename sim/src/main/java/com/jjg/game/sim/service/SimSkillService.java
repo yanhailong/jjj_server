@@ -299,15 +299,26 @@ public class SimSkillService extends AbstractSkillService implements ConfigExcel
         }
         int total = 0;
         for (SimSkillsData skillsData : skillsDataMap.values()) {
-            Map<Integer, Integer> skillsMap = skillsData.getSkillsMap();
-            if (skillsMap == null || skillsMap.isEmpty()) {
-                continue;
-            }
-            for (Map.Entry<Integer, Integer> en : skillsMap.entrySet()) {
-                ResearchSkillsCfg cfg = getResearchSkillsCfg(skillsData.getGameType(), en.getKey(), en.getValue());
-                if (cfg != null) {
-                    total += cfg.getCombatPower();
-                }
+            total += oneGameCombatPower(skillsData);
+        }
+        return total;
+    }
+
+    /**
+     * 单个游戏计算出来的战力
+     * @param skillsData
+     * @return
+     */
+    public int oneGameCombatPower(SimSkillsData skillsData){
+        Map<Integer, Integer> skillsMap = skillsData.getSkillsMap();
+        if (skillsMap == null || skillsMap.isEmpty()) {
+            return 0;
+        }
+        int total = 0;
+        for (Map.Entry<Integer, Integer> en : skillsMap.entrySet()) {
+            ResearchSkillsCfg cfg = getResearchSkillsCfg(skillsData.getGameType(), en.getKey(), en.getValue());
+            if (cfg != null) {
+                total += cfg.getCombatPower();
             }
         }
         return total;
