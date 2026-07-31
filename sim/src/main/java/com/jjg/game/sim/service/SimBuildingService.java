@@ -531,8 +531,14 @@ public class SimBuildingService implements SimPlayerTickListener, SimTaskStateRe
                 playerPackService.addItems(ctx.playerId(), items, AddType.SIM_BUILD_MINUTE_REWARDS, null, false);
                 //经营信息: 累加每分钟自产金币收益
                 long minuteGold = total.getOrDefault(BuildingOutputType.GOLD, 0L);
-                ctx.getSimBaseData().addBusinessIncome(minuteGold);
+                if(minuteGold > 0){
+                    ctx.getSimBaseData().addBusinessIncome(minuteGold);
+                }
                 allianceEventService.onBusinessIncome(ctx.playerId(), items);
+
+                NotifyBuildingOutput notify = new NotifyBuildingOutput();
+                notify.rewards = ItemUtils.buildItemInfo(items);
+                ctx.send(notify);
             }
             //仅推进已结算的整分钟, 保留余量
             casino.setLastOutputTime(casino.getLastOutputTime() + fullMinutes * TimeHelper.ONE_MINUTE_OF_MILLIS);

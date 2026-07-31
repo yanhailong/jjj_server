@@ -1,7 +1,9 @@
 package com.jjg.game.sim.data;
 
 import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 
 /**
  * 协作房间路由记录 (Redis, key = coopRoom:{roomId})。
@@ -27,6 +29,8 @@ public class CoopRoomRecord {
     private int status;
     //成员 (含房主; 快照, 权威在 slots 房间)
     private List<Long> memberIds = new ArrayList<>();
+    //成员座位映射，重连/等待房间恢复时保持座位不变
+    private Map<Long, Integer> memberSeats = new HashMap<>();
     //总人数上限 (含房主)
     private int maxMembers;
     private long createTime;
@@ -101,6 +105,17 @@ public class CoopRoomRecord {
 
     public void setMemberIds(List<Long> memberIds) {
         this.memberIds = memberIds == null ? new ArrayList<>() : memberIds;
+    }
+
+    public Map<Long, Integer> getMemberSeats() {
+        if (memberSeats == null) {
+            memberSeats = new HashMap<>();
+        }
+        return memberSeats;
+    }
+
+    public void setMemberSeats(Map<Long, Integer> memberSeats) {
+        this.memberSeats = memberSeats == null ? new HashMap<>() : memberSeats;
     }
 
     public int getMaxMembers() {

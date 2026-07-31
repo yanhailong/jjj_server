@@ -214,6 +214,9 @@ public interface SimConstant {
 
         //触发新手引导组
         int NOTIFY_GUIDE_TRIGGER = BASE_MSG_PREFIX | 0x6D;
+
+        //通知建筑产出
+        int NOTIFY_BUILDING_OUTPUT = BASE_MSG_PREFIX | 0x6F;
     }
 
     interface GuideCondition {

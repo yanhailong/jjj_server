@@ -33,8 +33,6 @@ public class CoopRoom {
     private volatile int status = CoopTaskConst.RoomStatus.WAITING;
     //成员 playerId -> member (并发安全: 旋转钩子/赠礼在锁外只读; 结构变更仍在房间锁内; 座位序由 seat 字段承载)
     private final Map<Long, CoopMember> members = new ConcurrentHashMap<>();
-    //座位自增序
-    private int seatSeq;
     //上次发送频道邀请时间 (限频; 房主请求为单线程串行, volatile 足够)
     private volatile long lastInviteTime;
 
@@ -66,10 +64,41 @@ public class CoopRoom {
         this.createTime = createTime;
     }
 
-    public CoopMember addMember(long playerId) {
-        CoopMember member = new CoopMember(playerId, ++seatSeq);
+    public synchronized CoopMember addMember(long playerId) {
+        return addMember(playerId, 0);
+    }
+
+    /**
+     * 添加成员并优先恢复原座位。preferredSeat 无效或已占用时分配最小空闲座位。
+     */
+    public synchronized CoopMember addMember(long playerId, int preferredSeat) {
+        CoopMember existing = members.get(playerId);
+        if (existing != null) {
+            return existing;
+        }
+        int seat = available(preferredSeat) ? preferredSeat : firstAvailableSeat();
+        if (seat == 0) {
+            throw new IllegalStateException("协作房间无可用座位 roomId=" + roomId + ",playerId=" + playerId);
+        }
+        CoopMember member = new CoopMember(playerId, seat);
         members.put(playerId, member);
         return member;
+    }
+
+    private int firstAvailableSeat() {
+        for (int seat = 1; seat <= rule.maxMembers(); seat++) {
+            if (available(seat)) {
+                return seat;
+            }
+        }
+        return 0;
+    }
+
+    private boolean available(int seat) {
+        if (seat < 1 || seat > rule.maxMembers()) {
+            return false;
+        }
+        return members.values().stream().noneMatch(member -> member.getSeat() == seat);
     }
 
     public long getRoomId() {

@@ -344,7 +344,7 @@ public class SimCoopTaskService {
     /**
      * 结算回写 (slots 房间结束经 RPC 调用, 发起者可能已离线)。
      * <p>
-     * 发起者: IN_ROOM -> REWARDABLE/FAILED; 协助者: 成功时奖励经邮件发放
+     * 发起者: 成功时 IN_ROOM -> REWARDABLE，失败时从已领取任务中删除；协助者: 成功时奖励经邮件发放
      * ("协助者通过其它形式领取奖励", 无贡献门槛)。
      *
      * @param ctx       发起者在线时的上下文 (离线为 null, 直接读写 DB)
@@ -373,10 +373,14 @@ public class SimCoopTaskService {
                     && (entry.getStatus() == CoopTaskConst.TaskStatus.IN_ROOM || entry.getStatus() == status)) {
                 entry.setStatus(status);
                 entry.setFinishTime(finishTime);
+                CoopTaskInfo settledTask = toInfo(taskId, entry);
+                if (!success) {
+                    data.getTasks().remove(taskId);
+                }
                 ctx.setLastSaveTime(0);
                 if (firstSettle && ctx.getPlayerController() != null) {
                     NotifyCoopTaskUpdate notify = new NotifyCoopTaskUpdate(Code.SUCCESS);
-                    notify.task = toInfo(taskId, entry);
+                    notify.task = settledTask;
                     ctx.send(notify);
                 }
             }

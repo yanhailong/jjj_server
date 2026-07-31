@@ -28,7 +28,8 @@ public class SimCoopTaskDao extends MongoBaseDao<SimCoopTaskData, Long> {
     }
 
     /**
-     * 条件原子更新: 仅当任务处于 IN_ROOM 态时置为终态 (发起者离线的结算直写路径)。
+     * 条件原子更新: 仅当任务处于 IN_ROOM 态时结算 (发起者离线的结算直写路径)。
+     * 成功时置为待领奖态，失败时从已领取任务中删除；结算回执始终保留用于幂等判断。
      * 相比读改写全文档, 避免与退出登录时的全量保存竞态互相覆盖。
      *
      * @return 是否有文档被更新 (false = 数据不存在或状态不符, 视为未结算)
@@ -36,10 +37,13 @@ public class SimCoopTaskDao extends MongoBaseDao<SimCoopTaskData, Long> {
     public boolean settleEntryIfInRoom(long playerId, int taskId, long roomId, int status, long finishTime) {
         Query query = settleQuery(playerId, taskId, roomId);
         CoopSettlementReceipt receipt = new CoopSettlementReceipt(taskId, status, finishTime);
-        Update update = new Update()
-                .set("tasks." + taskId + ".status", status)
-                .set("tasks." + taskId + ".finishTime", finishTime)
-                .set("settlementReceipts." + roomId, receipt);
+        Update update = new Update().set("settlementReceipts." + roomId, receipt);
+        if (status == CoopTaskConst.TaskStatus.FAILED) {
+            update.unset("tasks." + taskId);
+        } else {
+            update.set("tasks." + taskId + ".status", status)
+                    .set("tasks." + taskId + ".finishTime", finishTime);
+        }
         return mongoTemplate.updateFirst(query, update, SimCoopTaskData.class).getModifiedCount() > 0;
     }
 

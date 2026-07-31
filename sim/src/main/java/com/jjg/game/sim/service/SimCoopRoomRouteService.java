@@ -114,6 +114,7 @@ public class SimCoopRoomRouteService {
         List<Long> members = new ArrayList<>();
         members.add(playerId);
         record.setMemberIds(members);
+        record.setMemberSeats(Map.of(playerId, 1));
         record.setMaxMembers(rule.maxMembers());
         record.setCreateTime(System.currentTimeMillis());
         try {

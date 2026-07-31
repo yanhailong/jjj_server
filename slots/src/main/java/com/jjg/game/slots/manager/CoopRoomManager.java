@@ -49,6 +49,7 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Component;
 
 import java.util.ArrayList;
+import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
@@ -720,7 +721,7 @@ public class CoopRoomManager {
     }
 
     /**
-     * 玩家退出 slots 节点钩子: 等待中按退出处理(房主=解散); 进行中拒绝主动退出，非主动离开仅标记离线供重连。
+     * 玩家退出 slots 节点钩子: 掉线始终保留成员与座位供重连；主动退出按房间状态处理。
      */
     public int onPlayerExit(long playerId, ExitType exitType) {
         CoopRoom room = roomOf(playerId);
@@ -730,6 +731,12 @@ public class CoopRoomManager {
         synchronized (room) {
             CoopMember member = room.getMembers().get(playerId);
             if (member == null) {
+                return Code.SUCCESS;
+            }
+            if (exitType == ExitType.DROPPED) {
+                member.setOnline(false);
+                member.setPlayerController(null);
+                broadcastUpdate(room, 0);
                 return Code.SUCCESS;
             }
             switch (room.getStatus()) {
@@ -833,7 +840,7 @@ public class CoopRoomManager {
                         record.getGameType(), record.getRoomCfgId(), rule, record.getCreateTime());
                 for (Long memberId : record.getMemberIds()) {
                     if (memberId != null) {
-                        room.addMember(memberId);
+                        room.addMember(memberId, record.getMemberSeats().getOrDefault(memberId, 0));
                     }
                 }
                 if (record.getStatus() == CoopTaskConst.RoomStatus.WAITING) {
@@ -903,7 +910,7 @@ public class CoopRoomManager {
                     record.getOwnerId(), record.getGameType(), record.getRoomCfgId(), rule);
             for (Long memberId : record.getMemberIds()) {
                 if (memberId != null && roomRecordDao.acquirePlayerRoom(memberId, roomId)) {
-                    created.addMember(memberId);
+                    created.addMember(memberId, record.getMemberSeats().getOrDefault(memberId, 0));
                     memberRoomIndex.put(memberId, roomId);
                 }
             }
@@ -950,7 +957,15 @@ public class CoopRoomManager {
             record.setRoomCfgId(room.getRoomCfgId());
             record.setNodePath(marsCurator.nodePath);
             record.setStatus(room.getStatus());
-            record.setMemberIds(new ArrayList<>(room.getMembers().keySet()));
+            List<CoopMember> members = room.membersBySeat();
+            List<Long> memberIds = new ArrayList<>(members.size());
+            Map<Long, Integer> memberSeats = new LinkedHashMap<>();
+            for (CoopMember member : members) {
+                memberIds.add(member.getPlayerId());
+                memberSeats.put(member.getPlayerId(), member.getSeat());
+            }
+            record.setMemberIds(memberIds);
+            record.setMemberSeats(memberSeats);
             record.setMaxMembers(room.getRule().maxMembers());
             record.setCreateTime(room.getCreateTime());
             record.setSuccess(room.isSuccess());
