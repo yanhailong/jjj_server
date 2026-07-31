@@ -18,6 +18,8 @@ public class SeasonMatchSession {
     private long stake;
     /** 主动匹配是否已托管 stake；被动匹配只验资，不预扣。 */
     private boolean stakeEscrowed;
+    /** 触发被动匹配的已完成旋转，不计入对局局数；主动匹配为 0。 */
+    private long excludedSpinId;
     private int expectedSpins;
     private long startedAt;
     private List<Long> opponentSpinWins = new ArrayList<>();
@@ -93,6 +95,14 @@ public class SeasonMatchSession {
 
     public void setStakeEscrowed(boolean stakeEscrowed) {
         this.stakeEscrowed = stakeEscrowed;
+    }
+
+    public long getExcludedSpinId() {
+        return excludedSpinId;
+    }
+
+    public void setExcludedSpinId(long excludedSpinId) {
+        this.excludedSpinId = excludedSpinId;
     }
 
     public int getExpectedSpins() {

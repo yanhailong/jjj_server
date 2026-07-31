@@ -58,10 +58,7 @@ public class SlotsRPCLinkManager {
      */
     public void notifySpin(SlotsPlayerGameData playerGameData, int gameType, int winTimes,
                            SpinStatInfo statInfo, VisitTrialSpinPermit trialPermit) {
-        if (statInfo != null && statInfo.getSpinId() == 0) {
-            //幂等 id: 超时重试复用同一 id, sim 侧凭此拒绝重复投递 (|1 保证非 0)
-            statInfo.setSpinId(ThreadLocalRandom.current().nextLong() | 1L);
-        }
+        ensureSpinId(statInfo);
         if (statInfo != null) {
             long playerId = playerGameData.getPlayerId();
             playerStatService.recordBigShow(playerId, statInfo.getBigShowId());
@@ -71,6 +68,17 @@ public class SlotsRPCLinkManager {
             }
         }
         notifySpin(playerGameData, gameType, winTimes, statInfo, trialPermit, 0);
+    }
+
+    long ensureSpinId(SpinStatInfo statInfo) {
+        if (statInfo == null) {
+            return 0;
+        }
+        if (statInfo.getSpinId() == 0) {
+            //幂等 id: 超时重试复用同一 id, sim 侧凭此拒绝重复投递 (|1 保证非 0)
+            statInfo.setSpinId(ThreadLocalRandom.current().nextLong() | 1L);
+        }
+        return statInfo.getSpinId();
     }
 
     private void notifySpin(SlotsPlayerGameData playerGameData, int gameType, int winTimes,
@@ -193,7 +201,8 @@ public class SlotsRPCLinkManager {
      * 被动匹配: 同步向 sim 发起一次赛季匹配, 与客户端主动发起的 ReqSeasonMatch 走同一个 RPC 与同一份应答,
      * 由本节点下发给客户端。sim 不可达/开局被拒时返回 null。
      */
-    public ResSeasonMatch seasonMatch(SlotsPlayerGameData playerGameData, int gameType, long stake) {
+    public ResSeasonMatch seasonMatch(SlotsPlayerGameData playerGameData, int gameType, long stake,
+                                      long excludedSpinId) {
         try {
             ClusterClient client = resolveSimClient(playerGameData);
             if (client == null) {
@@ -204,7 +213,8 @@ public class SlotsRPCLinkManager {
             try {
                 rpcContext.withReqParameterBuilder(RpcReqParameterBuilder.create()
                         .addClusterClient(client).setTryMillisPerClient(1000));
-                return toSimBridge.passiveSeasonMatch(playerGameData.getPlayerId(), gameType, stake);
+                return toSimBridge.passiveSeasonMatch(
+                        playerGameData.getPlayerId(), gameType, stake, excludedSpinId);
             } finally {
                 rpcContext.setReqParameterBuilder(previousBuilder);
             }
