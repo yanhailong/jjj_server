@@ -101,12 +101,14 @@ public class DouXianGameController extends BasePokerGameController<DouXianGameDa
     /**
      * 斗仙牌进行中不能通过通用退出协议离开房间。
      * 客户端关闭牌桌时可能在单回合结算阶段误发 ReqExitGame；如果这里放行，玩家的 roomId 会被清零，
-     * 后续登录只能重新匹配新局。整局结束回到等待准备阶段后，才允许正常退出。
+     * 后续登录只能重新匹配新局。整局结束回到等待准备阶段，或玩家已经认输不再参与后续流程时，才允许正常退出。
      */
     @Override
     public int canExitGame(long playerId) {
         EGamePhase currentPhase = getCurrentGamePhase();
-        if (currentPhase == null || currentPhase == EGamePhase.WAIT_READY) {
+        if (currentPhase == null
+                || currentPhase == EGamePhase.WAIT_READY
+                || gameDataVo.getConcededPlayerIds().contains(playerId)) {
             return Code.SUCCESS;
         }
         log.info("斗仙牌牌局进行中拒绝通用退出请求 playerId:{} roomId:{} phase:{} round:{}",
