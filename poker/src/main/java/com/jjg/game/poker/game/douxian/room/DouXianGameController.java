@@ -1415,7 +1415,8 @@ public class DouXianGameController extends BasePokerGameController<DouXianGameDa
                     playerId, getCurrentGamePhase(), gameDataVo.getRechargingPlayerIds().contains(playerId));
             return;
         }
-        DouXianDataHelper.DouXianRechargeCost cost = DouXianDataHelper.getRechargeCost();
+        DouXianDataHelper.DouXianRechargeCost cost =
+                DouXianDataHelper.getRechargeCost(getGameTransactionItemId());
         if (cost == null) {
             log.error("斗仙牌充值复活失败 playerId:{} 原因:配置读取失败(global.xlsx id=270)，具体原因看上一条error日志", playerId);
             sendRechargeError(playerId, Code.SAMPLE_ERROR);

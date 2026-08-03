@@ -95,13 +95,13 @@ public final class DouXianDataHelper {
     }
 
     /**
-     * global.xlsx id=270 一行配置，value格式："&lt;gameType&gt;,&lt;钻石道具id&gt;_&lt;钻石消耗数量&gt;|&lt;金币道具id&gt;_&lt;赠送金币数量&gt;"，
-     * 例如"300800,1980000_20|1990000_10000" = 花20个钻石(道具1980000)换10000金币(道具1990000)。
-     * 不按位置(第一段固定是钻石)解析，而是按道具类型(钻石道具id/金币道具id)匹配，配置顺序调换也不受影响。
+     * global.xlsx id=270 一行配置，value格式："&lt;gameType&gt;,&lt;钻石道具id&gt;_&lt;钻石消耗数量&gt;|&lt;奖励货币道具id&gt;_&lt;奖励数量&gt;"。
+     * 奖励货币跟随房间交易货币：普通金币房使用金币道具id，赛季房使用赛季币道具id。
+     * 不按位置解析，而是按钻石道具id和当前房间交易道具id匹配，配置顺序调换也不受影响。
      */
     private static final int RECHARGE_GLOBAL_CFG_ID = 270;
 
-    public static DouXianRechargeCost getRechargeCost() {
+    public static DouXianRechargeCost getRechargeCost(int rewardItemId) {
         GlobalConfigCfg cfg = GameDataManager.getGlobalConfigCfg(RECHARGE_GLOBAL_CFG_ID);
         if (cfg == null || cfg.getValue() == null || cfg.getValue().isBlank()) {
             log.error("斗仙牌即时充值复活配置缺失 global.xlsx id:{}", RECHARGE_GLOBAL_CFG_ID);
@@ -113,7 +113,6 @@ public final class DouXianDataHelper {
             return null;
         }
         int diamondItemId = ItemUtils.getDiamondItemId();
-        int goldItemId = ItemUtils.getGoldItemId();
         Long diamondCost = null;
         Long goldReward = null;
         for (String segment : parts[1].split("\\|")) {
@@ -126,7 +125,7 @@ public final class DouXianDataHelper {
                 long amount = Long.parseLong(kv[1].trim());
                 if (itemId == diamondItemId) {
                     diamondCost = amount;
-                } else if (itemId == goldItemId) {
+                } else if (itemId == rewardItemId) {
                     goldReward = amount;
                 }
             } catch (NumberFormatException e) {
@@ -134,8 +133,8 @@ public final class DouXianDataHelper {
             }
         }
         if (diamondCost == null || goldReward == null) {
-            log.error("斗仙牌即时充值复活配置没能同时解析出钻石消耗({})和金币赠送({}) 钻石道具id:{} 金币道具id:{} value:{}",
-                    diamondCost, goldReward, diamondItemId, goldItemId, cfg.getValue());
+            log.error("斗仙牌即时充值复活配置没能同时解析出钻石消耗({})和奖励货币({}) 钻石道具id:{} 奖励货币道具id:{} value:{}",
+                    diamondCost, goldReward, diamondItemId, rewardItemId, cfg.getValue());
             return null;
         }
         return new DouXianRechargeCost(diamondCost, goldReward);

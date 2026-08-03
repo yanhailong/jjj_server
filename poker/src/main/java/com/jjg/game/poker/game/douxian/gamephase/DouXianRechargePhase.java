@@ -40,7 +40,8 @@ public class DouXianRechargePhase extends BasePokerPhase<DouXianGameDataVo> {
     public void phaseDoAction() {
         super.phaseDoAction();
         long overTime = System.currentTimeMillis() + DouXianConstant.Time.RECHARGE_TIME;
-        DouXianDataHelper.DouXianRechargeCost cost = DouXianDataHelper.getRechargeCost();
+        DouXianDataHelper.DouXianRechargeCost cost =
+                DouXianDataHelper.getRechargeCost(gameController.getGameTransactionItemId());
         for (Long playerId : gameDataVo.getRechargingPlayerIds()) {
             NotifyDouXianRecharge notify = new NotifyDouXianRecharge();
             notify.playerId = playerId;
