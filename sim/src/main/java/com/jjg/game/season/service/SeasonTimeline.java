@@ -13,13 +13,18 @@ import java.util.Comparator;
 import java.util.List;
 
 /**
- * 根据玩家注册时间和赛季配置计算个人赛季时间线。
+ * 前置赛季按玩家注册日分组，循环赛季按开服日建立的每日时间线分组。
  */
 public class SeasonTimeline {
-    public SeasonSnapshot resolve(long registeredAt, long now, List<SeasonDefinition> definitions) {
+    public SeasonSnapshot resolve(long serverStartedAt, long registeredAt, long now,
+                                  List<SeasonDefinition> definitions) {
         TimelineConfig config = validate(definitions);
         ZoneId zone = ZoneId.systemDefault();
+        LocalDate serverStartDate = dateOf(serverStartedAt, zone);
         LocalDate cursor = dateOf(registeredAt, zone);
+        if (cursor.isBefore(serverStartDate)) {
+            throw new IllegalArgumentException("玩家注册时间不能早于开服时间");
+        }
         LocalDate currentDate = dateOf(Math.max(registeredAt, now), zone);
         long elapsed = ChronoUnit.DAYS.between(cursor, currentDate);
 
@@ -36,30 +41,21 @@ public class SeasonTimeline {
         if (elapsed < advancedDuration) {
             return snapshot(advanced, SeasonPhase.ADVANCED, 0, cursor, currentDate, zone);
         }
-        elapsed -= advancedDuration;
         cursor = cursor.plusDays(advancedDuration);
 
-        long loopDuration = config.loop().stream().mapToLong(SeasonDefinition::durationDays).sum();
-        long completedRounds = elapsed / loopDuration;
-        long inRound = elapsed % loopDuration;
-        int cycleIndex = Math.toIntExact(completedRounds * config.loop().size());
-        LocalDate roundStart = cursor.plusDays(Math.multiplyExact(completedRounds, loopDuration));
-        for (SeasonDefinition definition : config.loop()) {
-            long duration = definition.durationDays();
-            cycleIndex++;
-            if (inRound < duration) {
-                LocalDate start = roundStart;
-                for (SeasonDefinition previous : config.loop()) {
-                    if (previous == definition) {
-                        break;
-                    }
-                    start = start.plusDays(previous.durationDays());
-                }
-                return snapshot(definition, SeasonPhase.LOOP, cycleIndex, start, currentDate, zone);
-            }
-            inRound -= duration;
-        }
-        throw new IllegalStateException("无法解析循环赛季");
+        long introductoryDuration = noviceDuration + advancedDuration;
+        LocalDate firstLoopStart = serverStartDate.plusDays(introductoryDuration);
+        long cohortOffset = ChronoUnit.DAYS.between(firstLoopStart, cursor);
+        long timelineOffset = cohortOffset % config.loopDuration();
+        LocalDate timelineStart = firstLoopStart.plusDays(timelineOffset);
+        long timelineElapsed = ChronoUnit.DAYS.between(timelineStart, currentDate);
+        long completedSeasons = timelineElapsed / config.loopDuration();
+        int cycleIndex = Math.toIntExact(completedSeasons + 1);
+        SeasonDefinition definition = config.loop().get(
+                Math.toIntExact(completedSeasons % config.loop().size()));
+        LocalDate start = timelineStart.plusDays(
+                Math.multiplyExact(completedSeasons, config.loopDuration()));
+        return snapshot(definition, SeasonPhase.LOOP, cycleIndex, start, currentDate, zone);
     }
 
     private SeasonSnapshot snapshot(SeasonDefinition definition, SeasonPhase phase,
@@ -69,7 +65,7 @@ public class SeasonTimeline {
         long end = startDate.plusDays(definition.durationDays())
                 .atStartOfDay(zone).toInstant().toEpochMilli();
         int day = Math.toIntExact(ChronoUnit.DAYS.between(startDate, currentDate)) + 1;
-        String key = definition.id() + ":" + cycleIndex;
+        String key = definition.id() + ":" + startDate;
         return new SeasonSnapshot(definition.id(), phase, cycleIndex, start, end, day, key);
     }
 
@@ -108,15 +104,21 @@ public class SeasonTimeline {
         if (introductory.size() < 2 || loop.isEmpty()) {
             throw new IllegalArgumentException("赛季配置必须包含两个前置赛季和至少一个有效循环赛季");
         }
+        introductory.sort(Comparator.comparingInt(SeasonDefinition::id));
         loop.sort(Comparator.comparingInt(SeasonDefinition::loopSequence));
         for (int i = 1; i < loop.size(); i++) {
             if (loop.get(i - 1).loopSequence() == loop.get(i).loopSequence()) {
                 throw new IllegalArgumentException("循环赛季顺序不能重复");
             }
         }
-        return new TimelineConfig(introductory, loop);
+        int loopDuration = loop.get(0).durationDays();
+        if (loop.stream().anyMatch(definition -> definition.durationDays() != loopDuration)) {
+            throw new IllegalArgumentException("循环赛季持续时间必须一致");
+        }
+        return new TimelineConfig(introductory, loop, loopDuration);
     }
 
-    private record TimelineConfig(List<SeasonDefinition> introductory, List<SeasonDefinition> loop) {
+    private record TimelineConfig(List<SeasonDefinition> introductory, List<SeasonDefinition> loop,
+                                  int loopDuration) {
     }
 }

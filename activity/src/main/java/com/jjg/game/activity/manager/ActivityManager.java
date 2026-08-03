@@ -54,6 +54,7 @@ import com.jjg.game.core.manager.DropItemManager;
 import com.jjg.game.core.manager.RedDotManager;
 import com.jjg.game.core.pb.ActivityItemDropInfo;
 import com.jjg.game.core.pb.reddot.RedDotDetails;
+import com.jjg.game.core.service.ServerOpenTimeService;
 import com.jjg.game.core.utils.MessageBuildUtil;
 import com.jjg.game.core.utils.RedisUtils;
 import com.jjg.game.sampledata.GameDataManager;
@@ -117,7 +118,7 @@ public class ActivityManager implements TimerListener<Long>, IPlayerLoginSuccess
      */
     private final ConditionManager conditionManager;
     /**
-     * 开服时间（毫秒）
+     * 开服时间（秒）
      */
     private long startServerTime;
     /**
@@ -135,6 +136,7 @@ public class ActivityManager implements TimerListener<Long>, IPlayerLoginSuccess
      * 计数dao(用于判断活动是否开启过)
      */
     private final CountDao countDao;
+    private final ServerOpenTimeService serverOpenTimeService;
 
     /**
      * 条件解析
@@ -154,7 +156,7 @@ public class ActivityManager implements TimerListener<Long>, IPlayerLoginSuccess
                            MarsCurator marsCurator, NodeConfig nodeConfig, RedDotManager redDotManager,
                            ConditionManager conditionManager, PlayerActivityDao playerActivityDao,
                            DropItemManager dropItemManager, CountDao countDao, ConditionParser conditionParser,
-                           GameEventManager gameEventManager) {
+                           GameEventManager gameEventManager, ServerOpenTimeService serverOpenTimeService) {
         this.timerCenter = timerCenter;
         this.clusterSystem = clusterSystem;
         this.marqueeManager = marqueeManager;
@@ -165,6 +167,7 @@ public class ActivityManager implements TimerListener<Long>, IPlayerLoginSuccess
         this.playerActivityDao = playerActivityDao;
         this.dropItemManager = dropItemManager;
         this.countDao = countDao;
+        this.serverOpenTimeService = serverOpenTimeService;
         this.conditionParser = conditionParser;
         this.gameEventManager = gameEventManager;
     }
@@ -183,8 +186,7 @@ public class ActivityManager implements TimerListener<Long>, IPlayerLoginSuccess
      */
     public void initData() {
         ActivityType.initialize();
-        //添加开服时间
-        checkStartServerTime();
+        startServerTime = serverOpenTimeService.getServerOpenTimeSeconds();
         Map<Long, ActivityData> tempActivityData = new ConcurrentHashMap<>();
         //要添加定时器的列表 时间戳 活动id
         List<Pair<Long, Long>> timerList = new ArrayList<>();
@@ -210,19 +212,6 @@ public class ActivityManager implements TimerListener<Long>, IPlayerLoginSuccess
 
         for(ActivityType activityType : ActivityType.values()){
             activityType.getController().init();
-        }
-    }
-
-    /**
-     * 检查开服时间
-     */
-    private void checkStartServerTime() {
-        long serverStartTime = TimeHelper.getCurrentDateZeroSecondTime();
-        boolean ifAbsent = countDao.setIfAbsent(CountDao.CountType.SYSTEM.getParam(), "openServerTime", BigDecimal.valueOf(serverStartTime));
-        if (ifAbsent) {
-            startServerTime = serverStartTime;
-        } else {
-            startServerTime = countDao.getCount(CountDao.CountType.SYSTEM.getParam(), "openServerTime").longValue();
         }
     }
 

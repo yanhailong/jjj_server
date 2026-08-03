@@ -7,6 +7,7 @@ import com.jjg.game.core.data.PlayerPack;
 import com.jjg.game.core.service.CorePlayerService;
 import com.jjg.game.core.service.MailService;
 import com.jjg.game.core.service.PlayerPackService;
+import com.jjg.game.core.service.ServerOpenTimeService;
 import com.jjg.game.sampledata.bean.SeasonMatchCfg;
 import com.jjg.game.sampledata.bean.SeasonRankingCfg;
 import com.jjg.game.sampledata.bean.SeasonStartCfg;
@@ -53,12 +54,14 @@ public class SeasonLifecycleService implements SimPlayerTickListener {
     private final MailService mailService;
     private final SimAutoSaveService autoSaveService;
     private final SimConfigCacheService simConfigCacheService;
+    private final ServerOpenTimeService serverOpenTimeService;
 
     public SeasonLifecycleService(SeasonConfigService configService, CorePlayerService corePlayerService,
                                   SeasonPlayerDao seasonPlayerDao, SeasonRankingService rankingService,
                                   PlayerPackService playerPackService, SeasonEconomyService economyService,
                                   MailService mailService, SimAutoSaveService autoSaveService,
-                                  SimConfigCacheService simConfigCacheService) {
+                                  SimConfigCacheService simConfigCacheService,
+                                  ServerOpenTimeService serverOpenTimeService) {
         this.configService = configService;
         this.corePlayerService = corePlayerService;
         this.seasonPlayerDao = seasonPlayerDao;
@@ -68,6 +71,7 @@ public class SeasonLifecycleService implements SimPlayerTickListener {
         this.mailService = mailService;
         this.autoSaveService = autoSaveService;
         this.simConfigCacheService = simConfigCacheService;
+        this.serverOpenTimeService = serverOpenTimeService;
     }
 
     /**
@@ -87,7 +91,8 @@ public class SeasonLifecycleService implements SimPlayerTickListener {
             return true;
         }
         long origin = resolveTimelineOrigin(ctx, data);
-        SeasonSnapshot snapshot = timeline.resolve(origin, systemTime, configService.definitions());
+        SeasonSnapshot snapshot = timeline.resolve(serverOpenTimeMillis(), origin, systemTime,
+                configService.definitions());
         return data.getSeasonKey().equals(snapshot.seasonKey());
     }
 
@@ -111,7 +116,8 @@ public class SeasonLifecycleService implements SimPlayerTickListener {
             return snapshot(data, now);
         }
         long origin = resolveTimelineOrigin(ctx, data);
-        SeasonSnapshot snapshot = timeline.resolve(origin, now, configService.definitions());
+        SeasonSnapshot snapshot = timeline.resolve(serverOpenTimeMillis(), origin, now,
+                configService.definitions());
         boolean changed = !snapshot.seasonKey().equals(data.getSeasonKey());
         if (changed) {
             //切季前绕过节流强制消费一次待结算, 避免节流窗口内新到的记录被切季清理误删
@@ -176,7 +182,7 @@ public class SeasonLifecycleService implements SimPlayerTickListener {
     }
 
     /**
-     * 注册时间是整条赛季时间线的锚点; 解析不到时直接失败, 绝不能用当前时间兜底落库造成永久漂移。
+     * 注册时间决定前置赛季批次和循环时间线; 解析不到时直接失败, 绝不能用当前时间兜底落库造成永久漂移。
      */
     private long resolveTimelineOrigin(SimPlayerContext ctx, SeasonPlayerData data) {
         long origin = data.getTimelineOrigin();
@@ -193,6 +199,10 @@ public class SeasonLifecycleService implements SimPlayerTickListener {
         origin = player.getCreateTime() * 1000L;
         data.setTimelineOrigin(origin);
         return origin;
+    }
+
+    private long serverOpenTimeMillis() {
+        return Math.multiplyExact(serverOpenTimeService.getServerOpenTimeSeconds(), 1000L);
     }
 
     private int dailyKey(long now) {
