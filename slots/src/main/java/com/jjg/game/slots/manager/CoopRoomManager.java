@@ -210,6 +210,7 @@ public class CoopRoomManager implements RoomChatProvider {
                 case SlotsConst.Op.START -> {
                     int reason = start(room, playerId);
                     if (reason != Code.SUCCESS) {
+                        res.code = reason;
                         log.info("协作房间开始失败 playerId={},roomId={},reason={}", playerId, room.getRoomId(), reason);
                         return res;
                     }
@@ -217,6 +218,7 @@ public class CoopRoomManager implements RoomChatProvider {
                 case SlotsConst.Op.EXIT -> {
                     int reason = exit(room, playerId);
                     if (reason != Code.SUCCESS) {
+                        res.code = reason;
                         log.info("协作房间退出失败 playerId={},roomId={},reason={}", playerId, room.getRoomId(), reason);
                         return res;
                     }
@@ -257,15 +259,18 @@ public class CoopRoomManager implements RoomChatProvider {
      */
     private int start(CoopRoom room, long playerId) {
         if (playerId != room.getOwnerId() || room.getStatus() != CoopTaskConst.RoomStatus.WAITING) {
+            log.warn("房间开始游戏错误 playerId={},ownerId={},status={}", playerId, room.getOwnerId(), room.getStatus());
             return Code.PARAM_ERROR;
         }
         CoopTaskRule rule = room.getRule();
         if (room.getMembers().size() < rule.minMembers()) {
+            log.warn("房间开始游戏错误,房间人数不足 playerId={},memberSize={},minMemberSize={}", playerId, room.getMembers().size(), rule.minMembers());
             return Code.PARAM_ERROR;
         }
         for (CoopMember m : room.getMembers().values()) {
             if (m.getPlayerId() != room.getOwnerId() && !m.isReady()) {
                 //需求: 还有玩家未准备
+                log.warn("房间开始游戏错误,该玩家未准备 playerId={},memberPlayerId={}", playerId, m.getPlayerId());
                 return Code.PARAM_ERROR;
             }
         }
@@ -302,7 +307,7 @@ public class CoopRoomManager implements RoomChatProvider {
         int status = room.getStatus();
         if (status == CoopTaskConst.RoomStatus.RUNNING) {
             //需求: 游戏已开始, 无法退出房间
-            return Code.FORBID;
+            return Code.CAN_NOT_EXIT_GAMING_ROOM;
         }
         if ((status == CoopTaskConst.RoomStatus.WAITING || status == CoopTaskConst.RoomStatus.FINISHED)
                 && playerId == room.getOwnerId()) {

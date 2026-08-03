@@ -1,41 +1,34 @@
 package com.jjg.game.sim.service;
 
+import com.alibaba.fastjson.JSON;
 import com.jjg.game.common.utils.TimeHelper;
-import com.jjg.game.core.service.PlayerPackService;
-import com.jjg.game.core.data.ItemOperationResult;
-import com.jjg.game.core.base.condition.numeric.ConditionEvent;
-import com.jjg.game.core.base.condition.numeric.ConditionUpdate;
-import com.jjg.game.core.base.condition.numeric.GameConditionEvent;
-import com.jjg.game.core.base.condition.numeric.PreparedCondition;
-import com.jjg.game.core.base.condition.numeric.StateConditionEvent;
+import com.jjg.game.core.base.condition.numeric.*;
 import com.jjg.game.core.constant.AddType;
 import com.jjg.game.core.constant.Code;
 import com.jjg.game.core.constant.TaskConstant;
-import com.jjg.game.core.data.CommonResult;
 import com.jjg.game.core.dao.CountDao;
-import com.jjg.game.core.data.Item;
-import com.jjg.game.core.data.Player;
-import com.jjg.game.core.data.PlayerController;
+import com.jjg.game.core.data.*;
 import com.jjg.game.core.logger.TaskLogger;
 import com.jjg.game.core.service.CorePlayerService;
+import com.jjg.game.core.service.PlayerPackService;
 import com.jjg.game.core.service.PlayerStatService;
 import com.jjg.game.core.task.db.TaskDetail;
 import com.jjg.game.core.task.pb.Task;
 import com.jjg.game.core.task.pb.TaskCondition;
 import com.jjg.game.sampledata.GameDataManager;
 import com.jjg.game.sampledata.bean.TaskCfg;
+import com.jjg.game.sim.dao.SimTaskDao;
 import com.jjg.game.sim.data.SimBaseData;
 import com.jjg.game.sim.data.SimPlayerContext;
-import com.jjg.game.sim.data.SpinStatInfo;
-import com.jjg.game.sim.dao.SimTaskDao;
 import com.jjg.game.sim.data.SimTaskData;
+import com.jjg.game.sim.data.SpinStatInfo;
 import com.jjg.game.sim.listener.SimTaskStateReporter;
 import com.jjg.game.sim.logger.SimAchievementTaskLogger;
 import com.jjg.game.sim.logger.SimMainTaskLogger;
 import com.jjg.game.sim.pb.res.NotifySimTaskUpdate;
+import com.jjg.game.sim.pb.res.ResSetDisplayedMedals;
 import com.jjg.game.sim.pb.res.ResSimTaskList;
 import com.jjg.game.sim.pb.res.ResSimTaskReward;
-import com.jjg.game.sim.pb.res.ResSetDisplayedMedals;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -43,14 +36,7 @@ import org.springframework.context.annotation.Lazy;
 import org.springframework.stereotype.Service;
 
 import java.math.BigDecimal;
-import java.util.ArrayList;
-import java.util.Collections;
-import java.util.HashMap;
-import java.util.HashSet;
-import java.util.LinkedHashSet;
-import java.util.List;
-import java.util.Map;
-import java.util.Set;
+import java.util.*;
 
 /**
  * sim 主线/成就任务服务 (线性链)。
@@ -446,6 +432,13 @@ public class SimTaskService {
     private void onComplete(SimPlayerContext ctx, Player player, SimTaskData data,
                             SimBaseData baseData, TaskDetail node, TaskCfg cfg, List<Task> changed) {
         long now = System.currentTimeMillis();
+        SimTaskConfigService.TaskConditionDef def = taskConfig.conditionOf(cfg.getId());
+        int conditionId = def == null ? 0 : def.condition().spec().id();
+        long target = def == null ? 0 : def.condition().target();
+        long completedProgress = def == null ? 0 : currentProgress(ctx, player, cfg);
+        if (def != null) {
+            node.getProgress().put(conditionId, completedProgress);
+        }
         node.setStatus(TaskConstant.TaskStatus.STATUS_COMPLETED);
         node.setCompleteTime(now);
         if (baseData != null) {
@@ -455,17 +448,11 @@ public class SimTaskService {
         taskLogger.completeTask(player.getId(), node.getConfigId());
         log.info("玩家[{}]完成 sim 任务[{}]", player.getId(), node.getConfigId());
         if (cfg.getTaskType() == TaskConstant.TaskType.MAIN_LINE) {
-            SimTaskConfigService.TaskConditionDef def = taskConfig.conditionOf(cfg.getId());
-            int conditionId = def == null ? 0 : def.condition().spec().id();
-            long target = def == null ? 0 : def.condition().target();
             mainTaskLogger.completed(player.getId(), player.getNickName(), cfg.getId(),
-                    conditionId, currentProgress(ctx, player, cfg), target, now);
+                    conditionId, completedProgress, target, now);
         } else if (cfg.getTaskType() == TaskConstant.TaskType.ACHIEVEMENT) {
-            SimTaskConfigService.TaskConditionDef def = taskConfig.conditionOf(cfg.getId());
-            int conditionId = def == null ? 0 : def.condition().spec().id();
-            long target = def == null ? 0 : def.condition().target();
             achievementTaskLogger.completed(player.getId(), player.getNickName(), cfg.getId(), cfg.getGroup(),
-                    conditionId, currentProgress(ctx, player, cfg), target, now);
+                    conditionId, completedProgress, target, now);
         }
 
         boolean noReward = (cfg.getGetItem() == null || cfg.getGetItem().isEmpty())
@@ -755,7 +742,8 @@ public class SimTaskService {
     }
 
     /**
-     * 组装任务协议体: configId + 状态 + 单条件(当前进度/目标/是否完成)。进度从条件系统(Redis计数)或玩家状态回读。
+     * 组装任务协议体: configId + 状态 + 单条件(当前进度/目标/是否完成)。
+     * 进行中节点回读实时进度，完成节点返回完成时保存的进度快照。
      */
     private Task assemble(SimPlayerContext ctx, Player player, TaskDetail node, TaskCfg cfg) {
         Task task = new Task();
@@ -767,10 +755,16 @@ public class SimTaskService {
         c.setConfigId(cond.getFirst().intValue());
         SimTaskConfigService.TaskConditionDef def = taskConfig.conditionOf(cfg.getId());
         c.setConfigParam(def == null ? cond.getLast() : def.condition().target());
-        c.setProgress(currentProgress(ctx, player, cfg));
+        c.setProgress(node.getStatus() == TaskConstant.TaskStatus.STATUS_IN_PROGRESS
+                ? currentProgress(ctx, player, cfg)
+                : completedProgress(node));
         c.setFinish(node.getStatus() != TaskConstant.TaskStatus.STATUS_IN_PROGRESS);
         task.getConditions().add(c);
         return task;
+    }
+
+    private static long completedProgress(TaskDetail node) {
+        return node.getProgress().values().stream().findFirst().orElse(0L);
     }
 
     /**
