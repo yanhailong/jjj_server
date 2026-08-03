@@ -8,6 +8,8 @@ import com.jjg.game.common.utils.TimeHelper;
 import com.jjg.game.core.base.condition.numeric.ActionConditionEvent;
 import com.jjg.game.core.constant.AddType;
 import com.jjg.game.core.constant.Code;
+import com.jjg.game.core.data.CommonResult;
+import com.jjg.game.core.data.ItemOperationResult;
 import com.jjg.game.core.pb.KVInfo;
 import com.jjg.game.core.service.PlayerPackService;
 import com.jjg.game.core.service.PlayerStatService;
@@ -521,11 +523,20 @@ public class SimBuildingService implements SimPlayerTickListener, SimTaskStateRe
             if (fullMinutes <= 0) {
                 return;
             }
+            long settledOutputTime = casino.getLastOutputTime() + fullMinutes * TimeHelper.ONE_MINUTE_OF_MILLIS;
             Map<BuildingOutputType, Long> perMinute = computePerMinuteOutput(ctx, casino);
             if (!perMinute.isEmpty()) {
                 Map<BuildingOutputType, Long> total = multiply(perMinute, fullMinutes);
                 Map<Integer, Long> items = toItemMap(total);
-                playerPackService.addItems(ctx.playerId(), items, AddType.SIM_BUILD_MINUTE_REWARDS, null, false);
+                CommonResult<ItemOperationResult> addResult = playerPackService.addItems(
+                        ctx.playerId(), items, AddType.SIM_BUILD_MINUTE_REWARDS, null, false);
+                if (addResult == null || !addResult.success()) {
+                    log.warn("在线产出入账失败 playerId={},code={}", ctx.playerId(),
+                            addResult == null ? Code.FAIL : addResult.code);
+                    return;
+                }
+                //先提交结算时间，避免后续统计或通知异常导致同一时间段重复发奖
+                casino.setLastOutputTime(settledOutputTime);
                 //经营信息: 累加每分钟自产金币收益
                 long minuteGold = total.getOrDefault(BuildingOutputType.GOLD, 0L);
                 if(minuteGold > 0){
@@ -536,9 +547,10 @@ public class SimBuildingService implements SimPlayerTickListener, SimTaskStateRe
                 NotifyBuildingOutput notify = new NotifyBuildingOutput();
                 notify.rewards = ItemUtils.buildItemInfo(items);
                 ctx.send(notify);
+                return;
             }
             //仅推进已结算的整分钟, 保留余量
-            casino.setLastOutputTime(casino.getLastOutputTime() + fullMinutes * TimeHelper.ONE_MINUTE_OF_MILLIS);
+            casino.setLastOutputTime(settledOutputTime);
         } catch (Exception e) {
             log.error("在线产出结算异常 playerId={}", ctx.playerId(), e);
         }
@@ -878,7 +890,13 @@ public class SimBuildingService implements SimPlayerTickListener, SimTaskStateRe
 
         Map<BuildingOutputType, Long> finalReward = computeFinalReward(ctx, reward, watchAd);
         Map<Integer, Long> items = toItemMap(finalReward);
-        playerPackService.addItems(ctx.playerId(), items, AddType.SIM_BUILD_OFFLINE_REWARDS, null, false);
+        CommonResult<ItemOperationResult> addResult = playerPackService.addItems(
+                ctx.playerId(), items, AddType.SIM_BUILD_OFFLINE_REWARDS, null, false);
+        if (addResult == null || !addResult.success()) {
+            int code = addResult == null ? Code.FAIL : addResult.code;
+            log.warn("离线收益入账失败 playerId={},code={}", ctx.playerId(), code);
+            return code;
+        }
         //经营信息: 离线产出金币计入经营收益; 看广告领取计入观看广告数
         long offlineGold = finalReward.getOrDefault(BuildingOutputType.GOLD, 0L);
         ctx.getSimBaseData().addBusinessIncome(offlineGold);

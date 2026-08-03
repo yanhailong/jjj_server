@@ -220,81 +220,82 @@ public class SimGuestService implements SimPlayerTickListener, ItemListener, Sim
      * @param guestId 购买的游客id
      */
     public void generatePurchasedGuest(SimPlayerContext ctx, int guestId, int count) {
-        ResGenPurchasedGuest res = new ResGenPurchasedGuest(Code.SUCCESS);
-        if (count < 1) {
-            count = 1;
-        }
-
-        SimCasinoData casino = ctx.getCurrentCasino();
-        if (casino == null) {
-            log.warn("生成购买游客失败，当前场景数据不存在 playerId={},currentCasinoId={}", ctx.playerId(), ctx.getSimBaseData().getCurrentCasinoId());
-            res.code = Code.NOT_FOUND;
-            ctx.send(res);
-            return;
-        }
-        VisitorQuestCfg visitorQuestCfg = GameDataManager.getVisitorQuestCfg(guestId);
-        if (visitorQuestCfg == null) {
-            log.warn("生成购买游客失败，VisitorQuest 配置未找到 playerId={},guestId={}", ctx.playerId(), guestId);
-            res.code = Code.NOT_FOUND;
-            ctx.send(res);
-            return;
-        }
-        CasinoStatsSheetCfg casinoCfg = configCache.getCasinoStatsSheetCfg(casino.getCasinoId(), casino.getCasinoLevel());
-        if (casinoCfg == null) {
-            log.warn("生成购买游客失败，获取 CasinoStatsSheetCfg 配置未找到 playerId={},casinoId={},level={}", ctx.playerId(), casino.getCasinoId(), casino.getCasinoLevel());
-            res.code = Code.FAIL;
-            ctx.send(res);
-            return;
-        }
-
-        res.guests = new ArrayList<>();
-        for (int i = 0; i < count; i++) {
-            GuestData guest = casino.findGuestData(guestId);
-            if (guest == null) {
-                guest = new GuestData();
-                guest.setId(guestId);
-                guest.setStar(1);
-                guest.setLevel(1);
-                casino.addGuest(guest);
-            }
-
-            //本次交互次数 (有奖励 + 无奖励)
-            VisitorStarCfg starCfg = rewardService.getStarCfg(guestId, guest.getStar());
-            int rewardedCount = computeInteractionCount(visitorQuestCfg.getServiceCapacity(), casinoCfg.getProsperity(), starCfg);
-            int unrewardedCount = computeInteractionCount(visitorQuestCfg.getBaseServiceCapacity(), casinoCfg.getProsperity(), starCfg);
-            if (rewardedCount + unrewardedCount <= 0) {
-                log.info("生成购买游客但交互次数为 0, 跳过 playerId={},guestId={}", ctx.playerId(), guestId);
-                continue;
-            }
-
-            //预生成目的地序列和奖励 (奖励此时不添加到玩家身上, 待领奖请求时才添加)
-            List<DestinationInfo> destinations = planDestinations(guest, visitorQuestCfg, casino, rewardedCount, unrewardedCount);
-            if (destinations.isEmpty()) {
-//            log.warn("生成购买游客失败，目的地序列为空 playerId={},guestId={}", ctx.playerId(), guestId);
-                continue;
-            }
-
-            PurchasedGuestData data = new PurchasedGuestData();
-            data.setUid(UID_GENERATOR.nextIdStr());
-            data.setGuestId(guestId);
-            data.setStar(guest.getStar());
-            data.setLevel(guest.getLevel());
-
-            Map<Integer, DestinationInfo> map = new HashMap<>();
-            for (DestinationInfo info : destinations) {
-                map.put(info.index, info);
-            }
-            data.setDestinations(map);
-            casino.addPurchasedGuest(data);
-            //经营信息: 招商生成一名高级游客即累计一次, 与该游客的目的地数量无关
-            ctx.getSimBaseData().addReceptionCount(1);
-
-            res.guests.add(SimPbConverter.toGuestInfo(data, visitorQuestCfg));
-            //累加经验
-            guest.addExp(configCache.getVisitorLevelCfgMap());
-        }
-        allianceEventService.onGuestGenerated(ctx.playerId(), true, res.guests.size());
-        ctx.send(res);
+        log.warn("生成游客的接口暂未使用，改用使用道具 playerId={}",ctx.playerId());
+//        ResGenPurchasedGuest res = new ResGenPurchasedGuest(Code.SUCCESS);
+//        if (count < 1) {
+//            count = 1;
+//        }
+//
+//        SimCasinoData casino = ctx.getCurrentCasino();
+//        if (casino == null) {
+//            log.warn("生成购买游客失败，当前场景数据不存在 playerId={},currentCasinoId={}", ctx.playerId(), ctx.getSimBaseData().getCurrentCasinoId());
+//            res.code = Code.NOT_FOUND;
+//            ctx.send(res);
+//            return;
+//        }
+//        VisitorQuestCfg visitorQuestCfg = GameDataManager.getVisitorQuestCfg(guestId);
+//        if (visitorQuestCfg == null) {
+//            log.warn("生成购买游客失败，VisitorQuest 配置未找到 playerId={},guestId={}", ctx.playerId(), guestId);
+//            res.code = Code.NOT_FOUND;
+//            ctx.send(res);
+//            return;
+//        }
+//        CasinoStatsSheetCfg casinoCfg = configCache.getCasinoStatsSheetCfg(casino.getCasinoId(), casino.getCasinoLevel());
+//        if (casinoCfg == null) {
+//            log.warn("生成购买游客失败，获取 CasinoStatsSheetCfg 配置未找到 playerId={},casinoId={},level={}", ctx.playerId(), casino.getCasinoId(), casino.getCasinoLevel());
+//            res.code = Code.FAIL;
+//            ctx.send(res);
+//            return;
+//        }
+//
+//        res.guests = new ArrayList<>();
+//        for (int i = 0; i < count; i++) {
+//            GuestData guest = casino.findGuestData(guestId);
+//            if (guest == null) {
+//                guest = new GuestData();
+//                guest.setId(guestId);
+//                guest.setStar(1);
+//                guest.setLevel(1);
+//                casino.addGuest(guest);
+//            }
+//
+//            //本次交互次数 (有奖励 + 无奖励)
+//            VisitorStarCfg starCfg = rewardService.getStarCfg(guestId, guest.getStar());
+//            int rewardedCount = computeInteractionCount(visitorQuestCfg.getServiceCapacity(), casinoCfg.getProsperity(), starCfg);
+//            int unrewardedCount = computeInteractionCount(visitorQuestCfg.getBaseServiceCapacity(), casinoCfg.getProsperity(), starCfg);
+//            if (rewardedCount + unrewardedCount <= 0) {
+//                log.info("生成购买游客但交互次数为 0, 跳过 playerId={},guestId={}", ctx.playerId(), guestId);
+//                continue;
+//            }
+//
+//            //预生成目的地序列和奖励 (奖励此时不添加到玩家身上, 待领奖请求时才添加)
+//            List<DestinationInfo> destinations = planDestinations(guest, visitorQuestCfg, casino, rewardedCount, unrewardedCount);
+//            if (destinations.isEmpty()) {
+////            log.warn("生成购买游客失败，目的地序列为空 playerId={},guestId={}", ctx.playerId(), guestId);
+//                continue;
+//            }
+//
+//            PurchasedGuestData data = new PurchasedGuestData();
+//            data.setUid(UID_GENERATOR.nextIdStr());
+//            data.setGuestId(guestId);
+//            data.setStar(guest.getStar());
+//            data.setLevel(guest.getLevel());
+//
+//            Map<Integer, DestinationInfo> map = new HashMap<>();
+//            for (DestinationInfo info : destinations) {
+//                map.put(info.index, info);
+//            }
+//            data.setDestinations(map);
+//            casino.addPurchasedGuest(data);
+//            //经营信息: 招商生成一名高级游客即累计一次, 与该游客的目的地数量无关
+//            ctx.getSimBaseData().addReceptionCount(1);
+//
+//            res.guests.add(SimPbConverter.toGuestInfo(data, visitorQuestCfg));
+//            //累加经验
+//            guest.addExp(configCache.getVisitorLevelCfgMap());
+//        }
+//        allianceEventService.onGuestGenerated(ctx.playerId(), true, res.guests.size());
+//        ctx.send(res);
     }
 
     /**
@@ -350,7 +351,15 @@ public class SimGuestService implements SimPlayerTickListener, ItemListener, Sim
                     rewardsMap.merge(itemInfo.itemId, itemInfo.count, Long::sum);
                 }
                 //添加道具
-                playerPackService.addItems(ctx.playerId(), rewardsMap, AddType.SIM_GUEST_REWARDS, null, false);
+                CommonResult<ItemOperationResult> addResult = playerPackService.addItems(
+                        ctx.playerId(), rewardsMap, AddType.SIM_GUEST_REWARDS, null, false);
+                if (addResult == null || !addResult.success()) {
+                    res.code = addResult == null ? Code.FAIL : addResult.code;
+                    log.warn("领取购买游客奖励入账失败 playerId={},uid={},index={},code={}",
+                            ctx.playerId(), uid, index, res.code);
+                    ctx.send(res);
+                    return;
+                }
                 //经营信息: 购买游客交互产出金币计入经营收益
                 long destGold = rewardsMap.getOrDefault(ItemUtils.getGoldItemId(), 0L);
                 ctx.getSimBaseData().addBusinessIncome(destGold);
@@ -459,7 +468,13 @@ public class SimGuestService implements SimPlayerTickListener, ItemListener, Sim
         }
         if (!rewardsMap.isEmpty()) {
             //添加道具
-            playerPackService.addItems(ctx.playerId(), rewardsMap, AddType.SIM_GUEST_REWARDS, null, false);
+            CommonResult<ItemOperationResult> addResult = playerPackService.addItems(
+                    ctx.playerId(), rewardsMap, AddType.SIM_GUEST_REWARDS, null, false);
+            if (addResult == null || !addResult.success()) {
+                log.warn("生成游客奖励入账失败 playerId={},guestId={},code={}", ctx.playerId(), guest.getId(),
+                        addResult == null ? Code.FAIL : addResult.code);
+                return null;
+            }
         }
 
         //经营信息: 普通游客不计入高级游客人次; 游客交互产出金币计入玩家经营总收益

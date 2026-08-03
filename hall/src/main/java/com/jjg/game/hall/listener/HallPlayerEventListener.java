@@ -359,19 +359,17 @@ public class HallPlayerEventListener implements SessionCloseListener, SessionEnt
     public void logout(long playerId, String sessionId) {
         //玩家彻底下线: 保存并卸载 sim (此前切换节点不卸载)
         boolean exit = simManager.onExitGame(playerId, ExitType.DROPPED);
-        if (exit) {
-            PlayerSessionInfo playerSessionInfo = playerSessionService.remove(playerId);
-            if (playerSessionInfo == null) {
-                hallLogger.logout(playerId, 0);
-            } else {
-                hallLogger.logout(playerId, playerSessionInfo.getCreateTime());
-            }
-            accountDao.checkAndSave(playerId, a -> a.setLastOfflineTime(System.currentTimeMillis()));
-            //向在线好友广播本人下线状态, 并清理聊天频率限制缓存
-            socialStatusService.broadcastStatus(playerId, SocialConst.FriendOnlineStatus.OFFLINE);
-            socialRateLimiter.remove(playerId);
-            log.info("玩家登出 playerId={}", playerId);
+        PlayerSessionInfo playerSessionInfo = playerSessionService.remove(playerId);
+        //sim 与 hall 会话都不存在时属于重复登出，不重复执行离线副作用
+        if (!exit && playerSessionInfo == null) {
+            return;
         }
+        hallLogger.logout(playerId, playerSessionInfo == null ? 0 : playerSessionInfo.getCreateTime());
+        accountDao.checkAndSave(playerId, a -> a.setLastOfflineTime(System.currentTimeMillis()));
+        //向在线好友广播本人下线状态, 并清理聊天频率限制缓存
+        socialStatusService.broadcastStatus(playerId, SocialConst.FriendOnlineStatus.OFFLINE);
+        socialRateLimiter.remove(playerId);
+        log.info("玩家登出 playerId={}", playerId);
     }
 
     @Override

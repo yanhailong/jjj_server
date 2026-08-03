@@ -72,9 +72,40 @@ public class SimDropService {
                 result.code = Code.FAIL;
                 return result;
             }
+            int originalPower = base.getPower();
+            int originalExp = casino.getExp();
+            int originalDropResetDay = base.getDropResetDay();
+            Map<Integer, Integer> originalDropCount = base.getDailyDropCount() == null
+                    ? null : new HashMap<>(base.getDailyDropCount());
             base.setPower(base.getPower() - SimConstant.Common.SPIN_COST_POWER);
-
             casino.setExp(casino.getExp() + SimConstant.Common.SPIN_ADD_EXP);
+
+            Map<Integer, Long> dropResult;
+            try {
+                //掉落
+                dropResult = rollDrop(base, gameType, winTimes);
+
+                //入账 (掉落可能含能量/知名度等特殊资源, 统一走 addItems 路由)
+                if (!dropResult.isEmpty()) {
+                    CommonResult<ItemOperationResult> addResult = playerPackService.addItems(
+                            ctx.playerId(), dropResult, AddType.SIM_SLOTS_DROP, null, false);
+                    if (addResult == null || !addResult.success()) {
+                        restoreSpinState(base, casino, originalPower, originalExp,
+                                originalDropResetDay, originalDropCount);
+                        int code = addResult == null ? Code.FAIL : addResult.code;
+                        log.info("slots 掉落失败 playerId={},gameType={},winTimes={},code={}",
+                                ctx.playerId(), gameType, winTimes, code);
+                        result.code = code;
+                        return result;
+                    }
+                }
+            } catch (RuntimeException e) {
+                restoreSpinState(base, casino, originalPower, originalExp,
+                        originalDropResetDay, originalDropCount);
+                throw e;
+            }
+
+            //奖励入账后再提交升级及其外部联动，避免入账失败留下部分 sim 状态
             if (checkLevelUp(casino)) {
                 base.addAllLevel(1);
                 guideService.triggerSceneTotalLevelReached(ctx, base.getAllLevel(), true);
@@ -82,30 +113,29 @@ public class SimDropService {
                         casino.getCasinoId(), casino.getCasinoLevel()));
             }
 
-            //掉落
-            Map<Integer, Long> dropResult = rollDrop(base, gameType, winTimes);
-
-            //入账 (掉落可能含能量/知名度等特殊资源, 统一走 addItems 路由)
-            if (!dropResult.isEmpty()) {
-                CommonResult<ItemOperationResult> addResult = playerPackService.addItems(ctx.playerId(), dropResult, AddType.SIM_SLOTS_DROP, null, false);
-                if (!addResult.success()) {
-                    log.info("slots 掉落失败 playerId={},gameType={},winTimes={},code={}", ctx.playerId(), gameType, winTimes, addResult.code);
-                    result.code = addResult.code;
-                    return result;
-                }
-            }
-
             slotsSpinResult.setItemsMap(dropResult);
         }
 
         slotsSpinResult.setPower(base.getPower());
 
-        ItemCfg itemCfg = configCacheService.getResearchPointItemCfg(0);
-        if (itemCfg != null) {
-            slotsSpinResult.setResearchPoints((int) playerPackService.getItemCount(ctx.playerId(), itemCfg.getId()));
+        try {
+            ItemCfg itemCfg = configCacheService.getResearchPointItemCfg(0);
+            if (itemCfg != null) {
+                slotsSpinResult.setResearchPoints((int) playerPackService.getItemCount(ctx.playerId(), itemCfg.getId()));
+            }
+        } catch (RuntimeException e) {
+            log.warn("查询研究点失败 playerId={}", ctx.playerId(), e);
         }
         result.data = slotsSpinResult;
         return result;
+    }
+
+    private void restoreSpinState(SimBaseData base, SimCasinoData casino, int power, int exp,
+                                  int dropResetDay, Map<Integer, Integer> dropCount) {
+        base.setPower(power);
+        casino.setExp(exp);
+        base.setDropResetDay(dropResetDay);
+        base.setDailyDropCount(dropCount);
     }
 
     /**

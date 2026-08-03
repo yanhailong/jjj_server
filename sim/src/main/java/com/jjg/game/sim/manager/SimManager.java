@@ -501,59 +501,23 @@ public class SimManager {
         return ctx;
     }
 
-    /**
-     * 服务器关闭: 让所有玩家走一遍 onExitGame, 然后统一刷盘 + 释放缓存
-     */
+    /** 服务器关闭: 排空旧快照后让所有玩家按正常退出流程结算、落库并释放缓存。 */
     public void shutdown() {
         if (this.checkPlayerDataTimeout != null) {
             this.checkPlayerDataTimeout.cancel();
         }
-        //先等异步落库排空, 避免在途旧快照覆盖下面的同步全量落库
+        //先等异步落库排空, 避免在途旧快照覆盖后续退出落库
         this.autoSaveService.awaitPending();
         this.autoSaveService.destroy();
 
-        //玩家级 SimPlayerGameData
-        List<SimBaseData> gameDataList = new ArrayList<>(this.simPlayerContextRegistry.ctxSize());
-        List<SimCasinoData> simCasinoDataList = new ArrayList<>();
-        List<SimEmployeeData> simEmployeeDataList = new ArrayList<>();
-        List<SimSkillsData> skillDataList = new ArrayList<>();
-        List<SimTaskData> simTaskDataList = new ArrayList<>();
-        List<SimCoopTaskData> simCoopTaskDataList = new ArrayList<>();
-        List<SeasonPlayerData> seasonPlayerDataList = new ArrayList<>();
-        for (Map.Entry<Long, SimPlayerContext> en : this.simPlayerContextRegistry.getContextMap().entrySet()) {
+        List<Long> playerIds = new ArrayList<>(this.simPlayerContextRegistry.getContextMap().keySet());
+        for (Long playerId : playerIds) {
             try {
-                SimPlayerContext ctx = en.getValue();
-                onExitGame(en.getKey(), ExitType.DROPPED);
-
-                gameDataList.add(ctx.getSimBaseData());
-                if (ctx.getCurrentCasino() != null) {
-                    simCasinoDataList.add(ctx.getCurrentCasino());
-                }
-                simEmployeeDataList.addAll(ctx.getEmployeeMap().values());
-                skillDataList.addAll(ctx.getSkillsDataMap().values());
-                if (ctx.getSimTaskData() != null) {
-                    simTaskDataList.add(ctx.getSimTaskData());
-                }
-                if (ctx.getSimCoopTaskData() != null) {
-                    simCoopTaskDataList.add(ctx.getSimCoopTaskData());
-                }
-                if (ctx.getSeasonPlayerData() != null) {
-                    seasonPlayerDataList.add(ctx.getSeasonPlayerData());
-                }
+                onExitGame(playerId, ExitType.DROPPED);
             } catch (Exception e) {
-                log.error("shutdown onExitGame 异常 playerId={}", en.getKey(), e);
+                log.error("shutdown onExitGame 异常 playerId={}", playerId, e);
             }
         }
-
-        simPlayerGameDao.saveAll(gameDataList);
-        simCasinoDao.saveAll(simCasinoDataList);
-        simEmployeeDao.saveAll(simEmployeeDataList);
-        simSkillsDao.saveAll(skillDataList);
-        simTaskDao.saveAll(simTaskDataList);
-        simCoopTaskDao.saveAll(simCoopTaskDataList);
-        seasonPlayerDao.saveAll(seasonPlayerDataList);
-        //删除本节点上所有玩家的sim节点路由信息
-        this.simNodeService.delete(this.simPlayerContextRegistry.getContextMap().keySet());
     }
 
     /**
@@ -667,13 +631,15 @@ public class SimManager {
     public CommonResult<SlotsSpinResult> onSlotsSpin(long playerId, int gameType, int winTimes, boolean changeNode,
                                                      SpinStatInfo statInfo, VisitTrialSpinPermit trialPermit,
                                                      int enterType) {
+        SimPlayerContext ctx = null;
+        long spinId = statInfo == null ? 0 : statInfo.getSpinId();
         try {
             log.warn("onSlotsSpin 方法playerId={},gameType={},winTimes={},enterType={},statInfo={},trialPermit={}",
                     playerId, gameType, winTimes, enterType,
                     statInfo != null ? JSONObject.toJSONString(statInfo) : "null",
                     trialPermit != null ? JSONObject.toJSONString(trialPermit) : "null");
             boolean visitTrial = trialPermit != null && trialPermit.isTrial();
-            SimPlayerContext ctx = this.simPlayerContextRegistry.getContext(playerId);
+            ctx = this.simPlayerContextRegistry.getContext(playerId);
             if (ctx == null) {
                 // 已授权的试玩结果必须完成结算；即使异步回调到达前上下文已被清理，也要恢复后继续发放房主抽成。
                 if (changeNode || visitTrial) {
@@ -687,16 +653,15 @@ public class SimManager {
                 }
             }
 
-            //幂等去重: slots 侧超时重试会重复投递同一次旋转, 凭 statInfo.spinId 拒绝双计 (同玩家 RPC 串行, 无需加锁)
-            long spinId = statInfo == null ? 0 : statInfo.getSpinId();
-            if (spinId != 0 && !ctx.markSpinProcessed(spinId)) {
-                log.warn("slots 联动重复投递, 跳过 playerId={},gameType={},spinId={}", playerId, gameType, spinId);
-                return new CommonResult<>(Code.REPEAT_OP);
+            CommonResult<SlotsSpinResult> cachedResult = ctx.spinResult(spinId);
+            if (cachedResult != null) {
+                log.warn("slots 联动重复投递, 返回原结果 playerId={},gameType={},spinId={}", playerId, gameType, spinId);
+                return cachedResult;
             }
 
             boolean freeMode = statInfo != null && statInfo.isFreeMode();
             //免费模式 / 赛季入口: 不消耗体力 (与 SimDropService 扣能逻辑一致)
-            int spinCostPower = (freeMode || enterType > 0) ? 0 : SimConstant.Common.SPIN_COST_POWER;
+            int configuredSpinCostPower = (freeMode || enterType > 0) ? 0 : SimConstant.Common.SPIN_COST_POWER;
             //普通旋转沿用原语义：即使掉落失败也计入统计。试玩需要先通过 permit 幂等结算，避免 RPC 重试重复计数。
             if (!visitTrial) {
                 simStatsService.recordSpin(ctx.getSimBaseData(), gameType, statInfo);
@@ -704,14 +669,16 @@ public class SimManager {
             CommonResult<SlotsSpinResult> result = visitTrial
                     ? simVisitService.settleTrialSpin(ctx, gameType, statInfo, trialPermit)
                     : simDropService.onSpin(ctx, gameType, winTimes, freeMode, enterType);
+            int actualSpinCostPower = result.success() ? configuredSpinCostPower : 0;
             //须在掉落结算后构造: 本次到账的道具要计入 itemGains, 12202 等按道具计数的条件才能推进
             GameConditionEvent conditionEvent = SimConditionEventFactory.fromSpin(
-                    gameType, winTimes, spinCostPower, statInfo,
-                    result.data == null ? null : result.data.getItemsMap());
+                    gameType, winTimes, actualSpinCostPower, statInfo,
+                    result.data == null ? null : result.data.getItemsMap(), actualSpinCostPower > 0);
             if (!result.success()) {
                 log.warn("slots 联动失败, onSpin执行失败 playerId={},gameType={},winTimes={},code={}", playerId, gameType, winTimes, result.code);
                 //试玩失败意味着 permit 已失效(重复投递等), 本次上报不可信, 不推进任何进度
                 if (visitTrial) {
+                    ctx.recordSpinResult(spinId, result);
                     return result;
                 }
             } else if (visitTrial) {
@@ -720,7 +687,7 @@ public class SimManager {
 
             //真实旋转已发生: 体力不足/掉落失败都不影响下面的进度推进, 任务只认旋转本身这一事实
             //联盟联动: 消耗体力/中奖倍数 -> 任务进度 + 对决积分掉落 (内部吞异常, 不影响主流程)
-            allianceEventService.onSpin(playerId, spinCostPower, conditionEvent);
+            allianceEventService.onSpin(playerId, actualSpinCostPower, conditionEvent);
 
             //主线/成就任务联动: 旋转次数 + 累积投注 (内部吞异常, 不影响主流程)
             simTaskService.onConditionEvent(ctx, conditionEvent);
@@ -733,11 +700,16 @@ public class SimManager {
                     result.data.mergeItems(gemGains);
                 }
             }
+            ctx.recordSpinResult(spinId, result);
             return result;
         } catch (Exception e) {
             log.error("slots 联动处理异常 playerId={},gameType={},winTimes={},spinId={}",
-                    playerId, gameType, winTimes, statInfo == null ? 0 : statInfo.getSpinId(), e);
-            return new CommonResult<>(Code.EXCEPTION);
+                    playerId, gameType, winTimes, spinId, e);
+            CommonResult<SlotsSpinResult> result = new CommonResult<>(Code.EXCEPTION);
+            if (ctx != null) {
+                ctx.recordSpinResult(spinId, result);
+            }
+            return result;
         }
     }
 
