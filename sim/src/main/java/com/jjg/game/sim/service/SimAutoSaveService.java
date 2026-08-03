@@ -16,8 +16,10 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.data.mongodb.core.MongoTemplate;
 import org.springframework.stereotype.Service;
 
+import java.util.concurrent.ArrayBlockingQueue;
 import java.util.concurrent.ExecutorService;
-import java.util.concurrent.Executors;
+import java.util.concurrent.RejectedExecutionException;
+import java.util.concurrent.ThreadPoolExecutor;
 import java.util.concurrent.TimeUnit;
 
 /**
@@ -34,6 +36,7 @@ public class SimAutoSaveService implements SimPlayerTickListener {
      * 同一玩家最小落库间隔: 5 分钟
      */
     private static final long SAVE_INTERVAL_MS = 5 * 60 * 1000L;
+    private static final int SAVE_QUEUE_CAPACITY = 4096;
 
     @Autowired
     private MongoTemplate mongoTemplate;
@@ -42,18 +45,37 @@ public class SimAutoSaveService implements SimPlayerTickListener {
     private ExecutorService ioExecutor;
 
     public void init() {
-        this.ioExecutor = Executors.newSingleThreadExecutor(r -> {
-            Thread t = new Thread(r, "sim-save-io");
-            t.setDaemon(true);
-            return t;
-        });
+        this.ioExecutor = new ThreadPoolExecutor(
+                1, 1, 0L, TimeUnit.MILLISECONDS,
+                new ArrayBlockingQueue<>(SAVE_QUEUE_CAPACITY),
+                r -> {
+                    Thread t = new Thread(r, "sim-save-io");
+                    t.setDaemon(true);
+                    return t;
+                },
+                SimAutoSaveService::blockUntilQueued);
+    }
+
+    /** 队列满时阻塞生产者并按原顺序入队，避免无界堆积或旧快照覆盖新值。 */
+    private static void blockUntilQueued(Runnable task, ThreadPoolExecutor executor) {
+        if (executor.isShutdown()) {
+            throw new RejectedExecutionException("sim save executor is shutdown");
+        }
+        try {
+            executor.getQueue().put(task);
+        } catch (InterruptedException e) {
+            Thread.currentThread().interrupt();
+            throw new RejectedExecutionException("interrupted while enqueueing sim save", e);
+        }
     }
 
     public void destroy() {
         if (ioExecutor != null) {
             ioExecutor.shutdown();
             try {
-                ioExecutor.awaitTermination(10, TimeUnit.SECONDS);
+                while (!ioExecutor.awaitTermination(10, TimeUnit.SECONDS)) {
+                    log.warn("等待 sim 落库 IO 线程退出");
+                }
             } catch (InterruptedException e) {
                 Thread.currentThread().interrupt();
             }
@@ -136,7 +158,7 @@ public class SimAutoSaveService implements SimPlayerTickListener {
         data.buildKey();
         Document snapshot = new Document();
         mongoTemplate.getConverter().write(data, snapshot);
-        long hash = fnv1a64(JSON.toJSONString(snapshot, SerializerFeature.MapSortField));
+        long hash = snapshotHash(snapshot);
         if (hash == data.getSavedHash()) {
             return false;
         }
@@ -166,7 +188,7 @@ public class SimAutoSaveService implements SimPlayerTickListener {
 
     /**
      * 阻塞等待已提交的异步写库全部完成 (单线程 FIFO, 提交一个空屏障并等它执行完即可)。
-     * 供退出/关服在同步全量落库前调用, 确保不会有旧快照在其后覆盖最新值。
+     * 供退出/关服在最终落库前调用, 确保不会有旧快照在其后覆盖最新值。
      */
     public void awaitPending() {
         ExecutorService ex = this.ioExecutor;
@@ -175,7 +197,10 @@ public class SimAutoSaveService implements SimPlayerTickListener {
         }
         try {
             ex.submit(() -> {
-            }).get(5, TimeUnit.SECONDS);
+            }).get();
+        } catch (InterruptedException e) {
+            Thread.currentThread().interrupt();
+            log.warn("等待异步落库完成被中断", e);
         } catch (Exception e) {
             log.warn("等待异步落库完成异常", e);
         }
@@ -191,6 +216,10 @@ public class SimAutoSaveService implements SimPlayerTickListener {
             hash *= 0x100000001b3L;
         }
         return hash;
+    }
+
+    static long snapshotHash(Document snapshot) {
+        return fnv1a64(JSON.toJSONString(snapshot, SerializerFeature.MapSortField));
     }
 
     /**

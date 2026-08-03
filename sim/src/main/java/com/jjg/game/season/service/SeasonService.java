@@ -197,7 +197,7 @@ public class SeasonService implements SimPlayerTickListener {
             info.cost = cfg.getMergeCost();
             response.craftInfos.add(info);
         }
-        log.warn("返回宝石信息 playerId={},res={}",ctx.playerId(), JSON.toJSONString(response));
+        log.warn("返回宝石信息 playerId={},res={}", ctx.playerId(), JSON.toJSONString(response));
         return response;
     }
 
@@ -633,9 +633,13 @@ public class SeasonService implements SimPlayerTickListener {
         info.icon = cfg.getIcon();
 
         //检查该道具是否为宝石
-        SeasonGemCfg seasonGemCfg = configService.gemByItemId(cfg.getId());
-        if(seasonGemCfg != null) {
-            info.gemBuff = seasonGemCfg.getStatBoost();
+        if (cfg.getGoods() != null) {
+            for (Map.Entry<Integer, Long> en : cfg.getGoods().entrySet()) {
+                SeasonGemCfg seasonGemCfg = configService.gemByItemId(en.getKey());
+                if(seasonGemCfg != null) {
+                    info.gemBuff += seasonGemCfg.getStatBoost();
+                }
+            }
         }
         return info;
     }

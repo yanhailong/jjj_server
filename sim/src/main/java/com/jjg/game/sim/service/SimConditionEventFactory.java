@@ -31,7 +31,8 @@ public final class SimConditionEventFactory {
 
     public static GameConditionEvent fromSpin(int gameType, int winTimes, int costPower,
                                               SpinStatInfo statInfo) {
-        return fromSpin(gameType, winTimes, costPower, statInfo, resolveGoldItemId(), null);
+        return fromSpin(gameType, winTimes, costPower, statInfo, resolveGoldItemId(), null,
+                costPower > 0 || (statInfo != null && statInfo.getBet() > 0));
     }
 
     /**
@@ -40,22 +41,31 @@ public final class SimConditionEventFactory {
      */
     public static GameConditionEvent fromSpin(int gameType, int winTimes, int costPower,
                                               SpinStatInfo statInfo, Map<Integer, Long> itemGains) {
-        return fromSpin(gameType, winTimes, costPower, statInfo, resolveGoldItemId(), itemGains);
+        return fromSpin(gameType, winTimes, costPower, statInfo, resolveGoldItemId(), itemGains,
+                costPower > 0 || (statInfo != null && statInfo.getBet() > 0));
+    }
+
+    /** 构造已明确是否真实消耗经营体力的旋转事件。 */
+    public static GameConditionEvent fromSpin(int gameType, int winTimes, int costPower,
+                                              SpinStatInfo statInfo, Map<Integer, Long> itemGains,
+                                              boolean energyConsumed) {
+        return fromSpin(gameType, winTimes, costPower, statInfo, resolveGoldItemId(), itemGains, energyConsumed);
     }
 
     /** 测试/无货币条件调用可显式传 0，避免依赖尚未初始化的 Item 配置。 */
     public static GameConditionEvent fromSpin(int gameType, int winTimes, int costPower,
                                               SpinStatInfo statInfo, int goldItemId) {
-        return fromSpin(gameType, winTimes, costPower, statInfo, goldItemId, null);
+        return fromSpin(gameType, winTimes, costPower, statInfo, goldItemId, null,
+                costPower > 0 || (statInfo != null && statInfo.getBet() > 0));
     }
 
     private static GameConditionEvent fromSpin(int gameType, int winTimes, int costPower,
                                                SpinStatInfo statInfo, int goldItemId,
-                                               Map<Integer, Long> itemGains) {
+                                               Map<Integer, Long> itemGains, boolean energyConsumed) {
         long bet = statInfo == null ? costPower : statInfo.getBet();
         long win = statInfo == null ? 0 : statInfo.getWin();
         return new GameConditionEvent(gameType, gameType, 0, goldItemId, goldItemId,
-                bet, win, winTimes, costPower > 0 || bet > 0, true,
+                bet, win, winTimes, energyConsumed, true,
                 statInfo == null ? 0 : statInfo.getBigShowId(),
                 statInfo == null ? Map.of() : statInfo.getJackpotCounts(),
                 freeGameTriggers(statInfo),

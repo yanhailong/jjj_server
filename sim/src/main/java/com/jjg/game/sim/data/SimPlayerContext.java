@@ -1,6 +1,7 @@
 package com.jjg.game.sim.data;
 
 import com.alibaba.fastjson.JSONObject;
+import com.jjg.game.core.data.CommonResult;
 import com.jjg.game.core.data.Player;
 import com.jjg.game.core.data.PlayerController;
 import com.jjg.game.season.data.SeasonPlayerData;
@@ -39,8 +40,8 @@ public class SimPlayerContext {
     private Map<Integer, Integer> medalBuffMap = new HashMap<>();
 
     //近期已处理的旋转 RPC 幂等 id (内存态; 防 slots 超时重试双计, 同玩家 RPC 串行执行无需加锁)
-    private final ArrayDeque<Long> recentSpinIds = new ArrayDeque<>();
-    private static final int RECENT_SPIN_ID_MAX = 16;
+    private final LinkedHashMap<Long, CommonResult<SlotsSpinResult>> recentSpinResults = new LinkedHashMap<>();
+    private static final int RECENT_SPIN_RESULT_MAX = 16;
 
     //赛季币结算幂等账本 (txnId -> 结算后余额; 内存态; 防扣/发赛季币的超时重试重复应用, 同玩家 RPC 串行无需加锁)
     private final LinkedHashMap<Long, Long> recentSeasonTxns = new LinkedHashMap<>();
@@ -111,7 +112,9 @@ public class SimPlayerContext {
     }
 
     public void send(Object msg) {
-        playerController.send(msg);
+        if (playerController != null) {
+            playerController.send(msg);
+        }
     }
 
     // ---------------------------------------------------------------------
@@ -187,20 +190,22 @@ public class SimPlayerContext {
         this.medalBuffMap = medalBuffMap == null ? new HashMap<>() : medalBuffMap;
     }
 
-    /**
-     * 标记一次旋转 RPC 已处理。
-     *
-     * @return false 表示该 spinId 近期已处理过 (slots 超时重试的重复投递), 调用方应跳过联动
-     */
-    public boolean markSpinProcessed(long spinId) {
-        if (recentSpinIds.contains(spinId)) {
-            return false;
+    /** 返回近期同一旋转 RPC 已提交的结果；spinId=0 不参与幂等。 */
+    public CommonResult<SlotsSpinResult> spinResult(long spinId) {
+        return spinId == 0 ? null : recentSpinResults.get(spinId);
+    }
+
+    /** 记录旋转 RPC 的最终结果，供 slots 超时重试时原样返回。 */
+    public void recordSpinResult(long spinId, CommonResult<SlotsSpinResult> result) {
+        if (spinId == 0 || result == null) {
+            return;
         }
-        recentSpinIds.addLast(spinId);
-        if (recentSpinIds.size() > RECENT_SPIN_ID_MAX) {
-            recentSpinIds.removeFirst();
+        recentSpinResults.put(spinId, result);
+        if (recentSpinResults.size() > RECENT_SPIN_RESULT_MAX) {
+            Iterator<Long> it = recentSpinResults.keySet().iterator();
+            it.next();
+            it.remove();
         }
-        return true;
     }
 
     /**
