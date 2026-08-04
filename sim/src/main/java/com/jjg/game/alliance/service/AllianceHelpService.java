@@ -419,11 +419,19 @@ public class AllianceHelpService {
             return res;
         }
         AllianceHelpOrder order = alliance.getHelpOrders().get(orderId);
-        if (order == null || expired(order, System.currentTimeMillis())) {
+        if (order == null) {
             res.code = Code.NOT_FOUND;
             res.helpOrderInfo = new AllianceHelpOrderInfo();
             res.helpOrderInfo.orderId = orderId;
             log.warn("获取求助信息失败，未找到求助信息 playerId={},allianceId={},orderId={}", playerId, allianceId,orderId);
+            return res;
+        }
+
+        if(expired(order, System.currentTimeMillis())){
+            res.code = Code.EXPIRE;
+            res.helpOrderInfo = new AllianceHelpOrderInfo();
+            res.helpOrderInfo.orderId = orderId;
+            log.warn("获取求助信息失败，该订单已过期 playerId={},allianceId={},orderId={}", playerId, allianceId,orderId);
             return res;
         }
         Player owner = corePlayerService.get(order.getOwnerId());

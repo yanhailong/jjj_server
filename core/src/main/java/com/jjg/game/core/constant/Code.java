@@ -213,4 +213,6 @@ public interface Code {
     int PEOPLE_FULL = 4056011;
     //当日已达任务次数上限
     int DAILY_TASK_LIMIT = 4056152;
+    // 游戏已开始，无法退出房间
+    int CAN_NOT_EXIT_GAMING_ROOM = 4058260;
 }
