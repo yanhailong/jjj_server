@@ -53,6 +53,11 @@ public class DouXianPlayCardPhase extends BasePokerPhase<DouXianGameDataVo> {
     @Override
     public void phaseFinish() {
         if (gameController instanceof DouXianGameController controller) {
+            if (!controller.isCurrentPhase(this)) {
+                log.warn("斗仙牌忽略已过期的摆牌阶段定时器 round:{} currentPhase:{}",
+                        gameDataVo.getRound(), controller.getCurrentGamePhase());
+                return;
+            }
             controller.forceFinishPlayCardPhase();
         }
     }

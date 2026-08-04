@@ -52,6 +52,7 @@ import com.jjg.game.poker.game.texas.data.SeatInfo;
 import com.jjg.game.poker.manager.PokerRPCLinkManager;
 import com.jjg.game.poker.manager.PokerSeasonAccount;
 import com.jjg.game.room.constant.EGamePhase;
+import com.jjg.game.room.base.IRoomPhase;
 import com.jjg.game.room.controller.AbstractRoomController;
 import com.jjg.game.room.controller.GameController;
 import com.jjg.game.room.data.robot.GameRobotPlayer;
@@ -99,6 +100,14 @@ public class DouXianGameController extends BasePokerGameController<DouXianGameDa
     @Override
     public EGameType gameControlType() {
         return EGameType.DOU_XIAN;
+    }
+
+    /**
+     * 阶段定时器即使已经从时间轮移除，也可能恰好已经进入待执行队列。
+     * 使用对象身份而不是阶段枚举判断，避免上一回合的同名阶段回调误伤新一回合。
+     */
+    public boolean isCurrentPhase(IRoomPhase phase) {
+        return currentGamePhase == phase;
     }
 
     /**
@@ -1144,6 +1153,12 @@ public class DouXianGameController extends BasePokerGameController<DouXianGameDa
                 continue;
             }
             List<Integer> cardIds = gameDataVo.getPlayerZoneCards(playerId).get(zone).getAllCards();
+            if (cardIds.size() != zone.getCapacity()) {
+                log.error("斗仙牌摆牌确认日志跳过不完整区域 reason:{} round:{} playerId:{} zone:{} expected:{} actual:{}",
+                        reason, round, playerId, zone, zone.getCapacity(), cardIds.size());
+                sb.append(zone).append("=INVALID(").append(cardIds.size()).append('/').append(zone.getCapacity()).append(") ");
+                continue;
+            }
             List<Card> cards = DouXianDataHelper.toCards(gameDataVo, cardIds);
             DouXianHandResult result = DouXianHandEvaluator.evaluateZone(gameDataVo, zone, cards, round);
             sb.append(zone).append(DouXianDataHelper.cardsToString(cards))
@@ -1162,12 +1177,27 @@ public class DouXianGameController extends BasePokerGameController<DouXianGameDa
      * phaseFinish 会跟外层还没执行完的 addPokerPhaseTimer 重入冲突。机器人调用这个方法之后想要的
      * "提前结束阶段"效果，见 {@link #robotAutoFillAndConfirm}。
      */
-    public void autoFillAndConfirm(long playerId) {
+    public boolean autoFillAndConfirm(long playerId) {
+        if (getCurrentGamePhase() != EGamePhase.PLAY_CART) {
+            log.warn("斗仙牌忽略非摆牌阶段的自动摆牌 playerId:{} currentPhase:{}", playerId, getCurrentGamePhase());
+            return false;
+        }
         if (gameDataVo.getConfirmedPlayerIds().contains(playerId)) {
-            return;
+            return true;
         }
         int round = gameDataVo.getRound();
         List<Integer> hand = gameDataVo.getHandCards().computeIfAbsent(playerId, k -> new ArrayList<>());
+        int totalNeed = 0;
+        for (DouXianZone zone : DouXianZone.values()) {
+            if (zone.isOpenAt(round)) {
+                totalNeed += Math.max(0, gameDataVo.getPlayerZoneCards(playerId).get(zone).remainingCapacity());
+            }
+        }
+        if (hand.size() < totalNeed) {
+            log.error("斗仙牌自动摆牌终止，手牌总数不足 playerId:{} round:{} totalNeed:{} handSize:{} currentPhase:{}",
+                    playerId, round, totalNeed, hand.size(), getCurrentGamePhase());
+            return false;
+        }
         for (DouXianZone zone : List.of(DouXianZone.IMMORTAL, DouXianZone.SPIRIT, DouXianZone.MORTAL)) {
             if (!zone.isOpenAt(round)) {
                 continue;
@@ -1179,7 +1209,7 @@ public class DouXianGameController extends BasePokerGameController<DouXianGameDa
             }
             if (hand.size() < need) {
                 log.error("斗仙牌托管摆牌手牌不足 playerId:{} zone:{} need:{} handSize:{}", playerId, zone, need, hand.size());
-                continue;
+                return false;
             }
             List<Card> carried = DouXianDataHelper.toCards(gameDataVo, zoneCards.getCarriedCards());
             List<Card> candidates = DouXianDataHelper.toCards(gameDataVo, hand);
@@ -1198,6 +1228,7 @@ public class DouXianGameController extends BasePokerGameController<DouXianGameDa
         gameDataVo.getConfirmedPlayerIds().add(playerId);
         broadcastConfirmResult(playerId);
         logPlayerFinalHands("托管/机器人自动确认", playerId);
+        return true;
     }
 
     /**
@@ -1205,7 +1236,9 @@ public class DouXianGameController extends BasePokerGameController<DouXianGameDa
      * 检查是否全部确认，是的话提前结束出牌阶段，不用死等到30s超时。
      */
     public void robotAutoFillAndConfirm(long playerId) {
-        autoFillAndConfirm(playerId);
+        if (!autoFillAndConfirm(playerId)) {
+            return;
+        }
         if (isAllActiveConfirmed()) {
             removePokerPhaseTimer();
             currentGamePhase.phaseFinish();
@@ -1229,6 +1262,11 @@ public class DouXianGameController extends BasePokerGameController<DouXianGameDa
     }
 
     public void forceFinishPlayCardPhase() {
+        if (getCurrentGamePhase() != EGamePhase.PLAY_CART) {
+            log.warn("斗仙牌忽略过期的摆牌阶段结束回调 currentPhase:{} round:{} roomId:{}",
+                    getCurrentGamePhase(), gameDataVo.getRound(), getRoom().getId());
+            return;
+        }
         for (Long playerId : gameDataVo.getActivePlayerIds()) {
             if (!gameDataVo.getConfirmedPlayerIds().contains(playerId)) {
                 boolean cancelledThisPhase = gameDataVo.getHostingCancelledPlayerIdsThisPhase().contains(playerId);
@@ -1244,7 +1282,11 @@ public class DouXianGameController extends BasePokerGameController<DouXianGameDa
                     hostingNotify.hosting = true;
                     broadcastToPlayers(RoomMessageBuilder.newBuilder().toAllPlayer().setData(hostingNotify));
                 }
-                autoFillAndConfirm(playerId);
+                if (!autoFillAndConfirm(playerId)) {
+                    log.error("斗仙牌强制结束摆牌阶段失败，保留当前阶段等待排查 playerId:{} round:{} roomId:{}",
+                            playerId, gameDataVo.getRound(), getRoom().getId());
+                    return;
+                }
             }
         }
         startNextRoundOrSettlement();
@@ -1381,6 +1423,11 @@ public class DouXianGameController extends BasePokerGameController<DouXianGameDa
     }
 
     public void forceFinishDiscardPhase() {
+        if (getCurrentGamePhase() != EGamePhase.DISCARD) {
+            log.warn("斗仙牌忽略过期的弃牌阶段结束回调 currentPhase:{} round:{} roomId:{}",
+                    getCurrentGamePhase(), gameDataVo.getRound(), getRoom().getId());
+            return;
+        }
         for (Long playerId : gameDataVo.getActivePlayerIds()) {
             if (!gameDataVo.getDiscardedPlayerIds().contains(playerId)) {
                 log.info("斗仙牌弃牌超时，视为不弃 playerId:{}", playerId);

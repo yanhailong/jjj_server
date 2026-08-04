@@ -56,6 +56,11 @@ public class DouXianDiscardPhase extends BasePokerPhase<DouXianGameDataVo> {
     @Override
     public void phaseFinish() {
         if (gameController instanceof DouXianGameController controller) {
+            if (!controller.isCurrentPhase(this)) {
+                log.warn("斗仙牌忽略已过期的弃牌阶段定时器 round:{} currentPhase:{}",
+                        gameDataVo.getRound(), controller.getCurrentGamePhase());
+                return;
+            }
             controller.forceFinishDiscardPhase();
         }
     }
