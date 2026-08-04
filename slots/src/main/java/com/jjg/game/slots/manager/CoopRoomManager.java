@@ -755,7 +755,7 @@ public class CoopRoomManager implements RoomChatProvider {
                 case CoopTaskConst.RoomStatus.RUNNING -> {
                     if (exitType == ExitType.INITIATIVE) {
                         log.info("协作房间进行中,拒绝玩家主动退出 playerId={},roomId={}", playerId, room.getRoomId());
-                        return Code.FORBID;
+                        return Code.CAN_NOT_EXIT_GAMING_ROOM;
                     }
                     member.setOnline(false);
                     member.setPlayerController(null);
