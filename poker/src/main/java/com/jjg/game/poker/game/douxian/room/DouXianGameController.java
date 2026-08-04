@@ -81,8 +81,11 @@ import java.util.concurrent.ThreadLocalRandom;
 @GameController(gameType = EGameType.DOU_XIAN, roomType = RoomType.POKER_ROOM)
 public class DouXianGameController extends BasePokerGameController<DouXianGameDataVo> {
 
+    private static final long WAIT_READY_OFFLINE_CLEAN_INTERVAL = 1000L;
+
     private final Map<Long, PokerSeasonAccount> seasonAccounts = new HashMap<>();
     private PokerRPCLinkManager pokerRPCLinkManager;
+    private long nextWaitReadyOfflineCleanTime;
 
     public DouXianGameController(AbstractRoomController<Room_ChessCfg, ? extends Room> roomController) {
         super(roomController);
@@ -532,10 +535,17 @@ public class DouXianGameController extends BasePokerGameController<DouXianGameDa
     @Override
     public void roomTick() {
         super.roomTick();
+        long now = System.currentTimeMillis();
+        if (getCurrentGamePhase() == EGamePhase.WAIT_READY
+                && gameDataVo.getMatchState() != DouXianConstant.MatchState.MATCHING
+                && now >= nextWaitReadyOfflineCleanTime) {
+            nextWaitReadyOfflineCleanTime = now + WAIT_READY_OFFLINE_CLEAN_INTERVAL;
+            removeOfflineRealPlayersInWaitReady("等待阶段巡检");
+        }
         if (getCurrentGamePhase() != EGamePhase.WAIT_READY
                 || gameDataVo.getMatchState() != DouXianConstant.MatchState.MATCHING
                 || gameDataVo.getMatchEndTime() <= 0
-                || System.currentTimeMillis() < gameDataVo.getMatchEndTime()) {
+                || now < gameDataVo.getMatchEndTime()) {
             return;
         }
         gameDataVo.setMatchState(DouXianConstant.MatchState.TIMEOUT);
@@ -584,16 +594,16 @@ public class DouXianGameController extends BasePokerGameController<DouXianGameDa
                 gameDataVo.getRoomCfg().getId(), playerResults);
         goBackWaitReadyPhase();
         gameDataVo.resetData(this);
-        removeOfflineRealPlayersAfterGrandSettlement();
+        removeOfflineRealPlayersInWaitReady("大结算");
         tryStartNextGame();
     }
 
     /**
      * 掉线玩家在牌局进行中只会被标记为离线并保留在房间中，便于中途重连。
-     * 整局大结算后已经没有继续保留的必要，此时统一走正常退出流程，清除房间成员关系及持久化 roomId，
-     * 避免玩家隔很久再次登录时仍被自动拉回已经结束的斗仙牌房间。
+     * 回到等待阶段后已经没有继续保留的必要，此时统一走正常退出流程，清除房间成员关系及持久化 roomId。
+     * 除大结算时立即清理外，等待阶段还会继续巡检，用于处理“大结算时仍在线、随后才真正断线”的玩家。
      */
-    private void removeOfflineRealPlayersAfterGrandSettlement() {
+    private void removeOfflineRealPlayersInWaitReady(String reason) {
         List<GamePlayer> players = new ArrayList<>(gameDataVo.getGamePlayerMap().values());
         for (GamePlayer gamePlayer : players) {
             if (gamePlayer instanceof GameRobotPlayer) {
@@ -604,12 +614,19 @@ public class DouXianGameController extends BasePokerGameController<DouXianGameDa
             if (roomPlayer == null || roomPlayer.isOnline()) {
                 continue;
             }
-            int code = getRoomController().getRoomManager().exitRoom(playerId);
+            PlayerController playerController = getRoomController().getPlayerController(playerId);
+            if (playerController == null) {
+                log.warn("斗仙牌等待阶段清理离线玩家失败，PlayerController不存在 playerId:{} roomId:{} reason:{}",
+                        playerId, getRoom().getId(), reason);
+                continue;
+            }
+            int code = getRoomController().getRoomManager().exitRoom(playerController);
             if (code == Code.SUCCESS) {
-                log.info("斗仙牌大结算后清理离线玩家成功 playerId:{} roomId:{}", playerId, getRoom().getId());
+                log.info("斗仙牌等待阶段清理离线玩家成功 playerId:{} roomId:{} reason:{}",
+                        playerId, getRoom().getId(), reason);
             } else {
-                log.warn("斗仙牌大结算后清理离线玩家失败 playerId:{} roomId:{} code:{}",
-                        playerId, getRoom().getId(), code);
+                log.warn("斗仙牌等待阶段清理离线玩家失败 playerId:{} roomId:{} reason:{} code:{}",
+                        playerId, getRoom().getId(), reason, code);
             }
         }
     }
