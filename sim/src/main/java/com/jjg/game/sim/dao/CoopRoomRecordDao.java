@@ -44,8 +44,15 @@ public class CoopRoomRecordDao {
     private StringRedisTemplate stringRedisTemplate;
 
     public void save(CoopRoomRecord record) {
-        stringRedisTemplate.opsForValue().set(key(record.getRoomId()), JSON.toJSONString(record),
-                Duration.ofSeconds(CoopTaskConst.Redis.ROOM_TTL_SECONDS));
+        String key = key(record.getRoomId());
+        String value = JSON.toJSONString(record);
+        if (record.getStatus() == CoopTaskConst.RoomStatus.FINISHED) {
+            //FINISHED 同时承担结算重试载荷，在 sim 明确 ACK 前不能因 TTL 丢失。
+            stringRedisTemplate.opsForValue().set(key, value);
+        } else {
+            stringRedisTemplate.opsForValue().set(key, value,
+                    Duration.ofSeconds(CoopTaskConst.Redis.ROOM_TTL_SECONDS));
+        }
     }
 
     public CoopRoomRecord get(long roomId) {

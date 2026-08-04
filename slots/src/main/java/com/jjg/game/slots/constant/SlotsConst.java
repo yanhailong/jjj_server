@@ -205,7 +205,7 @@ public class SlotsConst {
      */
     public static final long FINISHED_RETAIN_MS = 60 * 1000L;
     //等待状态房间最长存活时长(ms), 超时未开始自动解散
-    public static final long WAITING_EXPIRE_MS = 2 * 3600 * 1000L;
+    public static final long WAITING_EXPIRE_MS = 3600 * 1000L;
     //进行中房间兜底存活时长(ms): 任务未配时限(durationMinutes=0)时的兜底 deadline,
     //保证 RUNNING 房间一定有终结路径, 防成员挂机/断线不归导致房间与会话状态永久悬挂
     public static final long RUNNING_MAX_FALLBACK_MS = 2 * 3600 * 1000L;

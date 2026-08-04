@@ -43,10 +43,6 @@ public class CoopRoom {
     private long deadline;
     private long finishTime;
     private boolean success;
-    //结算必须由 sim 明确确认后才能删除 Redis 路由记录和回收房间
-    private boolean settlementAcked;
-    private boolean settlementInFlight;
-    private long lastSettlementAttempt;
     private List<Long> settlementHelperIds = List.of();
 
     public CoopRoom(long roomId, int taskId, long ownerId, int gameType, int roomCfgId, CoopTaskRule rule) {
@@ -196,30 +192,6 @@ public class CoopRoom {
 
     public void setSuccess(boolean success) {
         this.success = success;
-    }
-
-    public boolean isSettlementAcked() {
-        return settlementAcked;
-    }
-
-    public void setSettlementAcked(boolean settlementAcked) {
-        this.settlementAcked = settlementAcked;
-    }
-
-    public boolean isSettlementInFlight() {
-        return settlementInFlight;
-    }
-
-    public void setSettlementInFlight(boolean settlementInFlight) {
-        this.settlementInFlight = settlementInFlight;
-    }
-
-    public long getLastSettlementAttempt() {
-        return lastSettlementAttempt;
-    }
-
-    public void setLastSettlementAttempt(long lastSettlementAttempt) {
-        this.lastSettlementAttempt = lastSettlementAttempt;
     }
 
     public List<Long> getSettlementHelperIds() {

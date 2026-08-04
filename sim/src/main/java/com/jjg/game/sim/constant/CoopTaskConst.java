@@ -56,7 +56,7 @@ public interface CoopTaskConst {
         //协作房间路由记录 key 前缀 (value = CoopRoomRecord JSON)
         String ROOM_KEY_PREFIX = "coopRoom:";
         String PLAYER_ROOM_KEY_PREFIX = "coopPlayerRoom:";
-        //房间记录兜底 TTL(秒): 覆盖最长任务时限, 节点崩溃后记录自动过期, 任务层自愈回退
+        //等待/进行中房间记录兜底 TTL(秒): 覆盖最长任务时限；FINISHED 记录由结算 ACK 显式删除
         long ROOM_TTL_SECONDS = 4 * 3600;
     }
 }

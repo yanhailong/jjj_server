@@ -27,6 +27,7 @@ import org.springframework.stereotype.Service;
 import java.time.LocalDate;
 import java.time.ZoneId;
 import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Map;
@@ -86,29 +87,81 @@ public class SimCoopTaskService {
      * 每日懒重置: 重抽今日列表/清领取次数/清免费刷新。
      * 所有已领取任务 (CLAIMED/IN_ROOM/REWARDABLE/FAILED) 一律不跨天保留, 全部恢复到"未接取"。
      */
-    private void ensureDaily(SimCoopTaskData data) {
+    private boolean ensureDaily(SimCoopTaskData data) {
         int today = todayKey();
         if (data.getDayKey() == today) {
-            return;
+            return true;
+        }
+        //跨日前先读取并消费已完成记录；无法确认结算时保留旧日数据，下次访问继续处理。
+        List<SimCoopTaskEntry> inRoomEntries = data.getTasks().values().stream()
+                .filter(entry -> entry.getStatus() == CoopTaskConst.TaskStatus.IN_ROOM && entry.getRoomId() > 0)
+                .toList();
+        Map<Long, CoopRoomRecord> roomRecords = new HashMap<>();
+        for (SimCoopTaskEntry entry : inRoomEntries) {
+            try {
+                roomRecords.put(entry.getRoomId(), roomRecordDao.get(entry.getRoomId()));
+            } catch (Exception e) {
+                log.error("多人任务跨日读取房间失败,暂缓重置 playerId={},roomId={}",
+                        data.getPlayerId(), entry.getRoomId(), e);
+                return false;
+            }
+        }
+        List<Long> settledRoomIds = new ArrayList<>();
+        for (SimCoopTaskEntry entry : inRoomEntries) {
+            CoopRoomRecord record = roomRecords.get(entry.getRoomId());
+            if (record == null || record.getStatus() != CoopTaskConst.RoomStatus.FINISHED) {
+                continue;
+            }
+            int settledStatus = record.isSuccess()
+                    ? CoopTaskConst.TaskStatus.REWARDABLE : CoopTaskConst.TaskStatus.FAILED;
+            long finishTime = System.currentTimeMillis();
+            boolean settled;
+            boolean receiptExists;
+            try {
+                settled = onSettle(null, data.getPlayerId(), entry.getTaskId(), entry.getRoomId(),
+                        record.isSuccess(), record.getSettlementHelperIds());
+                receiptExists = settled || coopTaskDao.isEntrySettled(
+                        data.getPlayerId(), entry.getTaskId(), entry.getRoomId(), settledStatus);
+            } catch (Exception e) {
+                log.error("多人任务跨日结算异常,暂缓重置 playerId={},taskId={},roomId={}",
+                        data.getPlayerId(), entry.getTaskId(), entry.getRoomId(), e);
+                return false;
+            }
+            if (!receiptExists) {
+                log.error("多人任务跨日结算未确认,暂缓重置 playerId={},taskId={},roomId={}",
+                        data.getPlayerId(), entry.getTaskId(), entry.getRoomId());
+                return false;
+            }
+            data.getSettlementReceipts().putIfAbsent(entry.getRoomId(),
+                    new CoopSettlementReceipt(entry.getTaskId(), settledStatus, finishTime));
+            if (settled) {
+                settledRoomIds.add(entry.getRoomId());
+            }
+        }
+        for (SimCoopTaskEntry entry : inRoomEntries) {
+            CoopRoomRecord record = roomRecords.get(entry.getRoomId());
+            if (record != null && record.getStatus() == CoopTaskConst.RoomStatus.FINISHED
+                    && !settledRoomIds.contains(entry.getRoomId())) {
+                continue;
+            }
+            try {
+                releaseRoomRecord(data.getPlayerId(), entry.getRoomId(), record);
+            } catch (Exception e) {
+                //记录删除失败不影响重置；房间记录自身 TTL 或结算重试仍会继续收敛。
+                log.error("多人任务每日清理房间记录失败 playerId={},roomId={}",
+                        data.getPlayerId(), entry.getRoomId(), e);
+            }
         }
         data.setDayKey(today);
         data.setFreeRefreshUsed(false);
         data.setClaimedCount(0);
-        //全清: 任一状态都不跨天保留。IN_ROOM 先释放其协作房间路由记录, 避免残留"玩家-房间"映射阻塞次日建房。
-        for (SimCoopTaskEntry entry : data.getTasks().values()) {
-            if (entry.getStatus() == CoopTaskConst.TaskStatus.IN_ROOM && entry.getRoomId() > 0) {
-                try {
-                    releaseRoomRecord(data.getPlayerId(), entry.getRoomId(), roomRecordDao.get(entry.getRoomId()));
-                } catch (Exception e) {
-                    log.error("多人任务每日清理房间记录失败 playerId={},roomId={}", data.getPlayerId(), entry.getRoomId(), e);
-                }
-            }
-        }
+        //全清: 任一状态都不跨天保留。
         data.getTasks().clear();
         long receiptExpireBefore = System.currentTimeMillis() - SETTLEMENT_RECEIPT_RETENTION_MS;
         data.getSettlementReceipts().values().removeIf(receipt -> receipt.getFinishTime() < receiptExpireBefore);
         data.setPoolTaskIds(drawTasks(configService.getDailyPoolCount(), data.getTasks().keySet()));
         log.info("多人任务每日重置(全清) playerId={},pool={}", data.getPlayerId(), data.getPoolTaskIds());
+        return true;
     }
 
     /**
@@ -145,7 +198,10 @@ public class SimCoopTaskService {
             res.code = Code.NOT_FOUND;
             return res;
         }
-        ensureDaily(data);
+        if (!ensureDaily(data)) {
+            res.code = Code.FAIL;
+            return res;
+        }
         selfHealRooms(ctx, data);
 
         //今日池 + 跨天保留的已领取任务 (顺序: 池序在前)
@@ -177,7 +233,9 @@ public class SimCoopTaskService {
             log.warn("多人任务刷新失败,数据缺失 playerId={}", ctx.playerId());
             return res;
         }
-        ensureDaily(data);
+        if (!ensureDaily(data)) {
+            return res;
+        }
 
         if (data.isFreeRefreshUsed()) {
             int itemId = configService.getRefreshCostItemId();
@@ -233,7 +291,9 @@ public class SimCoopTaskService {
             log.warn("多人任务领取失败,数据缺失 playerId={},taskId={}", ctx.playerId(), taskId);
             return res;
         }
-        ensureDaily(data);
+        if (!ensureDaily(data)) {
+            return res;
+        }
         res.remainClaimCount = Math.max(0, configService.getDailyClaimLimit() - data.getClaimedCount());
 
         if (!data.getPoolTaskIds().contains(taskId)) {
@@ -421,12 +481,20 @@ public class SimCoopTaskService {
      * 不可达 = 记录不存在 (正常结算已删/TTL 过期) 或记录所指 slots 节点已下线 (节点崩溃未恢复)。
      */
     private void selfHealRooms(SimPlayerContext ctx, SimCoopTaskData data) {
-        for (SimCoopTaskEntry entry : data.getTasks().values()) {
+        for (SimCoopTaskEntry entry : new ArrayList<>(data.getTasks().values())) {
             if (entry.getStatus() != CoopTaskConst.TaskStatus.IN_ROOM || entry.getRoomId() <= 0) {
                 continue;
             }
             try {
                 CoopRoomRecord record = roomRecordDao.get(entry.getRoomId());
+                if (record != null && record.getStatus() == CoopTaskConst.RoomStatus.FINISHED) {
+                    boolean settled = onSettle(ctx, data.getPlayerId(), entry.getTaskId(), entry.getRoomId(),
+                            record.isSuccess(), record.getSettlementHelperIds());
+                    if (settled) {
+                        releaseRoomRecord(data.getPlayerId(), entry.getRoomId(), record);
+                    }
+                    continue;
+                }
                 if (record == null || marsCurator.getMarsNode(record.getNodePath()) == null) {
                     log.warn("多人任务房间不可达,回退待建房 playerId={},taskId={},roomId={},node={}",
                             data.getPlayerId(), entry.getTaskId(), entry.getRoomId(),
