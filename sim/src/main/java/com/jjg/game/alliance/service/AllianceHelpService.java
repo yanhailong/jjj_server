@@ -330,6 +330,7 @@ public class AllianceHelpService {
             String key = speedupKey(order.getOwnerId(), order.getTargetId());
             stringRedisTemplate.opsForValue().increment(key, speedupSeconds);
             stringRedisTemplate.expire(key, AllianceConst.Cfg.SPEEDUP_TTL_SEC, TimeUnit.SECONDS);
+            publishSpeedupPending(order.getOwnerId(), order.getTargetId());
             notifyValue = speedupSeconds;
         }
 
@@ -533,6 +534,16 @@ public class AllianceHelpService {
         } catch (Exception e) {
             log.warn("消费建筑加速抵扣失败 playerId={},buildingId={}", playerId, buildingId, e);
             return 0;
+        }
+    }
+
+    private void publishSpeedupPending(long playerId, long buildingId) {
+        try {
+            stringRedisTemplate.convertAndSend(AllianceConst.RedisKey.SPEEDUP_PENDING_CHANNEL,
+                    playerId + ":" + buildingId);
+        } catch (Exception e) {
+            // Redis 中的累计秒数仍会由定时检查或下次进入场景消费，发布失败不能回滚已成功的帮助。
+            log.warn("发布建筑加速待消费通知失败 playerId={},buildingId={}", playerId, buildingId, e);
         }
     }
 

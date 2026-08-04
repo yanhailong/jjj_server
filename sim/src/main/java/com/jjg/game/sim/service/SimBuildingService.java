@@ -50,8 +50,7 @@ public class SimBuildingService implements SimPlayerTickListener, SimTaskStateRe
     //初始等级 (解锁后)
     private static final int INITIAL_LEVEL = 1;
 
-    //tick 内联盟加速抵扣的检查间隔: 抵扣走 Redis GETDEL, 升级 CD 为分钟级,
-    //无需每个 tick(2s) 每建筑一次往返; 显式请求路径(建筑信息/完成升级)仍即时消费
+    //Redis 通知是实时主路径；tick 只按此间隔兜底消息丢失，避免每个 tick(2s)逐建筑访问 Redis。
     private static final long SPEEDUP_CHECK_INTERVAL_MS = 30_000L;
 
     @Autowired
@@ -128,6 +127,7 @@ public class SimBuildingService implements SimPlayerTickListener, SimTaskStateRe
      */
     public void onBuildingInfo(SimPlayerContext ctx, int buildingId) {
         ResBuildingInfo res = new ResBuildingInfo(Code.SUCCESS);
+        ResCompleteBuildingUpgrade completeRes = null;
         try {
             Map<Integer, BuildingData> buildingDataMap = ctx.getCurrentCasino().getBuildingData();
             if (buildingDataMap == null || buildingDataMap.isEmpty()) {
@@ -147,6 +147,10 @@ public class SimBuildingService implements SimPlayerTickListener, SimTaskStateRe
 
             long now = System.currentTimeMillis();
             applyAllianceSpeedup(ctx.playerId(), buildingData, now);
+            if (buildingData.isUpgradeReady(now)
+                    && completeBuildingUpgradeAndReport(ctx, ctx.getCurrentCasino(), buildingData, now) == Code.SUCCESS) {
+                completeRes = completeBuildingUpgradeResponse(buildingData);
+            }
             res.buildingInfo = SimPbConverter.toBuildingInfo(buildingData, now);
             //建筑的基础产出，不包含加成
             Map<BuildingOutputType, Long> base = getBaseOutput(buildingData.getId(), buildingData.getLevel());
@@ -166,6 +170,9 @@ public class SimBuildingService implements SimPlayerTickListener, SimTaskStateRe
             log.error("", e);
         }
         ctx.send(res);
+        if (completeRes != null) {
+            ctx.send(completeRes);
+        }
     }
 
     /**
@@ -404,11 +411,9 @@ public class SimBuildingService implements SimPlayerTickListener, SimTaskStateRe
 
             long now = System.currentTimeMillis();
             applyAllianceSpeedup(ctx.playerId(), data, now);
-            res.code = completeBuildingUpgrade(ctx, casino, data, now);
+            res.code = completeBuildingUpgradeAndReport(ctx, casino, data, now);
             if (res.code == Code.SUCCESS) {
                 res.level = data.getLevel();
-                //主线任务: 升级改变各等级持有量 -> 上报 12208 "拥有 N 个 ≥X 级建筑"
-                reportBuildingCounts(ctx);
             }
         } catch (Exception e) {
             log.error("", e);
@@ -422,6 +427,7 @@ public class SimBuildingService implements SimPlayerTickListener, SimTaskStateRe
      */
     public void onClearBuildingCD(SimPlayerContext ctx, int buildingId, int costCount, boolean watchAd) {
         ResClearBuildingCD res = new ResClearBuildingCD(Code.SUCCESS);
+        ResCompleteBuildingUpgrade completeRes = null;
         try {
             SimCasinoData casino = ctx.getCurrentCasino();
             if (casino == null) {
@@ -439,20 +445,15 @@ public class SimBuildingService implements SimPlayerTickListener, SimTaskStateRe
 
             long now = System.currentTimeMillis();
             applyAllianceSpeedup(ctx.playerId(), data, now);
-            if (!data.isUpgrading(now)) {
-                if (data.isUpgradeReady(now)) {
-                    completeBuildingUpgrade(ctx, casino, data, now);
-                    res.buildingInfo = SimPbConverter.toBuildingInfo(data, now);
-                    ctx.send(res);
-                    return;
-                }
+            boolean upgrading = data.isUpgrading(now);
+            if (!upgrading && !data.isUpgradeReady(now)) {
                 res.code = Code.PARAM_ERROR;
                 ctx.send(res);
                 log.warn("clear building cd failed, building is not upgrading playerId={},buildingId={}", ctx.playerId(), buildingId);
                 return;
             }
 
-            if (watchAd) {
+            if (upgrading && watchAd) {
                 //观看广告次数限制
                 int countLimit = GameDataManager.getGlobalConfigCfg(SimConstant.Global.ID_WATCH_AD_LIMIT).getIntValue();
                 if (countLimit > 0 && data.getAdClearCount() >= countLimit) {
@@ -470,7 +471,7 @@ public class SimBuildingService implements SimPlayerTickListener, SimTaskStateRe
                 ctx.getSimBaseData().incWatchAdCount();
                 //主线任务: 观看广告一次 -> 推进 12209
                 allianceEventService.onAdWatch(ctx.playerId());
-            } else {
+            } else if (upgrading) {
                 if (costCount < 1) {
                     res.code = Code.NOT_ENOUGH;
                     ctx.send(res);
@@ -488,6 +489,14 @@ public class SimBuildingService implements SimPlayerTickListener, SimTaskStateRe
                 long reduceMs = (long) costCount * TimeHelper.ONE_MINUTE_OF_MILLIS;
                 data.setCdEndTime(data.getCdEndTime() - reduceMs);
             }
+
+            now = System.currentTimeMillis();
+            if (data.isUpgradeReady(now)) {
+                res.code = completeBuildingUpgradeAndReport(ctx, casino, data, now);
+                if (res.code == Code.SUCCESS) {
+                    completeRes = completeBuildingUpgradeResponse(data);
+                }
+            }
             res.buildingInfo = SimPbConverter.toBuildingInfo(data, now);
             log.info("清除建筑升级CD playerId={},buildingId={},watchAd={},costCount={},level={},cdEndTime={}", ctx.playerId(), buildingId, watchAd, costCount, data.getLevel(), data.getCdEndTime());
         } catch (Exception e) {
@@ -495,6 +504,9 @@ public class SimBuildingService implements SimPlayerTickListener, SimTaskStateRe
             res.code = Code.EXCEPTION;
         }
         ctx.send(res);
+        if (completeRes != null) {
+            ctx.send(completeRes);
+        }
     }
 
 
@@ -1033,11 +1045,30 @@ public class SimBuildingService implements SimPlayerTickListener, SimTaskStateRe
     /**
      * 完成建筑升级
      */
+    private int completeBuildingUpgradeAndReport(SimPlayerContext ctx, SimCasinoData casino, BuildingData data, long now) {
+        int code = completeBuildingUpgrade(ctx, casino, data, now);
+        if (code == Code.SUCCESS) {
+            //主线任务: 升级改变各等级持有量 -> 上报 12208 "拥有 N 个 ≥X 级建筑"
+            reportBuildingCounts(ctx);
+        }
+        return code;
+    }
+
+    private ResCompleteBuildingUpgrade completeBuildingUpgradeResponse(BuildingData data) {
+        ResCompleteBuildingUpgrade res = new ResCompleteBuildingUpgrade(Code.SUCCESS);
+        res.id = data.getId();
+        res.level = data.getLevel();
+        return res;
+    }
+
     private long applyAllianceSpeedup(long playerId, BuildingData data, long now) {
-        if (data == null || !data.isUpgrading(now)) {
+        if (data == null || data.getCdEndTime() <= 0) {
             return 0;
         }
         long seconds = allianceHelpService.consumeSpeedupSeconds(playerId, data.getId());
+        if (!data.isUpgrading(now)) {
+            return 0;
+        }
         long reduced = data.applySpeedupSeconds(seconds, now);
         if (reduced > 0) {
             log.info("apply alliance building speedup playerId={},buildingId={},seconds={},cdEndTime={}", playerId, data.getId(), reduced, data.getCdEndTime());
@@ -1045,19 +1076,45 @@ public class SimBuildingService implements SimPlayerTickListener, SimTaskStateRe
         return reduced;
     }
 
+    /** Redis 通知仅负责唤醒；累计秒数仍以 GETDEL 的结果为准。 */
+    public void onAllianceSpeedupPending(SimPlayerContext ctx, int buildingId) {
+        SimCasinoData casino = ctx.getCurrentCasino();
+        if (casino == null) {
+            return;
+        }
+        BuildingData data = casino.findBuilding(buildingId);
+        if (data == null) {
+            // 建筑不属于当前场景时保留 Redis 累计值，切换到对应场景后再消费。
+            return;
+        }
+        long now = System.currentTimeMillis();
+        applyAllianceSpeedup(ctx.playerId(), data, now);
+        if (data.isUpgradeReady(now)
+                && completeBuildingUpgradeAndReport(ctx, casino, data, now) == Code.SUCCESS) {
+            ctx.send(completeBuildingUpgradeResponse(data));
+        }
+    }
+
     /**
      * 下发场景建筑列表前消费联盟助力抵扣: 帮助者只把秒数累计到 Redis, 求助者所在节点是唯一消费方,
      * 取出为 GETDEL 原子操作, 因此任何下发路径调用都不会重复应用。
      * <p>
-     * tick 内的消费按 {@link #SPEEDUP_CHECK_INTERVAL_MS} 节流, 不足以保证列表下发的即时性, 故所有
-     * 携带 CD 的建筑列表下发点都必须先调用本方法, 否则会展示未减少的升级 CD。
+     * Redis 通知丢失或玩家不在目标场景时，tick 与建筑列表下发路径负责兜底消费。
      */
-    public void applyPendingSpeedup(long playerId, SimCasinoData casino, long now) {
+    public void applyPendingSpeedup(SimPlayerContext ctx, SimCasinoData casino, long now) {
         if (casino == null || casino.getBuildingData() == null || casino.getBuildingData().isEmpty()) {
             return;
         }
+        boolean completed = false;
         for (BuildingData data : casino.getBuildingData().values()) {
-            applyAllianceSpeedup(playerId, data, now);
+            applyAllianceSpeedup(ctx.playerId(), data, now);
+            if (data.isUpgradeReady(now)
+                    && completeBuildingUpgrade(ctx, casino, data, now) == Code.SUCCESS) {
+                completed = true;
+            }
+        }
+        if (completed) {
+            reportBuildingCounts(ctx);
         }
     }
 

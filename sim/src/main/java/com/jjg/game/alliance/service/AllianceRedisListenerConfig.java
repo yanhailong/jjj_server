@@ -1,6 +1,11 @@
 package com.jjg.game.alliance.service;
 
 import com.jjg.game.alliance.constant.AllianceConst;
+import com.jjg.game.common.concurrent.BaseHandler;
+import com.jjg.game.common.concurrent.PlayerExecutorGroupDisruptor;
+import com.jjg.game.sim.data.SimPlayerContext;
+import com.jjg.game.sim.manager.SimPlayerContextRegistry;
+import com.jjg.game.sim.service.SimBuildingService;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.context.annotation.Bean;
@@ -23,7 +28,9 @@ public class AllianceRedisListenerConfig {
 
     @Bean
     public RedisMessageListenerContainer allianceRedisMessageListenerContainer(RedisConnectionFactory connectionFactory,
-                                                                               AllianceCacheService cacheService) {
+                                                                               AllianceCacheService cacheService,
+                                                                               SimPlayerContextRegistry contextRegistry,
+                                                                               SimBuildingService buildingService) {
         RedisMessageListenerContainer container = new RedisMessageListenerContainer();
         container.setConnectionFactory(connectionFactory);
         container.addMessageListener((message, pattern) -> {
@@ -48,6 +55,33 @@ public class AllianceRedisListenerConfig {
                 }
             }
         }, new ChannelTopic(AllianceConst.RedisKey.PLAYER_INVALIDATE_CHANNEL));
+        container.addMessageListener((message, pattern) -> {
+            String body = new String(message.getBody(), StandardCharsets.UTF_8);
+            String[] parts = body.split(":", 2);
+            try {
+                long playerId = Long.parseLong(parts[0]);
+                int buildingId = Integer.parseInt(parts[1]);
+                SimPlayerContext scheduledContext = contextRegistry.getContext(playerId);
+                if (scheduledContext == null) {
+                    return;
+                }
+                PlayerExecutorGroupDisruptor.getDefaultExecutor().publishWithFallback(playerId, 0,
+                        new BaseHandler<String>() {
+                            @Override
+                            public void action() {
+                                SimPlayerContext currentContext = contextRegistry.getContext(playerId);
+                                if (currentContext != scheduledContext
+                                        || currentContext.getPlayerController() == null
+                                        || currentContext.getPlayerController().getScene() != currentContext) {
+                                    return;
+                                }
+                                buildingService.onAllianceSpeedupPending(currentContext, buildingId);
+                            }
+                        }.setHandlerParamWithSelf("alliance building speedup pending"));
+            } catch (NumberFormatException | ArrayIndexOutOfBoundsException e) {
+                log.warn("忽略非法建筑加速待消费通知 body={}", body);
+            }
+        }, new ChannelTopic(AllianceConst.RedisKey.SPEEDUP_PENDING_CHANNEL));
         return container;
     }
 }

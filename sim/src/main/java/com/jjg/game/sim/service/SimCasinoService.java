@@ -144,8 +144,7 @@ public class SimCasinoService implements SimTaskStateReporter {
             ctx.setCurrentCasino(target);
             ctx.switchCasino(targetCasinoId);
             //先消费联盟助力抵扣(可能使CD提前到时), 再判定完成, 最后下发建筑列表
-            simBuildingService.applyPendingSpeedup(ctx.playerId(), target, System.currentTimeMillis());
-            simBuildingService.completeAllBuildingUpgrade(ctx, target);
+            simBuildingService.applyPendingSpeedup(ctx, target, System.currentTimeMillis());
 
             SimCasinoData casino = ctx.getCurrentCasino();
             res.currentCasinoId = casino.getCasinoId();

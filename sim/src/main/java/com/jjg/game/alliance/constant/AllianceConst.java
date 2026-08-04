@@ -322,6 +322,8 @@ public interface AllianceConst {
         String TASK_PROGRESS_PREFIX = "alliance:task:progress:";
         //建筑加速帮助累计抵扣秒数 (string INCR, 拼接 playerId:buildingId)
         String SPEEDUP_PREFIX = "alliance:help:speedup:";
+        // 建筑加速待消费通知 (payload=playerId:buildingId)
+        String SPEEDUP_PENDING_CHANNEL = "alliance:help:speedup:pending";
         //对决联盟总分 zset 前缀 (拼接 period)
         String BATTLE_SCORE_PREFIX = "alliance:battle:score:";
         //对决盟内个人分 zset 前缀 (拼接 period:allianceId)

@@ -233,7 +233,7 @@ public class SimManager {
             res.currentCasinoId = ctx.getCurrentCasino().getCasinoId();
 
             //下发前先消费联盟助力抵扣, 否则展示的仍是未减少的升级CD
-            buildingService.applyPendingSpeedup(ctx.playerId(), ctx.getCurrentCasino(), System.currentTimeMillis());
+            buildingService.applyPendingSpeedup(ctx, ctx.getCurrentCasino(), System.currentTimeMillis());
 
             //添加建筑数据
             res.buildings = SimPbConverter.toBuildingInfos(ctx.getCurrentCasino());
