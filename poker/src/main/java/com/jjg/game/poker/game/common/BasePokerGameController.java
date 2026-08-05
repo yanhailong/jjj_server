@@ -4,6 +4,7 @@ import cn.hutool.core.lang.WeightRandom;
 import com.jjg.game.common.concurrent.IProcessorHandler;
 import com.jjg.game.common.pb.AbstractMessage;
 import com.jjg.game.common.timer.TimerEvent;
+import com.jjg.game.core.constant.Code;
 import com.jjg.game.core.constant.GameConstant;
 import com.jjg.game.core.data.CommonResult;
 import com.jjg.game.core.data.PlayerController;
@@ -127,6 +128,14 @@ public abstract class BasePokerGameController<T extends BasePokerGameDataVo> ext
      */
     public boolean canJoinRobot() {
         return false;
+    }
+
+    /**
+     * 玩家是否可以作为新成员加入当前房间。断线重连玩家仍在 RoomPlayer 中，不走此校验。
+     * 默认允许，具体游戏可禁止牌局进行中途加入。
+     */
+    public int canPlayerJoinRoom(long playerId) {
+        return Code.SUCCESS;
     }
 
     /**

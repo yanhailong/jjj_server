@@ -1,5 +1,8 @@
 package com.jjg.game.poker.game.common;
 
+import com.jjg.game.core.constant.Code;
+import com.jjg.game.core.data.CommonResult;
+import com.jjg.game.core.data.PlayerController;
 import com.jjg.game.core.data.PokerRoom;
 import com.jjg.game.core.data.RoomPlayer;
 import com.jjg.game.room.controller.AbstractRoomController;
@@ -23,6 +26,17 @@ public class PokerRoomController extends AbstractRoomController<Room_ChessCfg, P
         // 重载配置表引用
         roomCfg = GameDataManager.getRoom_ChessCfg(room.getRoomCfgId());
         gameController.getGameDataVo().reloadRoomCfg();
+    }
+
+    @Override
+    protected CommonResult<PokerRoom> checkRoomCanJoin(PlayerController playerController) {
+        if (gameController instanceof BasePokerGameController<? extends BasePokerGameDataVo> controller) {
+            int code = controller.canPlayerJoinRoom(playerController.playerId());
+            if (code != Code.SUCCESS) {
+                return new CommonResult<>(code);
+            }
+        }
+        return super.checkRoomCanJoin(playerController);
     }
 
     @Override

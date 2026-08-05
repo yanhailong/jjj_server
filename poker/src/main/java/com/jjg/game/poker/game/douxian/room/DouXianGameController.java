@@ -128,6 +128,21 @@ public class DouXianGameController extends BasePokerGameController<DouXianGameDa
         return Code.FORBID;
     }
 
+    /**
+     * 斗仙牌开局后不允许新成员补进空位。真正的断线重连玩家仍保留在 RoomPlayer 中，
+     * 不会走新成员校验，因此不影响牌局中的正常重连。
+     */
+    @Override
+    public int canPlayerJoinRoom(long playerId) {
+        if (getCurrentGamePhase() == EGamePhase.WAIT_READY) {
+            return Code.SUCCESS;
+        }
+        log.info("斗仙牌拒绝玩家中途加入当前牌局 playerId:{} roomId:{} phase:{} round:{} conceded:{}",
+                playerId, getRoom().getId(), getCurrentGamePhase(), gameDataVo.getRound(),
+                gameDataVo.getConcededPlayerIds().contains(playerId));
+        return Code.FORBID;
+    }
+
     @Override
     public long getTransactionItemNum(long playerId) {
         if (!isSeasonCurrencyRoom()) {
@@ -959,8 +974,14 @@ public class DouXianGameController extends BasePokerGameController<DouXianGameDa
         seasonAccounts.remove(remove.getPlayerId());
         gameDataVo.getHandCards().remove(remove.getPlayerId());
         gameDataVo.getConfirmedPlayerIds().remove(remove.getPlayerId());
+        boolean keepConceded = getCurrentGamePhase() != EGamePhase.WAIT_READY
+                && gameDataVo.getConcededPlayerIds().contains(remove.getPlayerId());
         gameDataVo.getConcededPlayerIds().remove(remove.getPlayerId());
         gameDataVo.getReadyPlayerIds().remove(remove.getPlayerId());
+        if (keepConceded) {
+            gameDataVo.getConcededPlayerIds().add(remove.getPlayerId());
+            log.info("斗仙牌玩家离房但保留本局认输标记 playerId:{} phase:{}", remove.getPlayerId(), getCurrentGamePhase());
+        }
         gameDataVo.getReadyTimerScheduled().remove(remove.getPlayerId());
         gameDataVo.getHostingPlayerIds().remove(remove.getPlayerId());
         gameDataVo.getHostingCancelledPlayerIdsThisPhase().remove(remove.getPlayerId());
