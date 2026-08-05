@@ -425,7 +425,7 @@ public abstract class AbstractSlotsGameManager<T extends SlotsPlayerGameData, L 
             }
         }
         //协作任务房间校验: 未开始禁转/血条耗尽禁转 (非协作玩家零成本放行)
-        int coopCode = coopRoomManager.beforeSpin(playerController.playerId(), getGameType(), betValue);
+        int coopCode = coopRoomManager.beforeSpin(playerController.playerId(), getGameType());
         if (coopCode != Code.SUCCESS) {
             return createGameRunInfo(playerController.playerId(), coopCode);
         }

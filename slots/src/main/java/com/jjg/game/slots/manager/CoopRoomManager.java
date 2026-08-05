@@ -501,7 +501,7 @@ public class CoopRoomManager implements RoomChatProvider {
      *
      * @return Code.SUCCESS 放行
      */
-    public int beforeSpin(long playerId, int gameType, long betValue) {
+    public int beforeSpin(long playerId, int gameType) {
         Long roomId = memberRoomIndex.get(playerId);
         if (roomId == null) {
             return Code.SUCCESS;
@@ -521,7 +521,7 @@ public class CoopRoomManager implements RoomChatProvider {
             return Code.SUCCESS;
         }
         //检查血量
-        if (member.hpLeft() < betValue) {
+        if (member.hpLeft() < 1) {
             return Code.HP_NOT_ENOUGH;
         }
         return Code.SUCCESS;
