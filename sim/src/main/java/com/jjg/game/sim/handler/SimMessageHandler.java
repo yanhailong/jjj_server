@@ -503,7 +503,7 @@ public class SimMessageHandler implements GmListener {
      */
     @Command(SimConstant.MsgBean.REQ_COMBAT_POWER)
     public void reqCombatPower(PlayerController playerController, ReqCombatPower req) {
-        execute(playerController, ctx -> ctx.send(coopTaskService.combatPowers(ctx)));
+        execute(playerController, ctx -> ctx.send(coopTaskService.combatPowers(ctx, req.playerId)));
     }
 
     //--------------------------多人协作任务 end--------------------------

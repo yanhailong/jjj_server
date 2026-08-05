@@ -13,4 +13,6 @@ import com.jjg.game.sim.constant.SimConstant;
 @ProtobufMessage(messageType = MessageConst.MessageTypeDef.SIM_GAME, cmd = SimConstant.MsgBean.REQ_COMBAT_POWER)
 @ProtoDesc("获取战力")
 public class ReqCombatPower extends AbstractMessage {
+    @ProtoDesc("0.默认为自己")
+    public long playerId;
 }

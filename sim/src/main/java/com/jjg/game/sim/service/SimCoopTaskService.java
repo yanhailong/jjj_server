@@ -16,7 +16,9 @@ import com.jjg.game.sampledata.bean.TaskCfg;
 import com.jjg.game.sim.constant.CoopTaskConst;
 import com.jjg.game.sim.dao.CoopRoomRecordDao;
 import com.jjg.game.sim.dao.SimCoopTaskDao;
+import com.jjg.game.sim.dao.SimSkillsDao;
 import com.jjg.game.sim.data.*;
+import com.jjg.game.sim.manager.SimPlayerContextRegistry;
 import com.jjg.game.sim.pb.res.*;
 import com.jjg.game.sim.pb.struct.CoopTaskInfo;
 import org.slf4j.Logger;
@@ -27,6 +29,7 @@ import org.springframework.stereotype.Service;
 import java.time.LocalDate;
 import java.time.ZoneId;
 import java.util.ArrayList;
+import java.util.Collection;
 import java.util.HashMap;
 import java.util.LinkedHashSet;
 import java.util.List;
@@ -65,6 +68,10 @@ public class SimCoopTaskService {
     private MailService mailService;
     @Autowired
     private SimSkillService simSkillService;
+    @Autowired
+    private SimSkillsDao simSkillsDao;
+    @Autowired
+    private SimPlayerContextRegistry simPlayerContextRegistry;
 
     // =====================================================================
     // 加载 / 每日重置
@@ -588,22 +595,31 @@ public class SimCoopTaskService {
                 .atStartOfDay(ZoneId.systemDefault()).toInstant().toEpochMilli();
     }
 
-    public ResCombatPower combatPowers(SimPlayerContext ctx) {
+    public ResCombatPower combatPowers(SimPlayerContext ctx, long playerId) {
         ResCombatPower res = new ResCombatPower(Code.SUCCESS);
-        if (ctx.getSkillsDataMap() == null || ctx.getSkillsDataMap().isEmpty()) {
+        long targetPlayerId = playerId > 0 ? playerId : ctx.playerId();
+        SimPlayerContext targetCtx = targetPlayerId == ctx.playerId()
+                ? ctx : simPlayerContextRegistry.getContext(targetPlayerId);
+        Collection<SimSkillsData> skillsDataList;
+        if (targetCtx == null) {
+            skillsDataList = simSkillsDao.findByPlayerId(targetPlayerId);
+        } else {
+            skillsDataList = targetCtx.getSkillsDataMap() == null
+                    ? List.of() : targetCtx.getSkillsDataMap().values();
+        }
+        if (skillsDataList == null || skillsDataList.isEmpty()) {
             return res;
         }
 
         res.combatPowers = new ArrayList<>();
-        for (Map.Entry<Integer, SimSkillsData> en : ctx.getSkillsDataMap().entrySet()) {
-            SimSkillsData skillsData = en.getValue();
+        for (SimSkillsData skillsData : skillsDataList) {
             Map<Integer, Integer> skillsMap = skillsData.getSkillsMap();
             if (skillsMap == null || skillsMap.isEmpty()) {
                 continue;
             }
 
             KVInfo kvInfo = new KVInfo();
-            kvInfo.key = en.getKey();
+            kvInfo.key = skillsData.getGameType();
 
             for (Map.Entry<Integer, Integer> en2 : skillsMap.entrySet()) {
                 ResearchSkillsCfg cfg = simSkillService.getResearchSkillsCfg(skillsData.getGameType(), en2.getKey(), en2.getValue());
