@@ -16,6 +16,6 @@ public class ReqChooseWare extends AbstractMessage {
     public int gameType;
     @ProtoDesc("场次id")
     public int wareId;
-    @ProtoDesc("0.正常进入  1.从赛季进入")
+    @ProtoDesc("0.正常进入  1.从赛季进入  2.拜访   3.多人任务")
     public int enterType;
 }

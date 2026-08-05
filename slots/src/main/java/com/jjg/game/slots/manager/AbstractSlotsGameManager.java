@@ -42,6 +42,7 @@ import com.jjg.game.season.data.SeasonSlotsSessionData;
 import com.jjg.game.season.pb.res.ResSeasonMatch;
 import com.jjg.game.season.service.SeasonFreeGameService;
 import com.jjg.game.sim.constant.SimConstant;
+import com.jjg.game.sim.data.EnterGameType;
 import com.jjg.game.sim.data.SimSkillsData;
 import com.jjg.game.sim.data.SimVisitTrialSession;
 import com.jjg.game.sim.data.SpinStatInfo;
@@ -1284,15 +1285,17 @@ public abstract class AbstractSlotsGameManager<T extends SlotsPlayerGameData, L 
      */
     @SuppressWarnings("unchecked")
     public T createPlayerGameData(PlayerController playerController, int enterType) throws Exception {
+        EnterGameType enterGameType = EnterGameType.valueOf(enterType);
+
         PlayerAllSlotsData playerAllSlotsData = playerAllSlotsDataDao.getFromAllDB(playerController.playerId());
         if (playerAllSlotsData == null) {
             playerAllSlotsData = new PlayerAllSlotsData();
             playerAllSlotsData.setPlayerId(playerController.playerId());
         }
 
-        boolean seasonEntry = enterType == 1;
-        //客座赌局使用房主研发属性，普通游戏仍使用玩家自己的技能
-        SimVisitTrialSession visitSession = enterType == 2
+        boolean seasonEntry = enterGameType == EnterGameType.SEASON;
+        //客座赌局使用房主研发属性，其他非赛季入口仍使用玩家自己的技能
+        SimVisitTrialSession visitSession = enterGameType == EnterGameType.VISIT
                 ? simVisitQuotaService.getTrialSession(playerController.playerId()) : null;
         boolean activeVisit = visitSession != null
                 && visitSession.activeFor(playerController.playerId(), this.gameType, System.currentTimeMillis());
@@ -1311,7 +1314,7 @@ public abstract class AbstractSlotsGameManager<T extends SlotsPlayerGameData, L 
                         playerController.playerId(), this.gameType, seasonResult == null ? null : seasonResult.code);
             }
         } else {
-            //普通入口走 RPC 取 sim 最新技能；sim 不可达才回退读库，避免定时落库前的脏读。
+            //非赛季入口走 RPC 取 sim 最新技能；sim 不可达才回退读库，避免定时落库前的脏读。
             CommonResult<SimSkillsData> skillResult = slotsRPCLinkManager.getSimSkillData(
                     skillOwnerId, this.gameType, playerController.ipAddress());
             if (skillResult != null && skillResult.success()) {
@@ -1324,7 +1327,7 @@ public abstract class AbstractSlotsGameManager<T extends SlotsPlayerGameData, L 
         ClusterClient simClusterClient = simNodeService.getSimClusterClient(playerController.playerId(), playerController.ipAddress());
 
         T playerGameData = getPlayerGameData(playerController);
-        if (playerGameData != null) {
+        if (playerGameData != null && playerGameData.getEnterType() == enterGameType.getValue()) {
             playerGameData.setCreateTime(TimeHelper.nowInt());
             playerGameData.setOnline(true);
             playerGameData.setOfflineTime(0);
@@ -1339,7 +1342,7 @@ public abstract class AbstractSlotsGameManager<T extends SlotsPlayerGameData, L 
                         playerController.playerId(), this.gameType, System.currentTimeMillis()));
             }
             playerGameData.setSimClient(simClusterClient);
-            playerGameData.setEnterType(enterType);
+            playerGameData.setEnterType(enterGameType.getValue());
             return playerGameData;
         }
 
@@ -1347,7 +1350,7 @@ public abstract class AbstractSlotsGameManager<T extends SlotsPlayerGameData, L 
         int roomCfgId = playerController.getPlayer().getRoomCfgId();
         log.debug("从db中获取的 getPlayerId = {}", playerId);
         playerGameData = (T) playerGameDataDao.getPlayerGameDataByPlayerId(playerId, roomCfgId, playerController.roomId(), playerGameDataClass);
-        if (playerGameData == null) {
+        if (playerGameData == null || playerGameData.getEnterType() != enterGameType.getValue()) {
             Constructor<T> constructor = this.playerGameDataClass.getConstructor();
             playerGameData = constructor.newInstance();
 
@@ -1365,7 +1368,7 @@ public abstract class AbstractSlotsGameManager<T extends SlotsPlayerGameData, L 
             playerGameData.setOneBetScore(baseRoomCfg.getDefaultBet().getFirst());
             playerGameData.setAllBetScore(oneLineToAllStake(playerGameData.getOneBetScore()));
         }
-        playerGameData.setEnterType(enterType);
+        playerGameData.setEnterType(enterGameType.getValue());
         playerGameData.setOfflineTime(0);
         playerGameData.setOnline(true);
         playerGameData.setLastActiveTime(System.currentTimeMillis());

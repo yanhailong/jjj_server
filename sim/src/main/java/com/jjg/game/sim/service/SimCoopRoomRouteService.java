@@ -245,7 +245,7 @@ public class SimCoopRoomRouteService {
      * 切换会话到目标游戏节点 (范式对齐 HallRoomService.enterGameNode)。
      */
     private void switchToNode(SimPlayerContext ctx, int gameType, int roomCfgId, MarsNode node) {
-        playerSessionService.changeGameType(ctx.playerId(), gameType, roomCfgId);
+        playerSessionService.changeGameType(ctx.playerId(), gameType, roomCfgId, EnterGameType.COOP.getValue());
         clusterSystem.switchNode(ctx.getPlayerController().getSession(), node);
     }
 

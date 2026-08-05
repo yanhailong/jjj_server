@@ -129,7 +129,7 @@ public class SlotsPlayerEventListener implements SessionEnterListener, SessionCl
         });
         PlayerSessionToken playerSessionToken = playerSessionTokenDao.getByPlayerId(player.getId());
         logger.enterGame(player, player.getGameType(), player.getRoomCfgId(), playerSessionToken.getDevice());
-        log.debug("玩家进入slots 游戏 playerId = {},gameType = {}", player.getId(), player.getGameType());
+        log.debug("玩家进入slots 游戏 playerId = {},gameType = {},enterType={}", player.getId(), player.getGameType(), playerSessionInfo.getEnterType());
     }
 
     /**
@@ -162,13 +162,13 @@ public class SlotsPlayerEventListener implements SessionEnterListener, SessionCl
                 playerController.setScene(slotsRoomController);
                 //创建 PlayerGameData
                 taskManager.loadTaskData(player.getId());
-                gameManager.createPlayerGameData(playerController, 0);
+                gameManager.createPlayerGameData(playerController, playerSessionInfo.getEnterType());
                 //大厅非重连会检查一次，这里再检查一次
                 rechargeService.loadOfflineRecharge(player.getId());
             }
         });
         logger.enterGame(player, player.getGameType(), player.getRoomCfgId(), player.getDeviceType());
-        log.debug("玩家进入好友房slots 游戏 playerId = {},gameType = {},roomId = {}", player.getId(), player.getGameType(), player.getRoomId());
+        log.debug("玩家进入好友房slots 游戏 playerId = {},gameType = {},roomId = {},enterType={}", player.getId(), player.getGameType(), player.getRoomId(), playerSessionInfo.getEnterType());
     }
 
     /**

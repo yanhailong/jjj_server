@@ -95,8 +95,8 @@ public class SlotsPlayerGameData {
     //赛季运行态统一收口于此，包含入口类型、赛季币、宝石效果及每日免费局状态
     @Transient
     protected transient SeasonSlotsSessionData seasonSlotsSessionData;
-    @Transient
-    protected transient int enterType;
+    //进入游戏的方式
+    protected int enterType;
 
     public long getPlayerId() {
         if (playerId == 0) {
