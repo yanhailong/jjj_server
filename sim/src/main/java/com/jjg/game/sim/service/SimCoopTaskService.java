@@ -402,6 +402,28 @@ public class SimCoopTaskService {
     }
 
     /**
+     * 获取玩家当前绑定的协作房间，供断线重连后重新路由。
+     */
+    public CoopTaskInfo getBoundRoomInfo(long playerId) {
+        long roomId = roomRecordDao.getPlayerRoom(playerId);
+        if (roomId <= 0) {
+            return null;
+        }
+        CoopRoomRecord record = roomRecordDao.get(roomId);
+        if (record == null || record.getStatus() == CoopTaskConst.RoomStatus.FINISHED) {
+            roomRecordDao.releasePlayerRoom(playerId, roomId);
+            return null;
+        }
+
+        CoopTaskInfo info = new CoopTaskInfo();
+        info.taskId = record.getTaskId();
+        info.status = CoopTaskConst.TaskStatus.IN_ROOM;
+        info.roomId = roomId;
+        info.gameType = record.getGameType();
+        return info;
+    }
+
+    /**
      * 结算回写 (slots 房间结束经 RPC 调用, 发起者可能已离线)。
      * <p>
      * 发起者: 成功时 IN_ROOM -> REWARDABLE，失败时从已领取任务中删除；协助者: 成功时奖励经邮件发放

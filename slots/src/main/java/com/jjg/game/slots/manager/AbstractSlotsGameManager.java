@@ -424,7 +424,7 @@ public abstract class AbstractSlotsGameManager<T extends SlotsPlayerGameData, L 
             }
         }
         //协作任务房间校验: 未开始禁转/血条耗尽禁转 (非协作玩家零成本放行)
-        int coopCode = coopRoomManager.beforeSpin(playerController.playerId(), getGameType());
+        int coopCode = coopRoomManager.beforeSpin(playerController.playerId(), getGameType(), betValue);
         if (coopCode != Code.SUCCESS) {
             return createGameRunInfo(playerController.playerId(), coopCode);
         }
@@ -2607,7 +2607,7 @@ public abstract class AbstractSlotsGameManager<T extends SlotsPlayerGameData, L 
      * @return
      */
     protected List<Integer> checkLibPool(L resultLib, T playerGameData) {
-        if(playerGameData.isGmPoolOpen()){
+        if (playerGameData.isGmPoolOpen()) {
             return resultLib.getJackpotIds();
         }
 

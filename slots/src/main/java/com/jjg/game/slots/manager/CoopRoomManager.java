@@ -501,7 +501,7 @@ public class CoopRoomManager implements RoomChatProvider {
      *
      * @return Code.SUCCESS 放行
      */
-    public int beforeSpin(long playerId, int gameType) {
+    public int beforeSpin(long playerId, int gameType, long betValue) {
         Long roomId = memberRoomIndex.get(playerId);
         if (roomId == null) {
             return Code.SUCCESS;
@@ -520,8 +520,11 @@ public class CoopRoomManager implements RoomChatProvider {
         if (member == null) {
             return Code.SUCCESS;
         }
-        //需求: 血量消耗完之后不能继续游戏
-        return member.hpLeft() > 0 ? Code.SUCCESS : Code.NOT_ENOUGH;
+        //检查血量
+        if (member.hpLeft() < betValue) {
+            return Code.HP_NOT_ENOUGH;
+        }
+        return Code.SUCCESS;
     }
 
     /**

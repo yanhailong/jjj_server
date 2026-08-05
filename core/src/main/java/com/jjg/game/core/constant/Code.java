@@ -215,4 +215,6 @@ public interface Code {
     int DAILY_TASK_LIMIT = 4056152;
     // 游戏已开始，无法退出房间
     int CAN_NOT_EXIT_GAMING_ROOM = 4058260;
+    // 血量不足，无法继续
+    int HP_NOT_ENOUGH = 4059299;
 }

@@ -68,6 +68,8 @@ public class SimCasinoService implements SimTaskStateReporter {
     private SimGuideService simGuideService;
     @Autowired
     private PlayerStatService playerStatService;
+    @Autowired
+    private SimCoopTaskService simCoopTaskService;
 
 
     /**
@@ -187,6 +189,7 @@ public class SimCasinoService implements SimTaskStateReporter {
             res.dailyHelpLimit = quota.dailyHelpLimit();
             res.remainShare = quota.remainShare();
             res.dailyShareLimit = quota.dailyShareLimit();
+            res.coopTaskInfo = simCoopTaskService.getBoundRoomInfo(ctx.playerId());
         } catch (Exception e) {
             log.error("", e);
             res.code = Code.EXCEPTION;

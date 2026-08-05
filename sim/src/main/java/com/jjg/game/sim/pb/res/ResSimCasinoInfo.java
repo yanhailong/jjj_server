@@ -5,6 +5,7 @@ import com.jjg.game.common.pb.AbstractResponse;
 import com.jjg.game.common.proto.ProtoDesc;
 import com.jjg.game.common.proto.ProtobufMessage;
 import com.jjg.game.sim.constant.SimConstant;
+import com.jjg.game.sim.pb.struct.CoopTaskInfo;
 
 /**
  * @author 11
@@ -31,7 +32,8 @@ public class ResSimCasinoInfo extends AbstractResponse {
     public int remainShare;
     @ProtoDesc("每日建筑分享上限")
     public int dailyShareLimit;
-
+    @ProtoDesc("已绑定的多人任务房间")
+    public CoopTaskInfo coopTaskInfo;
 
     public ResSimCasinoInfo(int code) {
         super(code);
