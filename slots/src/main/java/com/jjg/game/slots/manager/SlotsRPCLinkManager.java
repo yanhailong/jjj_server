@@ -443,6 +443,7 @@ public class SlotsRPCLinkManager {
 
         notify.power = result.data.getPower();
         notify.researchPoint = result.data.getResearchPoints();
+        notify.remainingTrials = result.data.getRemainingTrials();
         playerController.send(notify);
         log.info("通知道具掉落 playerId={},notify={}", playerId, JSON.toJSONString(notify));
     }

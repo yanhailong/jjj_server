@@ -590,6 +590,7 @@ public class SimVisitService {
         SlotsSpinResult data = new SlotsSpinResult();
         data.setItemsMap(Map.of());
         data.setPower(ctx.getSimBaseData() == null ? 0 : ctx.getSimBaseData().getPower());
+        data.setRemainingTrials(permit.getRemainingCount());
 
         ItemCfg itemCfg = configCacheService.getResearchPointItemCfg(0);
         if(itemCfg != null){
