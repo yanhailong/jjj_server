@@ -56,6 +56,26 @@ public class SimAutoSaveService implements SimPlayerTickListener {
                 SimAutoSaveService::blockUntilQueued);
     }
 
+    /**
+     * 按玩家稳定散列首次保存检查时间，避免集中登录或重启后在同一个 tick
+     * 对所有玩家同时执行全量快照比较。
+     */
+    public void initializeAutoSaveSchedule(SimPlayerContext ctx, long now) {
+        if (ctx.getLastSaveTime() != 0) {
+            return;
+        }
+        long delay = initialSaveDelayMs(ctx.playerId());
+        ctx.setLastSaveTime(now - SAVE_INTERVAL_MS + delay);
+    }
+
+    private static long initialSaveDelayMs(long playerId) {
+        long value = playerId + 0x9E3779B97F4A7C15L;
+        value = (value ^ (value >>> 30)) * 0xBF58476D1CE4E5B9L;
+        value = (value ^ (value >>> 27)) * 0x94D049BB133111EBL;
+        value ^= value >>> 31;
+        return Math.floorMod(value, SAVE_INTERVAL_MS);
+    }
+
     /** 队列满时阻塞生产者并按原顺序入队，避免无界堆积或旧快照覆盖新值。 */
     private static void blockUntilQueued(Runnable task, ThreadPoolExecutor executor) {
         if (executor.isShutdown()) {

@@ -22,4 +22,6 @@ public class NotifySimDropItem extends AbstractNotice {
     public int power;
     @ProtoDesc("研究点")
     public int researchPoint;
+    @ProtoDesc("今日剩余试玩次数")
+    public int remainingTrials;
 }

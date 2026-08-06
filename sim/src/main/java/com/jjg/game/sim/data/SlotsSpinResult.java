@@ -11,6 +11,8 @@ public class SlotsSpinResult {
     private Map<Integer, Long> itemsMap;
     private int power;
     private int researchPoints;
+    //今日剩余试玩次数
+    private int remainingTrials;
 
     public Map<Integer, Long> getItemsMap() {
         return itemsMap;
@@ -47,5 +49,13 @@ public class SlotsSpinResult {
 
     public void setResearchPoints(int researchPoints) {
         this.researchPoints = researchPoints;
+    }
+
+    public int getRemainingTrials() {
+        return remainingTrials;
+    }
+
+    public void setRemainingTrials(int remainingTrials) {
+        this.remainingTrials = remainingTrials;
     }
 }

@@ -52,6 +52,7 @@ import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicBoolean;
+import java.util.concurrent.atomic.AtomicLong;
 
 /**
  * 模拟经营游戏管理器
@@ -87,6 +88,9 @@ public class SimManager {
 
     //玩家状态检查任务句柄
     private volatile Timeout checkPlayerDataTimeout;
+    private final AtomicLong rejectedTickTaskCount = new AtomicLong();
+    private final AtomicLong nextTickRejectLogTime = new AtomicLong();
+    private static final long TICK_REJECT_LOG_INTERVAL_MS = 60_000L;
 
     //登出落库在 sim-save-io 队列排队期间的暂存: 玩家在落库完成前重登/被 RPC 重建时
     //复用内存 ctx 或等待落库完成, 避免从库里读到未落地的旧数据
@@ -471,6 +475,10 @@ public class SimManager {
         if (baseData == null) {
             baseData = new SimBaseData();
             baseData.setPlayerId(playerId);
+        } else {
+            // 集中登录时把已有玩家的首次保存检查摊开到一个周期内；
+            // 新玩家及加载阶段主动置 0 的迁移数据仍在下一次 tick 立即保存。
+            autoSaveService.initializeAutoSaveSchedule(ctx, System.currentTimeMillis());
         }
 
         ctx.setSimBaseData(baseData);
@@ -613,9 +621,13 @@ public class SimManager {
         for (Map.Entry<Long, SimPlayerContext> en : this.simPlayerContextRegistry.getContextMap().entrySet()) {
             final SimPlayerContext ctx = en.getValue();
             //分发到对应的线程
-            PlayerExecutorGroupDisruptor.getDefaultExecutor().tryPublish(en.getKey(), 0, new BaseHandler<String>() {
+            boolean published = PlayerExecutorGroupDisruptor.getDefaultExecutor().tryPublish(en.getKey(), 0, new BaseHandler<String>() {
                 @Override
                 public void action() {
+                    // ctx 在任务进入玩家槽位前已被捕获，排队期间可能因登出或重连失效。
+                    if (!isCurrentContext(ctx)) {
+                        return;
+                    }
                     for (SimPlayerTickListener handler : tickHandlers) {
                         try {
                             handler.onTick(ctx, now);
@@ -625,7 +637,27 @@ public class SimManager {
                     }
                 }
             }.setHandlerParamWithSelf("sim check playerdata timer"));
+            if (!published) {
+                recordRejectedTickTask(ctx.playerId(), now);
+            }
         }
+    }
+
+    private boolean isCurrentContext(SimPlayerContext ctx) {
+        return simPlayerContextRegistry.getContext(ctx.playerId()) == ctx;
+    }
+
+    private void recordRejectedTickTask(long playerId, long now) {
+        long total = rejectedTickTaskCount.incrementAndGet();
+        long nextLogTime = nextTickRejectLogTime.get();
+        if (now >= nextLogTime
+                && nextTickRejectLogTime.compareAndSet(nextLogTime, now + TICK_REJECT_LOG_INTERVAL_MS)) {
+            log.warn("sim tick task rejected playerId={},totalRejected={}", playerId, total);
+        }
+    }
+
+    public long getRejectedTickTaskCount() {
+        return rejectedTickTaskCount.get();
     }
 
     public CommonResult<SlotsSpinResult> onSlotsSpin(long playerId, int gameType, int winTimes, boolean changeNode,
