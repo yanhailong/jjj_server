@@ -194,7 +194,7 @@ public class RpcServerService {
             log.debug("节点：{} 找不到对应rpc：{} 的Future", clusterSystem.getNodePath(), res.requestId);
             return;
         }
-        log.debug("batchSendRpcMsg 收到id：{} 返回的RPC消息：{}", res.requestId, res.responseData);
+//        log.debug("batchSendRpcMsg 收到id：{} 返回的RPC消息：{}", res.requestId, res.responseData);
         // 收到消息，调用完成
         completableFuture.complete(res);
     }

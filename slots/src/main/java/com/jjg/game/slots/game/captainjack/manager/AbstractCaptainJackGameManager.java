@@ -66,7 +66,7 @@ public abstract class AbstractCaptainJackGameManager extends AbstractSlotsGameMa
      *
      */
     @Override
-    public CaptainJackGameRunInfo playerStartGame(PlayerController playerController, long stake) {
+    public CaptainJackGameRunInfo playerStartGame(PlayerController playerController, long stake) throws Exception {
         //检查游戏是否开启
         if (!this.open.get()) {
             return new CaptainJackGameRunInfo(Code.GAME_IS_MAINTAIN, playerController.playerId());
@@ -80,14 +80,7 @@ public abstract class AbstractCaptainJackGameManager extends AbstractSlotsGameMa
         if (playerGameData.getStatus() == CaptainJackConstant.Status.TREASURE_CHEST) {
             return new CaptainJackGameRunInfo(Code.ERROR_REQ, playerController.playerId());
         }
-        if (getRoomType() != null) {
-            int code = slotsRoomManager.checkCanPlay(this, playerController);
-            if (code != Code.SUCCESS) {
-                log.debug("该游戏无法继续 playerId = {},gameType = {},roomCfgId = {},code = {}", playerController.playerId(), playerController.getPlayer().getGameType(), playerController.getPlayer().getRoomCfgId(), code);
-                return new CaptainJackGameRunInfo(code, playerController.playerId());
-            }
-        }
-        return startGame(playerController, playerGameData, stake, false);
+        return super.playerStartGame(playerController, stake);
     }
 
     /**
