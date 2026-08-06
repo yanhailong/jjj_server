@@ -12,6 +12,7 @@ import com.jjg.game.core.data.RoomPlayer;
 import com.jjg.game.core.data.RoomType;
 import com.jjg.game.core.data.Card;
 import com.jjg.game.core.utils.ItemUtils;
+import com.jjg.game.core.pb.NotifyExitRoom;
 import com.jjg.game.poker.game.common.BasePokerGameController;
 import com.jjg.game.poker.game.common.data.PokerCard;
 import com.jjg.game.poker.game.common.data.PokerDataHelper;
@@ -59,8 +60,10 @@ import com.jjg.game.room.data.robot.GameRobotPlayer;
 import com.jjg.game.room.data.room.GamePlayer;
 import com.jjg.game.room.message.RoomMessageBuilder;
 import com.jjg.game.room.robot.RobotScheduleUtil;
+import com.jjg.game.sampledata.GameDataManager;
 import com.jjg.game.sampledata.bean.ImmortalCardCfg;
 import com.jjg.game.sampledata.bean.Room_ChessCfg;
+import com.jjg.game.sampledata.bean.WarehouseCfg;
 
 import java.util.ArrayList;
 import java.util.Collections;
@@ -386,6 +389,12 @@ public class DouXianGameController extends BasePokerGameController<DouXianGameDa
                 return false;
             }
         }
+        // 准备请求处只校验发起玩家；这里在真正发牌前再校验全桌，防止机器人自动准备、
+        // 其他玩家余额变化或重复请求绕过资金门槛。
+        if (!removeInsufficientBalancePlayersBeforeStart()) {
+            return false;
+        }
+
         completeMatching();
         genPlayerSeatInfoList(gameDataVo.getSeatInfo(), gameDataVo.getPlayerSeatInfoList());
         DouXianDataHelper.shuffleNewDeck(gameDataVo);
@@ -440,6 +449,12 @@ public class DouXianGameController extends BasePokerGameController<DouXianGameDa
             return;
         }
         if (req.status == 1) {
+            long minBalance = getNextGameMinBalance();
+            long balance = getTransactionItemNum(playerId);
+            if (balance < minBalance) {
+                rejectNextGameForInsufficientBalance(playerId, balance, minBalance, "玩家请求准备");
+                return;
+            }
             GamePlayer gamePlayer = gameDataVo.getGamePlayer(playerId);
             if (!(gamePlayer instanceof GameRobotPlayer)) {
                 startMatching();
@@ -463,6 +478,57 @@ public class DouXianGameController extends BasePokerGameController<DouXianGameDa
             }
         }
     }
+
+    /**
+     * 续局最低余额优先使用 Warehouse.enterLimit；即使配置为0/-1，斗仙牌余额为0也不能继续开局。
+     */
+    private long getNextGameMinBalance() {
+        WarehouseCfg warehouseCfg = GameDataManager.getWarehouseCfg(getRoom().getRoomCfgId());
+        if (warehouseCfg == null) {
+            log.error("斗仙牌续局余额校验找不到Warehouse配置 roomCfgId:{}，最低余额按1处理",
+                    getRoom().getRoomCfgId());
+            return 1L;
+        }
+        return Math.max(1L, warehouseCfg.getEnterLimit());
+    }
+
+    /**
+     * 发牌前校验所有已坐下玩家。发现余额不足就移出房间，本次开局失败，等待重新匹配补齐人数。
+     */
+    private boolean removeInsufficientBalancePlayersBeforeStart() {
+        long minBalance = getNextGameMinBalance();
+        List<Long> insufficientPlayerIds = new ArrayList<>();
+        for (SeatInfo seatInfo : gameDataVo.getSeatInfo().values()) {
+            if (!seatInfo.isSeatDown()) {
+                continue;
+            }
+            long playerId = seatInfo.getPlayerId();
+            if (getTransactionItemNum(playerId) < minBalance) {
+                insufficientPlayerIds.add(playerId);
+            }
+        }
+        for (Long playerId : insufficientPlayerIds) {
+            rejectNextGameForInsufficientBalance(playerId, getTransactionItemNum(playerId), minBalance, "开局前复检");
+        }
+        return insufficientPlayerIds.isEmpty();
+    }
+
+    private void rejectNextGameForInsufficientBalance(long playerId, long balance, long minBalance, String reason) {
+        gameDataVo.getReadyPlayerIds().remove(playerId);
+        gameDataVo.getReadyTimerScheduled().remove(playerId);
+
+        GamePlayer gamePlayer = gameDataVo.getGamePlayer(playerId);
+        if (!(gamePlayer instanceof GameRobotPlayer)) {
+            NotifyExitRoom notify = new NotifyExitRoom();
+            notify.langId = Code.USER_NOT_GOLD;
+            broadcastToPlayers(RoomMessageBuilder.newBuilder().sendPlayer(playerId, notify));
+        }
+
+        int exitCode = getRoomController().getRoomManager().exitRoom(playerId);
+        log.warn("斗仙牌余额不足，拒绝进入下一局并移出房间 playerId:{} balance:{} minBalance:{} reason:{} exitCode:{}",
+                playerId, balance, minBalance, reason, exitCode);
+    }
+
 
     private void broadcastReadyState(long playerId, int status) {
         NotifyDouXianPlayerReady notify = new NotifyDouXianPlayerReady();
@@ -1461,6 +1527,27 @@ public class DouXianGameController extends BasePokerGameController<DouXianGameDa
     public void reqCancelHosting(long playerId, ReqDouXianCancelHosting req) {
         log.info("斗仙牌收到取消托管请求 playerId:{} phase:{} hostingBefore:{}",
                 playerId, getCurrentGamePhase(), gameDataVo.getHostingPlayerIds().contains(playerId));
+        // A play-card timeout first puts the player into hosting, then auto-fills the unfinished cards.
+        // Cancel can arrive between those two actions. Sending hosting=false at that point would reopen
+        // the expired PLAY_CART UI before the client receives the placement and phase-change messages.
+        //
+        // Finish the already-expired round first. The cancellation then applies to following rounds,
+        // and its notification is guaranteed to be sent after the current placement/phase messages.
+        if (getCurrentGamePhase() == EGamePhase.PLAY_CART
+                && System.currentTimeMillis() >= gameDataVo.getPhaseEndTime()) {
+            log.info("DouXian cancel hosting after play deadline; finish timeout actions first playerId:{} round:{} phaseEndTime:{}",
+                    playerId, gameDataVo.getRound(), gameDataVo.getPhaseEndTime());
+            forceFinishPlayCardPhase();
+            if (getCurrentGamePhase() == EGamePhase.PLAY_CART) {
+                // Auto-fill failed and forceFinishPlayCardPhase intentionally kept PLAY_CART active.
+                // Keep hosting so the client cannot return to an expired, inoperable placement state.
+                log.warn("DouXian play phase is still active; keep hosting playerId:{} round:{} roomId:{}",
+                        playerId, gameDataVo.getRound(), getRoom().getId());
+                broadcastHostingState(playerId, true);
+                return;
+            }
+        }
+
         boolean wasHosting = clearHostingState(playerId, true);
         // 无论玩家是否处于托管中都要回包，否则客户端在状态不同步时也会收不到取消结果。
         broadcastHostingState(playerId, false);
