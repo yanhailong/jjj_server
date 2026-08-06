@@ -67,11 +67,19 @@ public class ClusterMessageDispatcher {
      */
     public void onClusterReceive(Connect<ClusterMessage> connect, ClusterMessage clusterMessage) {
         String sessionId = clusterMessage.getSessionId();
+        PFMessage msg = clusterMessage.getMsg();
+        boolean logoutMessage = msg != null && msg.cmd == MessageConst.SessionConst.NOTIFY_SESSION_LOGOUT;
         PFSession session = null;
         if (sessionId != null && !sessionId.trim().isEmpty()) {
             session = getPFSession(sessionId);
             if (session != null) {
                 session.activeTime = System.currentTimeMillis();
+            } else if (logoutMessage) {
+                // 登出会广播到所有 hall。玩家切到 slots 后原 hall 已没有 session，
+                // 但登出仍须与 Sim RPC 使用同一玩家槽位，且不需要绑定 PlayerController。
+                session = new PFSession(sessionId, connect, null);
+                session.setPlayerId(clusterMessage.getPlayerId());
+                session.setWorkId(clusterMessage.getPlayerId());
             } else if (sessionRefenerceBinderMap != null && !sessionRefenerceBinderMap.isEmpty()) {
                 session = new PFSession(sessionId, connect, null);
                 //session.setReference();
@@ -86,11 +94,13 @@ public class ClusterMessageDispatcher {
                 });
             }
         }
-        PFMessage msg = clusterMessage.getMsg();
         try {
             long bindId = 0;
             if (session != null) {
                 bindId = session.getWorkId();
+            }
+            if (logoutMessage) {
+                bindId = clusterMessage.getPlayerId();
             }
             if (clusterMessage.getMsg().cmd == MessageConst.SessionConst.NOTIFY_SESSION_QUIT ||
                     clusterMessage.getMsg().cmd == MessageConst.SessionConst.NOTIFY_SESSION_ENTER) {
