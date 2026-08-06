@@ -615,11 +615,11 @@ public class SimGuestService implements SimPlayerTickListener, ItemListener, Sim
 
         //无奖励: TargetArea 顺序循环
         List<Integer> targetArea = cfg.getTargetArea();
-        if (unrewardedCount > 0 && targetArea != null && !targetArea.isEmpty()) {
+        if (rewardedCount > 0 && targetArea != null && !targetArea.isEmpty()) {
             int cursor = 0;
-            int safety = unrewardedCount * targetArea.size();
+            int safety = rewardedCount * targetArea.size();
             int added = 0;
-            while (added < unrewardedCount && safety-- > 0) {
+            while (added < rewardedCount && safety-- > 0) {
                 int buildingId = targetArea.get(cursor % targetArea.size());
                 cursor++;
                 DestinationInfo dest = pickBuildingDevice(buildingId, casino);
