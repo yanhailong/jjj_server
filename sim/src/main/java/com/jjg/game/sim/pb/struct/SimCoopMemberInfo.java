@@ -5,7 +5,7 @@ import com.jjg.game.common.proto.ProtobufMessage;
 
 @ProtobufMessage
 @ProtoDesc("多人任务人数信息")
-public class CoopMemberInfo {
+public class SimCoopMemberInfo {
     @ProtoDesc("玩家id")
     public long playerId;
     @ProtoDesc("任务配置id")

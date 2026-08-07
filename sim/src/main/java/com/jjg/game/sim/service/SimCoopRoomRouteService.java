@@ -16,7 +16,7 @@ import com.jjg.game.sim.data.*;
 import com.jjg.game.sim.pb.res.ResCreateCoopRoom;
 import com.jjg.game.sim.pb.res.ResCoopTaskMembers;
 import com.jjg.game.sim.pb.res.ResJoinCoopRoom;
-import com.jjg.game.sim.pb.struct.CoopMemberInfo;
+import com.jjg.game.sim.pb.struct.SimCoopMemberInfo;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -204,7 +204,7 @@ public class SimCoopRoomRouteService {
     /**
      * 批量获取玩家对应多人任务的当前房间人数。
      */
-    public ResCoopTaskMembers memberCounts(List<CoopMemberInfo> members) {
+    public ResCoopTaskMembers memberCounts(List<SimCoopMemberInfo> members) {
         ResCoopTaskMembers res = new ResCoopTaskMembers(Code.SUCCESS);
         res.members = new ArrayList<>(members == null ? 0 : members.size());
         if (members == null || members.isEmpty()) {
@@ -212,17 +212,17 @@ public class SimCoopRoomRouteService {
         }
 
         LinkedHashSet<Long> playerIds = new LinkedHashSet<>();
-        for (CoopMemberInfo member : members) {
+        for (SimCoopMemberInfo member : members) {
             if (member != null && member.playerId > 0 && member.taskId > 0) {
                 playerIds.add(member.playerId);
             }
         }
         Map<Long, CoopRoomRecord> records = roomRecordDao.getPlayerRoomRecords(playerIds);
-        for (CoopMemberInfo member : members) {
+        for (SimCoopMemberInfo member : members) {
             if (member == null) {
                 continue;
             }
-            CoopMemberInfo info = new CoopMemberInfo();
+            SimCoopMemberInfo info = new SimCoopMemberInfo();
             info.playerId = member.playerId;
             info.taskId = member.taskId;
             CoopRoomRecord record = records.get(member.playerId);

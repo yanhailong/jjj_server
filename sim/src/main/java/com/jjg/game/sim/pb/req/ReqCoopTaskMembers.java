@@ -5,7 +5,7 @@ import com.jjg.game.common.pb.AbstractMessage;
 import com.jjg.game.common.proto.ProtoDesc;
 import com.jjg.game.common.proto.ProtobufMessage;
 import com.jjg.game.sim.constant.SimConstant;
-import com.jjg.game.sim.pb.struct.CoopMemberInfo;
+import com.jjg.game.sim.pb.struct.SimCoopMemberInfo;
 
 import java.util.List;
 
@@ -13,5 +13,5 @@ import java.util.List;
 @ProtoDesc("请求多人任务当前人数")
 public class ReqCoopTaskMembers extends AbstractMessage {
     @ProtoDesc("玩家任务列表")
-    public List<CoopMemberInfo> members;
+    public List<SimCoopMemberInfo> members;
 }
