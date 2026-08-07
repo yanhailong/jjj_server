@@ -25,6 +25,8 @@ public class PlayerSessionInfo {
     private int createTime;
     //进入方式 0.正常进入  1.从赛季进入(slots使用赛季币下注/结算)  2.从拜访进入
     private int enterType;
+    //不同的进入方式可能有一些额外的参数
+    protected String targetValue;
 
     public long getPlayerId() {
         return playerId;
@@ -104,5 +106,13 @@ public class PlayerSessionInfo {
 
     public void setEnterType(int enterType) {
         this.enterType = enterType;
+    }
+
+    public String getTargetValue() {
+        return targetValue;
+    }
+
+    public void setTargetValue(String targetValue) {
+        this.targetValue = targetValue;
     }
 }

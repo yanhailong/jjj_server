@@ -97,6 +97,8 @@ public class SlotsPlayerGameData {
     protected transient SeasonSlotsSessionData seasonSlotsSessionData;
     //进入游戏的方式
     protected int enterType;
+    //不同的进入方式可能有一些额外的参数
+    protected String targetValue;
 
     public long getPlayerId() {
         if (playerId == 0) {
@@ -522,5 +524,13 @@ public class SlotsPlayerGameData {
 
     public void setGmPoolOpen(boolean gmPoolOpen) {
         this.gmPoolOpen = gmPoolOpen;
+    }
+
+    public String getTargetValue() {
+        return targetValue;
+    }
+
+    public void setTargetValue(String targetValue) {
+        this.targetValue = targetValue;
     }
 }

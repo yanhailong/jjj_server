@@ -131,7 +131,7 @@ public class SimCoopRoomRouteService {
         res.roomId = roomId;
         //先回包再切节点, 客户端凭 roomId 在 slots 节点进房
         ctx.send(res);
-        switchToNode(ctx, gameType, roomCfgId, node);
+        switchToNode(ctx, gameType, roomCfgId, node, roomId);
         log.info("创建协作房间 playerId={},taskId={},roomId={},gameType={},node={}",
                 playerId, taskId, roomId, gameType, node.getNodePath());
         return null;
@@ -194,7 +194,7 @@ public class SimCoopRoomRouteService {
         res.code = Code.SUCCESS;
         //先回包再切节点
         ctx.send(res);
-        switchToNode(ctx, record.getGameType(), record.getRoomCfgId(), node);
+        switchToNode(ctx, record.getGameType(), record.getRoomCfgId(), node, roomId);
         log.info("加入协作房间路由 playerId={},roomId={},gameType={},node={}",
                 playerId, roomId, record.getGameType(), record.getNodePath());
         return null;
@@ -247,8 +247,8 @@ public class SimCoopRoomRouteService {
     /**
      * 切换会话到目标游戏节点 (范式对齐 HallRoomService.enterGameNode)。
      */
-    private void switchToNode(SimPlayerContext ctx, int gameType, int roomCfgId, MarsNode node) {
-        playerSessionService.changeGameType(ctx.playerId(), gameType, roomCfgId, EnterGameType.COOP.getValue());
+    private void switchToNode(SimPlayerContext ctx, int gameType, int roomCfgId, MarsNode node, long roomId) {
+        playerSessionService.changeGameType(ctx.playerId(), gameType, roomCfgId, EnterGameType.COOP.getValue(), roomId + "");
         clusterSystem.switchNode(ctx.getPlayerController().getSession(), node);
     }
 

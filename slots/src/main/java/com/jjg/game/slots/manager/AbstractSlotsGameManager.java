@@ -1284,7 +1284,7 @@ public abstract class AbstractSlotsGameManager<T extends SlotsPlayerGameData, L 
      * @return
      */
     @SuppressWarnings("unchecked")
-    public T createPlayerGameData(PlayerController playerController, int enterType) throws Exception {
+    public T createPlayerGameData(PlayerController playerController, int enterType, String enterTargetValue) throws Exception {
         EnterGameType enterGameType = EnterGameType.valueOf(enterType);
 
         PlayerAllSlotsData playerAllSlotsData = playerAllSlotsDataDao.getFromAllDB(playerController.playerId());
@@ -1327,7 +1327,7 @@ public abstract class AbstractSlotsGameManager<T extends SlotsPlayerGameData, L 
         ClusterClient simClusterClient = simNodeService.getSimClusterClient(playerController.playerId(), playerController.ipAddress());
 
         T playerGameData = getPlayerGameData(playerController);
-        if (playerGameData != null && playerGameData.getEnterType() == enterGameType.getValue()) {
+        if (playerGameData != null && playerGameData.getEnterType() == enterGameType.getValue() && Objects.equals(playerGameData.getTargetValue(), enterTargetValue)) {
             playerGameData.setCreateTime(TimeHelper.nowInt());
             playerGameData.setOnline(true);
             playerGameData.setOfflineTime(0);
@@ -1350,7 +1350,7 @@ public abstract class AbstractSlotsGameManager<T extends SlotsPlayerGameData, L 
         int roomCfgId = playerController.getPlayer().getRoomCfgId();
         log.debug("从db中获取的 getPlayerId = {}", playerId);
         playerGameData = (T) playerGameDataDao.getPlayerGameDataByPlayerId(playerId, roomCfgId, playerController.roomId(), playerGameDataClass);
-        if (playerGameData == null || playerGameData.getEnterType() != enterGameType.getValue()) {
+        if (playerGameData == null || playerGameData.getEnterType() != enterGameType.getValue() || !Objects.equals(playerGameData.getTargetValue(), enterTargetValue)) {
             Constructor<T> constructor = this.playerGameDataClass.getConstructor();
             playerGameData = constructor.newInstance();
 
@@ -1369,6 +1369,7 @@ public abstract class AbstractSlotsGameManager<T extends SlotsPlayerGameData, L 
             playerGameData.setAllBetScore(oneLineToAllStake(playerGameData.getOneBetScore()));
         }
         playerGameData.setEnterType(enterGameType.getValue());
+        playerGameData.setTargetValue(enterTargetValue);
         playerGameData.setOfflineTime(0);
         playerGameData.setOnline(true);
         playerGameData.setLastActiveTime(System.currentTimeMillis());

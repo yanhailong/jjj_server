@@ -578,16 +578,15 @@ public class SimGuestService implements SimPlayerTickListener, ItemListener, Sim
      * - 有奖励交互点结算奖励到 dest.rewards (是否添加到玩家身上由调用方决定)
      */
     private List<DestinationInfo> planDestinations(GuestData guest, VisitorQuestCfg cfg, SimCasinoData casino, int rewardedCount) {
-        int allCount = rewardedCount * 2;
-        if (allCount < 1) {
+        if(rewardedCount < 1){
             return Collections.emptyList();
         }
-        List<DestinationInfo> result = new ArrayList<>(allCount);
+        List<DestinationInfo> result = new ArrayList<>();
 
         int id = 0;
-        //有奖励: InteractionWeight (Map<buildingId, weight>)
+        //InteractionWeight (Map<buildingId, weight>)
         Map<Integer, Integer> interactionWeight = cfg.getInteractionWeight();
-        if (rewardedCount > 0 && interactionWeight != null && !interactionWeight.isEmpty()) {
+        if (interactionWeight != null && !interactionWeight.isEmpty()) {
             WeightRandom<Integer> random = WeightRandom.create();
             for (Map.Entry<Integer, Integer> en : interactionWeight.entrySet()) {
                 if (en.getValue() == null || en.getValue() <= 0) {
@@ -613,9 +612,9 @@ public class SimGuestService implements SimPlayerTickListener, ItemListener, Sim
             }
         }
 
-        //无奖励: TargetArea 顺序循环
+        //TargetArea 顺序循环
         List<Integer> targetArea = cfg.getTargetArea();
-        if (rewardedCount > 0 && targetArea != null && !targetArea.isEmpty()) {
+        if (targetArea != null && !targetArea.isEmpty()) {
             int cursor = 0;
             int safety = rewardedCount * targetArea.size();
             int added = 0;
@@ -624,6 +623,7 @@ public class SimGuestService implements SimPlayerTickListener, ItemListener, Sim
                 cursor++;
                 DestinationInfo dest = pickBuildingDevice(buildingId, casino);
                 if (dest != null) {
+                    rewardService.grantReward(guest, dest);
                     dest.index = id;
                     id++;
                     result.add(dest);

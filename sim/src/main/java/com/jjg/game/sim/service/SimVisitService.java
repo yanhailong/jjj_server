@@ -28,19 +28,7 @@ import com.jjg.game.sim.dao.SimPlayerGameDao;
 import com.jjg.game.sim.dao.SimSkillsDao;
 import com.jjg.game.sim.dao.SimTaskDao;
 import com.jjg.game.sim.dao.SimVisitDao;
-import com.jjg.game.sim.data.BuildingData;
-import com.jjg.game.sim.data.SimBaseData;
-import com.jjg.game.sim.data.SimCasinoData;
-import com.jjg.game.sim.data.SimCasinoUnlock;
-import com.jjg.game.sim.data.SimPlayerContext;
-import com.jjg.game.sim.data.SimSkillsData;
-import com.jjg.game.sim.data.SimVisitCommentData;
-import com.jjg.game.sim.data.SimVisitProfileData;
-import com.jjg.game.sim.data.SimVisitRecordData;
-import com.jjg.game.sim.data.SimVisitTrialSession;
-import com.jjg.game.sim.data.SlotsSpinResult;
-import com.jjg.game.sim.data.SpinStatInfo;
-import com.jjg.game.sim.data.VisitTrialSpinPermit;
+import com.jjg.game.sim.data.*;
 import com.jjg.game.sim.pb.res.ResDeleteVisitComment;
 import com.jjg.game.sim.pb.res.ResVisitAction;
 import com.jjg.game.sim.pb.res.ResVisitCasino;
@@ -447,7 +435,7 @@ public class SimVisitService {
         res.wareId = roomCfgId;
         //先回包再切节点, 客户端切到 slots 节点后按 roomCfgId 进房; enterType=2 让 slots 侧按客座入口加载房主技能
         ctx.send(res);
-        playerSessionService.changeGameType(ctx.playerId(), gameType, roomCfgId, 2);
+        playerSessionService.changeGameType(ctx.playerId(), gameType, roomCfgId, EnterGameType.VISIT.getValue(), ownerId + "");
         clusterSystem.switchNode(ctx.getPlayerController().getSession(), node);
         return null;
     }
@@ -593,8 +581,8 @@ public class SimVisitService {
         data.setRemainingTrials(permit.getRemainingCount());
 
         ItemCfg itemCfg = configCacheService.getResearchPointItemCfg(0);
-        if(itemCfg != null){
-            data.setResearchPoints((int)playerPackService.getItemCount(ctx.playerId(), itemCfg.getId()));
+        if (itemCfg != null) {
+            data.setResearchPoints((int) playerPackService.getItemCount(ctx.playerId(), itemCfg.getId()));
         }
         return new CommonResult<>(Code.SUCCESS, data);
     }

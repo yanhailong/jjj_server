@@ -76,13 +76,14 @@ public class HallRoomService implements IConsoleReceiver {
             return Code.NOT_FOUND;
         }
 
-        playerSessionService.changeGameType(playerController.playerId(), gameType, roomCfgId, enterType);
+        playerSessionService.changeGameType(playerController.playerId(), gameType, roomCfgId, enterType, null);
         clusterSystem.switchNode(playerController.getSession(), marsNode);
         return Code.SUCCESS;
     }
 
     /**
      * 切换到sim节点
+     *
      * @param playerController
      * @return
      */

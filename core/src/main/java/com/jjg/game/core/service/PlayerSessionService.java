@@ -303,10 +303,10 @@ public class PlayerSessionService implements TimerListener<String> {
     }
 
     public void changeGameType(long playerId, int gameType, int roomCfgId) {
-        changeGameType(playerId, gameType, roomCfgId, 0);
+        changeGameType(playerId, gameType, roomCfgId, 0, null);
     }
 
-    public void changeGameType(long playerId, int gameType, int roomCfgId, int enterType) {
+    public void changeGameType(long playerId, int gameType, int roomCfgId, int enterType, String enterTargetValue) {
         PlayerSessionInfo info = getInfo(playerId);
         if (info == null) {
             log.error("changeGameType时info为null playerId:{} gameType:{} roomCfgId:{}", playerId, gameType, roomCfgId);
@@ -315,6 +315,7 @@ public class PlayerSessionService implements TimerListener<String> {
         info.setGameType(gameType);
         info.setRoomCfgId(roomCfgId);
         info.setEnterType(enterType);
+        info.setTargetValue(enterTargetValue);
         save(info);
         onlinePlayerDao.changeGameType(playerId, gameType, roomCfgId);
     }
