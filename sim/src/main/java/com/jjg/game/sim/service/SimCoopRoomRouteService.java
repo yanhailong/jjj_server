@@ -14,13 +14,16 @@ import com.jjg.game.sim.constant.CoopTaskConst;
 import com.jjg.game.sim.dao.CoopRoomRecordDao;
 import com.jjg.game.sim.data.*;
 import com.jjg.game.sim.pb.res.ResCreateCoopRoom;
+import com.jjg.game.sim.pb.res.ResCoopTaskMembers;
 import com.jjg.game.sim.pb.res.ResJoinCoopRoom;
+import com.jjg.game.sim.pb.struct.CoopMemberInfo;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 
 import java.util.ArrayList;
+import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Map;
 
@@ -196,6 +199,42 @@ public class SimCoopRoomRouteService {
         log.info("加入协作房间路由 playerId={},roomId={},gameType={},node={}",
                 playerId, roomId, record.getGameType(), record.getNodePath());
         return null;
+    }
+
+    /**
+     * 批量获取玩家对应多人任务的当前房间人数。
+     */
+    public ResCoopTaskMembers memberCounts(List<CoopMemberInfo> members) {
+        ResCoopTaskMembers res = new ResCoopTaskMembers(Code.SUCCESS);
+        res.members = new ArrayList<>(members == null ? 0 : members.size());
+        if (members == null || members.isEmpty()) {
+            return res;
+        }
+
+        LinkedHashSet<Long> playerIds = new LinkedHashSet<>();
+        for (CoopMemberInfo member : members) {
+            if (member != null && member.playerId > 0 && member.taskId > 0) {
+                playerIds.add(member.playerId);
+            }
+        }
+        Map<Long, CoopRoomRecord> records = roomRecordDao.getPlayerRoomRecords(playerIds);
+        for (CoopMemberInfo member : members) {
+            if (member == null) {
+                continue;
+            }
+            CoopMemberInfo info = new CoopMemberInfo();
+            info.playerId = member.playerId;
+            info.taskId = member.taskId;
+            CoopRoomRecord record = records.get(member.playerId);
+            if (record != null
+                    && record.getStatus() != CoopTaskConst.RoomStatus.FINISHED
+                    && record.getTaskId() == member.taskId
+                    && record.getMemberIds().contains(member.playerId)) {
+                info.memberCount = record.getMemberIds().size();
+            }
+            res.members.add(info);
+        }
+        return res;
     }
 
     /**

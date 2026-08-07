@@ -23,6 +23,8 @@ public class CoopMember {
     private int spinQuota;
     //已消耗 Spin (已扣血量)
     private int spinUsed;
+    //是否仍处于免费旋转，用于全员血量耗尽时延后失败结算
+    private volatile boolean freeMode;
     //战力 (进房时从 sim 拉取并缓存, 技能累加战力值)
     private int combatPower;
     //会话引用 (广播用; 断线置空)
@@ -99,6 +101,14 @@ public class CoopMember {
 
     public int hpLeft() {
         return Math.max(0, spinQuota - spinUsed);
+    }
+
+    public boolean isFreeMode() {
+        return freeMode;
+    }
+
+    public void setFreeMode(boolean freeMode) {
+        this.freeMode = freeMode;
     }
 
     public int getCombatPower() {

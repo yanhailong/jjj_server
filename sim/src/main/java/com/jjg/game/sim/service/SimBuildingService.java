@@ -177,6 +177,29 @@ public class SimBuildingService implements SimPlayerTickListener, SimTaskStateRe
     }
 
     /**
+     * 获取当前场景的所有建筑信息
+     *
+     * @param ctx 玩家上下文
+     */
+    public void onAllBuildingInfo(SimPlayerContext ctx) {
+        ResAllBuildingInfo res = new ResAllBuildingInfo(Code.SUCCESS);
+        try {
+            SimCasinoData casino = ctx.getCurrentCasino();
+            if (casino == null) {
+                log.warn("获取所有建筑信息失败, 当前场景为空 playerId={}", ctx.playerId());
+                res.code = Code.NOT_FOUND;
+            } else {
+                applyPendingSpeedup(ctx, casino, System.currentTimeMillis());
+                res.buildings = SimPbConverter.toBuildingInfos(casino);
+            }
+        } catch (Exception e) {
+            log.error("获取所有建筑信息异常 playerId={}", ctx.playerId(), e);
+            res.code = Code.EXCEPTION;
+        }
+        ctx.send(res);
+    }
+
+    /**
      * 获取主管id
      *
      * @param ctx

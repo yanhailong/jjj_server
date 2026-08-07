@@ -424,14 +424,14 @@ public abstract class AbstractSlotsGameManager<T extends SlotsPlayerGameData, L 
                 return createGameRunInfo(playerController.playerId(), code);
             }
         }
-        //协作任务房间校验: 未开始禁转/血条耗尽禁转 (非协作玩家零成本放行)
-        int coopCode = coopRoomManager.beforeSpin(playerController.playerId(), getGameType());
-        if (coopCode != Code.SUCCESS) {
-            return createGameRunInfo(playerController.playerId(), coopCode);
-        }
         //免费模式和协作任务特殊模式触发检测都需要旋转前的状态
         int statusBefore = playerGameData.getStatus();
         boolean freeMode = isFreeMode(playerGameData);
+        //协作任务房间校验: 未开始禁转/血条耗尽禁转，免费旋转不受血量限制 (非协作玩家零成本放行)
+        int coopCode = coopRoomManager.beforeSpin(playerController.playerId(), getGameType(), freeMode);
+        if (coopCode != Code.SUCCESS) {
+            return createGameRunInfo(playerController.playerId(), coopCode);
+        }
         CommonResult<VisitTrialSpinPermit> permitResult = slotsRPCLinkManager.prepareVisitTrialSpin(
                 playerGameData, getGameType(), freeMode);
         if (permitResult == null || !permitResult.success()) {
@@ -448,8 +448,9 @@ public abstract class AbstractSlotsGameManager<T extends SlotsPlayerGameData, L 
         }
         //公共: 旋转成功后通知 sim 联动 (扣能量/加经验/赌场升级/道具掉落), winTimes 取各游戏写入的 allWinTimes
         if (gameRunInfo != null && gameRunInfo.success()) {
+            boolean freeModeAfter = isFreeMode(playerGameData);
             SpinStatInfo statInfo = buildSpinStatInfo(
-                    gameRunInfo, freeMode, !freeMode && isFreeMode(playerGameData));
+                    gameRunInfo, freeMode, !freeMode && freeModeAfter);
             long spinId = slotsRPCLinkManager.ensureSpinId(statInfo);
             //新触发的被动匹配从下一次旋转开始计数；已有对局仍正常记录本次旋转
             boolean passiveMatchStarted = tryPassiveSeasonMatch(
@@ -459,8 +460,9 @@ public abstract class AbstractSlotsGameManager<T extends SlotsPlayerGameData, L 
             }
             slotsRPCLinkManager.notifySpin(playerGameData, getGameType(), gameRunInfo.getAllWinTimes(),
                     statInfo, trialPermit);
-            //协作任务联动: 扣血/共享事件累计/成败判定 (内部吞异常, 不影响旋转主流程)
-            coopRoomManager.onSpin(playerController.playerId(), getGameType(), statusBefore, gameRunInfo);
+            //协作任务联动: 非免费旋转扣血/共享事件累计/成败判定 (内部吞异常, 不影响旋转主流程)
+            coopRoomManager.onSpin(playerController.playerId(), getGameType(), statusBefore,
+                    freeMode, freeModeAfter, gameRunInfo);
         } else {
             slotsRPCLinkManager.cancelVisitTrialSpin(playerGameData, trialPermit);
         }

@@ -497,11 +497,11 @@ public class CoopRoomManager implements RoomChatProvider {
     // =====================================================================
 
     /**
-     * 旋转前校验: 非协作玩家零成本放行; 房间未开始禁转; 血条耗尽禁转。
+     * 旋转前校验: 非协作玩家零成本放行; 房间未开始禁转; 非免费旋转血条耗尽禁转。
      *
      * @return Code.SUCCESS 放行
      */
-    public int beforeSpin(long playerId, int gameType) {
+    public int beforeSpin(long playerId, int gameType, boolean freeMode) {
         Long roomId = memberRoomIndex.get(playerId);
         if (roomId == null) {
             return Code.SUCCESS;
@@ -520,20 +520,22 @@ public class CoopRoomManager implements RoomChatProvider {
         if (member == null) {
             return Code.SUCCESS;
         }
-        //检查血量
-        if (member.hpLeft() < 1) {
+        member.setFreeMode(freeMode);
+        //免费旋转不消耗血量，血量耗尽后仍需允许玩家完成剩余免费旋转
+        if (!freeMode && member.hpLeft() < 1) {
             return Code.HP_NOT_ENOUGH;
         }
         return Code.SUCCESS;
     }
 
     /**
-     * 旋转成功联动: 扣血 + 特殊模式触发累计共享池 + 成败判定。
+     * 旋转成功联动: 非免费旋转扣血 + 特殊模式触发累计共享池 + 成败判定。
      * <p>
      * 特殊事件判定: 普通状态下抽中的结果库类型集含任务的模式id, 即视为触发一次该特殊模式
      * (结果库按 SpecialMode.type 分类生成, 见 AbstractSlotsGenerateManager)。
      */
-    public void onSpin(long playerId, int gameType, int statusBefore, GameRunInfo<?> gameRunInfo) {
+    public void onSpin(long playerId, int gameType, int statusBefore,
+                       boolean freeMode, boolean freeModeAfter, GameRunInfo<?> gameRunInfo) {
         Long roomId = memberRoomIndex.get(playerId);
         if (roomId == null) {
             return;
@@ -551,10 +553,13 @@ public class CoopRoomManager implements RoomChatProvider {
                     return;
                 }
                 CoopMember member = room.getMembers().get(playerId);
-                if (member == null || member.hpLeft() <= 0) {
+                if (member == null || (!freeMode && member.hpLeft() <= 0)) {
                     return;
                 }
-                member.setSpinUsed(member.getSpinUsed() + 1);
+                member.setFreeMode(freeModeAfter);
+                if (!freeMode) {
+                    member.setSpinUsed(member.getSpinUsed() + 1);
+                }
 
                 CoopTaskRule rule = room.getRule();
                 GameConditionEvent conditionEvent = new GameConditionEvent(
@@ -570,7 +575,7 @@ public class CoopRoomManager implements RoomChatProvider {
                 if (room.getSharedProgress() >= rule.modeCount()) {
                     //触发结算: 结果广播(低频)在 settle 内锁内完成, 不再单独发本次 spin (结果已含最终进度)
                     settle(room, true);
-                } else if (allQuotaExhausted(room)) {
+                } else if (allPlayChancesExhausted(room)) {
                     settle(room, false);
                 } else {
                     //未结算: 高频 spin 增量广播移出锁, 锁内仅快照接收方 (保证接收集与本次进度原子一致)
@@ -640,9 +645,9 @@ public class CoopRoomManager implements RoomChatProvider {
         return Code.SUCCESS;
     }
 
-    private boolean allQuotaExhausted(CoopRoom room) {
+    private boolean allPlayChancesExhausted(CoopRoom room) {
         for (CoopMember member : room.getMembers().values()) {
-            if (member.hpLeft() > 0) {
+            if (member.hpLeft() > 0 || member.isFreeMode()) {
                 return false;
             }
         }

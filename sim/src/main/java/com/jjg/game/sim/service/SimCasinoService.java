@@ -15,6 +15,7 @@ import com.jjg.game.sim.dao.SimCasinoDao;
 import com.jjg.game.sim.data.*;
 import com.jjg.game.sim.listener.SimTaskStateReporter;
 import com.jjg.game.sim.pb.SimPbConverter;
+import com.jjg.game.sim.pb.res.NotifyCasinoUpgrade;
 import com.jjg.game.sim.pb.res.ResSimCasinoInfo;
 import com.jjg.game.sim.pb.res.ResSwitchCasino;
 import com.jjg.game.sim.pb.res.ResUnlockCasino;
@@ -180,7 +181,7 @@ public class SimCasinoService implements SimTaskStateReporter {
             res.exp = casinoData.getExp();
 
             CasinoStatsSheetCfg cfg = configCacheService.getCasinoStatsSheetCfg(casinoData.getCasinoId(), casinoData.getCasinoLevel());
-            res.upgradeCost = cfg.getUpgradeCost();
+            res.upgradeCost = cfg == null ? 0 : cfg.getUpgradeCost();
             res.allianceId = allianceCacheService.getAllianceId(ctx.playerId());
             res.casinoId = casinoData.getCasinoId();
             AllianceHelpService.SpeedupQuota quota = allianceHelpService.speedupQuota(ctx.playerId());
@@ -192,12 +193,7 @@ public class SimCasinoService implements SimTaskStateReporter {
 
             //获取下一等级的配置
             CasinoStatsSheetCfg nextLevelCfg = configCacheService.getCasinoStatsSheetCfg(casinoData.getCasinoId(), casinoData.getCasinoLevel() + 1);
-            if (nextLevelCfg != null && nextLevelCfg.getLevelUpCondition() != null && !nextLevelCfg.getLevelUpCondition().isEmpty()) {
-                res.upgradeLevelConditions = new ArrayList<>();
-                for (Map.Entry<Integer, Integer> en : nextLevelCfg.getLevelUpCondition().entrySet()) {
-                    res.upgradeLevelConditions.add(new KVInfo(en.getKey(), en.getValue()));
-                }
-            }
+            res.upgradeLevelConditions = toUpgradeLevelConditions(nextLevelCfg);
         } catch (Exception e) {
             log.error("", e);
             res.code = Code.EXCEPTION;
@@ -301,10 +297,12 @@ public class SimCasinoService implements SimTaskStateReporter {
 
         long exp = casino.getExp() + amount;
         int oldLevel = casino.getCasinoLevel();
+        CasinoStatsSheetCfg currentCfg;
+        CasinoStatsSheetCfg nextCfg;
         while (true) {
-            CasinoStatsSheetCfg currentCfg = configCacheService.getCasinoStatsSheetCfg(
+            currentCfg = configCacheService.getCasinoStatsSheetCfg(
                     casino.getCasinoId(), casino.getCasinoLevel());
-            CasinoStatsSheetCfg nextCfg = configCacheService.getCasinoStatsSheetCfg(
+            nextCfg = configCacheService.getCasinoStatsSheetCfg(
                     casino.getCasinoId(), casino.getCasinoLevel() + 1);
             if (currentCfg == null || nextCfg == null || currentCfg.getUpgradeCost() <= 0
                     || exp < currentCfg.getUpgradeCost()) {
@@ -334,11 +332,34 @@ public class SimCasinoService implements SimTaskStateReporter {
             return;
         }
         ctx.getSimBaseData().addAllLevel(addedLevels);
+        notifyCasinoUpgrade(ctx, casino, currentCfg, nextCfg);
         simGuideService.triggerSceneTotalLevelReached(ctx, ctx.getSimBaseData().getAllLevel(), true);
         simTaskService.onConditionEvent(ctx,
                 SimConditionEventFactory.sceneLevel(casino.getCasinoId(), casino.getCasinoLevel()));
         log.info("场景升级 playerId={},casinoId={},oldLevel={},newLevel={}",
                 casino.getPlayerId(), casino.getCasinoId(), oldLevel, casino.getCasinoLevel());
+    }
+
+    private void notifyCasinoUpgrade(SimPlayerContext ctx, SimCasinoData casino,
+                                     CasinoStatsSheetCfg currentCfg, CasinoStatsSheetCfg nextCfg) {
+        NotifyCasinoUpgrade notify = new NotifyCasinoUpgrade();
+        notify.level = casino.getCasinoLevel();
+        notify.exp = casino.getExp();
+        notify.upgradeCost = currentCfg == null ? 0 : currentCfg.getUpgradeCost();
+        notify.upgradeLevelConditions = toUpgradeLevelConditions(nextCfg);
+        ctx.send(notify);
+    }
+
+    private List<KVInfo> toUpgradeLevelConditions(CasinoStatsSheetCfg nextLevelCfg) {
+        if (nextLevelCfg == null || nextLevelCfg.getLevelUpCondition() == null
+                || nextLevelCfg.getLevelUpCondition().isEmpty()) {
+            return null;
+        }
+        List<KVInfo> conditions = new ArrayList<>(nextLevelCfg.getLevelUpCondition().size());
+        for (Map.Entry<Integer, Integer> condition : nextLevelCfg.getLevelUpCondition().entrySet()) {
+            conditions.add(new KVInfo(condition.getKey(), condition.getValue()));
+        }
+        return conditions;
     }
 
     /**

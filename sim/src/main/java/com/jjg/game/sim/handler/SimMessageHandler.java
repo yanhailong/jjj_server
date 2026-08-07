@@ -168,6 +168,16 @@ public class SimMessageHandler implements GmListener {
     }
 
     /**
+     * 获取所有建筑信息
+     */
+    @Command(SimConstant.MsgBean.REQ_ALL_BUILDING_INFO)
+    public void reqAllBuildingInfo(PlayerController playerController, ReqAllBuildingInfo req) {
+        execute(playerController, ctx -> {
+            buildingService.onAllBuildingInfo(ctx);
+        });
+    }
+
+    /**
      * 升级建筑 (启动 CD)
      */
     @Command(SimConstant.MsgBean.REQ_UPGRADE_BUILDING)
@@ -504,6 +514,14 @@ public class SimMessageHandler implements GmListener {
     @Command(SimConstant.MsgBean.REQ_COMBAT_POWER)
     public void reqCombatPower(PlayerController playerController, ReqCombatPower req) {
         execute(playerController, ctx -> ctx.send(coopTaskService.combatPowers(ctx, req.playerId)));
+    }
+
+    /**
+     * 批量获取多人任务当前人数
+     */
+    @Command(SimConstant.MsgBean.REQ_COOP_TASK_MEMBERS)
+    public void reqCoopTaskMembers(PlayerController playerController, ReqCoopTaskMembers req) {
+        execute(playerController, ctx -> ctx.send(coopRoomRouteService.memberCounts(req.members)));
     }
 
     //--------------------------多人协作任务 end--------------------------

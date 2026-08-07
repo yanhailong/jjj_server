@@ -16,8 +16,12 @@ import org.springframework.stereotype.Repository;
 import java.time.Duration;
 import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
+import java.util.Collection;
 import java.util.Collections;
+import java.util.LinkedHashMap;
+import java.util.LinkedHashSet;
 import java.util.List;
+import java.util.Map;
 
 /**
  * 协作房间路由记录 DAO (Redis String, JSON)。
@@ -99,6 +103,71 @@ public class CoopRoomRecordDao {
             log.error("解析协作玩家房间租约失败 playerId={},value={}", playerId, value, e);
             return 0L;
         }
+    }
+
+    /**
+     * 批量读取玩家当前所在的协作房间快照。
+     * 先批量读取玩家-房间租约，再批量读取去重后的房间记录，固定两次 Redis 读取。
+     */
+    public Map<Long, CoopRoomRecord> getPlayerRoomRecords(Collection<Long> playerIds) {
+        if (playerIds == null || playerIds.isEmpty()) {
+            return Collections.emptyMap();
+        }
+        List<Long> distinctPlayerIds = new ArrayList<>(new LinkedHashSet<>(playerIds));
+        List<String> playerRoomKeys = distinctPlayerIds.stream().map(this::playerRoomKey).toList();
+        List<String> roomIdValues = stringRedisTemplate.opsForValue().multiGet(playerRoomKeys);
+        if (roomIdValues == null || roomIdValues.isEmpty()) {
+            return Collections.emptyMap();
+        }
+
+        Map<Long, Long> playerRooms = new LinkedHashMap<>();
+        LinkedHashSet<Long> roomIds = new LinkedHashSet<>();
+        for (int i = 0; i < distinctPlayerIds.size() && i < roomIdValues.size(); i++) {
+            String value = roomIdValues.get(i);
+            if (value == null || value.isEmpty()) {
+                continue;
+            }
+            try {
+                long roomId = Long.parseLong(value);
+                if (roomId > 0) {
+                    playerRooms.put(distinctPlayerIds.get(i), roomId);
+                    roomIds.add(roomId);
+                }
+            } catch (NumberFormatException e) {
+                log.error("解析协作玩家房间租约失败 playerId={},value={}", distinctPlayerIds.get(i), value, e);
+            }
+        }
+        if (roomIds.isEmpty()) {
+            return Collections.emptyMap();
+        }
+
+        List<Long> distinctRoomIds = new ArrayList<>(roomIds);
+        List<String> roomKeys = distinctRoomIds.stream().map(this::key).toList();
+        List<String> roomValues = stringRedisTemplate.opsForValue().multiGet(roomKeys);
+        if (roomValues == null || roomValues.isEmpty()) {
+            return Collections.emptyMap();
+        }
+        Map<Long, CoopRoomRecord> rooms = new LinkedHashMap<>();
+        for (int i = 0; i < distinctRoomIds.size() && i < roomValues.size(); i++) {
+            String value = roomValues.get(i);
+            if (value == null || value.isEmpty()) {
+                continue;
+            }
+            try {
+                rooms.put(distinctRoomIds.get(i), JSON.parseObject(value, CoopRoomRecord.class));
+            } catch (Exception e) {
+                log.error("解析协作房间记录失败 roomId={},value={}", distinctRoomIds.get(i), value, e);
+            }
+        }
+
+        Map<Long, CoopRoomRecord> result = new LinkedHashMap<>();
+        playerRooms.forEach((playerId, roomId) -> {
+            CoopRoomRecord record = rooms.get(roomId);
+            if (record != null) {
+                result.put(playerId, record);
+            }
+        });
+        return result;
     }
 
     /**

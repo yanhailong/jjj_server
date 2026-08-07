@@ -218,6 +218,17 @@ public interface SimConstant {
 
         //通知建筑产出
         int NOTIFY_BUILDING_OUTPUT = BASE_MSG_PREFIX | 0x6F;
+
+        //获取所有建筑信息
+        int REQ_ALL_BUILDING_INFO = BASE_MSG_PREFIX | 0x70;
+        int RES_ALL_BUILDING_INFO = BASE_MSG_PREFIX | 0x71;
+
+        //多人任务-获取任务的人员数量信息
+        int REQ_COOP_TASK_MEMBERS = BASE_MSG_PREFIX | 0x72;
+        int RES_COOP_TASK_MEMBERS = BASE_MSG_PREFIX | 0x73;
+
+        //通知场景升级
+        int NOTIFY_CASINO_UPGRADE = BASE_MSG_PREFIX | 0x74;
     }
 
     interface GuideCondition {
