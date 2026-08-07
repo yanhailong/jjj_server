@@ -348,7 +348,7 @@ public class SimManager {
             //已解锁场景id
             SimCasinoUnlock casinoUnlock = simCasinoService.getCasinoUnlock(targetPlayerId);
             Set<Integer> unlockedCasinoIds = casinoUnlock == null
-                    ? Collections.emptySet() : casinoUnlock.getUnlockedCasinoIds();
+                    ? Collections.emptySet() : casinoUnlock.findUnlockedCasinoIds();
             if (!unlockedCasinoIds.isEmpty()) {
                 res.unlockCasinoIds = unlockedCasinoIds.stream().toList();
             }

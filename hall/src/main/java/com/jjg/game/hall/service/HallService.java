@@ -1128,7 +1128,7 @@ public class HallService implements ConfigExcelChangeListener, TimerListener {
 
         SimCasinoUnlock casinoUnlock = simCasinoService.getCasinoUnlock(playerId);
         Set<Integer> openGameTypeSet = casinoUnlock == null
-                ? Collections.emptySet() : casinoUnlock.getUnlockedGameIds();
+                ? Collections.emptySet() : casinoUnlock.findUnlockedGameIds();
         if (openGameTypeSet.isEmpty()) {
             return Collections.emptyList();
         }

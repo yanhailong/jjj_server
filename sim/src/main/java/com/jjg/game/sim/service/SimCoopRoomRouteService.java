@@ -267,7 +267,7 @@ public class SimCoopRoomRouteService {
      */
     private boolean isGameUnlocked(SimPlayerContext ctx, int gameType) {
         SimCasinoUnlock casinoUnlock = ctx.getCasinoUnlock();
-        return casinoUnlock != null && casinoUnlock.isGameUnlocked(gameType);
+        return casinoUnlock != null && casinoUnlock.gameUnlocked(gameType);
     }
 
     /**

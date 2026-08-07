@@ -527,7 +527,7 @@ public class SimCasinoService implements SimTaskStateReporter {
             }
             ctx.setCasinoUnlock(casinoUnlock);
         }
-        Set<Integer> before = casinoUnlock.getUnlockedGameIds();
+        Set<Integer> before = casinoUnlock.findUnlockedGameIds();
         boolean changed = casinoUnlock.unlockCasino(casinoId);
         if (gameIds != null) {
             for (Integer gameId : gameIds) {
@@ -540,7 +540,7 @@ public class SimCasinoService implements SimTaskStateReporter {
             return;
         }
         redisTemplate.opsForHash().put(TABLE_NAME, ctx.playerId(), casinoUnlock);
-        int newGameCount = casinoUnlock.getUnlockedGameIds().size() - before.size();
+        int newGameCount = casinoUnlock.findUnlockedGameIds().size() - before.size();
         if (newGameCount > 0) {
             playerStatService.recordGameUnlock(ctx.playerId(), newGameCount);
             reportUnlockedGames(ctx);
@@ -568,7 +568,7 @@ public class SimCasinoService implements SimTaskStateReporter {
         if (casinoUnlock == null) {
             return;
         }
-        int unlocked = casinoUnlock.getUnlockedGameIds().size();
+        int unlocked = casinoUnlock.findUnlockedGameIds().size();
         if (unlocked > 0) {
             sink.accept(SimConditionEventFactory.gameUnlocked(unlocked));
         }

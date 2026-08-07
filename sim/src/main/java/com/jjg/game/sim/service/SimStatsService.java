@@ -245,7 +245,7 @@ public class SimStatsService {
      */
     private Set<Integer> findAllUnlockedGames(SimPlayerContext ctx) {
         SimCasinoUnlock unlock = ctx.getCasinoUnlock();
-        return unlock == null ? Collections.emptySet() : unlock.getUnlockedGameIds();
+        return unlock == null ? Collections.emptySet() : unlock.findUnlockedGameIds();
     }
 
     /**
@@ -257,7 +257,7 @@ public class SimStatsService {
             return 0;
         }
         Set<Integer> result = new HashSet<>();
-        for (Integer casinoId : unlock.getUnlockedCasinoIds()) {
+        for (Integer casinoId : unlock.findUnlockedCasinoIds()) {
             Set<Integer> games = configCache.getResearchGamesByRegionId(casinoId);
             if (games != null) {
                 result.addAll(games);

@@ -449,7 +449,7 @@ public class SimVisitService {
      */
     private boolean isGameUnlocked(long playerId, int casinoId, int gameType) {
         SimCasinoUnlock casinoUnlock = simCasinoService.getCasinoUnlock(playerId);
-        return casinoUnlock != null && casinoUnlock.isGameUnlocked(casinoId, gameType);
+        return casinoUnlock != null && casinoUnlock.gameUnlocked(casinoId, gameType);
     }
 
     /**

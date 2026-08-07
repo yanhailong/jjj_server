@@ -39,14 +39,14 @@ public class SimCasinoUnlock {
         return this.unlockedGameMap.get(casinoId).add(gameId);
     }
 
-    public Set<Integer> getUnlockedCasinoIds() {
+    public Set<Integer> findUnlockedCasinoIds() {
         if (this.unlockedGameMap == null || this.unlockedGameMap.isEmpty()) {
             return Collections.emptySet();
         }
         return this.unlockedGameMap.keySet();
     }
 
-    public Set<Integer> getUnlockedGameIds() {
+    public Set<Integer> findUnlockedGameIds() {
         if (this.unlockedGameMap == null || this.unlockedGameMap.isEmpty()) {
             return Collections.emptySet();
         }
@@ -55,7 +55,7 @@ public class SimCasinoUnlock {
         return result;
     }
 
-    public boolean isGameUnlocked(int gameId) {
+    public boolean gameUnlocked(int gameId) {
         if (this.unlockedGameMap == null) {
             return false;
         }
@@ -67,7 +67,7 @@ public class SimCasinoUnlock {
         return false;
     }
 
-    public boolean isGameUnlocked(int casinoId, int gameId) {
+    public boolean gameUnlocked(int casinoId, int gameId) {
         if (this.unlockedGameMap == null) {
             return false;
         }
