@@ -1,39 +1,77 @@
 package com.jjg.game.sim.data;
 
-import java.util.HashMap;
-import java.util.Map;
+import java.util.*;
 
 /**
- * 每个场景解锁的等级
+ * 玩家各场景通过建筑解锁的游戏
  *
  * @author 11
  * @date 2026/6/4
  */
 public class SimCasinoUnlock {
-    private long playerId;
-    //研究院等级 场景id->研究院等级
-    private Map<Integer, Integer> researchLevelMap;
+    //场景id -> 已解锁游戏id集合
+    private Map<Integer, Set<Integer>> unlockedGameMap;
 
-    public long getPlayerId() {
-        return playerId;
+    public Map<Integer, Set<Integer>> getUnlockedGameMap() {
+        return unlockedGameMap;
     }
 
-    public void setPlayerId(long playerId) {
-        this.playerId = playerId;
+    public void setUnlockedGameMap(Map<Integer, Set<Integer>> unlockedGameMap) {
+        this.unlockedGameMap = unlockedGameMap;
     }
 
-    public Map<Integer, Integer> getResearchLevelMap() {
-        return researchLevelMap;
-    }
-
-    public void setResearchLevelMap(Map<Integer, Integer> researchLevelMap) {
-        this.researchLevelMap = researchLevelMap;
-    }
-
-    public void changeUnlockLevel(int id, int level) {
-        if (this.researchLevelMap == null) {
-            this.researchLevelMap = new HashMap<>();
+    public boolean unlockCasino(int casinoId) {
+        if (this.unlockedGameMap == null) {
+            this.unlockedGameMap = new HashMap<>();
         }
-        this.researchLevelMap.put(id, level);
+        if (this.unlockedGameMap.containsKey(casinoId)) {
+            return false;
+        }
+        this.unlockedGameMap.put(casinoId, new HashSet<>());
+        return true;
+    }
+
+    public boolean unlockGame(int casinoId, int gameId) {
+        if (gameId <= 0) {
+            return false;
+        }
+        unlockCasino(casinoId);
+        return this.unlockedGameMap.get(casinoId).add(gameId);
+    }
+
+    public Set<Integer> getUnlockedCasinoIds() {
+        if (this.unlockedGameMap == null || this.unlockedGameMap.isEmpty()) {
+            return Collections.emptySet();
+        }
+        return this.unlockedGameMap.keySet();
+    }
+
+    public Set<Integer> getUnlockedGameIds() {
+        if (this.unlockedGameMap == null || this.unlockedGameMap.isEmpty()) {
+            return Collections.emptySet();
+        }
+        Set<Integer> result = new HashSet<>();
+        this.unlockedGameMap.values().forEach(result::addAll);
+        return result;
+    }
+
+    public boolean isGameUnlocked(int gameId) {
+        if (this.unlockedGameMap == null) {
+            return false;
+        }
+        for (Set<Integer> gameIds : this.unlockedGameMap.values()) {
+            if (gameIds.contains(gameId)) {
+                return true;
+            }
+        }
+        return false;
+    }
+
+    public boolean isGameUnlocked(int casinoId, int gameId) {
+        if (this.unlockedGameMap == null) {
+            return false;
+        }
+        Set<Integer> gameIds = this.unlockedGameMap.get(casinoId);
+        return gameIds != null && gameIds.contains(gameId);
     }
 }

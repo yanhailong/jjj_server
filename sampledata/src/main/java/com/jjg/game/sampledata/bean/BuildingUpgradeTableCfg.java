@@ -36,6 +36,8 @@ public class BuildingUpgradeTableCfg extends BaseCfgBean {
   /** 升级消耗道具 */
   protected Map<Integer,Long> UpgradeCost;
   /** 建筑基础属性 */
+  protected long UpgradeExp;
+  /** 建筑基础属性 */
   protected long UpgradeOutput;
   /** 等级 */
   protected int level;
@@ -80,6 +82,11 @@ public class BuildingUpgradeTableCfg extends BaseCfgBean {
   /** 返回升级消耗道具 */
   public Map<Integer,Long> getUpgradeCost() {
     return UpgradeCost;
+  }
+
+  /** 返回建筑基础属性 */
+  public long getUpgradeExp() {
+    return UpgradeExp;
   }
 
   /** 返回建筑基础属性 */

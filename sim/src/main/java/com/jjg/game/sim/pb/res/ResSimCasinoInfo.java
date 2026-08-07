@@ -4,8 +4,11 @@ import com.jjg.game.common.constant.MessageConst;
 import com.jjg.game.common.pb.AbstractResponse;
 import com.jjg.game.common.proto.ProtoDesc;
 import com.jjg.game.common.proto.ProtobufMessage;
+import com.jjg.game.core.pb.KVInfo;
 import com.jjg.game.sim.constant.SimConstant;
 import com.jjg.game.sim.pb.struct.CoopTaskInfo;
+
+import java.util.List;
 
 /**
  * @author 11
@@ -34,6 +37,8 @@ public class ResSimCasinoInfo extends AbstractResponse {
     public int dailyShareLimit;
     @ProtoDesc("已绑定的多人任务房间")
     public CoopTaskInfo coopTaskInfo;
+    @ProtoDesc("升级需要的条件")
+    public List<KVInfo> upgradeLevelConditions;
 
     public ResSimCasinoInfo(int code) {
         super(code);

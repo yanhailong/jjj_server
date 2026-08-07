@@ -58,9 +58,9 @@ public class SimSkillService extends AbstractSkillService implements ConfigExcel
      * @param casinoId
      */
     public void initUnlock(SimPlayerContext ctx, int casinoId) {
-        //获取casinoId解锁的游戏
-        Set<Integer> unlockGameSet = simConfigCacheService.getUnlockGameByRegionId(casinoId);
-        if (unlockGameSet.isEmpty()) {
+        //获取casinoId配置的可研发游戏
+        Set<Integer> researchGames = simConfigCacheService.getResearchGamesByRegionId(casinoId);
+        if (researchGames.isEmpty()) {
             return;
         }
 
@@ -69,7 +69,7 @@ public class SimSkillService extends AbstractSkillService implements ConfigExcel
             if (cfg.getSkillId() != null && !cfg.getSkillId().isEmpty()) {
                 continue;
             }
-            if (!unlockGameSet.contains(cfg.getGameType())) {
+            if (!researchGames.contains(cfg.getGameType())) {
                 continue;
             }
 

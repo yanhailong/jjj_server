@@ -39,7 +39,7 @@ public class SimDropService {
     @Autowired
     private SimGuideService guideService;
     @Autowired
-    private SimTaskService taskService;
+    private SimCasinoService simCasinoService;
 
     /**
      * 玩家每次 slots 旋转触发 (运行在 hall 的 RPC 线程, 直接操作 ctx 内存数据)
@@ -73,12 +73,10 @@ public class SimDropService {
                 return result;
             }
             int originalPower = base.getPower();
-            int originalExp = casino.getExp();
             int originalDropResetDay = base.getDropResetDay();
             Map<Integer, Integer> originalDropCount = base.getDailyDropCount() == null
                     ? null : new HashMap<>(base.getDailyDropCount());
             base.setPower(base.getPower() - SimConstant.Common.SPIN_COST_POWER);
-            casino.setExp(casino.getExp() + SimConstant.Common.SPIN_ADD_EXP);
 
             Map<Integer, Long> dropResult;
             try {
@@ -90,8 +88,7 @@ public class SimDropService {
                     CommonResult<ItemOperationResult> addResult = playerPackService.addItems(
                             ctx.playerId(), dropResult, AddType.SIM_SLOTS_DROP, null, false);
                     if (addResult == null || !addResult.success()) {
-                        restoreSpinState(base, casino, originalPower, originalExp,
-                                originalDropResetDay, originalDropCount);
+                        restoreSpinState(base, originalPower, originalDropResetDay, originalDropCount);
                         int code = addResult == null ? Code.FAIL : addResult.code;
                         log.info("slots 掉落失败 playerId={},gameType={},winTimes={},code={}",
                                 ctx.playerId(), gameType, winTimes, code);
@@ -100,19 +97,9 @@ public class SimDropService {
                     }
                 }
             } catch (RuntimeException e) {
-                restoreSpinState(base, casino, originalPower, originalExp,
-                        originalDropResetDay, originalDropCount);
+                restoreSpinState(base, originalPower, originalDropResetDay, originalDropCount);
                 throw e;
             }
-
-            //奖励入账后再提交升级及其外部联动，避免入账失败留下部分 sim 状态
-            if (checkLevelUp(casino)) {
-                base.addAllLevel(1);
-                guideService.triggerSceneTotalLevelReached(ctx, base.getAllLevel(), true);
-                taskService.onConditionEvent(ctx, SimConditionEventFactory.sceneLevel(
-                        casino.getCasinoId(), casino.getCasinoLevel()));
-            }
-
             slotsSpinResult.setItemsMap(dropResult);
         }
 
@@ -130,30 +117,10 @@ public class SimDropService {
         return result;
     }
 
-    private void restoreSpinState(SimBaseData base, SimCasinoData casino, int power, int exp,
-                                  int dropResetDay, Map<Integer, Integer> dropCount) {
+    private void restoreSpinState(SimBaseData base, int power, int dropResetDay, Map<Integer, Integer> dropCount) {
         base.setPower(power);
-        casino.setExp(exp);
         base.setDropResetDay(dropResetDay);
         base.setDailyDropCount(dropCount);
-    }
-
-    /**
-     * 按累计经验 (exp) 与 CasinoLevel(RegionID=casinoId) 重算场景等级。
-     * levelUpExp 视为"达到该等级所需的累计经验", 取满足 exp>=levelUpExp 的最大等级 id。
-     */
-    private boolean checkLevelUp(SimCasinoData casino) {
-        CasinoStatsSheetCfg cfg = configCacheService.getCasinoStatsSheetCfg(casino.getCasinoId(), casino.getCasinoLevel());
-        if (cfg == null) {
-            return false;
-        }
-        if (casino.getExp() < cfg.getUpgradeCost()) {
-            return false;
-        }
-        casino.setCasinoLevel(casino.getCasinoLevel() + 1);
-        casino.setExp(casino.getExp() - cfg.getUpgradeCost());
-        log.info("场景升级 playerId={},casinoId={},newLevel={}", casino.getPlayerId(), casino.getCasinoId(), casino.getCasinoLevel());
-        return true;
     }
 
     /**

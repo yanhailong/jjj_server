@@ -45,9 +45,11 @@ import org.springframework.stereotype.Component;
 
 import java.util.ArrayList;
 import java.util.Collection;
+import java.util.Collections;
 import java.util.Comparator;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.TimeUnit;
@@ -345,8 +347,10 @@ public class SimManager {
 
             //已解锁场景id
             SimCasinoUnlock casinoUnlock = simCasinoService.getCasinoUnlock(targetPlayerId);
-            if (casinoUnlock != null && casinoUnlock.getResearchLevelMap() != null && !casinoUnlock.getResearchLevelMap().isEmpty()) {
-                res.unlockCasinoIds = casinoUnlock.getResearchLevelMap().keySet().stream().toList();
+            Set<Integer> unlockedCasinoIds = casinoUnlock == null
+                    ? Collections.emptySet() : casinoUnlock.getUnlockedCasinoIds();
+            if (!unlockedCasinoIds.isEmpty()) {
+                res.unlockCasinoIds = unlockedCasinoIds.stream().toList();
             }
         } catch (Exception e) {
             log.error("获取玩家信息异常 playerId={},targetPlayerId={}", playerController.playerId(), targetPlayerId, e);

@@ -12,17 +12,13 @@ import com.jjg.game.core.data.CommonResult;
 import com.jjg.game.core.data.ItemOperationResult;
 import com.jjg.game.core.pb.KVInfo;
 import com.jjg.game.core.service.PlayerPackService;
-import com.jjg.game.core.service.PlayerStatService;
 import com.jjg.game.core.utils.ItemUtils;
 import com.jjg.game.sampledata.GameDataManager;
 import com.jjg.game.sampledata.bean.BuildingAreaTableCfg;
 import com.jjg.game.sampledata.bean.BuildingUpgradeTableCfg;
 import com.jjg.game.sampledata.bean.CasinoStatsSheetCfg;
 import com.jjg.game.sim.constant.*;
-import com.jjg.game.sim.data.BuildingData;
-import com.jjg.game.sim.data.SimCasinoData;
-import com.jjg.game.sim.data.SimOfflineReward;
-import com.jjg.game.sim.data.SimPlayerContext;
+import com.jjg.game.sim.data.*;
 import com.jjg.game.sim.listener.SimPlayerTickListener;
 import com.jjg.game.sim.listener.SimTaskStateReporter;
 import com.jjg.game.sim.pb.SimPbConverter;
@@ -59,8 +55,6 @@ public class SimBuildingService implements SimPlayerTickListener, SimTaskStateRe
     private SimEmployeeService employeeService;
     @Autowired
     private PlayerPackService playerPackService;
-    @Autowired
-    private PlayerStatService playerStatService;
     @Autowired
     private AllianceHelpService allianceHelpService;
     @Autowired
@@ -165,6 +159,13 @@ public class SimBuildingService implements SimPlayerTickListener, SimTaskStateRe
             res.watchAdLimit = GameDataManager.getGlobalConfigCfg(SimConstant.Global.ID_WATCH_AD_LIMIT).getIntValue();
             //主管id
             res.managerId = managerId(ctx, buildingData);
+            if (res.managerId > 0) {
+                SimEmployeeData employee = ctx.getEmployee(res.managerId);
+                if (employee != null) {
+                    res.managerLevel = employee.getLevel();
+                }
+            }
+
             log.info("返回建筑信息 playerId={},res={}", ctx.playerId(), JSON.toJSONString(res));
         } catch (Exception e) {
             log.error("", e);
@@ -242,6 +243,13 @@ public class SimBuildingService implements SimPlayerTickListener, SimTaskStateRe
                 res.code = Code.PARAM_ERROR;
                 return res;
             }
+
+            if (cfg.getCasinoLevel() > 0 && ctx.getSimBaseData().getAllLevel() < cfg.getCasinoLevel()) {
+                log.warn("解锁建筑失败, 场景等级不足 playerId={},buildingId={},casinoId={},cfgCasinoLevel={},ctxAllLevel={}", ctx.playerId(), buildingId, casino.getCasinoId(), cfg.getCasinoLevel(), ctx.getSimBaseData().getAllLevel());
+                res.code = Code.LEVEL_NOT_ENOUGH;
+                return res;
+            }
+
             if (casino.findBuilding(buildingId) != null) {
                 log.warn("解锁建筑失败, 已解锁 playerId={},buildingId={}", ctx.playerId(), buildingId);
                 res.code = Code.PARAM_ERROR;
@@ -275,6 +283,10 @@ public class SimBuildingService implements SimPlayerTickListener, SimTaskStateRe
             data.setId(buildingId);
             data.setLevel(INITIAL_LEVEL);
             casino.putBuilding(data);
+            if (cfg.getUnlockGameId() > 0) {
+                simCasinoService.updateCasinoUnlock(ctx, casino.getCasinoId(), Set.of(cfg.getUnlockGameId()));
+            }
+            simCasinoService.addCasinoExp(ctx, 0);
             allianceEventService.onBuildingLevel(ctx.playerId(), buildingId, data.getLevel());
             //主线任务: 新建筑改变各等级持有量 -> 上报 12208 "拥有 N 个 ≥X 级建筑"
             reportBuildingCounts(ctx);
@@ -540,25 +552,40 @@ public class SimBuildingService implements SimPlayerTickListener, SimTaskStateRe
             if (!perMinute.isEmpty()) {
                 Map<BuildingOutputType, Long> total = multiply(perMinute, fullMinutes);
                 Map<Integer, Long> items = toItemMap(total);
-                CommonResult<ItemOperationResult> addResult = playerPackService.addItems(
-                        ctx.playerId(), items, AddType.SIM_BUILD_MINUTE_REWARDS, null, false);
-                if (addResult == null || !addResult.success()) {
-                    log.warn("在线产出入账失败 playerId={},code={}", ctx.playerId(),
-                            addResult == null ? Code.FAIL : addResult.code);
-                    return;
+                if (!items.isEmpty()) {
+                    CommonResult<ItemOperationResult> addResult = playerPackService.addItems(
+                            ctx.playerId(), items, AddType.SIM_BUILD_MINUTE_REWARDS, null, false);
+                    if (addResult == null || !addResult.success()) {
+                        log.warn("在线产出入账失败 playerId={},code={}", ctx.playerId(),
+                                addResult == null ? Code.FAIL : addResult.code);
+                        return;
+                    }
                 }
                 //先提交结算时间，避免后续统计或通知异常导致同一时间段重复发奖
                 casino.setLastOutputTime(settledOutputTime);
+                simCasinoService.addCasinoExp(ctx, total.getOrDefault(BuildingOutputType.CASINO_LEVEL_EXP, 0L));
                 //经营信息: 累加每分钟自产金币收益
                 long minuteGold = total.getOrDefault(BuildingOutputType.GOLD, 0L);
-                if(minuteGold > 0){
+                if (minuteGold > 0) {
                     ctx.getSimBaseData().addBusinessIncome(minuteGold);
                 }
-                allianceEventService.onBusinessIncome(ctx.playerId(), items);
 
-                NotifyBuildingOutput notify = new NotifyBuildingOutput();
-                notify.rewards = ItemUtils.buildItemInfo(items);
-                ctx.send(notify);
+                if (!items.isEmpty()) {
+                    allianceEventService.onBusinessIncome(ctx.playerId(), items);
+                }
+
+                if (!total.isEmpty()) {
+                    NotifyBuildingOutput notify = new NotifyBuildingOutput();
+                    notify.rewards = new ArrayList<>();
+
+                    for (Map.Entry<BuildingOutputType, Long> en : total.entrySet()) {
+                        ItemInfo itemInfo = new ItemInfo();
+                        itemInfo.itemId = en.getKey().getCode();
+                        itemInfo.count = en.getValue();
+                        notify.rewards.add(itemInfo);
+                    }
+                    ctx.send(notify);
+                }
                 return;
             }
             //仅推进已结算的整分钟, 保留余量
@@ -773,7 +800,8 @@ public class SimBuildingService implements SimPlayerTickListener, SimTaskStateRe
             if (BuildingType.fromCode(areaCfg.getType()) != BuildingType.MANAGE) {
                 continue;
             }
-            if (BuildingOutputType.fromCode(areaCfg.getTypeValue()) == outputType) {
+            List<Integer> typeValues = areaCfg.getTypeValue();
+            if (typeValues != null && typeValues.contains(outputType.getCode())) {
                 return building;
             }
         }
@@ -902,17 +930,22 @@ public class SimBuildingService implements SimPlayerTickListener, SimTaskStateRe
 
         Map<BuildingOutputType, Long> finalReward = computeFinalReward(ctx, reward, watchAd);
         Map<Integer, Long> items = toItemMap(finalReward);
-        CommonResult<ItemOperationResult> addResult = playerPackService.addItems(
-                ctx.playerId(), items, AddType.SIM_BUILD_OFFLINE_REWARDS, null, false);
-        if (addResult == null || !addResult.success()) {
-            int code = addResult == null ? Code.FAIL : addResult.code;
-            log.warn("离线收益入账失败 playerId={},code={}", ctx.playerId(), code);
-            return code;
+        if (!items.isEmpty()) {
+            CommonResult<ItemOperationResult> addResult = playerPackService.addItems(
+                    ctx.playerId(), items, AddType.SIM_BUILD_OFFLINE_REWARDS, null, false);
+            if (addResult == null || !addResult.success()) {
+                int code = addResult == null ? Code.FAIL : addResult.code;
+                log.warn("离线收益入账失败 playerId={},code={}", ctx.playerId(), code);
+                return code;
+            }
         }
+        simCasinoService.addCasinoExp(ctx, finalReward.getOrDefault(BuildingOutputType.CASINO_LEVEL_EXP, 0L));
         //经营信息: 离线产出金币计入经营收益; 看广告领取计入观看广告数
         long offlineGold = finalReward.getOrDefault(BuildingOutputType.GOLD, 0L);
         ctx.getSimBaseData().addBusinessIncome(offlineGold);
-        allianceEventService.onBusinessIncome(ctx.playerId(), items);
+        if (!items.isEmpty()) {
+            allianceEventService.onBusinessIncome(ctx.playerId(), items);
+        }
         if (watchAd) {
             ctx.getSimBaseData().incWatchAdCount();
             //主线任务: 观看广告一次 -> 推进 12209
@@ -1031,12 +1064,7 @@ public class SimBuildingService implements SimPlayerTickListener, SimTaskStateRe
         data.setCdEndTime(0);
         data.setAdClearCount(0);
         data.setProgress(0);
-        //研发部升级 -> 同步研究院等级快照 (游戏解锁判定/大厅游戏列表的数据源)
-        if (data.getId() == SimConstant.Building.ID_RESEARCH_DEPART) {
-            playerStatService.recordGameUnlock(ctx.playerId(),
-                    configCache.unlockedGameCountAtLevel(casino.getCasinoId(), data.getLevel()));
-            simCasinoService.updateCasinoUnlock(ctx, casino.getCasinoId(), data.getLevel());
-        }
+        simCasinoService.addCasinoExp(ctx, 0);
         allianceEventService.onBuildingUpgrade(ctx.playerId(), data.getId(), data.getLevel());
         log.info("完成建筑升级 playerId={},buildingId={},newLevel={}", casino.getPlayerId(), data.getId(), data.getLevel());
         return Code.SUCCESS;
@@ -1076,7 +1104,9 @@ public class SimBuildingService implements SimPlayerTickListener, SimTaskStateRe
         return reduced;
     }
 
-    /** Redis 通知仅负责唤醒；累计秒数仍以 GETDEL 的结果为准。 */
+    /**
+     * Redis 通知仅负责唤醒；累计秒数仍以 GETDEL 的结果为准。
+     */
     public void onAllianceSpeedupPending(SimPlayerContext ctx, int buildingId) {
         SimCasinoData casino = ctx.getCurrentCasino();
         if (casino == null) {
@@ -1136,18 +1166,24 @@ public class SimBuildingService implements SimPlayerTickListener, SimTaskStateRe
         if (buildingAreaTableCfg == null) {
             return Collections.emptyMap();
         }
-
-        BuildingOutputType outputType = BuildingOutputType.fromCode(buildingAreaTableCfg.getTypeValue());
-        if (outputType == null) {
+        List<Integer> typeValues = buildingAreaTableCfg.getTypeValue();
+        if (typeValues == null || typeValues.isEmpty()) {
             return Collections.emptyMap();
         }
-
         BuildingUpgradeTableCfg cfg = configCache.getBuildingUpgradeCfg(buildingId, level);
         if (cfg == null) {
             return Collections.emptyMap();
         }
-        Map<BuildingOutputType, Long> map = new HashMap<>();
-        map.put(outputType, cfg.getUpgradeOutput());
+        Map<BuildingOutputType, Long> map = new HashMap<>(typeValues.size());
+        for (Integer typeValue : typeValues) {
+            BuildingOutputType outputType = BuildingOutputType.fromCode(typeValue);
+            if (outputType == null) {
+                continue;
+            }
+            long output = outputType == BuildingOutputType.CASINO_LEVEL_EXP
+                    ? cfg.getUpgradeExp() : cfg.getUpgradeOutput();
+            map.put(outputType, output);
+        }
         return map;
     }
 }

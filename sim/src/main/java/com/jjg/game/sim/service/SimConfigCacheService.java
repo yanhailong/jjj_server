@@ -35,12 +35,8 @@ public class SimConfigCacheService implements ConfigExcelChangeListener {
 
     //CasinoStatsSheet配置 regionID -> level -> cfg
     private Map<Integer, Map<Integer, CasinoStatsSheetCfg>> casinoStatsSheetCfgMap;
-    //ResearchInstitute配置 regionID -> gameTypeSet
-    private Map<Integer, Set<Integer>> unlockGamesMap;
-    //ResearchInstitute配置 regionID -> level -> cfg
-    private Map<Integer, Map<Integer, ResearchInstituteCfg>> researchInstituteCfgMap;
-    //ResearchInstitute配置 regionID -> gameType -> 所需研究院等级
-    private Map<Integer, Map<Integer, Integer>> unlockGameLevelMap;
+    //ResearchInstitute配置 regionID -> 可研发的gameType集合
+    private Map<Integer, Set<Integer>> researchGamesMap;
     //客座赌局试玩场次 gameType(=warehouse.gameID) -> 单人slots场次id, 供拜访试玩进房
     private Map<Integer, Integer> trialWareMap;
 
@@ -163,7 +159,7 @@ public class SimConfigCacheService implements ConfigExcelChangeListener {
     }
 
     /**
-     * 加载 VisitorLevel 配置
+     * 加载各场景可研发的游戏
      */
     private void loadCasinoStatsSheetCfg() {
         Map<Integer, Map<Integer, CasinoStatsSheetCfg>> tmp = new HashMap<>();
@@ -177,17 +173,11 @@ public class SimConfigCacheService implements ConfigExcelChangeListener {
      * 加载 VisitorLevel 配置
      */
     private void loadResearchInstituteCfg() {
-        Map<Integer, Set<Integer>> tmpUnlockGamesMap = new HashMap<>();
-        Map<Integer, Map<Integer, Integer>> tmpUnlockGameLevelMap = new HashMap<>();
-        Map<Integer, Map<Integer, ResearchInstituteCfg>> tmpResearchInstituteCfgMap = new HashMap<>();
+        Map<Integer, Set<Integer>> tmpResearchGamesMap = new HashMap<>();
         for (ResearchInstituteCfg cfg : GameDataManager.getResearchInstituteCfgList()) {
-            tmpUnlockGamesMap.computeIfAbsent(cfg.getRegionID(), k -> new HashSet<>()).add(cfg.getGameType());
-            tmpUnlockGameLevelMap.computeIfAbsent(cfg.getRegionID(), k -> new HashMap<>()).put(cfg.getGameType(), cfg.getLevel());
-            tmpResearchInstituteCfgMap.computeIfAbsent(cfg.getRegionID(), k -> new HashMap<>()).put(cfg.getLevel(), cfg);
+            tmpResearchGamesMap.computeIfAbsent(cfg.getRegionID(), k -> new HashSet<>()).add(cfg.getGameType());
         }
-        this.unlockGamesMap = tmpUnlockGamesMap;
-        this.unlockGameLevelMap = tmpUnlockGameLevelMap;
-        this.researchInstituteCfgMap = tmpResearchInstituteCfgMap;
+        this.researchGamesMap = tmpResearchGamesMap;
     }
 
     /**
@@ -647,57 +637,11 @@ public class SimConfigCacheService implements ConfigExcelChangeListener {
         return tmpMap.get(level);
     }
 
-    public Set<Integer> getUnlockGameByRegionId(int regionId) {
-        if (this.unlockGamesMap == null) {
+    public Set<Integer> getResearchGamesByRegionId(int regionId) {
+        if (this.researchGamesMap == null) {
             return Collections.emptySet();
         }
-        return unlockGamesMap.get(regionId);
-    }
-
-    /**
-     * 该场景解锁指定游戏所需的研究院等级; 该场景未配置此游戏返回 null
-     */
-    public Integer getUnlockGameLevel(int regionId, int gameType) {
-        if (this.unlockGameLevelMap == null) {
-            return null;
-        }
-        Map<Integer, Integer> tmpMap = this.unlockGameLevelMap.get(regionId);
-        return tmpMap == null ? null : tmpMap.get(gameType);
-    }
-
-    public int unlockedGameCountAtLevel(int regionId, int level) {
-        if (this.researchInstituteCfgMap == null) {
-            return 0;
-        }
-        Map<Integer, ResearchInstituteCfg> levelMap = this.researchInstituteCfgMap.get(regionId);
-        ResearchInstituteCfg cfg = levelMap == null ? null : levelMap.get(level);
-        return cfg != null && cfg.getGameType() > 0 ? 1 : 0;
-    }
-
-    /**
-     * 研究院等级快照下已研发(解锁)的游戏并集: 任一场景的研究院等级达到该游戏配置等级即视为已研发。
-     * 语义同大厅游戏列表, 供经营看板与任务条件 12216 共用。
-     *
-     * @param researchLevelMap 场景id -> 研究院等级
-     */
-    public Set<Integer> findUnlockedGames(Map<Integer, Integer> researchLevelMap) {
-        if (researchLevelMap == null || researchLevelMap.isEmpty()) {
-            return Collections.emptySet();
-        }
-        Set<Integer> result = new HashSet<>();
-        for (Map.Entry<Integer, Integer> en : researchLevelMap.entrySet()) {
-            Set<Integer> games = getUnlockGameByRegionId(en.getKey());
-            if (games == null) {
-                continue;
-            }
-            for (Integer gameType : games) {
-                Integer needLevel = getUnlockGameLevel(en.getKey(), gameType);
-                if (needLevel != null && en.getValue() >= needLevel) {
-                    result.add(gameType);
-                }
-            }
-        }
-        return result;
+        return researchGamesMap.getOrDefault(regionId, Collections.emptySet());
     }
 
     /**

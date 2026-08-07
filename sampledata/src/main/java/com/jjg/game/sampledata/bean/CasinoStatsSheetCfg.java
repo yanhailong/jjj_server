@@ -25,6 +25,8 @@ public class CasinoStatsSheetCfg extends BaseCfgBean {
   protected int DrainRate;
   /** 曝光要求 */
   protected int ExposureRequirements;
+  /** 升级前置条件 */
+  protected Map<Integer,Integer> LevelUpCondition;
   /** 延长游客生成间隔的倍数上限 */
   protected int MaxMultiplier;
   /** 离线收益时长（分） */
@@ -55,6 +57,11 @@ public class CasinoStatsSheetCfg extends BaseCfgBean {
   /** 返回曝光要求 */
   public int getExposureRequirements() {
     return ExposureRequirements;
+  }
+
+  /** 返回升级前置条件 */
+  public Map<Integer,Integer> getLevelUpCondition() {
+    return LevelUpCondition;
   }
 
   /** 返回延长游客生成间隔的倍数上限 */

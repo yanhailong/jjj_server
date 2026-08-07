@@ -45,8 +45,6 @@ public class SimCoopRoomRouteService {
     @Autowired
     private SimCoopTaskService coopTaskService;
     @Autowired
-    private SimConfigCacheService simConfigCacheService;
-    @Autowired
     private SnowflakeManager snowflakeManager;
     @Autowired
     private NodeManager nodeManager;
@@ -225,23 +223,12 @@ public class SimCoopRoomRouteService {
     }
 
     /**
-     * 游戏解锁判定 (语义同大厅游戏列表 HallService.getSortGameList):
-     * 任一已解锁场景的研究院等级达到 ResearchInstitute 配置的等级即解锁。
-     * 数据全部来自内存 (ctx 登录预热的解锁快照 + 配置缓存), 不查库。
+     * 游戏解锁判定 (语义同大厅游戏列表 HallService.getSortGameList)。
+     * 数据来自 ctx 登录预热的建筑解锁快照, 不查库。
      */
     private boolean isGameUnlocked(SimPlayerContext ctx, int gameType) {
         SimCasinoUnlock casinoUnlock = ctx.getCasinoUnlock();
-        Map<Integer, Integer> researchLevelMap = casinoUnlock == null ? null : casinoUnlock.getResearchLevelMap();
-        if (researchLevelMap == null || researchLevelMap.isEmpty()) {
-            return false;
-        }
-        for (Map.Entry<Integer, Integer> en : researchLevelMap.entrySet()) {
-            Integer needLevel = simConfigCacheService.getUnlockGameLevel(en.getKey(), gameType);
-            if (needLevel != null && en.getValue() >= needLevel) {
-                return true;
-            }
-        }
-        return false;
+        return casinoUnlock != null && casinoUnlock.isGameUnlocked(gameType);
     }
 
     /**

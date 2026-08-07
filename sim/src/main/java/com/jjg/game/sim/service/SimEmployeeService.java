@@ -540,12 +540,15 @@ public class SimEmployeeService implements SimTaskStateReporter {
         }
         Set<BuildingOutputType> allowed = EnumSet.noneOf(BuildingOutputType.class);
         for (BuildingAreaTableCfg areaCfg : GameDataManager.getBuildingAreaTableCfgList()) {
-            if (areaCfg.getEmployeeProfile() != professionId) {
+            List<Integer> typeValues = areaCfg.getTypeValue();
+            if (areaCfg.getEmployeeProfile() != professionId || typeValues == null) {
                 continue;
             }
-            BuildingOutputType type = BuildingOutputType.fromCode(areaCfg.getTypeValue());
-            if (type != null) {
-                allowed.add(type.bonusGroup());
+            for (Integer typeValue : typeValues) {
+                BuildingOutputType type = BuildingOutputType.fromCode(typeValue);
+                if (type != null) {
+                    allowed.add(type.bonusGroup());
+                }
             }
         }
         return new ManageBonus(retainAllowed(bonus.modifier(), allowed), retainAllowed(bonus.buff(), allowed));

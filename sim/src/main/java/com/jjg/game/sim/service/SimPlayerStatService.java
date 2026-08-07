@@ -136,8 +136,7 @@ public class SimPlayerStatService {
 
     private long unlockedCasinoCount(SimPlayerContext ctx) {
         SimCasinoUnlock unlock = ctx.getCasinoUnlock();
-        return unlock == null || unlock.getResearchLevelMap() == null
-                ? 0 : unlock.getResearchLevelMap().size();
+        return unlock == null ? 0 : unlock.getUnlockedCasinoIds().size();
     }
 
     private long sceneLevel(SimPlayerContext ctx, int casinoId) {

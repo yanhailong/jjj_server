@@ -18,6 +18,7 @@ import com.jjg.game.core.service.CorePlayerService;
 import com.jjg.game.core.service.PlayerPackService;
 import com.jjg.game.core.service.PlayerSessionService;
 import com.jjg.game.sampledata.GameDataManager;
+import com.jjg.game.sampledata.bean.BuildingAreaTableCfg;
 import com.jjg.game.sampledata.bean.CasinoStatsSheetCfg;
 import com.jjg.game.sampledata.bean.GiftListCfg;
 import com.jjg.game.sampledata.bean.ItemCfg;
@@ -400,9 +401,7 @@ public class SimVisitService {
             res.code = target.code();
             return res;
         }
-        //被拜访玩家该场景研究院等级达到配置等级才算已解锁 (语义同协作房间/大厅游戏列表)
-        Integer needLevel = configCacheService.getUnlockGameLevel(casinoId, gameType);
-        if (needLevel == null || !reachResearchLevel(ownerId, casinoId, needLevel)) {
+        if (!isGameUnlocked(ownerId, casinoId, gameType)) {
             res.code = Code.NOT_UNLOCKED;
             return res;
         }
@@ -446,12 +445,11 @@ public class SimVisitService {
     }
 
     /**
-     * 被拜访玩家该场景研究院等级是否达标: 远端玩家无本地 ctx, 读 Redis 解锁快照。
+     * 被拜访玩家是否已在该场景通过建筑解锁游戏。远端玩家无本地 ctx, 读 Redis 解锁快照。
      */
-    private boolean reachResearchLevel(long playerId, int casinoId, int needLevel) {
+    private boolean isGameUnlocked(long playerId, int casinoId, int gameType) {
         SimCasinoUnlock casinoUnlock = simCasinoService.getCasinoUnlock(playerId);
-        Map<Integer, Integer> researchLevelMap = casinoUnlock == null ? null : casinoUnlock.getResearchLevelMap();
-        return researchLevelMap != null && researchLevelMap.getOrDefault(casinoId, 0) >= needLevel;
+        return casinoUnlock != null && casinoUnlock.isGameUnlocked(casinoId, gameType);
     }
 
     /**
@@ -617,13 +615,16 @@ public class SimVisitService {
                     return pb;
                 }).toList();
 
-        Set<Integer> unlocked = configCacheService.getUnlockGameByRegionId(casino.getCasinoId());
+        Set<Integer> unlocked = new HashSet<>();
+        for (BuildingData building : buildings) {
+            BuildingAreaTableCfg cfg = GameDataManager.getBuildingAreaTableCfg(building.getId());
+            if (cfg != null && cfg.getUnlockGameId() > 0) {
+                unlocked.add(cfg.getUnlockGameId());
+            }
+        }
         Map<Integer, SimSkillsData> skills = new HashMap<>();
         for (SimSkillsData data : simSkillsDao.findByPlayerId(player.getId())) {
             skills.put(data.getGameType(), data);
-        }
-        if (unlocked == null) {
-            unlocked = Set.of();
         }
         info.games = unlocked.stream().sorted().map(gameType -> {
             VisitGameInfo pb = new VisitGameInfo();

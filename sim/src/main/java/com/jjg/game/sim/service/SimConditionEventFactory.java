@@ -129,10 +129,10 @@ public final class SimConditionEventFactory {
     }
 
     /**
-     * 当前已研发的游戏总数 (研究院等级达标的游戏并集): 推进 12216 累积研发游戏数。
+     * 当前通过建筑解锁的游戏总数: 推进 12216 游戏解锁数。
      * 上报的是总数而非增量, 条件按 SET 覆盖进度, 重复上报幂等。
      */
-    public static ActionConditionEvent gameResearched(long count) {
+    public static ActionConditionEvent gameUnlocked(long count) {
         return new ActionConditionEvent(ActionConditionEvent.Type.GAME_UNLOCK,
                 0, 0, Math.max(0, count), 0, 0, false);
     }

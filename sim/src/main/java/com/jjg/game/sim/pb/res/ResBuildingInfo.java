@@ -29,6 +29,8 @@ public class ResBuildingInfo extends AbstractResponse {
     public int managerId;
     @ProtoDesc("主管固定加成  key参考BuildingAreaTable表的typeValue值")
     public List<KVInfo> manageEmployeeFixBonus;
+    @ProtoDesc("主管等级")
+    public int managerLevel;
 
 
     public ResBuildingInfo(int code) {

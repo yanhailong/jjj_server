@@ -182,7 +182,7 @@ public class SimStatsService {
         list.add(new StatInfo(SimStatKey.Operation.MARKETING_DEPT, buildingService.computeDeptValue(ctx, casino, BuildingOutputType.EXPOSURE)));
         list.add(new StatInfo(SimStatKey.Operation.OPERATIONS_DEPT, buildingService.computeDeptValue(ctx, casino, BuildingOutputType.AWARENESS)));
 
-        //研发部: 已研发 / 游戏总数(不受研究院等级影响)
+        //研发部: 已研发 / 已解锁场景可研发的游戏总数
         Set<Integer> unlockGames = findAllUnlockedGames(ctx);
         list.add(new StatInfo(SimStatKey.Operation.UNLOCK_GAME, unlockGames.size()));
         int researched = countResearchedGames(ctx, unlockGames);
@@ -240,28 +240,25 @@ public class SimStatsService {
     }
 
     /**
-     * 玩家已解锁的所有游戏并集 (语义同大厅游戏列表 HallService.getSortGameList):
-     * 任一已解锁场景的研究院等级达到 ResearchInstitute 配置的等级即解锁。
+     * 玩家通过建筑解锁的所有游戏并集 (语义同大厅游戏列表 HallService.getSortGameList)。
      * 解锁数据取 ctx 登录缓存, 不在高频看板路径上同步读 Redis。
      */
     private Set<Integer> findAllUnlockedGames(SimPlayerContext ctx) {
         SimCasinoUnlock unlock = ctx.getCasinoUnlock();
-        return unlock == null
-                ? Collections.emptySet()
-                : configCache.findUnlockedGames(unlock.getResearchLevelMap());
+        return unlock == null ? Collections.emptySet() : unlock.getUnlockedGameIds();
     }
 
     /**
-     * 玩家已解锁娱乐城配置的全部游戏数 (研发部进度分母, 不受研究院等级影响)
+     * 玩家已解锁娱乐城配置的全部可研发游戏数
      */
     private int countConfiguredGames(SimPlayerContext ctx) {
         SimCasinoUnlock unlock = ctx.getCasinoUnlock();
-        if (unlock == null || unlock.getResearchLevelMap() == null) {
+        if (unlock == null) {
             return 0;
         }
         Set<Integer> result = new HashSet<>();
-        for (Integer casinoId : unlock.getResearchLevelMap().keySet()) {
-            Set<Integer> games = configCache.getUnlockGameByRegionId(casinoId);
+        for (Integer casinoId : unlock.getUnlockedCasinoIds()) {
+            Set<Integer> games = configCache.getResearchGamesByRegionId(casinoId);
             if (games != null) {
                 result.addAll(games);
             }
@@ -270,7 +267,7 @@ public class SimStatsService {
     }
 
     /**
-     * 统计当前场景已研发的游戏数 (已拥有技能数据视为已研发)
+     * 统计已解锁游戏中已拥有技能数据的游戏数
      */
     private int countResearchedGames(SimPlayerContext ctx, Set<Integer> unlockGames) {
         if (unlockGames == null || unlockGames.isEmpty()) {

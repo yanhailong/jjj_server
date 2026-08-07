@@ -24,7 +24,7 @@ public class SimPlayerContext {
     private Map<Integer, SimEmployeeData> employeeMap = new HashMap<>();
     //当前所在场景 (内存中仅保留当前场景, 切换时落库旧场景并加载新场景)
     private SimCasinoData currentCasino;
-    //已解锁场景 (研究院等级 场景id->等级); 登录缓存, 仅供本玩家高频读取, 解锁新场景时同步刷新
+    //场景及其建筑解锁的游戏快照; 登录缓存, 仅供本玩家高频读取, 解锁场景/游戏时同步刷新
     private SimCasinoUnlock casinoUnlock;
 
     //待领取的离线收益 (上线计算, 领取后清空)

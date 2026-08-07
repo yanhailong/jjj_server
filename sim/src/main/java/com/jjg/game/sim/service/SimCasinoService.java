@@ -5,6 +5,7 @@ import com.jjg.game.alliance.service.AllianceCacheService;
 import com.jjg.game.alliance.service.AllianceHelpService;
 import com.jjg.game.core.base.condition.numeric.ActionConditionEvent;
 import com.jjg.game.core.constant.Code;
+import com.jjg.game.core.pb.KVInfo;
 import com.jjg.game.core.service.PlayerStatService;
 import com.jjg.game.sampledata.GameDataManager;
 import com.jjg.game.sampledata.bean.*;
@@ -23,9 +24,7 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.data.redis.core.RedisTemplate;
 import org.springframework.stereotype.Service;
 
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
+import java.util.*;
 import java.util.function.Consumer;
 
 /**
@@ -190,6 +189,15 @@ public class SimCasinoService implements SimTaskStateReporter {
             res.remainShare = quota.remainShare();
             res.dailyShareLimit = quota.dailyShareLimit();
             res.coopTaskInfo = simCoopTaskService.getBoundRoomInfo(ctx.playerId());
+
+            //获取下一等级的配置
+            CasinoStatsSheetCfg nextLevelCfg = configCacheService.getCasinoStatsSheetCfg(casinoData.getCasinoId(), casinoData.getCasinoLevel() + 1);
+            if (nextLevelCfg != null && nextLevelCfg.getLevelUpCondition() != null && !nextLevelCfg.getLevelUpCondition().isEmpty()) {
+                res.upgradeLevelConditions = new ArrayList<>();
+                for (Map.Entry<Integer, Integer> en : nextLevelCfg.getLevelUpCondition().entrySet()) {
+                    res.upgradeLevelConditions.add(new KVInfo(en.getKey(), en.getValue()));
+                }
+            }
         } catch (Exception e) {
             log.error("", e);
             res.code = Code.EXCEPTION;
@@ -265,12 +273,11 @@ public class SimCasinoService implements SimTaskStateReporter {
         }
 
         //自动解锁: UnlockType=false 且无解锁条件(UnlockMethod) 的建筑, 创建场景时直接以初始等级解锁
-        int unlockedGames = autoUnlockBuildings(casino, casinoId);
-        playerStatService.recordGameUnlock(ctx.playerId(), unlockedGames);
+        Set<Integer> unlockedGames = autoUnlockBuildings(casino, casinoId);
         //自动解锁游客
         autoUnlockGuest(casino, casinoId);
 
-        updateCasinoUnlock(ctx, casinoId, INITIAL_BUILDING_LEVEL);
+        updateCasinoUnlock(ctx, casinoId, unlockedGames);
         simSkillService.initUnlock(ctx, casinoId);
         ctx.getSimBaseData().addAllLevel(casino.getCasinoLevel());
         simGuideService.triggerSceneTotalLevelReached(ctx, ctx.getSimBaseData().getAllLevel(), true);
@@ -283,13 +290,65 @@ public class SimCasinoService implements SimTaskStateReporter {
     }
 
     /**
+     * 增加当前场景经验并连续结算可提升的等级。每次升级校验目标等级配置的建筑条件；amount=0 时仅重新判定。
+     * 多级提升只触发一次引导和任务状态更新，避免按等级重复调用。
+     */
+    public void addCasinoExp(SimPlayerContext ctx, long amount) {
+        SimCasinoData casino = ctx.getCurrentCasino();
+        if (casino == null || amount < 0) {
+            return;
+        }
+
+        long exp = casino.getExp() + amount;
+        int oldLevel = casino.getCasinoLevel();
+        while (true) {
+            CasinoStatsSheetCfg currentCfg = configCacheService.getCasinoStatsSheetCfg(
+                    casino.getCasinoId(), casino.getCasinoLevel());
+            CasinoStatsSheetCfg nextCfg = configCacheService.getCasinoStatsSheetCfg(
+                    casino.getCasinoId(), casino.getCasinoLevel() + 1);
+            if (currentCfg == null || nextCfg == null || currentCfg.getUpgradeCost() <= 0
+                    || exp < currentCfg.getUpgradeCost()) {
+                break;
+            }
+            Map<Integer, Integer> levelUpCondition = nextCfg.getLevelUpCondition();
+            if (levelUpCondition != null && !levelUpCondition.isEmpty()) {
+                boolean matched = true;
+                for (Map.Entry<Integer, Integer> condition : levelUpCondition.entrySet()) {
+                    BuildingData building = casino.findBuilding(condition.getKey());
+                    if (building == null || building.getLevel() < condition.getValue()) {
+                        matched = false;
+                        break;
+                    }
+                }
+                if (!matched) {
+                    break;
+                }
+            }
+            exp -= currentCfg.getUpgradeCost();
+            casino.setCasinoLevel(nextCfg.getLevel());
+        }
+        casino.setExp((int) Math.min(exp, Integer.MAX_VALUE));
+
+        int addedLevels = casino.getCasinoLevel() - oldLevel;
+        if (addedLevels <= 0) {
+            return;
+        }
+        ctx.getSimBaseData().addAllLevel(addedLevels);
+        simGuideService.triggerSceneTotalLevelReached(ctx, ctx.getSimBaseData().getAllLevel(), true);
+        simTaskService.onConditionEvent(ctx,
+                SimConditionEventFactory.sceneLevel(casino.getCasinoId(), casino.getCasinoLevel()));
+        log.info("场景升级 playerId={},casinoId={},oldLevel={},newLevel={}",
+                casino.getPlayerId(), casino.getCasinoId(), oldLevel, casino.getCasinoLevel());
+    }
+
+    /**
      * 自动解锁场景内无需条件的建筑: UnlockType=false 且 UnlockMethod 为空的建筑,
      * 创建场景时即以初始等级放入 (存在于 buildingData 中即视为已解锁)。
      *
      * @param casinoId 场景id (= BuildingAreaTableCfg.RegionID)
      */
-    private int autoUnlockBuildings(SimCasinoData casino, int casinoId) {
-        int unlockedGames = 0;
+    private Set<Integer> autoUnlockBuildings(SimCasinoData casino, int casinoId) {
+        Set<Integer> unlockedGames = new HashSet<>();
         for (BuildingAreaTableCfg cfg : GameDataManager.getBuildingAreaTableCfgList()) {
             if (cfg.getRegionID() != casinoId) {
                 continue;
@@ -304,8 +363,8 @@ public class SimCasinoService implements SimTaskStateReporter {
             data.setId(cfg.getId());
             data.setLevel(INITIAL_BUILDING_LEVEL);
             casino.putBuilding(data);
-            if (data.getId() == SimConstant.Building.ID_RESEARCH_DEPART) {
-                unlockedGames += configCacheService.unlockedGameCountAtLevel(casinoId, data.getLevel());
+            if (cfg.getUnlockGameId() > 0) {
+                unlockedGames.add(cfg.getUnlockGameId());
             }
         }
         return unlockedGames;
@@ -431,13 +490,13 @@ public class SimCasinoService implements SimTaskStateReporter {
     }
 
     /**
-     * 更新 SimCasinoUnlock 信息: 写 Redis 的同时刷新 ctx 缓存, 保证本玩家后续读取命中最新数据。
+     * 更新场景及其建筑解锁的游戏快照。一个场景的自动解锁游戏批量合并后只写一次 Redis。
      *
-     * @param ctx      玩家上下文 (缓存已解锁场景)
+     * @param ctx      玩家上下文
      * @param casinoId 场景id
-     * @param level    研究院等级
+     * @param gameIds  本次由建筑解锁的游戏id
      */
-    public void updateCasinoUnlock(SimPlayerContext ctx, int casinoId, int level) {
+    public void updateCasinoUnlock(SimPlayerContext ctx, int casinoId, Collection<Integer> gameIds) {
         SimCasinoUnlock casinoUnlock = ctx.getCasinoUnlock();
         if (casinoUnlock == null) {
             //缓存未命中时回源一次, 避免覆盖 Redis 中已有的解锁记录
@@ -447,13 +506,28 @@ public class SimCasinoService implements SimTaskStateReporter {
             }
             ctx.setCasinoUnlock(casinoUnlock);
         }
-        casinoUnlock.changeUnlockLevel(casinoId, level);
+        Set<Integer> before = casinoUnlock.getUnlockedGameIds();
+        boolean changed = casinoUnlock.unlockCasino(casinoId);
+        if (gameIds != null) {
+            for (Integer gameId : gameIds) {
+                if (gameId != null) {
+                    changed |= casinoUnlock.unlockGame(casinoId, gameId);
+                }
+            }
+        }
+        if (!changed) {
+            return;
+        }
         redisTemplate.opsForHash().put(TABLE_NAME, ctx.playerId(), casinoUnlock);
-        reportResearchedGames(ctx);
+        int newGameCount = casinoUnlock.getUnlockedGameIds().size() - before.size();
+        if (newGameCount > 0) {
+            playerStatService.recordGameUnlock(ctx.playerId(), newGameCount);
+            reportUnlockedGames(ctx);
+        }
     }
 
     /**
-     * 上报当前已研发游戏数 (任务条件 12216): 研究院等级快照是游戏解锁判定的数据源, 快照变化即研发进度变化。
+     * 上报当前已解锁游戏数 (任务条件 12216)。
      * <p>
      * 上报总数而非增量, 条件按 SET 覆盖进度, 重复上报幂等; 登录期场景数据先于任务数据加载, 那时的上报会被
      * 任务侧忽略, 故 SimTaskService 在任务数据就绪后作为 {@link SimTaskStateReporter} 补报一次。
@@ -461,21 +535,21 @@ public class SimCasinoService implements SimTaskStateReporter {
      */
     @Override
     public void reportTaskState(SimPlayerContext ctx, Consumer<ActionConditionEvent> sink) {
-        reportResearchedGames(ctx, sink);
+        reportUnlockedGames(ctx, sink);
     }
 
-    public void reportResearchedGames(SimPlayerContext ctx) {
-        reportResearchedGames(ctx, e -> simTaskService.onConditionEvent(ctx, e));
+    public void reportUnlockedGames(SimPlayerContext ctx) {
+        reportUnlockedGames(ctx, e -> simTaskService.onConditionEvent(ctx, e));
     }
 
-    private void reportResearchedGames(SimPlayerContext ctx, Consumer<ActionConditionEvent> sink) {
+    private void reportUnlockedGames(SimPlayerContext ctx, Consumer<ActionConditionEvent> sink) {
         SimCasinoUnlock casinoUnlock = ctx.getCasinoUnlock();
         if (casinoUnlock == null) {
             return;
         }
-        int researched = configCacheService.findUnlockedGames(casinoUnlock.getResearchLevelMap()).size();
-        if (researched > 0) {
-            sink.accept(SimConditionEventFactory.gameResearched(researched));
+        int unlocked = casinoUnlock.getUnlockedGameIds().size();
+        if (unlocked > 0) {
+            sink.accept(SimConditionEventFactory.gameUnlocked(unlocked));
         }
     }
 

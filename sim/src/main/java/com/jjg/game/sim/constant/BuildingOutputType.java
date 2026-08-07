@@ -28,8 +28,9 @@ public enum BuildingOutputType {
     //装饰
     DECORATION(10),
     //管理属性(它是一个集合体，包括了SERVICE，AWARENESS，EXPOSURE)
-    MANAGE_ARRT(11)
-    ;
+    MANAGE_ARRT(11),
+    //场景等级经验
+    CASINO_LEVEL_EXP(12);
 
     private final int code;
 
@@ -75,6 +76,9 @@ public enum BuildingOutputType {
             }
             case 11 -> {
                 return MANAGE_ARRT;
+            }
+            case 12 -> {
+                return CASINO_LEVEL_EXP;
             }
             default -> {
                 return null;

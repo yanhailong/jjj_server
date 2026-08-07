@@ -122,8 +122,6 @@ public class HallService implements ConfigExcelChangeListener, TimerListener {
     //体验场次游戏倍场界面的奖池
     private Map<Integer, List<WarePoolInfo>> expeiencePoolMap;
 
-    private Map<Integer, Map<Integer, Integer>> simOpenGames;
-
     public Map<Integer, GameStatus> getGameStatusesMap() {
         return gameStatusesMap;
     }
@@ -948,9 +946,7 @@ public class HallService implements ConfigExcelChangeListener, TimerListener {
     public void initSampleCallbackCollector() {
         addInitSampleFileObserveWithCallBack(WarehouseCfg.EXCEL_NAME, this::initWareHouseConfigData);
         addInitSampleFileObserveWithCallBack(GlobalConfigCfg.EXCEL_NAME, this::initGlobalConfig);
-        addInitSampleFileObserveWithCallBack(ResearchInstituteCfg.EXCEL_NAME, this::initResearchConfig);
         addChangeSampleFileObserveWithCallBack(UndergarmentCfg.EXCEL_NAME, this::sortWesteGameList);
-        addChangeSampleFileObserveWithCallBack(ResearchInstituteCfg.EXCEL_NAME, this::sortWesteGameList);
     }
 
     /**
@@ -1012,15 +1008,6 @@ public class HallService implements ConfigExcelChangeListener, TimerListener {
         this.defaultChipsId = Integer.parseInt(arr[4]);
         this.defaultCardBackgroundId = Integer.parseInt(arr[5]);
         this.defaultBackgroundId = Integer.parseInt(arr[6]);
-    }
-
-    private void initResearchConfig() {
-        Map<Integer, Map<Integer, Integer>> tmpSimOpenGames = new HashMap<>();
-        for (ResearchInstituteCfg cfg : GameDataManager.getResearchInstituteCfgList()) {
-            Map<Integer, Integer> tmpMap = tmpSimOpenGames.computeIfAbsent(cfg.getRegionID(), k -> new HashMap<>());
-            tmpMap.put(cfg.getGameType(), cfg.getLevel());
-        }
-        this.simOpenGames = tmpSimOpenGames;
     }
 
     public int getDefaultHeadImgId() {
@@ -1125,7 +1112,7 @@ public class HallService implements ConfigExcelChangeListener, TimerListener {
     }
 
     /**
-     * 根据研究院等级获取开启的游戏列表
+     * 根据建筑解锁快照获取开启的游戏列表
      *
      * @param westeId
      * @param clientVersion
@@ -1135,33 +1122,13 @@ public class HallService implements ConfigExcelChangeListener, TimerListener {
         List<GameListConfig> gameListConfigList = getSortGameList(westeId);
         if (gameListConfigList == null || gameListConfigList.isEmpty()
                 || StringUtils.isEmpty(clientVersion)
-                || this.simOpenGames == null
-                || this.simOpenGames.isEmpty()
                 || VersionComparator.INSTANCE.compare(clientVersion, CoreConst.Common.BRANCH_VERSION) <= 0) {
             return gameListConfigList;
         }
 
         SimCasinoUnlock casinoUnlock = simCasinoService.getCasinoUnlock(playerId);
-        if (casinoUnlock == null || casinoUnlock.getResearchLevelMap() == null || casinoUnlock.getResearchLevelMap().isEmpty()) {
-            return Collections.emptyList();
-        }
-
-        Set<Integer> openGameTypeSet = new HashSet<>();
-        for (Map.Entry<Integer, Integer> en : casinoUnlock.getResearchLevelMap().entrySet()) {
-            Map<Integer, Integer> tmpMap = this.simOpenGames.get(en.getKey());
-            if (tmpMap == null || tmpMap.isEmpty()) {
-                continue;
-            }
-            int researchLevel = en.getValue();
-
-            //tmpMap: gameType -> 所需研究院等级
-            for (Map.Entry<Integer, Integer> en2 : tmpMap.entrySet()) {
-                if (researchLevel >= en2.getValue()) {
-                    openGameTypeSet.add(en2.getKey());
-                }
-            }
-        }
-
+        Set<Integer> openGameTypeSet = casinoUnlock == null
+                ? Collections.emptySet() : casinoUnlock.getUnlockedGameIds();
         if (openGameTypeSet.isEmpty()) {
             return Collections.emptyList();
         }
@@ -1424,16 +1391,4 @@ public class HallService implements ConfigExcelChangeListener, TimerListener {
         return res;
     }
 
-    /**
-     * 模拟经营游戏版本开启的游戏
-     *
-     * @return
-     */
-    private Map<Integer, Integer> getSimOpenGames() {
-        Map<Integer, Integer> simOpenGames = new HashMap<>();
-        for (ResearchInstituteCfg cfg : GameDataManager.getResearchInstituteCfgList()) {
-            simOpenGames.put(cfg.getGameType(), cfg.getLevel());
-        }
-        return simOpenGames;
-    }
 }
