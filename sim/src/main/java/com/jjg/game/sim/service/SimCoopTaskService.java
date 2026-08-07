@@ -255,6 +255,7 @@ public class SimCoopTaskService {
             if (!playerPackService.removeItems(player, Map.of(itemId, count),
                     AddType.SIM_COOP_TASK_REFRESH).success()) {
                 log.info("多人任务刷新道具不足 playerId={},itemId={},count={}", ctx.playerId(), itemId, count);
+                res.code = Code.DIAMOND_NOT_ENOUGH;
                 return res;
             }
         }
@@ -314,6 +315,7 @@ public class SimCoopTaskService {
         if (data.getClaimedCount() >= configService.getDailyClaimLimit()) {
             log.info("多人任务领取失败,今日领取次数已用完 playerId={},taskId={},claimedCount={}",
                     ctx.playerId(), taskId, data.getClaimedCount());
+            res.code = Code.TODAY_CLIAM_LIMIT;
             return res;
         }
         if (configService.ruleOf(taskId) == null) {

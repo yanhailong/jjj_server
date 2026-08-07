@@ -159,6 +159,7 @@ public class SimCoopRoomRouteService {
         CoopRoomRecord record = roomRecordDao.get(roomId);
         if (record == null) {
             log.info("加入协作房间失败,房间不存在或已解散 playerId={},roomId={}", playerId, roomId);
+            res.code = Code.NOT_FOUND;
             return res;
         }
         res.gameType = record.getGameType();
@@ -172,12 +173,14 @@ public class SimCoopRoomRouteService {
         if (!member && record.getMemberIds().size() >= record.getMaxMembers()) {
             log.info("加入协作房间失败,房间已满员 playerId={},roomId={},members={},max={}",
                     playerId, roomId, record.getMemberIds().size(), record.getMaxMembers());
+            res.code = Code.PEOPLE_FULL;
             return res;
         }
         //需求: 被邀请玩家未解锁此游戏时提示"游戏未解锁"
         if (!isGameUnlocked(ctx, record.getGameType())) {
             log.info("加入协作房间失败,游戏未解锁 playerId={},roomId={},gameType={}",
                     playerId, roomId, record.getGameType());
+            res.code = Code.NOT_UNLOCKED;
             return res;
         }
         MarsNode node = marsCurator.getMarsNode(record.getNodePath());

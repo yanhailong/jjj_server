@@ -217,4 +217,9 @@ public interface Code {
     int CAN_NOT_EXIT_GAMING_ROOM = 4058260;
     // 血量不足，无法继续
     int HP_NOT_ENOUGH = 4059299;
+
+    // 今日领取次数已用完
+    int TODAY_CLIAM_LIMIT = 4058262;
+    // 钻石不足，无法刷新
+    int DIAMOND_NOT_ENOUGH = 4058263;
 }

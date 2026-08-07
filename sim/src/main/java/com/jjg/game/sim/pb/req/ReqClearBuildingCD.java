@@ -19,4 +19,6 @@ public class ReqClearBuildingCD extends AbstractMessage {
     public int costCount;
     @ProtoDesc("是否看广告")
     public boolean watchAd;
+    @ProtoDesc("消耗道具id")
+    public int costItemId;
 }

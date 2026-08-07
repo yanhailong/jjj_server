@@ -117,7 +117,7 @@ public class SimGuestService implements SimPlayerTickListener, ItemListener, Sim
         }
 
         for (int guideId : configCache.getGenGuestGuideSet()) {
-            if(simBaseData.hasCompletedGuideId(guideId)){
+            if (simBaseData.hasCompletedGuideId(guideId)) {
                 return true;
             }
         }
@@ -220,7 +220,7 @@ public class SimGuestService implements SimPlayerTickListener, ItemListener, Sim
      * @param guestId 购买的游客id
      */
     public void generatePurchasedGuest(SimPlayerContext ctx, int guestId, int count) {
-        log.warn("生成游客的接口暂未使用，改用使用道具 playerId={}",ctx.playerId());
+        log.warn("生成游客的接口暂未使用，改用使用道具 playerId={}", ctx.playerId());
 //        ResGenPurchasedGuest res = new ResGenPurchasedGuest(Code.SUCCESS);
 //        if (count < 1) {
 //            count = 1;
@@ -449,7 +449,7 @@ public class SimGuestService implements SimPlayerTickListener, ItemListener, Sim
         }
 
         //规划本次行程的目的地序列 (生成奖励)
-        List<DestinationInfo> destinations = planDestinations(guest, visitorQuestCfg, ctx.getCurrentCasino(), rewardedCount, unrewardedCount);
+        List<DestinationInfo> destinations = planDestinations(guest, visitorQuestCfg, ctx.getCurrentCasino(), rewardedCount);
         if (destinations.isEmpty()) {
             ctx.getCurrentCasino().setLastGenerateTime(now);
 //            log.warn("生成游客失败，目的地序列为空 playerId={},guestId={}", ctx.playerId(), visitorQuestCfg.getId());
@@ -577,8 +577,8 @@ public class SimGuestService implements SimPlayerTickListener, ItemListener, Sim
      * - 目标建筑未解锁/未配置则跳过该次交互
      * - 有奖励交互点结算奖励到 dest.rewards (是否添加到玩家身上由调用方决定)
      */
-    private List<DestinationInfo> planDestinations(GuestData guest, VisitorQuestCfg cfg, SimCasinoData casino, int rewardedCount, int unrewardedCount) {
-        int allCount = rewardedCount + unrewardedCount;
+    private List<DestinationInfo> planDestinations(GuestData guest, VisitorQuestCfg cfg, SimCasinoData casino, int rewardedCount) {
+        int allCount = rewardedCount * 2;
         if (allCount < 1) {
             return Collections.emptyList();
         }
