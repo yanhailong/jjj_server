@@ -809,7 +809,7 @@ public class SimMessageHandler implements GmListener {
 
                 int oldLevel = ctx.getCurrentCasino().getCasinoLevel();
                 ctx.getCurrentCasino().setCasinoLevel(cfg.getLevel());
-                ctx.getSimBaseData().addAllLevel(ctx.getCurrentCasino().getCasinoLevel() - oldLevel);
+                casinoService.addAllLevel(ctx, ctx.getCurrentCasino().getCasinoLevel() - oldLevel);
                 guideService.triggerSceneTotalLevelReached(ctx, ctx.getSimBaseData().getAllLevel(), true);
                 taskService.onConditionEvent(ctx,
                         SimConditionEventFactory.sceneLevel(ctx.getCurrentCasino().getCasinoId(),

@@ -9,6 +9,8 @@ package com.jjg.game.core.base.gameevent;
 public enum EGameEventType {
     // 玩家升级
     PLAYER_LEVEL("playerLevel"),    // 玩家升级
+    // 模拟经营所有场景等级之和变化
+    SIM_ALL_LEVEL("simAllLevel"),
     //玩家绑定手机号
     BIND_PHONE("bindPhone"),    // 玩家绑定手机号
     PLAYER_VIP_LEVEL("playerVipLevel"),    // 玩家vip等级

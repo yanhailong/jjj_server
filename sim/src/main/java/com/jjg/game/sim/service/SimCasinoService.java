@@ -4,6 +4,9 @@ import com.alibaba.fastjson.JSONObject;
 import com.jjg.game.alliance.service.AllianceCacheService;
 import com.jjg.game.alliance.service.AllianceHelpService;
 import com.jjg.game.core.base.condition.numeric.ActionConditionEvent;
+import com.jjg.game.core.base.gameevent.EGameEventType;
+import com.jjg.game.core.base.gameevent.GameEventManager;
+import com.jjg.game.core.base.gameevent.PlayerEvent;
 import com.jjg.game.core.constant.Code;
 import com.jjg.game.core.pb.KVInfo;
 import com.jjg.game.core.service.PlayerStatService;
@@ -70,6 +73,8 @@ public class SimCasinoService implements SimTaskStateReporter {
     private PlayerStatService playerStatService;
     @Autowired
     private SimCoopTaskService simCoopTaskService;
+    @Autowired
+    private GameEventManager gameEventManager;
 
 
     /**
@@ -275,7 +280,7 @@ public class SimCasinoService implements SimTaskStateReporter {
 
         updateCasinoUnlock(ctx, casinoId, unlockedGames);
         simSkillService.initUnlock(ctx, casinoId);
-        ctx.getSimBaseData().addAllLevel(casino.getCasinoLevel());
+        addAllLevel(ctx, casino.getCasinoLevel());
         simGuideService.triggerSceneTotalLevelReached(ctx, ctx.getSimBaseData().getAllLevel(), true);
         simTaskService.onConditionEvent(ctx,
                 SimConditionEventFactory.sceneLevel(casinoId, casino.getCasinoLevel()));
@@ -331,13 +336,32 @@ public class SimCasinoService implements SimTaskStateReporter {
         if (addedLevels <= 0) {
             return;
         }
-        ctx.getSimBaseData().addAllLevel(addedLevels);
+        addAllLevel(ctx, addedLevels);
         notifyCasinoUpgrade(ctx, casino, currentCfg, nextCfg);
         simGuideService.triggerSceneTotalLevelReached(ctx, ctx.getSimBaseData().getAllLevel(), true);
         simTaskService.onConditionEvent(ctx,
                 SimConditionEventFactory.sceneLevel(casino.getCasinoId(), casino.getCasinoLevel()));
         log.info("场景升级 playerId={},casinoId={},oldLevel={},newLevel={}",
                 casino.getPlayerId(), casino.getCasinoId(), oldLevel, casino.getCasinoLevel());
+    }
+
+    /**
+     * 修改模拟经营总等级并发布等级变化事件。
+     */
+    public void addAllLevel(SimPlayerContext ctx, int addedLevels) {
+        if (ctx == null || ctx.getSimBaseData() == null || addedLevels == 0) {
+            return;
+        }
+        int oldAllLevel = ctx.getSimBaseData().getAllLevel();
+        ctx.getSimBaseData().addAllLevel(addedLevels);
+        triggerAllLevelEvent(ctx, oldAllLevel);
+    }
+
+    private void triggerAllLevelEvent(SimPlayerContext ctx, int oldAllLevel) {
+        if (ctx.getPlayer() != null) {
+            gameEventManager.triggerEvent(new PlayerEvent(ctx.getPlayer(), EGameEventType.SIM_ALL_LEVEL,
+                    oldAllLevel, ctx.getSimBaseData().getAllLevel()));
+        }
     }
 
     private void notifyCasinoUpgrade(SimPlayerContext ctx, SimCasinoData casino,
