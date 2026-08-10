@@ -96,7 +96,6 @@ public class DouXianDealPhase extends BasePokerPhase<DouXianGameDataVo> {
             notify.selfZonePlacements = DouXianBuilder.buildZonePlacements(playerId, gameDataVo, true);
             notify.hasSelfSnapshot = true;
             broadcastBuilderToRoom(RoomMessageBuilder.newBuilder().sendPlayer(playerId, notify));
-
             log.info("斗仙牌发牌 round:{} playerId:{} 本次新到:{} 手牌共{}张:{}",
                     round, playerId, DouXianDataHelper.cfgIdsToString(gameDataVo, arrivedThisBeat),
                     hand.size(), DouXianDataHelper.cfgIdsToString(gameDataVo, hand));

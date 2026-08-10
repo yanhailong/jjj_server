@@ -113,5 +113,9 @@ public interface DouXianConstant {
         //通知进入弃牌/换牌阶段
         int NOTIFY_DOU_XIAN_DISCARD_START = BASE_MSG_PREFIX | 0x15;
         int NOTIFY_DOU_XIAN_MATCH_STATE = BASE_MSG_PREFIX | 0x16;
+        // Request a recommendation for one clicked zone.
+        int REQ_DOU_XIAN_RECOMMEND_CARDS = BASE_MSG_PREFIX | 0x17;
+        // Return the recommendation for the clicked zone.
+        int NOTIFY_DOU_XIAN_RECOMMEND_CARDS = BASE_MSG_PREFIX | 0x18;
     }
 }

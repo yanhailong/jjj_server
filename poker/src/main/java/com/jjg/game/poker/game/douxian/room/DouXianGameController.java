@@ -34,6 +34,7 @@ import com.jjg.game.poker.game.douxian.message.req.ReqDouXianConfirmPlay;
 import com.jjg.game.poker.game.douxian.message.req.ReqDouXianDiscard;
 import com.jjg.game.poker.game.douxian.message.req.ReqDouXianGoReady;
 import com.jjg.game.poker.game.douxian.message.req.ReqDouXianPlaceCard;
+import com.jjg.game.poker.game.douxian.message.req.ReqDouXianRecommendCards;
 import com.jjg.game.poker.game.douxian.message.req.ReqDouXianRecharge;
 import com.jjg.game.poker.game.douxian.message.bean.DouXianGrandSettlementPlayerInfo;
 import com.jjg.game.poker.game.douxian.message.resp.NotifyDouXianConcede;
@@ -45,6 +46,7 @@ import com.jjg.game.poker.game.douxian.message.resp.NotifyDouXianMatchState;
 import com.jjg.game.poker.game.douxian.message.resp.NotifyDouXianPlaceCardResult;
 import com.jjg.game.poker.game.douxian.message.resp.NotifyDouXianPlayerReady;
 import com.jjg.game.poker.game.douxian.message.resp.NotifyDouXianRecharge;
+import com.jjg.game.poker.game.douxian.message.resp.NotifyDouXianRecommendCards;
 import com.jjg.game.poker.game.douxian.message.resp.RepsDouXianRoomBaseInfo;
 import com.jjg.game.poker.game.douxian.room.data.DouXianGameDataVo;
 import com.jjg.game.poker.game.douxian.util.DouXianHandEvaluator;
@@ -1162,6 +1164,33 @@ public class DouXianGameController extends BasePokerGameController<DouXianGameDa
         notify.selfHandCardIds = getSelfHandCardIds(playerId);
         notify.selfZonePlacements = DouXianBuilder.buildZonePlacements(playerId, gameDataVo, true);
         notify.hasSelfSnapshot = true;
+        broadcastToPlayers(RoomMessageBuilder.newBuilder().sendPlayer(playerId, notify));
+    }
+
+    public void reqRecommendCards(long playerId, ReqDouXianRecommendCards req) {
+        NotifyDouXianRecommendCards notify = new NotifyDouXianRecommendCards();
+        notify.round = gameDataVo.getRound();
+        if (getCurrentGamePhase() != EGamePhase.PLAY_CART
+                || gameDataVo.getConcededPlayerIds().contains(playerId)
+                || gameDataVo.getConfirmedPlayerIds().contains(playerId)) {
+            notify.code = Code.FORBID;
+            broadcastToPlayers(RoomMessageBuilder.newBuilder().sendPlayer(playerId, notify));
+            return;
+        }
+
+        DouXianZone zone = DouXianZone.fromId(req.zoneId);
+        if (zone == null || !zone.isOpenAt(gameDataVo.getRound())) {
+            notify.code = Code.PARAM_ERROR;
+            broadcastToPlayers(RoomMessageBuilder.newBuilder().sendPlayer(playerId, notify));
+            return;
+        }
+
+        notify.zone = DouXianBuilder.buildRecommendedZone(playerId, gameDataVo, zone);
+        if (notify.zone == null) {
+            notify.code = Code.PARAM_ERROR;
+            log.warn("DouXian recommendation failed playerId:{} zone:{} handSize:{}",
+                    playerId, zone, gameDataVo.getHandCards().getOrDefault(playerId, List.of()).size());
+        }
         broadcastToPlayers(RoomMessageBuilder.newBuilder().sendPlayer(playerId, notify));
     }
 

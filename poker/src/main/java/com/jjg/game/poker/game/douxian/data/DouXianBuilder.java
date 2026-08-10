@@ -6,6 +6,7 @@ import com.jjg.game.poker.game.common.data.PlayerSeatInfo;
 import com.jjg.game.poker.game.douxian.constant.DouXianZone;
 import com.jjg.game.poker.game.douxian.message.bean.DouXianGrandSettlementPlayerInfo;
 import com.jjg.game.poker.game.douxian.message.bean.DouXianPlayerInfo;
+import com.jjg.game.poker.game.douxian.message.bean.DouXianRecommendZoneInfo;
 import com.jjg.game.poker.game.douxian.message.bean.DouXianZonePlacementInfo;
 import com.jjg.game.poker.game.douxian.room.DouXianGameController;
 import com.jjg.game.poker.game.douxian.room.data.DouXianGameDataVo;
@@ -78,6 +79,48 @@ public final class DouXianBuilder {
             zones.add(placement);
         }
         return zones;
+    }
+
+    /**
+     * Builds the best arrangement for one clicked zone without mutating real hand or zone data.
+     * Carried cards stay locked; current-round cards in this zone may be replaced by cards from hand.
+     */
+    public static DouXianRecommendZoneInfo buildRecommendedZone(long playerId, DouXianGameDataVo gameDataVo,
+                                                                 DouXianZone zone) {
+        int round = gameDataVo.getRound();
+        if (zone == null || round <= 0 || !zone.isOpenAt(round)) {
+            return null;
+        }
+
+        DouXianZoneCards zoneCards = gameDataVo.getPlayerZoneCards(playerId).get(zone);
+        List<Card> carried = DouXianDataHelper.toCards(gameDataVo, zoneCards.getCarriedCards());
+        List<Integer> candidateCfgIds = new ArrayList<>(
+                gameDataVo.getHandCards().getOrDefault(playerId, List.of()));
+        candidateCfgIds.addAll(zoneCards.getNewCards());
+
+        int need = zone.getCapacity() - carried.size();
+        if (need < 0 || candidateCfgIds.size() < need) {
+            return null;
+        }
+
+        List<Card> candidates = DouXianDataHelper.toCards(gameDataVo, candidateCfgIds);
+        DouXianHandResult best = DouXianHandEvaluator.findBestZone(gameDataVo, zone, carried, candidates, round);
+        if (best == null) {
+            return null;
+        }
+
+        List<Card> chosenCards = best.getCards().subList(carried.size(), best.getCards().size());
+        List<Integer> chosenCfgIds = chosenCards.stream()
+                .map(DouXianDataHelper::toCfgId)
+                .toList();
+        DouXianRecommendZoneInfo info = new DouXianRecommendZoneInfo();
+        info.zoneId = zone.getId();
+        info.cardIds = DouXianDataHelper.getClientCardIds(gameDataVo, chosenCfgIds);
+        info.lockedCardIds = DouXianDataHelper.getClientCardIds(gameDataVo, zoneCards.getCarriedCards());
+        info.handTypeName = best.getHandType().getDisplayName();
+        info.handTypeNameId = DouXianDataHelper.getHandTypeNameId(best.getHandType(), zone);
+        info.aetherValue = best.getAetherValue();
+        return info;
     }
 
     /**
