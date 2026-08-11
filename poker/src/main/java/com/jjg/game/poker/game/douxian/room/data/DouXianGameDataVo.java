@@ -7,12 +7,14 @@ import com.jjg.game.poker.game.douxian.constant.DouXianConstant;
 import com.jjg.game.poker.game.douxian.constant.DouXianZone;
 import com.jjg.game.poker.game.douxian.data.DouXianDataHelper;
 import com.jjg.game.poker.game.douxian.data.DouXianZoneCards;
+import com.jjg.game.room.constant.EGamePhase;
 import com.jjg.game.sampledata.bean.Room_ChessCfg;
 
 import java.util.ArrayList;
 import java.util.EnumMap;
 import java.util.HashMap;
 import java.util.HashSet;
+import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
@@ -116,6 +118,16 @@ public class DouXianGameDataVo extends BasePokerGameDataVo {
      */
     private final Map<Long, List<Long>> roundChangeList = new HashMap<>();
 
+    /** Actual game, round and phase times used by DouXian monitoring. */
+    private long kafkaGameStartTime;
+    private long kafkaRoundStartTime;
+    private long kafkaPhaseStartTime;
+    private EGamePhase kafkaCurrentPhase;
+    private final Map<String, Long> kafkaPhaseDurationMs = new LinkedHashMap<>();
+
+    /** Built at settlement and sent after the discard phase timing is complete. */
+    private DouXianKafkaRoundLog pendingKafkaRoundLog;
+
     public DouXianGameDataVo(Room_ChessCfg roomCfg) {
         super(roomCfg);
     }
@@ -210,6 +222,57 @@ public class DouXianGameDataVo extends BasePokerGameDataVo {
         return roundChangeList;
     }
 
+    public void beginKafkaGameTracking(long now) {
+        kafkaGameStartTime = now;
+        clearKafkaRoundTracking();
+    }
+
+    public void beginKafkaPhase(EGamePhase phase, long now) {
+        finishKafkaPhase(now);
+        if (kafkaRoundStartTime == 0) {
+            kafkaRoundStartTime = now;
+        }
+        kafkaCurrentPhase = phase;
+        kafkaPhaseStartTime = now;
+    }
+
+    public void finishKafkaPhase(long now) {
+        if (kafkaCurrentPhase == null || kafkaPhaseStartTime <= 0) {
+            return;
+        }
+        kafkaPhaseDurationMs.merge(kafkaCurrentPhase.name(), Math.max(0L, now - kafkaPhaseStartTime), Long::sum);
+        kafkaCurrentPhase = null;
+        kafkaPhaseStartTime = 0;
+    }
+
+    public long getKafkaGameStartTime() {
+        return kafkaGameStartTime;
+    }
+
+    public long getKafkaRoundStartTime() {
+        return kafkaRoundStartTime;
+    }
+
+    public Map<String, Long> getKafkaPhaseDurationMs() {
+        return new LinkedHashMap<>(kafkaPhaseDurationMs);
+    }
+
+    public DouXianKafkaRoundLog getPendingKafkaRoundLog() {
+        return pendingKafkaRoundLog;
+    }
+
+    public void setPendingKafkaRoundLog(DouXianKafkaRoundLog pendingKafkaRoundLog) {
+        this.pendingKafkaRoundLog = pendingKafkaRoundLog;
+    }
+
+    public void clearKafkaRoundTracking() {
+        kafkaRoundStartTime = 0;
+        kafkaPhaseStartTime = 0;
+        kafkaCurrentPhase = null;
+        kafkaPhaseDurationMs.clear();
+        pendingKafkaRoundLog = null;
+    }
+
     /**
      * 结算阶段每回合调用一次，记一笔这个玩家本回合的净输赢
      */
@@ -260,5 +323,7 @@ public class DouXianGameDataVo extends BasePokerGameDataVo {
         matchEndTime = 0;
         matchRobotFillTime = 0;
         roundChangeList.clear();
+        kafkaGameStartTime = 0;
+        clearKafkaRoundTracking();
     }
 }

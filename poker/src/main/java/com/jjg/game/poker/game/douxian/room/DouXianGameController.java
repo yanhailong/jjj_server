@@ -23,6 +23,7 @@ import com.jjg.game.poker.game.douxian.constant.DouXianConstant;
 import com.jjg.game.poker.game.douxian.constant.DouXianZone;
 import com.jjg.game.poker.game.douxian.data.DouXianBuilder;
 import com.jjg.game.poker.game.douxian.data.DouXianDataHelper;
+import com.jjg.game.poker.game.douxian.data.DouXianKafkaLogBuilder;
 import com.jjg.game.poker.game.douxian.data.DouXianZoneCards;
 import com.jjg.game.poker.game.douxian.autohandler.DouXianRobotHandler;
 import com.jjg.game.poker.game.douxian.gamephase.DouXianDealPhase;
@@ -36,7 +37,10 @@ import com.jjg.game.poker.game.douxian.message.req.ReqDouXianGoReady;
 import com.jjg.game.poker.game.douxian.message.req.ReqDouXianPlaceCard;
 import com.jjg.game.poker.game.douxian.message.req.ReqDouXianRecommendCards;
 import com.jjg.game.poker.game.douxian.message.req.ReqDouXianRecharge;
+import com.jjg.game.poker.game.douxian.message.req.ReqDouXianSettlementAnimationComplete;
 import com.jjg.game.poker.game.douxian.message.bean.DouXianGrandSettlementPlayerInfo;
+import com.jjg.game.poker.game.douxian.message.bean.DouXianPairSettlementInfo;
+import com.jjg.game.poker.game.douxian.message.bean.DouXianSpecialRuleInfo;
 import com.jjg.game.poker.game.douxian.message.resp.NotifyDouXianConcede;
 import com.jjg.game.poker.game.douxian.message.resp.NotifyDouXianConfirmResult;
 import com.jjg.game.poker.game.douxian.message.resp.NotifyDouXianDiscardResult;
@@ -50,6 +54,7 @@ import com.jjg.game.poker.game.douxian.message.resp.NotifyDouXianRecommendCards;
 import com.jjg.game.poker.game.douxian.message.resp.RepsDouXianRoomBaseInfo;
 import com.jjg.game.poker.game.douxian.room.data.DouXianGameDataVo;
 import com.jjg.game.poker.game.douxian.util.DouXianHandEvaluator;
+import com.jjg.game.poker.game.douxian.room.data.DouXianKafkaRoundLog;
 import com.jjg.game.poker.game.douxian.util.DouXianHandResult;
 import com.jjg.game.poker.game.texas.data.SeatInfo;
 import com.jjg.game.poker.manager.PokerRPCLinkManager;
@@ -61,6 +66,8 @@ import com.jjg.game.room.controller.GameController;
 import com.jjg.game.room.data.robot.GameRobotPlayer;
 import com.jjg.game.room.data.room.GamePlayer;
 import com.jjg.game.room.message.RoomMessageBuilder;
+import com.jjg.game.room.datatrack.DataTrackNameConstant;
+import com.jjg.game.room.datatrack.EDataTrackLogType;
 import com.jjg.game.room.robot.RobotScheduleUtil;
 import com.jjg.game.sampledata.GameDataManager;
 import com.jjg.game.sampledata.bean.ImmortalCardCfg;
@@ -113,6 +120,79 @@ public class DouXianGameController extends BasePokerGameController<DouXianGameDa
      */
     public boolean isCurrentPhase(IRoomPhase phase) {
         return currentGamePhase == phase;
+    }
+
+    public void trackKafkaPhaseStart(EGamePhase phase) {
+        gameDataVo.beginKafkaPhase(phase, System.currentTimeMillis());
+    }
+
+    public void prepareKafkaRoundLog(
+            Map<Long, Map<DouXianZone, DouXianHandResult>> playerZoneResults,
+            List<DouXianPairSettlementInfo> pairResults,
+            List<DouXianSpecialRuleInfo> specialRules,
+            Map<Long, Long> balanceAfter) {
+        gameDataVo.setPendingKafkaRoundLog(DouXianKafkaLogBuilder.buildRound(
+                this, playerZoneResults, pairResults, specialRules, balanceAfter));
+    }
+
+    @SuppressWarnings("unchecked")
+    private void flushKafkaRoundLog() {
+        long now = System.currentTimeMillis();
+        gameDataVo.finishKafkaPhase(now);
+        DouXianKafkaRoundLog roundLog = gameDataVo.getPendingKafkaRoundLog();
+        if (roundLog == null) {
+            log.warn("DouXian round ended without settlement Kafka data. roomId:{} round:{}",
+                    getRoom().getId(), gameDataVo.getRound());
+            gameDataVo.clearKafkaRoundTracking();
+            return;
+        }
+        long roundStartTime = gameDataVo.getKafkaRoundStartTime();
+        roundLog.gameData().put("roundStartTime", roundStartTime);
+        roundLog.gameData().put("roundEndTime", now);
+        roundLog.gameData().put("roundDurationMs",
+                roundStartTime > 0 ? now - roundStartTime : 0L);
+        roundLog.gameData().put("phaseDurationMs", gameDataVo.getKafkaPhaseDurationMs());
+        Object detailObject = roundLog.gameData().get("douXianInfo");
+        if (detailObject instanceof Map<?, ?> rawDetail) {
+            Map<String, Object> detail = (Map<String, Object>) rawDetail;
+            detail.put("roundStartTime", roundStartTime);
+            detail.put("roundEndTime", now);
+            detail.put("roundDurationMs", roundStartTime > 0 ? now - roundStartTime : 0L);
+            detail.put("phaseDurationMs", gameDataVo.getKafkaPhaseDurationMs());
+        }
+
+        if (!getGameDataTracker().isStarted()) {
+            log.warn("DouXian Kafka tracker was not started; restarting it. roomId:{} round:{}",
+                    getRoom().getId(), gameDataVo.getRound());
+            getGameDataTracker().start();
+        }
+        roundLog.gameData().forEach(getGameDataTracker()::addGameLogData);
+        for (Map.Entry<Long, Map<String, Object>> entry : roundLog.playerData().entrySet()) {
+            GamePlayer gamePlayer = gameDataVo.getGamePlayer(entry.getKey());
+            if (gamePlayer == null) {
+                continue;
+            }
+            Map<String, Object> stats = entry.getValue();
+            getGameDataTracker().addPlayerLogData(
+                    gamePlayer, DataTrackNameConstant.TOTAL_BET, stats.get("TotalBet"));
+            getGameDataTracker().addPlayerLogData(
+                    gamePlayer, DataTrackNameConstant.TOTAL_WIN, stats.get("TotalWin"));
+            getGameDataTracker().addPlayerLogData(
+                    gamePlayer, DataTrackNameConstant.INCOME, stats.get("Income"));
+            getGameDataTracker().addPlayerLogData(
+                    gamePlayer, DataTrackNameConstant.EFFECTIVE_BET, stats.get("EffectiveBet"));
+            getGameDataTracker().addPlayerLogData(
+                    gamePlayer, "BalanceBefore", stats.get("BalanceBefore"));
+            getGameDataTracker().addPlayerLogData(
+                    gamePlayer, "BalanceAfter", stats.get("BalanceAfter"));
+        }
+        getGameDataTracker().flushDataLog(EDataTrackLogType.SETTLEMENT);
+        log.info("DouXian Kafka settlement log sent. roomId:{} round:{} currencyId:{}",
+                getRoom().getId(), gameDataVo.getRound(), getGameTransactionItemId());
+        gameDataVo.clearKafkaRoundTracking();
+        // GameDataTracker only clears player data after a flush. Restart it so fields such as
+        // grandSettlement cannot leak into the next round or the next game.
+        getGameDataTracker().start();
     }
 
     /**
@@ -400,6 +480,7 @@ public class DouXianGameController extends BasePokerGameController<DouXianGameDa
         completeMatching();
         genPlayerSeatInfoList(gameDataVo.getSeatInfo(), gameDataVo.getPlayerSeatInfoList());
         DouXianDataHelper.shuffleNewDeck(gameDataVo);
+        gameDataVo.beginKafkaGameTracking(System.currentTimeMillis());
         // 开局前携带金币快照，DESIGN.md 6.2 "小额玩家保护"判定依据之一
         for (Long playerId : gameDataVo.getActivePlayerIds()) {
             gameDataVo.getGameStartBalance().put(playerId, getTransactionItemNum(playerId));
@@ -656,6 +737,42 @@ public class DouXianGameController extends BasePokerGameController<DouXianGameDa
     }
 
     /**
+     * Any active real client may release the settlement presentation barrier.
+     * Room messages are serialized, so later duplicate acknowledgements are ignored after the phase changes.
+     */
+    public void reqSettlementAnimationComplete(long playerId, ReqDouXianSettlementAnimationComplete req) {
+        if (!(currentGamePhase instanceof DouXianSettlementPhase settlementPhase)) {
+            log.info("DouXian ignored settlement animation ack outside settlement. playerId:{} requestRound:{} currentRound:{} phase:{}",
+                    playerId, req == null ? 0 : req.round, gameDataVo.getRound(), getCurrentGamePhase());
+            return;
+        }
+        if (req == null || req.round != gameDataVo.getRound()) {
+            log.warn("DouXian ignored settlement animation ack with mismatched round. playerId:{} requestRound:{} currentRound:{}",
+                    playerId, req == null ? 0 : req.round, gameDataVo.getRound());
+            return;
+        }
+        boolean active = gameDataVo.getActivePlayerIds().contains(playerId);
+        boolean robot = getGamePlayer(playerId) instanceof GameRobotPlayer;
+        if (!active || robot) {
+            log.warn("DouXian ignored settlement animation ack from invalid player. playerId:{} round:{} active:{} robot:{}",
+                    playerId, req.round, active, robot);
+            return;
+        }
+        settlementPhase.completeByClient(playerId, req.round);
+    }
+
+    public boolean hasOnlineActiveRealPlayer() {
+        for (Long playerId : gameDataVo.getActivePlayerIds()) {
+            GamePlayer gamePlayer = gameDataVo.getGamePlayer(playerId);
+            RoomPlayer roomPlayer = getRoomController().getRoomPlayer(playerId);
+            if (!(gamePlayer instanceof GameRobotPlayer) && roomPlayer != null && roomPlayer.isOnline()) {
+                return true;
+            }
+        }
+        return false;
+    }
+
+    /**
      * 弃牌阶段结束后决定：还有下一回合就补牌重开，第4回合结束就收尾。
      * TODO: 应该在这里弹真正的大结算界面(协议已就绪，见 NotifyDouXianGrandSettlement)，目前直接回到等待阶段。
      */
@@ -667,6 +784,7 @@ public class DouXianGameController extends BasePokerGameController<DouXianGameDa
             return;
         }
         log.info("========== 斗仙牌第{}回合结束，进入第{}回合 ==========", gameDataVo.getRound(), gameDataVo.getRound() + 1);
+        flushKafkaRoundLog();
         gameDataVo.nextRound();
         addPokerPhaseTimer(new DouXianDealPhase(this));
     }
@@ -684,6 +802,40 @@ public class DouXianGameController extends BasePokerGameController<DouXianGameDa
         broadcastToPlayers(RoomMessageBuilder.newBuilder().toAllPlayer().setData(notify));
         log.info("################ 斗仙牌大结算 roomCfgId:{} 结果:{} ################",
                 gameDataVo.getRoomCfg().getId(), playerResults);
+        if (gameDataVo.getPendingKafkaRoundLog() == null) {
+            gameDataVo.setPendingKafkaRoundLog(DouXianKafkaLogBuilder.buildGrandOnly(this));
+        }
+        DouXianKafkaRoundLog roundLog = gameDataVo.getPendingKafkaRoundLog();
+        long now = System.currentTimeMillis();
+        Map<String, Object> grandSettlement = new HashMap<>();
+        grandSettlement.put("gameStartTime", gameDataVo.getKafkaGameStartTime());
+        grandSettlement.put("gameEndTime", now);
+        grandSettlement.put("gameDurationMs", gameDataVo.getKafkaGameStartTime() > 0
+                ? now - gameDataVo.getKafkaGameStartTime() : 0L);
+        List<Map<String, Object>> grandPlayers = new ArrayList<>();
+        for (Map.Entry<Long, GamePlayer> entry : gameDataVo.getGamePlayerMap().entrySet()) {
+            long playerId = entry.getKey();
+            long balanceBefore = gameDataVo.getGameStartBalance()
+                    .getOrDefault(playerId, getTransactionItemNum(playerId));
+            long balanceAfter = getTransactionItemNum(playerId);
+            Map<String, Object> player = new HashMap<>();
+            player.put("playerId", playerId);
+            player.put("robot", entry.getValue() instanceof GameRobotPlayer);
+            player.put("balanceBefore", balanceBefore);
+            player.put("balanceAfter", balanceAfter);
+            player.put("income", balanceAfter - balanceBefore);
+            player.put("roundChanges",
+                    gameDataVo.getRoundChangeList().getOrDefault(playerId, List.of()));
+            player.put("conceded", gameDataVo.getConcededPlayerIds().contains(playerId));
+            grandPlayers.add(player);
+        }
+        grandSettlement.put("players", grandPlayers);
+        grandSettlement.put("playerResults", playerResults);
+        grandSettlement.put("endReason",
+                gameDataVo.getRound() >= DouXianConstant.Common.TOTAL_ROUND
+                        ? "NORMAL" : "ONLY_ONE_ACTIVE_PLAYER");
+        roundLog.gameData().put("grandSettlement", grandSettlement);
+        flushKafkaRoundLog();
         goBackWaitReadyPhase();
         gameDataVo.resetData(this);
         removeOfflineRealPlayersInWaitReady("大结算");
@@ -894,6 +1046,7 @@ public class DouXianGameController extends BasePokerGameController<DouXianGameDa
         genPlayerSeatInfoList(gameDataVo.getSeatInfo(), gameDataVo.getPlayerSeatInfoList());
         DouXianDataHelper.shuffleNewDeck(gameDataVo);
 
+        gameDataVo.beginKafkaGameTracking(System.currentTimeMillis());
         while (gameDataVo.getRound() < targetRound) {
             gameDataVo.nextRound();
         }

@@ -51,6 +51,8 @@ public interface DouXianConstant {
         int SETTLEMENT_SPECIAL_RULE_EFFECT_TIME = 1_500;
         //进入下一阶段前的消息传输和客户端协程调度缓冲
         int SETTLEMENT_EFFECT_BUFFER_TIME = 1_000;
+        int SETTLEMENT_ANIMATION_ACK_TIMEOUT = 60_000;
+        int SETTLEMENT_NO_ONLINE_CLIENT_WAIT_TIME = 1_000;
         //飞升动画停留
         int TIER_ADVANCE_EFFECT_TIME = 3_000;
         //即时充值复活倒计时
@@ -117,5 +119,6 @@ public interface DouXianConstant {
         int REQ_DOU_XIAN_RECOMMEND_CARDS = BASE_MSG_PREFIX | 0x17;
         // Return the recommendation for the clicked zone.
         int NOTIFY_DOU_XIAN_RECOMMEND_CARDS = BASE_MSG_PREFIX | 0x18;
+        int REQ_DOU_XIAN_SETTLEMENT_ANIMATION_COMPLETE = BASE_MSG_PREFIX | 0x19;
     }
 }

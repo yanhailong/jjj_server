@@ -13,6 +13,7 @@ import com.jjg.game.poker.game.douxian.message.req.ReqDouXianGoReady;
 import com.jjg.game.poker.game.douxian.message.req.ReqDouXianPlaceCard;
 import com.jjg.game.poker.game.douxian.message.req.ReqDouXianRecommendCards;
 import com.jjg.game.poker.game.douxian.message.req.ReqDouXianRecharge;
+import com.jjg.game.poker.game.douxian.message.req.ReqDouXianSettlementAnimationComplete;
 import com.jjg.game.poker.game.douxian.room.DouXianGameController;
 import com.jjg.game.room.controller.AbstractGameController;
 import com.jjg.game.room.data.room.GameDataVo;
@@ -113,6 +114,15 @@ public class DouXianMessageHandler {
         DouXianGameController controller = getController(playerController.playerId());
         if (controller != null) {
             controller.reqConcede(playerController.playerId(), req);
+        }
+    }
+
+    @Command(value = DouXianConstant.MsgBean.REQ_DOU_XIAN_SETTLEMENT_ANIMATION_COMPLETE)
+    public void reqSettlementAnimationComplete(PlayerController playerController,
+                                               ReqDouXianSettlementAnimationComplete req) {
+        DouXianGameController controller = getController(playerController.playerId());
+        if (controller != null) {
+            controller.reqSettlementAnimationComplete(playerController.playerId(), req);
         }
     }
 }

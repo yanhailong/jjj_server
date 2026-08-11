@@ -36,6 +36,9 @@ public class DouXianDiscardPhase extends BasePokerPhase<DouXianGameDataVo> {
     @Override
     public void phaseDoAction() {
         super.phaseDoAction();
+        if (gameController instanceof DouXianGameController controller) {
+            controller.trackKafkaPhaseStart(getGamePhase());
+        }
         gameDataVo.getDiscardedPlayerIds().clear();
         NotifyDouXianDiscardStart notify = new NotifyDouXianDiscardStart();
         notify.currentRound = gameDataVo.getRound();

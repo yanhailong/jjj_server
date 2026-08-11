@@ -8,6 +8,7 @@ import com.jjg.game.poker.game.douxian.data.DouXianBuilder;
 import com.jjg.game.poker.game.douxian.data.DouXianDataHelper;
 import com.jjg.game.poker.game.douxian.data.DouXianZoneCards;
 import com.jjg.game.poker.game.douxian.message.resp.NotifyDouXianDealCards;
+import com.jjg.game.poker.game.douxian.room.DouXianGameController;
 import com.jjg.game.poker.game.douxian.room.data.DouXianGameDataVo;
 import com.jjg.game.room.constant.EGamePhase;
 import com.jjg.game.room.controller.AbstractPhaseGameController;
@@ -50,6 +51,9 @@ public class DouXianDealPhase extends BasePokerPhase<DouXianGameDataVo> {
     @Override
     public void phaseDoAction() {
         super.phaseDoAction();
+        if (gameController instanceof DouXianGameController controller) {
+            controller.trackKafkaPhaseStart(getGamePhase());
+        }
         int round = gameDataVo.getRound();
         List<Integer> openZoneIds = new ArrayList<>();
         for (DouXianZone zone : DouXianZone.values()) {

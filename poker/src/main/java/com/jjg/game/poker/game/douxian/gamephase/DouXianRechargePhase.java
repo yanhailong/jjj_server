@@ -39,6 +39,9 @@ public class DouXianRechargePhase extends BasePokerPhase<DouXianGameDataVo> {
     @Override
     public void phaseDoAction() {
         super.phaseDoAction();
+        if (gameController instanceof DouXianGameController controller) {
+            controller.trackKafkaPhaseStart(getGamePhase());
+        }
         long overTime = System.currentTimeMillis() + DouXianConstant.Time.RECHARGE_TIME;
         DouXianDataHelper.DouXianRechargeCost cost =
                 DouXianDataHelper.getRechargeCost(gameController.getGameTransactionItemId());

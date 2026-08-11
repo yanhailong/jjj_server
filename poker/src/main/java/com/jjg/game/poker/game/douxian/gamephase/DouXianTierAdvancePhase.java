@@ -51,6 +51,7 @@ public class DouXianTierAdvancePhase extends BasePokerPhase<DouXianGameDataVo> {
         if (!(gameController instanceof DouXianGameController controller)) {
             return;
         }
+        controller.trackKafkaPhaseStart(getGamePhase());
         int round = gameDataVo.getRound();
         List<Integer> allDiscardedToPool = new ArrayList<>();
         List<DouXianPlayerInfo> playerInfos = new ArrayList<>();

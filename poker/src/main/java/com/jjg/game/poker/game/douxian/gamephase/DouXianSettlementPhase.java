@@ -45,7 +45,8 @@ import java.util.Map;
 public class DouXianSettlementPhase extends BasePokerPhase<DouXianGameDataVo> {
 
     private List<Long> needRechargePlayerIds = List.of();
-    private int settlementEffectTime = DouXianConstant.Time.SETTLEMENT_EFFECT_BUFFER_TIME;
+    private int settlementEffectTime = DouXianConstant.Time.SETTLEMENT_ANIMATION_ACK_TIMEOUT;
+    private boolean finished;
 
     public DouXianSettlementPhase(AbstractPhaseGameController<Room_ChessCfg, DouXianGameDataVo> gameController) {
         super(gameController);
@@ -63,6 +64,9 @@ public class DouXianSettlementPhase extends BasePokerPhase<DouXianGameDataVo> {
 
     @Override
     public void phaseDoAction() {
+        if (gameController instanceof DouXianGameController douXianController) {
+            douXianController.trackKafkaPhaseStart(getGamePhase());
+        }
         if (!(gameController instanceof BasePokerGameController<DouXianGameDataVo> controller)) {
             super.phaseDoAction();
             return;
@@ -189,13 +193,22 @@ public class DouXianSettlementPhase extends BasePokerPhase<DouXianGameDataVo> {
                 .toList();
         broadcastMsgToRoom(notify);
 
-        int specialRuleCount = round < DouXianConstant.Common.TOTAL_ROUND
-                ? detectSpecialRuleTriggers(pairResults) : 0;
-        settlementEffectTime = calculateSettlementEffectTime(openZones.size(), pairResults, specialRuleCount);
+        List<DouXianSpecialRuleInfo> specialRules = round < DouXianConstant.Common.TOTAL_ROUND
+                ? detectSpecialRuleTriggers(pairResults) : List.of();
+        int specialRuleCount = specialRules.size();
+        if (gameController instanceof DouXianGameController douXianController) {
+            douXianController.prepareKafkaRoundLog(
+                    playerZoneResults, pairResults, specialRules, balanceAfter);
+        }
+        needRechargePlayerIds = detectNeedRecharge(controller, activePlayerIds);
+        boolean waitForClientAck = gameController instanceof DouXianGameController douXianController
+                && douXianController.hasOnlineActiveRealPlayer();
+        settlementEffectTime = waitForClientAck
+                ? DouXianConstant.Time.SETTLEMENT_ANIMATION_ACK_TIMEOUT
+                : DouXianConstant.Time.SETTLEMENT_NO_ONLINE_CLIENT_WAIT_TIME;
         super.phaseDoAction();
         log.info("斗仙牌结算表现等待 roomCfgId:{} round:{} openZoneCount:{} specialRuleCount:{} waitTime:{}ms",
                 gameDataVo.getRoomCfg().getId(), round, openZones.size(), specialRuleCount, settlementEffectTime);
-        needRechargePlayerIds = detectNeedRecharge(controller, activePlayerIds);
     }
 
     private int calculateSettlementEffectTime(int openZoneCount,
@@ -287,7 +300,7 @@ public class DouXianSettlementPhase extends BasePokerPhase<DouXianGameDataVo> {
     /**
      * 统计每个玩家本回合全胜了几个人、被几个人全胜，达到2人触发得证大道/隐忍渡劫。DESIGN.md 三
      */
-    private int detectSpecialRuleTriggers(List<DouXianPairSettlementInfo> pairResults) {
+    private List<DouXianSpecialRuleInfo> detectSpecialRuleTriggers(List<DouXianPairSettlementInfo> pairResults) {
         Map<Long, Integer> grandWinAsWinner = new HashMap<>();
         Map<Long, Integer> grandWinAsLoser = new HashMap<>();
         for (DouXianPairSettlementInfo pair : pairResults) {
@@ -338,7 +351,7 @@ public class DouXianSettlementPhase extends BasePokerPhase<DouXianGameDataVo> {
             notify.ruleInfos = ruleInfos;
             broadcastMsgToRoom(notify);
         }
-        return ruleInfos.size();
+        return ruleInfos;
     }
 
     /**
@@ -355,11 +368,35 @@ public class DouXianSettlementPhase extends BasePokerPhase<DouXianGameDataVo> {
         return result;
     }
 
-    @Override
-    public void phaseFinish() {
-        if (!(gameController instanceof DouXianGameController controller)) {
+    /**
+     * The first valid real-client acknowledgement releases the barrier. The timer calls the same
+     * idempotent path as a fallback, so duplicate acknowledgements and stale timer callbacks are safe.
+     */
+    public void completeByClient(long playerId, int round) {
+        if (!(gameController instanceof DouXianGameController controller)
+                || finished || !controller.isCurrentPhase(this)) {
             return;
         }
+        controller.removePokerPhaseTimer();
+        finishOnce(controller, "clientAck", playerId, round);
+    }
+
+    @Override
+    public void phaseFinish() {
+        if (!(gameController instanceof DouXianGameController controller)
+                || !controller.isCurrentPhase(this)) {
+            return;
+        }
+        finishOnce(controller, "timeout", 0L, gameDataVo.getRound());
+    }
+
+    private void finishOnce(DouXianGameController controller, String reason, long playerId, int round) {
+        if (finished) {
+            return;
+        }
+        finished = true;
+        log.info("DouXian settlement presentation barrier released. reason:{} playerId:{} round:{} roomId:{}",
+                reason, playerId, round, controller.getRoom().getId());
         if (gameDataVo.getRound() >= DouXianConstant.Common.TOTAL_ROUND) {
             controller.finishRoundCycle();
             return;
@@ -371,7 +408,6 @@ public class DouXianSettlementPhase extends BasePokerPhase<DouXianGameDataVo> {
             controller.addPokerPhaseTimer(new DouXianTierAdvancePhase(controller));
         }
     }
-
     @Override
     protected void robotActionOnPhaseStart(GameRobotPlayer gamePlayer) {
     }

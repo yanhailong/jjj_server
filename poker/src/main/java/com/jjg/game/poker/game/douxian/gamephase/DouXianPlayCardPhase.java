@@ -44,6 +44,9 @@ public class DouXianPlayCardPhase extends BasePokerPhase<DouXianGameDataVo> {
     @Override
     public void phaseDoAction() {
         super.phaseDoAction();
+        if (gameController instanceof DouXianGameController controller) {
+            controller.trackKafkaPhaseStart(getGamePhase());
+        }
         gameDataVo.getConfirmedPlayerIds().clear();
         gameDataVo.getHostingCancelledPlayerIdsThisPhase().clear();
         log.info("斗仙牌进入出牌阶段 round:{} 托管中玩家:{} 机器人和托管玩家会延迟自动摆牌，30s后未确认的会被强制托管",
