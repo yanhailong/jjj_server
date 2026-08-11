@@ -206,8 +206,8 @@ public class HallMessageHandler implements GmListener, ChooseWareListener, Choos
 
             if (ctx != null) {
                 res.level = ctx.getSimBaseData().getAllLevel();
+                res.exp = ctx.getCurrentCasino().getExp();
             }
-            res.exp = player.getExp();
 
             Account account = accountDao.queryAccountByPlayerId(playerController.playerId());
             if (account == null) {
