@@ -79,25 +79,25 @@ public class PlayerLevelPackManager implements GameEventListener, OrderGenerate,
     /**
      * 玩家参与等级礼包
      *
-     * @param player 玩家对象
+     * @param player   玩家对象
+     * @param allLevel 模拟经营所有场景等级之和
      */
-    public void targetGift(Player player) {
+    public void targetGift(Player player, int allLevel) {
         if (player == null) {
-            log.error("玩家等级变化时触发等级礼包为null");
+            log.error("模拟经营总等级变化时触发等级礼包，玩家为null");
             return;
         }
         if (!gameFunctionService.checkGameFunctionOpen(player, EFunctionType.LEVEL_GIFT, true, false)) {
-            log.info("玩家等级变化时触发等级礼包 未满足开启条件");
+            log.info("模拟经营总等级变化时触发等级礼包，未满足开启条件");
             return;
         }
-        long playerLevel = player.getLevel();
         long playerId = player.getId();
         List<PlayerLevelPackCfg> playerLevelPackCfgList = GameDataManager.getPlayerLevelPackCfgList();
         Map<Integer, PlayerLevelPackData> playerLevelPackData = playerLevelDao.getPlayerLevelPackData(playerId);
         List<PlayerLevelPackCfg> playerLevelPack = new ArrayList<>(playerLevelPackData.size());
         for (PlayerLevelPackCfg cfgBean : playerLevelPackCfgList) {
             //当等级比配置大且不包含在活动数据里面的添加
-            if (cfgBean instanceof PlayerLevelPackCfg cfg && playerLevelPackData.get(cfg.getId()) == null && playerLevel >= cfg.getPlayerlevel()) {
+            if (cfgBean instanceof PlayerLevelPackCfg cfg && playerLevelPackData.get(cfg.getId()) == null && allLevel >= cfg.getPlayerlevel()) {
                 playerLevelPack.add(cfg);
             }
         }
@@ -135,7 +135,7 @@ public class PlayerLevelPackManager implements GameEventListener, OrderGenerate,
                 playerLevelDao.saveAllPackData(playerId, playerLevelPackData);
             }
         } catch (Exception e) {
-            log.error("等级变化时修改玩家活动数据失败 playerId:{} playerLevel:{} ", playerId, playerLevel, e);
+            log.error("模拟经营总等级变化时修改玩家活动数据失败 playerId:{} allLevel:{} ", playerId, allLevel, e);
         } finally {
             if (lock) {
                 redisLock.tryUnlock(lockKey);
@@ -239,11 +239,13 @@ public class PlayerLevelPackManager implements GameEventListener, OrderGenerate,
     public <T extends GameEvent> void handleEvent(T gameEvent) {
         if (gameEvent instanceof PlayerEvent event) {
             if (event.getGameEventType() == EGameEventType.PLAYER_LEVEL) {
-                targetGift(event.getPlayer());
                 if (event.getNewlyValue() instanceof Integer newLevel &&
                         event.getEventChangeValue() instanceof Integer oldLevel) {
                     levelUp(event.getPlayer(), oldLevel, newLevel);
                 }
+            } else if (event.getGameEventType() == EGameEventType.SIM_ALL_LEVEL
+                    && event.getNewlyValue() instanceof Integer allLevel) {
+                targetGift(event.getPlayer(), allLevel);
             }
         }
 
@@ -318,7 +320,7 @@ public class PlayerLevelPackManager implements GameEventListener, OrderGenerate,
 
     @Override
     public List<EGameEventType> needMonitorEvents() {
-        return List.of(EGameEventType.PLAYER_LEVEL, EGameEventType.RECHARGE);
+        return List.of(EGameEventType.PLAYER_LEVEL, EGameEventType.SIM_ALL_LEVEL, EGameEventType.RECHARGE);
     }
 
 
