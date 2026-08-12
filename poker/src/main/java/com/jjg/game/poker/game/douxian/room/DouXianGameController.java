@@ -76,6 +76,7 @@ import com.jjg.game.sampledata.bean.WarehouseCfg;
 
 import java.util.ArrayList;
 import java.util.Collections;
+import java.util.EnumMap;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.LinkedHashSet;
@@ -1464,42 +1465,78 @@ public class DouXianGameController extends BasePokerGameController<DouXianGameDa
         }
         int round = gameDataVo.getRound();
         List<Integer> hand = gameDataVo.getHandCards().computeIfAbsent(playerId, k -> new ArrayList<>());
+        Map<DouXianZone, DouXianZoneCards> playerZones = gameDataVo.getPlayerZoneCards(playerId);
+
+        // 托管接管时必须把玩家本回合手动摆入的牌收回候选手牌重新组牌。
+        // 先在临时集合中完成三个区域的规划，全部成功后再一次性写回真实状态。
+        List<Integer> candidateHand = new ArrayList<>(hand);
         int totalNeed = 0;
         for (DouXianZone zone : DouXianZone.values()) {
             if (zone.isOpenAt(round)) {
-                totalNeed += Math.max(0, gameDataVo.getPlayerZoneCards(playerId).get(zone).remainingCapacity());
+                DouXianZoneCards zoneCards = playerZones.get(zone);
+                candidateHand.addAll(zoneCards.getNewCards());
+                totalNeed += zone.getCapacity() - zoneCards.getCarriedCards().size();
             }
         }
-        if (hand.size() < totalNeed) {
-            log.error("斗仙牌自动摆牌终止，手牌总数不足 playerId:{} round:{} totalNeed:{} handSize:{} currentPhase:{}",
-                    playerId, round, totalNeed, hand.size(), getCurrentGamePhase());
+        if (candidateHand.size() < totalNeed) {
+            log.error("斗仙牌自动摆牌终止，可移动牌总数不足 playerId:{} round:{} totalNeed:{} handSize:{} reclaimedNewCards:{} candidateSize:{} currentPhase:{}",
+                    playerId, round, totalNeed, hand.size(), candidateHand.size() - hand.size(),
+                    candidateHand.size(), getCurrentGamePhase());
             return false;
         }
+
+        Map<DouXianZone, List<Integer>> plannedNewCards = new EnumMap<>(DouXianZone.class);
+        List<Integer> remainingHand = new ArrayList<>(candidateHand);
         for (DouXianZone zone : List.of(DouXianZone.IMMORTAL, DouXianZone.SPIRIT, DouXianZone.MORTAL)) {
             if (!zone.isOpenAt(round)) {
                 continue;
             }
-            DouXianZoneCards zoneCards = gameDataVo.getPlayerZoneCards(playerId).get(zone);
-            int need = zoneCards.remainingCapacity();
+            DouXianZoneCards zoneCards = playerZones.get(zone);
+            int need = zone.getCapacity() - zoneCards.getCarriedCards().size();
             if (need <= 0) {
+                plannedNewCards.put(zone, List.of());
                 continue;
             }
-            if (hand.size() < need) {
-                log.error("斗仙牌托管摆牌手牌不足 playerId:{} zone:{} need:{} handSize:{}", playerId, zone, need, hand.size());
+            if (remainingHand.size() < need) {
+                log.error("斗仙牌托管摆牌规划失败 playerId:{} zone:{} need:{} candidateSize:{}",
+                        playerId, zone, need, remainingHand.size());
                 return false;
             }
             List<Card> carried = DouXianDataHelper.toCards(gameDataVo, zoneCards.getCarriedCards());
-            List<Card> candidates = DouXianDataHelper.toCards(gameDataVo, hand);
+            List<Card> candidates = DouXianDataHelper.toCards(gameDataVo, remainingHand);
             DouXianHandResult best = DouXianHandEvaluator.findBestZone(gameDataVo, zone, carried, candidates, round);
+            if (best == null || best.getCards().size() != zone.getCapacity()) {
+                log.error("斗仙牌托管摆牌规划失败 playerId:{} zone:{} need:{} bestSize:{}",
+                        playerId, zone, need, best == null ? -1 : best.getCards().size());
+                return false;
+            }
             List<Card> chosenNew = best.getCards().subList(carried.size(), best.getCards().size());
+            List<Integer> chosenCfgIds = new ArrayList<>(chosenNew.size());
             for (Card card : chosenNew) {
                 int cfgId = DouXianDataHelper.toCfgId(card);
-                hand.remove(Integer.valueOf(cfgId));
-                zoneCards.getNewCards().add(cfgId);
+                if (!remainingHand.remove(Integer.valueOf(cfgId))) {
+                    log.error("斗仙牌托管摆牌规划失败，选中的牌不在候选手牌 playerId:{} zone:{} cfgId:{} candidate:{}",
+                            playerId, zone, cfgId, DouXianDataHelper.cfgIdsToString(gameDataVo, remainingHand));
+                    return false;
+                }
+                chosenCfgIds.add(cfgId);
             }
-            log.info("斗仙牌自动摆牌(托管/机器人) playerId:{} zone:{} 候选手牌:{} 选中:{} 结果:{}({})",
+            plannedNewCards.put(zone, chosenCfgIds);
+            log.info("斗仙牌自动摆牌规划(托管/机器人) playerId:{} zone:{} 候选手牌:{} 选中:{} 结果:{}({})",
                     playerId, zone, DouXianDataHelper.cardsToString(candidates), DouXianDataHelper.cardsToString(chosenNew),
                     best.getHandType().getDisplayName(), best.getAetherValue());
+        }
+
+        // 原子提交：规划失败时，真实手牌和摆牌区域都不会发生变化。
+        hand.clear();
+        hand.addAll(remainingHand);
+        for (DouXianZone zone : DouXianZone.values()) {
+            if (!zone.isOpenAt(round)) {
+                continue;
+            }
+            DouXianZoneCards zoneCards = playerZones.get(zone);
+            zoneCards.getNewCards().clear();
+            zoneCards.getNewCards().addAll(plannedNewCards.getOrDefault(zone, List.of()));
             broadcastPlaceCardResult(playerId, zone, hand.size());
         }
         gameDataVo.getConfirmedPlayerIds().add(playerId);
