@@ -390,6 +390,11 @@ public class SimManager {
         return guideService.finishWithTriggers(simPlayerContextRegistry.getContext(playerId), guideId);
     }
 
+    /** 跳过整个引导组，并返回可能由条件8触发的后续引导组。 */
+    public SimGuideService.SkipGuideGroupResult onSkipGuideGroup(long playerId, int guideGroupId) {
+        return guideService.skipGroup(simPlayerContextRegistry.getContext(playerId), guideGroupId);
+    }
+
     /**
      * 延迟发送完成引导组后由条件8触发的新引导通知。
      * 状态在完成请求中立即生效；这里只延迟客户端通知，避免与上一组结束表现挤在一起。

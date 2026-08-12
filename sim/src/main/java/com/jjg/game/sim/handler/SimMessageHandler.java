@@ -110,6 +110,19 @@ public class SimMessageHandler implements GmListener {
         simManager.notifyGuideTriggersDelayed(playerController.playerId(), result.triggeredGuideGroupIds());
     }
 
+    /**
+     * 跳过整个新手引导组。
+     */
+    @Command(SimConstant.MsgBean.REQ_SKIP_GUIDE_GROUP)
+    public void reqSkipGuideGroup(PlayerController playerController, ReqSkipGuideGroup req) {
+        SimGuideService.SkipGuideGroupResult result =
+                simManager.onSkipGuideGroup(playerController.playerId(), req.guideGroupId);
+        // 先返回跳过结果，再延迟通知由条件8触发的下一引导组。
+        playerController.send(result.response());
+        simManager.notifyGuideTriggersDelayed(
+                playerController.playerId(), result.triggeredGuideGroupIds());
+    }
+
     //--------------------------Casino相关 begin--------------------------
 
     /**
