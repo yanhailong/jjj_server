@@ -11,6 +11,7 @@ import com.jjg.game.sim.logger.SimGuideLogger;
 import com.jjg.game.sim.manager.SimPlayerContextRegistry;
 import com.jjg.game.sim.pb.res.NotifyGuideTrigger;
 import com.jjg.game.sim.pb.res.ResFinishGuide;
+import com.jjg.game.sim.pb.res.ResSkipGuideGroup;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -210,6 +211,40 @@ public class SimGuideService implements ItemAddListener, ItemNotEnoughListener {
         return new FinishGuideResult(res, triggeredGroups);
     }
 
+    /**
+     * 玩家主动跳过整个引导组，将组内全部步骤置为完成，并正常触发依赖该组完成的条件8引导。
+     * 只允许跳过已经触发的引导组；重复请求按幂等成功处理。
+     */
+    public SkipGuideGroupResult skipGroup(SimPlayerContext ctx, int guideGroupId) {
+        ResSkipGuideGroup res = new ResSkipGuideGroup(Code.SUCCESS);
+        res.guideGroupId = guideGroupId;
+        List<Integer> guideIds = configService.guideIdsOfGroup(guideGroupId);
+        res.completedGuideIds = guideIds;
+        if (ctx == null || ctx.getSimBaseData() == null
+                || !configService.containsGroup(guideGroupId) || guideIds.isEmpty()) {
+            res.code = Code.PARAM_ERROR;
+            return new SkipGuideGroupResult(res, Collections.emptyList());
+        }
+        SimBaseData base = ctx.getSimBaseData();
+        if (!base.hasTriggeredGuideGroup(guideGroupId)) {
+            res.code = Code.FAIL;
+            return new SkipGuideGroupResult(res, Collections.emptyList());
+        }
+        String playerName = ctx.getPlayerController() == null
+                || ctx.getPlayerController().getPlayer() == null
+                ? "" : ctx.getPlayerController().getPlayer().getNickName();
+        for (int guideId : guideIds) {
+            if (base.completeGuideId(guideId)) {
+                guideLogger.playerCompleted(ctx.playerId(), playerName, guideId);
+            }
+        }
+        List<Integer> triggeredGroups = complete(ctx, guideGroupId, false);
+        ctx.setLastSaveTime(0);
+        log.info("玩家跳过整个新手引导组 playerId={},groupId={},guideIds={},triggeredGroups={}",
+                ctx.playerId(), guideGroupId, guideIds, triggeredGroups);
+        return new SkipGuideGroupResult(res, triggeredGroups);
+    }
+
     /** 发送已经完成状态计算的引导组触发通知。 */
     public void notifyTriggeredGroups(SimPlayerContext ctx, List<Integer> guideGroupIds) {
         if (ctx == null || ctx.getPlayerController() == null
@@ -388,5 +423,9 @@ public class SimGuideService implements ItemAddListener, ItemNotEnoughListener {
 
     /** 完成引导响应，以及本次完成后新触发但尚未通知的引导组。 */
     public record FinishGuideResult(ResFinishGuide response, List<Integer> triggeredGuideGroupIds) {
+    }
+
+    /** 跳过引导组响应，以及由本次组完成触发但尚未通知的后续引导组。 */
+    public record SkipGuideGroupResult(ResSkipGuideGroup response, List<Integer> triggeredGuideGroupIds) {
     }
 }

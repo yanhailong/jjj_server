@@ -229,6 +229,10 @@ public interface SimConstant {
 
         //通知场景升级
         int NOTIFY_CASINO_UPGRADE = BASE_MSG_PREFIX | 0x74;
+
+        //跳过整个新手引导组
+        int REQ_SKIP_GUIDE_GROUP = BASE_MSG_PREFIX | 0x75;
+        int RES_SKIP_GUIDE_GROUP = BASE_MSG_PREFIX | 0x76;
     }
 
     interface GuideCondition {

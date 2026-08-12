@@ -121,17 +121,47 @@ public class PokerRPCLinkManager {
     }
 
     private ClusterClient resolveSimClient(PokerSeasonAccount account) {
-        ClusterClient cached = account.getSimClient();
-        if (cached != null && clusterSystem.getClusterByPath(cached.marsNode.getNodePath()) != null) {
-            return cached;
+        ClusterClient client = account.getSimClient();
+        if (client == null || clusterSystem.getClusterByPath(client.marsNode.getNodePath()) == null) {
+            client = simNodeService.getSimClusterClient(account.getPlayerId(), account.getIp());
         }
-        ClusterClient client = simNodeService.getSimClusterClient(account.getPlayerId(), account.getIp());
-        if (client != null) {
-            account.setSimClient(client);
+        if (client == null) {
+            account.setSimClient(null);
+            return null;
         }
-        return client;
-    }
 
+        // 同步RPC不能直接使用刚创建但连接池尚未就绪的ClusterClient。
+        // getConnect()在连接池为空时只会异步发起连接并返回null；这里直接同步等待可用连接，
+        // 避免RpcClientService在clusterClient.getConnect().writeWithFuture处空指针。
+        try {
+            var connect = client.getConnectSync();
+            if (connect == null || !connect.isActive()) {
+                if (connect != null) {
+                    client.close(connect);
+                }
+                connect = client.getConnectSync();
+            }
+            if (connect == null || !connect.isActive()) {
+                account.setSimClient(null);
+                log.error("Poker获取SIM有效连接失败 playerId:{} nodePath:{}",
+                        account.getPlayerId(), client.marsNode.getNodePath());
+                return null;
+            }
+            account.setSimClient(client);
+            return client;
+        } catch (InterruptedException e) {
+            Thread.currentThread().interrupt();
+            account.setSimClient(null);
+            log.error("Poker等待SIM连接被中断 playerId:{} nodePath:{}",
+                    account.getPlayerId(), client.marsNode.getNodePath(), e);
+            return null;
+        } catch (Exception e) {
+            account.setSimClient(null);
+            log.error("Poker建立SIM连接异常 playerId:{} nodePath:{}",
+                    account.getPlayerId(), client.marsNode.getNodePath(), e);
+            return null;
+        }
+    }
     private void updateBalance(PokerSeasonAccount account, CommonResult<Long> result) {
         if (result.success() && result.data != null) {
             account.setBalance(result.data);

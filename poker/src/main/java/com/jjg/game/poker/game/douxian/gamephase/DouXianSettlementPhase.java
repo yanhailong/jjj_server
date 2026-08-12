@@ -139,7 +139,12 @@ public class DouXianSettlementPhase extends BasePokerPhase<DouXianGameDataVo> {
         DouXianSettlementCalculator.applyRoundCaps(allDebts, maxCap, minWinLimit,
                 gameDataVo.getGameStartBalance(), gameDataVo.getRoundStartBalance(), currentBalance);
 
-        // 第三步：封顶后的最终金额才是真实要转账的金额
+        // 第三步：封顶后的最终金额才是真实要转账的金额；同时按成功转账累计本回合净输赢，
+        // 大结算直接使用这份结果，不再通过余额前后差值反推。
+        Map<Long, Long> roundChanges = new HashMap<>();
+        for (Long playerId : activePlayerIds) {
+            roundChanges.put(playerId, 0L);
+        }
         for (int i = 0; i < allDebts.size(); i++) {
             DouXianZoneSettlementInfo debt = allDebts.get(i);
             long theoretical = theoreticalAmounts.get(i);
@@ -148,6 +153,9 @@ public class DouXianSettlementPhase extends BasePokerPhase<DouXianGameDataVo> {
             }
             if (!applyTransfer(controller, debt.winnerId, debt.loserId, debt.changeValue)) {
                 debt.changeValue = 0;
+            } else {
+                roundChanges.merge(debt.winnerId, debt.changeValue, Long::sum);
+                roundChanges.merge(debt.loserId, -debt.changeValue, Long::sum);
             }
             if (theoretical != debt.changeValue) {
                 log.info("斗仙牌结算封顶生效 zoneId:{} 赢家:{} 输家:{} 理论:{} -> 实际:{}(被裁减{})",
@@ -165,13 +173,11 @@ public class DouXianSettlementPhase extends BasePokerPhase<DouXianGameDataVo> {
         log.info("---------- 斗仙牌结算结束 round:{} 结算对数:{} 结算后金币:{} ----------",
                 round, pairResults.size(), balanceAfter);
 
-        // 大结算(DESIGN.md 8.12)要用的分回合输赢记账，用"回合开始时余额"跟"结算后余额"的差值即可，
-        // 不需要逐笔转账去累加——充值复活换的金币发生在结算之后(recharge阶段)，不会计入这里
+        // 大结算记录实际成功结算的净额；失败并完成回滚的债务已被置0，不计入明细。
         for (Long playerId : activePlayerIds) {
-            long before = gameDataVo.getRoundStartBalance().getOrDefault(playerId, balanceAfter.get(playerId));
-            gameDataVo.recordRoundChange(playerId, balanceAfter.get(playerId) - before);
+            gameDataVo.recordRoundChange(playerId, roundChanges.getOrDefault(playerId, 0L));
         }
-
+        log.info("斗仙牌本回合实际输赢 round:{} changes:{}", round, roundChanges);
         // 结算已经发生，此时把所有玩家的完整牌面一起带上，前端可以直接渲染亮牌动画，
         // 不用再从pairResults的两两对比数据里反推每个人到底摆了什么牌(selfView=true，
         // 这里是广播给所有人的"结算后"快照，跟摆牌阶段"只有自己能看全"的隐藏规则不冲突，见DESIGN.md 8.8)
