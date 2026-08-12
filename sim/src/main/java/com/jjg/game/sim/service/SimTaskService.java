@@ -10,6 +10,7 @@ import com.jjg.game.core.dao.CountDao;
 import com.jjg.game.core.data.*;
 import com.jjg.game.core.logger.TaskLogger;
 import com.jjg.game.core.service.CorePlayerService;
+import com.jjg.game.core.service.GameFunctionService;
 import com.jjg.game.core.service.PlayerPackService;
 import com.jjg.game.core.service.PlayerStatService;
 import com.jjg.game.core.task.db.TaskDetail;
@@ -76,6 +77,8 @@ public class SimTaskService {
     private SimMedalService simMedalService;
     @Autowired
     private TaskLogger taskLogger;
+    @Autowired
+    private GameFunctionService gameFunctionService;
     @Autowired
     private SimGuideService guideService;
     @Autowired
@@ -447,6 +450,7 @@ public class SimTaskService {
         //后台任务日志: 完成 (主线/成就类型由后台按 taskType 区分)
         taskLogger.completeTask(player.getId(), node.getConfigId());
         log.info("玩家[{}]完成 sim 任务[{}]", player.getId(), node.getConfigId());
+        gameFunctionService.notifyTaskFunctionOpen(player.getId(), List.of(cfg.getFunctionId()));
         if (cfg.getTaskType() == TaskConstant.TaskType.MAIN_LINE) {
             mainTaskLogger.completed(player.getId(), player.getNickName(), cfg.getId(),
                     conditionId, completedProgress, target, now);

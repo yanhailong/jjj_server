@@ -21,6 +21,8 @@ public class SeasonGemCfg extends BaseCfgBean {
 
   /** 流派 */
   protected int Genre;
+  /** 每天获取收益的时间上限（min） */
+  protected int MaxEarningTime;
   /** 属性提升 */
   protected int StatBoost;
   /** 金额解锁 */
@@ -41,6 +43,11 @@ public class SeasonGemCfg extends BaseCfgBean {
   /** 返回流派 */
   public int getGenre() {
     return Genre;
+  }
+
+  /** 返回每天获取收益的时间上限（min） */
+  public int getMaxEarningTime() {
+    return MaxEarningTime;
   }
 
   /** 返回属性提升 */

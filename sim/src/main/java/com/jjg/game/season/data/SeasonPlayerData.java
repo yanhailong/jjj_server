@@ -44,6 +44,9 @@ public class SeasonPlayerData extends AbstractData {
     private int dailyFreeGameUsed;
     private long lastMatchTime;
     private Map<Integer, Integer> equippedGems = new HashMap<>();
+    //当天各槽位宝石的在线收益时长 (key=slot:itemId, value=ms)，保留不足一分钟的余量
+    private int gemEarningDailyKey;
+    private Map<String, Long> dailyGemEarningMillis = new HashMap<>();
     private Map<Integer, Integer> shopPurchases = new HashMap<>();
     private Map<Integer, Integer> dailyShopPurchases = new HashMap<>();
     private Map<Integer, Integer> trialStars = new HashMap<>();
@@ -58,8 +61,6 @@ public class SeasonPlayerData extends AbstractData {
     private SeasonSettlement lastSettlement;
     private List<SeasonMatchRecord> matchHistory = new ArrayList<>();
     private List<String> processedMatchIds = new ArrayList<>();
-    //合成失败待结算态 (材料已在第一步托管扣除, 待玩家选择保留的宝石); 落库以便掉线/进程异常后重登补偿结算 (默认保留第一件)
-    private SeasonPendingCraft pendingCraft;
     //上次拉取跨节点待结算记录的时间; 内存态不落库 (登录后首次访问必拉)
     @Transient
     @JSONField(serialize = false, deserialize = false)
@@ -92,6 +93,8 @@ public class SeasonPlayerData extends AbstractData {
         resetDailyCounters();
         lastMatchTime = 0;
         getEquippedGems().clear();
+        gemEarningDailyKey = 0;
+        getDailyGemEarningMillis().clear();
         getShopPurchases().clear();
         getDailyShopPurchases().clear();
         getTrialStars().clear();
@@ -103,7 +106,6 @@ public class SeasonPlayerData extends AbstractData {
         matchOfflineTime = 0;
         getMatchHistory().clear();
         getProcessedMatchIds().clear();
-        pendingCraft = null;
         rankCacheTime = 0;
     }
 
@@ -217,6 +219,13 @@ public class SeasonPlayerData extends AbstractData {
         return equippedGems;
     }
     public void setEquippedGems(Map<Integer, Integer> equippedGems) { this.equippedGems = equippedGems == null ? new HashMap<>() : equippedGems; }
+    public int getGemEarningDailyKey() { return gemEarningDailyKey; }
+    public void setGemEarningDailyKey(int gemEarningDailyKey) { this.gemEarningDailyKey = gemEarningDailyKey; }
+    public Map<String, Long> getDailyGemEarningMillis() {
+        if (dailyGemEarningMillis == null) dailyGemEarningMillis = new HashMap<>();
+        return dailyGemEarningMillis;
+    }
+    public void setDailyGemEarningMillis(Map<String, Long> dailyGemEarningMillis) { this.dailyGemEarningMillis = dailyGemEarningMillis == null ? new HashMap<>() : dailyGemEarningMillis; }
     public Map<Integer, Integer> getShopPurchases() {
         if (shopPurchases == null) shopPurchases = new HashMap<>();
         return shopPurchases;
@@ -259,8 +268,6 @@ public class SeasonPlayerData extends AbstractData {
         return processedMatchIds;
     }
     public void setProcessedMatchIds(List<String> processedMatchIds) { this.processedMatchIds = processedMatchIds == null ? new ArrayList<>() : processedMatchIds; }
-    public SeasonPendingCraft getPendingCraft() { return pendingCraft; }
-    public void setPendingCraft(SeasonPendingCraft pendingCraft) { this.pendingCraft = pendingCraft; }
     @JSONField(serialize = false, deserialize = false)
     public long getLastPendingCheckTime() { return lastPendingCheckTime; }
     public void setLastPendingCheckTime(long lastPendingCheckTime) { this.lastPendingCheckTime = lastPendingCheckTime; }

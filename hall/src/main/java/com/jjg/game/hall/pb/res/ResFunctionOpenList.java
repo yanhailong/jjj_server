@@ -10,7 +10,7 @@ import java.util.List;
 
 /**
  * 返回开放的功能列表
- *
+ * 全量
  * @author 2CL
  */
 @ProtobufMessage(

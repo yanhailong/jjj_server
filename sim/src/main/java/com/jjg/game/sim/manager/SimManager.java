@@ -182,6 +182,9 @@ public class SimManager {
     public void onEnterSim(PlayerController playerController, boolean login) {
         try {
             SimPlayerContext ctx = createContext(playerController);
+            if (ctx.getLastGemEarningTime() == 0) {
+                ctx.setLastGemEarningTime(System.currentTimeMillis());
+            }
             //结算离线收益 (存 pendingOffline, 待进入 sim 界面时下发)
             if (login) {
                 buildingService.settleOfflineReward(ctx);
@@ -365,13 +368,13 @@ public class SimManager {
     public boolean onExitGame(long playerId, ExitType exitType) {
         SimPlayerContext ctx = this.simPlayerContextRegistry.getContext(playerId);
         if (ctx != null) {
-            ctx.getSimBaseData().setLastOfflineTime(System.currentTimeMillis());
+            long now = System.currentTimeMillis();
+            seasonService.stopGemEarnings(ctx, now);
+            ctx.getSimBaseData().setLastOfflineTime(now);
             //循环赛季对局中掉线: 记录离线时刻, 再次进入赛季时据此自动补完对局
             if (ctx.getSeasonPlayerData() != null) {
-                ctx.getSeasonPlayerData().markMatchOffline(System.currentTimeMillis());
+                ctx.getSeasonPlayerData().markMatchOffline(now);
             }
-            //未完成的失败合成: 掉线时默认保留第一件材料, 结算返还并清除待结算态 (返还失败则保留待结算态, 已落库待重登重试)
-            seasonService.autoSettleFailedCraft(ctx);
             exitSaveData(playerId);
             return true;
         }
@@ -503,9 +506,6 @@ public class SimManager {
             seasonData.setPlayerId(playerId);
         }
         ctx.setSeasonPlayerData(seasonData);
-        //进程异常/崩溃后重登补偿: 若存在未结算的失败合成(材料已托管扣除), 默认保留第一件返还
-        //须在 ensureCurrent(可能切季重置赛季态)之前, 保证跨赛季也能拿回应保留的宝石
-        seasonService.autoSettleFailedCraft(ctx);
         seasonLifecycleService.ensureCurrent(ctx, System.currentTimeMillis());
 
         this.simPlayerContextRegistry.putContext(ctx);

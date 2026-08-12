@@ -1,10 +1,12 @@
 package com.jjg.game.season.service;
 
 import com.jjg.game.common.utils.RandomUtils;
+import com.jjg.game.common.utils.TimeHelper;
 import com.jjg.game.common.utils.WeightRandom;
 import com.jjg.game.core.constant.AddType;
 import com.jjg.game.core.constant.Code;
 import com.jjg.game.core.data.CommonResult;
+import com.jjg.game.core.data.PlayerPack;
 import com.jjg.game.core.service.PlayerPackService;
 import com.jjg.game.sampledata.GameDataManager;
 import com.jjg.game.sampledata.bean.ItemCfg;
@@ -12,16 +14,20 @@ import com.jjg.game.sampledata.bean.SeasonGemCfg;
 import com.jjg.game.sampledata.bean.SeasonGemCraftCfg;
 import com.jjg.game.sampledata.bean.SeasonStartCfg;
 import com.jjg.game.sim.data.SimPlayerContext;
+import com.jjg.game.season.data.SeasonBatchCraftResult;
 import com.jjg.game.season.data.SeasonCraftResult;
-import com.jjg.game.season.data.SeasonPendingCraft;
 import com.jjg.game.season.data.SeasonPlayerData;
 import com.jjg.game.season.data.SeasonSlotsSessionData;
+import com.jjg.game.sim.listener.SimPlayerTickListener;
 import com.jjg.game.sim.service.SimAutoSaveService;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 
+import java.time.Instant;
+import java.time.LocalDate;
+import java.time.ZoneId;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.Comparator;
@@ -38,27 +44,31 @@ import java.util.function.IntPredicate;
  * <p>镶嵌为真转移：宝石从背包进入槽位，卸下/替换时再回到背包；背包与槽位互斥。</p>
  */
 @Service
-public class SeasonGemService {
+public class SeasonGemService implements SimPlayerTickListener {
     private static final Logger log = LoggerFactory.getLogger(SeasonGemService.class);
     private static final int SLOTS_PER_TYPE = 3;
     private static final int GEM_TYPE_COUNT = 3;
 
     private final SeasonConfigService configService;
+    private final SeasonEconomyService economyService;
     private final PlayerPackService playerPackService;
     private final SimAutoSaveService autoSaveService;
     private final IntPredicate successRoll;
 
     @Autowired
     public SeasonGemService(SeasonConfigService configService,
-                            PlayerPackService playerPackService, SimAutoSaveService autoSaveService) {
-        this(configService, playerPackService, autoSaveService,
+                            SeasonEconomyService economyService, PlayerPackService playerPackService,
+                            SimAutoSaveService autoSaveService) {
+        this(configService, economyService, playerPackService, autoSaveService,
                 RandomUtils::getRandomBoolean100);
     }
 
     public SeasonGemService(SeasonConfigService configService,
-                            PlayerPackService playerPackService, SimAutoSaveService autoSaveService,
+                            SeasonEconomyService economyService, PlayerPackService playerPackService,
+                            SimAutoSaveService autoSaveService,
                             IntPredicate successRoll) {
         this.configService = configService;
+        this.economyService = economyService;
         this.playerPackService = playerPackService;
         this.autoSaveService = autoSaveService;
         this.successRoll = successRoll;
@@ -71,6 +81,7 @@ public class SeasonGemService {
         }
         SeasonPlayerData data = ctx.getSeasonPlayerData();
         int currentItemId = data.getEquippedGems().getOrDefault(slot, 0);
+        settleOnlineEarnings(ctx, System.currentTimeMillis());
         if (itemId == 0) {
             if (currentItemId <= 0) {
                 return new CommonResult<>(Code.SUCCESS, Map.copyOf(data.getEquippedGems()));
@@ -228,22 +239,12 @@ public class SeasonGemService {
     }
 
     /**
-     * 合成第一步: 发起合成。
-     *
-     * <p>校验材料与赛季币后掷点，赛季币与全部材料在此立即扣除(无论成败)：赛季币锁定本次掷点、
-     * 避免失败后重复发起免费重掷；材料以"托管"方式先行扣除、避免两步之间被消耗或转移绕过失败消耗。
-     * 材料仅来自背包未镶嵌宝石。掷点成功则直接产出宝石；掷点失败则记入待结算态({@link SeasonPendingCraft})，
-     * 返回 success=false，等待玩家第二步通过 {@link #craftKeep} 选择保留的宝石
-     * (掉线/重登则由 {@link #autoSettleFailedCraft} 默认保留第一件)。</p>
+     * 发起并完成一次宝石合成。成功时产出宝石；失败时随机保留一种材料宝石，
+     * 通过净扣料一次完成消耗与返还。
      */
     public CommonResult<SeasonCraftResult> craft(SimPlayerContext ctx, List<Integer> itemIds) {
         SeasonPlayerData data = ctx.getSeasonPlayerData();
-        //存在未结算的失败合成时，必须先完成第二步选择，禁止重复发起
-        if (data.getPendingCraft() != null) {
-            log.warn("赛季宝石合成存在未完成的失败合成 playerId={}", ctx.playerId());
-            return new CommonResult<>(Code.REPEAT_OP);
-        }
-        CommonResult<CraftContext> resolved = resolveCraft(ctx, itemIds);
+        CommonResult<CraftContext> resolved = resolveCraft(ctx, itemIds, true);
         if (!resolved.success()) {
             return new CommonResult<>(resolved.code);
         }
@@ -255,126 +256,107 @@ public class SeasonGemService {
             return new CommonResult<>(Code.NOT_ENOUGH);
         }
 
-        boolean success = successRoll.test(craft.getMergeSuccessRate());
-        //赛季币与全部材料在发起时即扣除(成功/失败一致): 赛季币防重复掷取, 材料托管防两步之间绕过失败消耗
-        data.setSeasonCoin(data.getSeasonCoin() - craft.getMergeCost());
-        Map<Integer, Long> consumed = new HashMap<>(craftCtx.input);
-        if (!playerPackService.removeItems(ctx.getPlayer(), consumed, AddType.ITEM_EXCHANGE, "season-gem-craft").success()) {
-            data.setSeasonCoin(data.getSeasonCoin() + craft.getMergeCost());
-            log.warn("赛季宝石合成扣除材料失败 playerId={},quality={}", ctx.playerId(), craftCtx.quality);
-            return new CommonResult<>(Code.NOT_ENOUGH_ITEM);
+        CommonResult<CraftOutcome> rolled = rollCraft(craftCtx);
+        if (!rolled.success()) {
+            return new CommonResult<>(rolled.code);
+        }
+        int code = commitCraft(ctx, data, rolled.data.consumedItems, rolled.data.resultItems,
+                craft.getMergeCost(), "season-gem-craft");
+        return code == Code.SUCCESS
+                ? new CommonResult<>(Code.SUCCESS, rolled.data.result)
+                : new CommonResult<>(code);
+    }
+
+    /**
+     * 按请求开始时的背包快照批量合成指定品质。低品质产出不会在本次操作中继续参与高品质合成。
+     */
+    public CommonResult<SeasonBatchCraftResult> craftBatch(SimPlayerContext ctx, List<Integer> qualities) {
+        if (qualities == null || qualities.isEmpty()) {
+            return new CommonResult<>(Code.PARAM_ERROR);
+        }
+        List<Integer> selected = new ArrayList<>(new LinkedHashSet<>(qualities));
+        if (selected.stream().anyMatch(Objects::isNull)) {
+            return new CommonResult<>(Code.PARAM_ERROR);
+        }
+        selected.sort(Integer::compareTo);
+
+        Map<Integer, SeasonGemCraftCfg> crafts = new LinkedHashMap<>();
+        for (int quality : selected) {
+            SeasonGemCraftCfg craft = configService.craftForQuality(quality);
+            if (craft == null || craft.getCostAmount() <= 0 || craft.getMergeCost() < 0) {
+                log.warn("批量合成宝石品质配置错误 playerId={},quality={}", ctx.playerId(), quality);
+                return new CommonResult<>(Code.PARAM_ERROR);
+            }
+            crafts.put(quality, craft);
         }
 
-        SeasonCraftResult result = new SeasonCraftResult();
-        result.setSuccess(success);
-        if (!success) {
-            //失败: 材料已托管扣除, 记入待结算态, 等待第二步(或掉线/重登)选择保留的宝石后返还
-            data.setPendingCraft(new SeasonPendingCraft(new ArrayList<>(itemIds), craft.getFailKeepAmount()));
-            autoSaveService.enqueueSave(data);
-            return new CommonResult<>(Code.SUCCESS, result);
-        }
-
-        //成功: 材料已扣除, 产出宝石(产出异常则整体回滚材料与赛季币)
-        SeasonGemCfg output = chooseOutput(craftCtx.first, craftCtx.allSame, craft.getSuccessGem());
-        if (output == null) {
-            rollback(ctx, data, consumed, craft.getMergeCost());
-            log.warn("赛季宝石合成产出配置错误 playerId={},quality={}", ctx.playerId(), craftCtx.quality);
+        PlayerPack pack = playerPackService.getFromAllDB(ctx.playerId());
+        if (pack == null) {
             return new CommonResult<>(Code.NOT_FOUND);
         }
-        int count = outputCount(output.getId(), craft.getSuccessGem());
-        Map<Integer, Long> reward = Map.of(output.getItemId(), (long) count);
-        CommonResult<?> add = playerPackService.addItems(ctx.playerId(), reward, AddType.ITEM_EXCHANGE,
-                "season-gem-craft", true);
-        if (!add.success()) {
-            rollback(ctx, data, consumed, craft.getMergeCost());
-            log.warn("赛季宝石合成产出入账失败 playerId={},quality={},code={}",
-                    ctx.playerId(), craftCtx.quality, add.code);
-            return new CommonResult<>(add.code);
+        Map<Integer, Map<Integer, Long>> materialsByQuality = new LinkedHashMap<>();
+        selected.forEach(quality -> materialsByQuality.put(quality, new LinkedHashMap<>()));
+        configService.gems().stream()
+                .sorted(Comparator.comparingInt(SeasonGemCfg::getItemId))
+                .forEach(gem -> {
+                    Map<Integer, Long> materials = materialsByQuality.get(gemQuality(gem));
+                    long count = pack.getItemCount(gem.getItemId());
+                    if (materials != null && count > 0) {
+                        materials.put(gem.getItemId(), count);
+                    }
+                });
+
+        SeasonPlayerData data = ctx.getSeasonPlayerData();
+        BatchAccumulator batch = new BatchAccumulator();
+        boolean hasMaterials = false;
+        for (Map.Entry<Integer, SeasonGemCraftCfg> entry : crafts.entrySet()) {
+            SeasonGemCraftCfg craft = entry.getValue();
+            Map<Integer, Long> materials = materialsByQuality.get(entry.getKey());
+            long materialCount = materials.values().stream().mapToLong(Long::longValue).sum();
+            long possibleCrafts = materialCount / craft.getCostAmount();
+            if (possibleCrafts <= 0) {
+                continue;
+            }
+            hasMaterials = true;
+            long affordableCrafts = craft.getMergeCost() == 0
+                    ? possibleCrafts
+                    : (data.getSeasonCoin() - batch.totalCost) / craft.getMergeCost();
+            int craftLimit = (int) Math.min(Integer.MAX_VALUE, Math.min(possibleCrafts, affordableCrafts));
+            for (List<Integer> group : materialGroups(materials, craft.getCostAmount(), craftLimit)) {
+                CommonResult<CraftContext> resolved = resolveCraft(ctx, group, false);
+                if (!resolved.success()) {
+                    return new CommonResult<>(resolved.code);
+                }
+                CommonResult<CraftOutcome> rolled = rollCraft(resolved.data);
+                if (!rolled.success()) {
+                    return new CommonResult<>(rolled.code);
+                }
+                batch.add(rolled.data, craft.getMergeCost());
+            }
         }
-        result.setResultItemId(output.getItemId());
-        result.setResultCount(count);
-        autoSaveService.enqueueSave(data);
+        if (batch.craftCount == 0) {
+            return new CommonResult<>(hasMaterials ? Code.NOT_ENOUGH : Code.NOT_ENOUGH_ITEM);
+        }
+
+        int code = commitCraft(ctx, data, batch.consumedItems, batch.resultItems,
+                batch.totalCost, "season-gem-craft-batch");
+        if (code != Code.SUCCESS) {
+            return new CommonResult<>(code);
+        }
+        SeasonBatchCraftResult result = new SeasonBatchCraftResult();
+        result.setCraftCount(batch.craftCount);
+        result.setSuccessCount(batch.successCount);
+        result.setConsumedItems(batch.consumedItems);
+        result.setResultItems(batch.resultItems);
+        result.setFailKeepItems(batch.failKeepItems);
         return new CommonResult<>(Code.SUCCESS, result);
     }
 
     /**
-     * 合成第二步: 合成失败后选择保留的宝石并结算。
-     *
-     * <p>材料已在第一步托管扣除，此处只把玩家选择保留的宝石返还背包(赛季币不再扣除)。
-     * 返还成功返回实际保留的宝石道具ID；返还失败则保留待结算态并把错误码返回客户端供重试。</p>
+     * 校验合成材料并解析出合成上下文(材料构成、配置、品质等)，不含赛季币校验。
      */
-    public CommonResult<Integer> craftKeep(SimPlayerContext ctx, int keepItemId) {
-        SeasonPlayerData data = ctx.getSeasonPlayerData();
-        SeasonPendingCraft pending = data.getPendingCraft();
-        if (pending == null) {
-            log.warn("赛季宝石合成无待结算失败记录 playerId={}", ctx.playerId());
-            return new CommonResult<>(Code.NOT_FOUND);
-        }
-        if (!pending.getItemIds().contains(keepItemId)) {
-            log.warn("赛季宝石合成保留道具无效 playerId={},keepItemId={}", ctx.playerId(), keepItemId);
-            return new CommonResult<>(Code.PARAM_ERROR);
-        }
-        int code = settleFailedCraft(ctx, data, pending, keepItemId);
-        if (code != Code.SUCCESS) {
-            return new CommonResult<>(code);
-        }
-        return new CommonResult<>(Code.SUCCESS, keepItemId);
-    }
-
-    /**
-     * 自动结算未完成的失败合成: 默认保留材料中的第一件。
-     * 用于玩家掉线/登出({@code onExitGame})、以及进程异常/崩溃后玩家重登时补偿({@code createContextByPlayerId})。
-     * 返还失败时保留待结算态(已落库)，待下次重登再重试，避免永久损失应保留的宝石。
-     */
-    public void autoSettleFailedCraft(SimPlayerContext ctx) {
-        SeasonPlayerData data = ctx.getSeasonPlayerData();
-        if (data == null) {
-            return;
-        }
-        SeasonPendingCraft pending = data.getPendingCraft();
-        if (pending == null || pending.getItemIds().isEmpty()) {
-            return;
-        }
-        int keepItemId = pending.getItemIds().getFirst();
-        int code = settleFailedCraft(ctx, data, pending, keepItemId);
-        if (code == Code.SUCCESS) {
-            log.info("自动结算失败合成, 默认保留第一件 playerId={},keepItemId={}", ctx.playerId(), keepItemId);
-        } else {
-            log.warn("自动结算失败合成未成功, 待结算态保留待重登重试 playerId={},keepItemId={},code={}",
-                    ctx.playerId(), keepItemId, code);
-        }
-    }
-
-    /**
-     * 结算一次失败合成: 把玩家保留的宝石按 keepAmount 返还背包(其余材料已在第一步托管扣除，不再重复扣除)。
-     * 返还量按本次材料中该宝石的持有量截断。
-     * <p>仅在返还成功后清除待结算态；返还失败(如背包锁/存储异常)则保留待结算态供后续重试，避免玩家永久损失应保留的宝石。</p>
-     *
-     * @return 结算结果码；{@link Code#SUCCESS} 表示已返还并清除待结算态，其它为返还失败对应的错误码。
-     */
-    private int settleFailedCraft(SimPlayerContext ctx, SeasonPlayerData data,
-                                  SeasonPendingCraft pending, int keepItemId) {
-        List<Integer> materials = pending.getItemIds();
-        int held = Collections.frequency(materials, keepItemId);
-        long keepCount = Math.min(pending.getKeepAmount(), held);
-        if (keepCount > 0) {
-            CommonResult<?> add = playerPackService.addItems(ctx.playerId(), Map.of(keepItemId, keepCount),
-                    AddType.ITEM_EXCHANGE, "season-gem-craft", true);
-            if (!add.success()) {
-                log.warn("赛季宝石合成失败返还宝石失败, 保留待结算态待重试 playerId={},keepItemId={},keepCount={},code={}",
-                        ctx.playerId(), keepItemId, keepCount, add.code);
-                return add.code;
-            }
-        }
-        data.setPendingCraft(null);
-        autoSaveService.enqueueSave(data);
-        return Code.SUCCESS;
-    }
-
-    /**
-     * 校验合成材料并解析出合成上下文(材料构成、配置、品质等)，不含赛季币校验。仅第一步发起合成使用。
-     */
-    private CommonResult<CraftContext> resolveCraft(SimPlayerContext ctx, List<Integer> itemIds) {
+    private CommonResult<CraftContext> resolveCraft(SimPlayerContext ctx, List<Integer> itemIds,
+                                                     boolean checkItems) {
         if (itemIds == null || itemIds.isEmpty()) {
             log.warn("赛季宝石合成参数为空 playerId={}", ctx.playerId());
             return new CommonResult<>(Code.PARAM_ERROR);
@@ -403,7 +385,7 @@ public class SeasonGemService {
             allSame &= itemId == first.getItemId();
             input.merge(itemId, 1L, Long::sum);
         }
-        if (!playerPackService.checkHasItems(ctx.getPlayerController().getPlayer(), input)) {
+        if (checkItems && !playerPackService.checkHasItems(ctx.getPlayerController().getPlayer(), input)) {
             log.warn("赛季宝石合成道具不足 playerId={},quality={},count={}",
                     ctx.playerId(), quality, itemIds.size());
             return new CommonResult<>(Code.NOT_ENOUGH_ITEM);
@@ -411,9 +393,211 @@ public class SeasonGemService {
         return new CommonResult<>(Code.SUCCESS, new CraftContext(quality, craft, first, allSame, input));
     }
 
+    private CommonResult<CraftOutcome> rollCraft(CraftContext craftCtx) {
+        SeasonGemCraftCfg craft = craftCtx.craft;
+        boolean success = successRoll.test(craft.getMergeSuccessRate());
+        SeasonCraftResult result = new SeasonCraftResult();
+        result.setSuccess(success);
+        Map<Integer, Long> consumed = new HashMap<>(craftCtx.input);
+        Map<Integer, Long> rewards = new HashMap<>();
+        Map<Integer, Long> kept = new HashMap<>();
+        if (!success) {
+            int keepItemId = RandomUtils.randomEle(new ArrayList<>(expandItems(craftCtx.input)));
+            long keepCount = Math.min(Math.max(0, craft.getFailKeepAmount()), consumed.get(keepItemId));
+            consumed.computeIfPresent(keepItemId,
+                    (itemId, count) -> count > keepCount ? count - keepCount : null);
+            if (keepCount > 0) {
+                kept.put(keepItemId, keepCount);
+            }
+            result.setFailKeepItemId(keepItemId);
+            return new CommonResult<>(Code.SUCCESS, new CraftOutcome(result, consumed, rewards, kept));
+        }
+
+        SeasonGemCfg output = chooseOutput(craftCtx.first, craftCtx.allSame, craft.getSuccessGem());
+        if (output == null) {
+            log.warn("赛季宝石合成产出配置错误 quality={}", craftCtx.quality);
+            return new CommonResult<>(Code.NOT_FOUND);
+        }
+        int count = outputCount(output.getId(), craft.getSuccessGem());
+        rewards.put(output.getItemId(), (long) count);
+        result.setResultItemId(output.getItemId());
+        result.setResultCount(count);
+        return new CommonResult<>(Code.SUCCESS, new CraftOutcome(result, consumed, rewards, kept));
+    }
+
+    private int commitCraft(SimPlayerContext ctx, SeasonPlayerData data, Map<Integer, Long> consumed,
+                            Map<Integer, Long> rewards, long coinCost, String desc) {
+        if (data.getSeasonCoin() < coinCost) {
+            return Code.NOT_ENOUGH;
+        }
+        if (!consumed.isEmpty()) {
+            CommonResult<?> remove = playerPackService.removeItems(ctx.getPlayer(), consumed,
+                    AddType.ITEM_EXCHANGE, desc);
+            if (!remove.success()) {
+                log.warn("赛季宝石合成扣除材料失败 playerId={},code={}", ctx.playerId(), remove.code);
+                return remove.code;
+            }
+        }
+        if (!rewards.isEmpty()) {
+            CommonResult<?> add = playerPackService.addItems(ctx.playerId(), rewards,
+                    AddType.ITEM_EXCHANGE, desc, true);
+            if (!add.success()) {
+                rollbackItems(ctx, consumed, desc);
+                log.warn("赛季宝石合成产出入账失败 playerId={},code={}", ctx.playerId(), add.code);
+                return add.code;
+            }
+        }
+        data.setSeasonCoin(data.getSeasonCoin() - coinCost);
+        autoSaveService.enqueueSave(data);
+        return Code.SUCCESS;
+    }
+
+    private List<List<Integer>> materialGroups(Map<Integer, Long> materials, int costAmount, int limit) {
+        if (limit <= 0) {
+            return List.of();
+        }
+        Map<Integer, Long> remaining = new LinkedHashMap<>(materials);
+        List<List<Integer>> groups = new ArrayList<>(limit);
+        for (Map.Entry<Integer, Long> entry : remaining.entrySet()) {
+            long sameGroups = Math.min(entry.getValue() / costAmount, limit - groups.size());
+            for (long i = 0; i < sameGroups; i++) {
+                groups.add(new ArrayList<>(Collections.nCopies(costAmount, entry.getKey())));
+            }
+            entry.setValue(entry.getValue() - sameGroups * costAmount);
+            if (groups.size() == limit) {
+                return groups;
+            }
+        }
+
+        List<Integer> mixed = expandItems(remaining);
+        for (int offset = 0; offset + costAmount <= mixed.size() && groups.size() < limit;
+             offset += costAmount) {
+            groups.add(new ArrayList<>(mixed.subList(offset, offset + costAmount)));
+        }
+        return groups;
+    }
+
+    private List<Integer> expandItems(Map<Integer, Long> items) {
+        List<Integer> result = new ArrayList<>();
+        items.forEach((itemId, count) -> {
+            for (long i = 0; i < count; i++) {
+                result.add(itemId);
+            }
+        });
+        return result;
+    }
+
+    @Override
+    public void onTick(SimPlayerContext ctx, long now) {
+        settleOnlineEarnings(ctx, now);
+    }
+
     /**
-     * 一次合成解析出的上下文，供发起与保留两步复用。
+     * 结算所有已镶嵌宝石新增的整分钟在线收益。同一次 tick 先聚合再统一入账，
+     * 不逐宝石调用经济入口，也不在分钟 tick 中主动写库。
      */
+    void settleOnlineEarnings(SimPlayerContext ctx, long now) {
+        if (ctx == null || ctx.getSeasonPlayerData() == null) {
+            return;
+        }
+        if (ctx.getPlayerController() == null) {
+            ctx.setLastGemEarningTime(0);
+            return;
+        }
+
+        SeasonPlayerData data = ctx.getSeasonPlayerData();
+        long last = ctx.getLastGemEarningTime();
+        if (last <= 0) {
+            prepareEarningDay(data, dailyKey(Math.addExact(now, data.getGmTimeOffset())));
+            ctx.setLastGemEarningTime(now);
+            return;
+        }
+        if (now <= last) {
+            return;
+        }
+
+        long reward = 0;
+        long segmentStart = last;
+        long offset = data.getGmTimeOffset();
+        ZoneId zone = ZoneId.systemDefault();
+        while (segmentStart < now) {
+            long seasonTime = Math.addExact(segmentStart, offset);
+            LocalDate date = Instant.ofEpochMilli(seasonTime).atZone(zone).toLocalDate();
+            prepareEarningDay(data, dailyKey(date));
+
+            long nextDaySystemTime = Math.subtractExact(
+                    date.plusDays(1).atStartOfDay(zone).toInstant().toEpochMilli(), offset);
+            long segmentEnd = Math.min(now, nextDaySystemTime);
+            if (segmentEnd <= segmentStart) {
+                break;
+            }
+            reward = Math.addExact(reward, accrue(data, segmentEnd - segmentStart));
+            segmentStart = segmentEnd;
+        }
+        ctx.setLastGemEarningTime(now);
+        if (reward > 0) {
+            economyService.addEarnedCoin(ctx, reward);
+        }
+    }
+
+    /** 登出前结清在线时段并清空游标，防止快速重登复活内存上下文时把离线间隔算入。 */
+    void stopOnlineEarnings(SimPlayerContext ctx, long now) {
+        settleOnlineEarnings(ctx, now);
+        if (ctx != null) {
+            ctx.setLastGemEarningTime(0);
+        }
+    }
+
+    private long accrue(SeasonPlayerData data, long elapsed) {
+        if (elapsed <= 0 || data.getEquippedGems().isEmpty()) {
+            return 0;
+        }
+        long reward = 0;
+        Map<String, Long> earningMillis = data.getDailyGemEarningMillis();
+        for (Map.Entry<Integer, Integer> entry : data.getEquippedGems().entrySet()) {
+            SeasonGemCfg cfg = configService.gemByItemId(entry.getValue());
+            if (cfg == null || cfg.getMaxEarningTime() <= 0 || cfg.getStatBoost() <= 0) {
+                continue;
+            }
+            long maxMillis = Math.multiplyExact((long) cfg.getMaxEarningTime(), TimeHelper.ONE_MINUTE_OF_MILLIS);
+            String earningKey = entry.getKey() + ":" + entry.getValue();
+            long oldMillis = Math.max(0, Math.min(earningMillis.getOrDefault(earningKey, 0L), maxMillis));
+            long newMillis = oldMillis + Math.min(elapsed, maxMillis - oldMillis);
+            if (newMillis == oldMillis) {
+                continue;
+            }
+            earningMillis.put(earningKey, newMillis);
+            long newMinutes = newMillis / TimeHelper.ONE_MINUTE_OF_MILLIS;
+            long oldMinutes = oldMillis / TimeHelper.ONE_MINUTE_OF_MILLIS;
+            reward = Math.addExact(reward,
+                    Math.multiplyExact(newMinutes - oldMinutes, (long) cfg.getStatBoost()));
+        }
+        return reward;
+    }
+
+    private void prepareEarningDay(SeasonPlayerData data, int dailyKey) {
+        if (data.getGemEarningDailyKey() == dailyKey) {
+            return;
+        }
+        data.setGemEarningDailyKey(dailyKey);
+        data.getDailyGemEarningMillis().clear();
+    }
+
+    private static int dailyKey(long time) {
+        return dailyKey(Instant.ofEpochMilli(time).atZone(ZoneId.systemDefault()).toLocalDate());
+    }
+
+    private static int dailyKey(LocalDate date) {
+        return date.getYear() * 10_000 + date.getMonthValue() * 100 + date.getDayOfMonth();
+    }
+
+    /** 生命周期先完成每日/跨季切换，宝石再按最新赛季状态结算。 */
+    @Override
+    public int order() {
+        return 110;
+    }
+
+    /** 一次合成解析出的上下文。 */
     private static final class CraftContext {
         final int quality;
         final SeasonGemCraftCfg craft;

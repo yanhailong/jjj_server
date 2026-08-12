@@ -19,6 +19,8 @@ import com.jjg.game.core.base.condition.numeric.PreparedCondition;
 import com.jjg.game.core.constant.AddType;
 import com.jjg.game.core.constant.Code;
 import com.jjg.game.core.data.PlayerController;
+import com.jjg.game.core.pb.NotifyOpenFunction;
+import com.jjg.game.core.service.GameFunctionService;
 import com.jjg.game.core.service.PlayerPackService;
 import com.jjg.game.sampledata.GameDataManager;
 import com.jjg.game.sampledata.bean.TaskCfg;
@@ -115,6 +117,8 @@ public class AllianceTaskService {
     private SocialSender socialSender;
     @Autowired
     private PlayerPackService playerPackService;
+    @Autowired
+    private GameFunctionService gameFunctionService;
     @Autowired
     private SimPlayerContextRegistry simPlayerContextRegistry;
     @Autowired
@@ -558,6 +562,11 @@ public class AllianceTaskService {
         notify.result = TASK_RESULT_FINISH;
         notify.cfgId = taken.getCfgId();
         socialSender.sendTo(playerId, notify);
+        NotifyOpenFunction functionNotify = gameFunctionService.buildTaskFunctionOpenNotify(
+                List.of(cfg.getFunctionId()));
+        if (functionNotify != null) {
+            socialSender.sendTo(playerId, functionNotify);
+        }
         log.info("完成联盟任务 playerId={},cfgId={},allianceId={}",
                 playerId, taken.getCfgId(), taken.getAllianceId());
         return true;

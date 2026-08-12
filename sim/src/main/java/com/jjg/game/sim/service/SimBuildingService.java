@@ -164,6 +164,13 @@ public class SimBuildingService implements SimPlayerTickListener, SimTaskStateRe
                 if (employee != null) {
                     res.managerLevel = employee.getLevel();
                 }
+            } else {
+                //找到雇员中是否有可以为该建筑设置为主管的
+                int employeeProfile = areaCfg == null ? 0 : areaCfg.getEmployeeProfile();
+                res.canSetManager = employeeProfile > 0 && ctx.getEmployeeMap().keySet().stream()
+                        .map(GameDataManager::getEmployeeProfileCfg)
+                        .filter(Objects::nonNull)
+                        .anyMatch(cfg -> cfg.getProfessionID() == employeeProfile);
             }
 
             log.info("返回建筑信息 playerId={},res={}", ctx.playerId(), JSON.toJSONString(res));

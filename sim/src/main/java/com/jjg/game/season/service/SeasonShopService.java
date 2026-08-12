@@ -44,6 +44,10 @@ public class SeasonShopService {
             log.warn("赛季商店配置不存在 playerId={},shopId={},phase={}", ctx.playerId(), shopId, data.getPhase());
             return new CommonResult<>(Code.NOT_FOUND);
         }
+        if (!cfg.getIsEnabled()) {
+            log.warn("赛季商店商品未开启 playerId={},shopId={},phase={}", ctx.playerId(), shopId, data.getPhase());
+            return new CommonResult<>(Code.FORBID);
+        }
         Map<Integer, Integer> purchaseCounters = cfg.getResetDaily()
                 ? data.getDailyShopPurchases() : data.getShopPurchases();
         int purchased = purchaseCounters.getOrDefault(shopId, 0);

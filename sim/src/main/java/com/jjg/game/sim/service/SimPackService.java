@@ -36,7 +36,7 @@ import java.util.Set;
 import java.util.function.Supplier;
 
 /**
- * sim 特殊资源（能量、知名度、曝光度、赛季币、勋章）的承载实现。
+ * sim 特殊资源（能量、知名度、曝光度、场景经验、赛季币、勋章）的承载实现。
  * <p>
  * 这些资源不存在背包里：玩家在本节点在线时改内存态（随 ctx 定时落库），不在本节点时直写持久化数据。
  *
@@ -53,6 +53,9 @@ public class SimPackService implements SpecialItemListener {
     private SimCasinoDao simCasinoDao;
     @Autowired
     private SimPlayerContextRegistry simPlayerContextRegistry;
+    @Lazy
+    @Autowired
+    private SimCasinoService simCasinoService;
     @Autowired
     private SeasonPlayerDao seasonPlayerDao;
     @Autowired
@@ -73,6 +76,7 @@ public class SimPackService implements SpecialItemListener {
         return itemId == SimConstant.Item.ID_POWER
                 || itemId == SimConstant.Item.ID_AWARENESS
                 || itemId == SimConstant.Item.ID_EXPOD
+                || itemId == SimConstant.Item.CASINO_EXP
                 || itemId == SimConstant.Item.ID_SEASON_COIN
                 || GameDataManager.getMedalListCfg(itemId) != null;
     }
@@ -105,6 +109,10 @@ public class SimPackService implements SpecialItemListener {
         if (itemId == SimConstant.Item.ID_AWARENESS) {
             SimCasinoData casino = getCurrentCasino(playerId, ctx);
             return casino == null ? 0 : casino.getAwareness();
+        }
+        if (itemId == SimConstant.Item.CASINO_EXP) {
+            SimCasinoData casino = getCurrentCasino(playerId, ctx);
+            return casino == null ? 0 : casino.getExp();
         }
         if (GameDataManager.getMedalListCfg(itemId) != null) {
             SimBaseData base = getBaseData(playerId, ctx);
@@ -157,6 +165,8 @@ public class SimPackService implements SpecialItemListener {
                 if (casino != null) {
                     casino.setAwareness(casino.getAwareness() + (int) count);
                 }
+            } else if (itemId == SimConstant.Item.CASINO_EXP) {  //场景经验
+                simCasinoService.addCasinoExp(ctx, count);
             } else if (itemId == SimConstant.Item.ID_EXPOD) {  //曝光度无承载, 丢弃
                 continue;
             } else if (GameDataManager.getMedalListCfg(itemId) != null) {  //勋章
@@ -196,12 +206,17 @@ public class SimPackService implements SpecialItemListener {
         int powerAdd = 0;
         int awarenessAdd = 0;
         long seasonCoinAdd = 0;
+        int casinoExpAdd = 0;
+
         List<Integer> medalIds = new ArrayList<>();
         for (Item item : items) {
             int itemId = item.getId();
             long count = item.getItemCount();
             if (count <= 0) {
                 continue;
+            }
+            if (itemId == SimConstant.Item.CASINO_EXP) {
+                casinoExpAdd += (int) count;
             }
             if (itemId == SimConstant.Item.ID_POWER) {
                 powerAdd += (int) count;
@@ -216,15 +231,17 @@ public class SimPackService implements SpecialItemListener {
         }
 
         //能量与勋章存于 SimBaseData; 知名度存于当前场景 SimCasinoData; 赛季币存于 SeasonPlayerData
-        boolean needBase = powerAdd > 0 || !medalIds.isEmpty();
-        SimBaseData base = needBase || awarenessAdd > 0 ? simPlayerGameDao.findById(playerId).orElse(null) : null;
-        if ((needBase || awarenessAdd > 0) && base == null) {
+        boolean needBase = powerAdd > 0 || !medalIds.isEmpty() || casinoExpAdd > 0 || awarenessAdd > 0;
+        SimBaseData base = needBase ? simPlayerGameDao.findById(playerId).orElse(null) : null;
+        if (needBase && base == null) {
             log.warn("离线发放sim资源失败, 无SimBaseData playerId={},items={}", playerId, items);
             return false;
         }
-        SimCasinoData casino = awarenessAdd > 0 ? findOfflineCasino(playerId, base.getCurrentCasinoId()) : null;
-        if (awarenessAdd > 0 && casino == null) {
-            log.warn("离线发放知名度失败, 无场景 playerId={},awareness={}", playerId, awarenessAdd);
+
+        boolean needCasino = awarenessAdd > 0 || casinoExpAdd > 0;
+        SimCasinoData casino = needCasino ? findOfflineCasino(playerId, base.getCurrentCasinoId()) : null;
+        if (needCasino && casino == null) {
+            log.warn("离线发放知名度或场景经验失败, 无场景 playerId={},awareness={},casinoExpAdd={}", playerId, awarenessAdd, casinoExpAdd);
             return false;
         }
         SeasonPlayerData seasonData = seasonCoinAdd > 0 ? seasonPlayerDao.findById(playerId).orElse(null) : null;
@@ -233,13 +250,14 @@ public class SimPackService implements SpecialItemListener {
             return false;
         }
 
-        if (needBase) {
+        if (needBase && (powerAdd > 0 || !medalIds.isEmpty())) {
             base.setPower(base.getPower() + powerAdd);
             medalIds.forEach(base::activeMedalId);
             simPlayerGameDao.save(base);
         }
         if (casino != null) {
             casino.setAwareness(casino.getAwareness() + awarenessAdd);
+            casino.setExp(casino.getExp() + casinoExpAdd);
             simCasinoDao.save(casino);
         }
         if (seasonData != null) {
@@ -374,7 +392,7 @@ public class SimPackService implements SpecialItemListener {
     }
 
     /**
-     * 扣除特殊资源（曝光度与勋章无扣除承载）。
+     * 扣除特殊资源（曝光度、场景经验与勋章无扣除承载）。
      * <p>
      * 与入账同样按 sim 会话所在节点路由；确实离线才直写持久化数据 —— 入账支持离线，
      * 扣除也必须支持，否则离线发的混合奖励一旦背包侧失败就补偿不回来。

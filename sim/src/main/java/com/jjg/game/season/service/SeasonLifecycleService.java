@@ -51,6 +51,7 @@ public class SeasonLifecycleService implements SimPlayerTickListener {
     private final SeasonRankingService rankingService;
     private final PlayerPackService playerPackService;
     private final SeasonEconomyService economyService;
+    private final SeasonGemService gemService;
     private final MailService mailService;
     private final SimAutoSaveService autoSaveService;
     private final SimConfigCacheService simConfigCacheService;
@@ -59,7 +60,7 @@ public class SeasonLifecycleService implements SimPlayerTickListener {
     public SeasonLifecycleService(SeasonConfigService configService, CorePlayerService corePlayerService,
                                   SeasonPlayerDao seasonPlayerDao, SeasonRankingService rankingService,
                                   PlayerPackService playerPackService, SeasonEconomyService economyService,
-                                  MailService mailService, SimAutoSaveService autoSaveService,
+                                  SeasonGemService gemService, MailService mailService, SimAutoSaveService autoSaveService,
                                   SimConfigCacheService simConfigCacheService,
                                   ServerOpenTimeService serverOpenTimeService) {
         this.configService = configService;
@@ -68,6 +69,7 @@ public class SeasonLifecycleService implements SimPlayerTickListener {
         this.rankingService = rankingService;
         this.playerPackService = playerPackService;
         this.economyService = economyService;
+        this.gemService = gemService;
         this.mailService = mailService;
         this.autoSaveService = autoSaveService;
         this.simConfigCacheService = simConfigCacheService;
@@ -120,6 +122,11 @@ public class SeasonLifecycleService implements SimPlayerTickListener {
                 configService.definitions());
         boolean changed = !snapshot.seasonKey().equals(data.getSeasonKey());
         if (changed) {
+            if (data.getSeasonKey() != null) {
+                long earningEnd = Math.min(now, data.getEndTime());
+                gemService.settleOnlineEarnings(ctx,
+                        Math.subtractExact(earningEnd, data.getGmTimeOffset()));
+            }
             //切季前绕过节流强制消费一次待结算, 避免节流窗口内新到的记录被切季清理误删
             data.setLastPendingCheckTime(0);
             applyPendingSettlements(ctx, data, now);

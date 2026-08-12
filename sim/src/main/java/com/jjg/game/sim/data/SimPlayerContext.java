@@ -57,6 +57,8 @@ public class SimPlayerContext {
     private long visitTargetId;
     //上次联盟加速抵扣检查时间 (ms, 内存态; tick 内按玩家节流 Redis 访问)
     private long lastSpeedupCheckTime;
+    //赛季宝石在线收益计时游标 (ms, 内存态; 重登从 0 开始以排除离线时段)
+    private long lastGemEarningTime;
 
     public PlayerController getPlayerController() {
         return playerController;
@@ -269,6 +271,14 @@ public class SimPlayerContext {
 
     public void setLastSpeedupCheckTime(long lastSpeedupCheckTime) {
         this.lastSpeedupCheckTime = lastSpeedupCheckTime;
+    }
+
+    public long getLastGemEarningTime() {
+        return lastGemEarningTime;
+    }
+
+    public void setLastGemEarningTime(long lastGemEarningTime) {
+        this.lastGemEarningTime = lastGemEarningTime;
     }
 
     // ---------------------------------------------------------------------

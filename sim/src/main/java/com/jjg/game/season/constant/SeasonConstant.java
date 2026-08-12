@@ -60,8 +60,8 @@ public interface SeasonConstant {
 
         int NOTIFY_SEASON_TIER_UP = BASE_MSG_PREFIX | 0x21;
 
-        //合成失败后选择保留宝石 (合成第二步)
-        int REQ_SEASON_CRAFT_GEM_KEEP = BASE_MSG_PREFIX | 0x22;
-        int RES_SEASON_CRAFT_GEM_KEEP = BASE_MSG_PREFIX | 0x23;
+        //批量合成宝石
+        int REQ_SEASON_CRAFT_BATCH_GEM = BASE_MSG_PREFIX | 0x22;
+        int RES_SEASON_CRAFT_BATCH_GEM = BASE_MSG_PREFIX | 0x23;
     }
 }

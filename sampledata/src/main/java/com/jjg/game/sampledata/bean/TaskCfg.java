@@ -27,6 +27,8 @@ public class TaskCfg extends BaseCfgBean {
   protected int Duration;
   /** 解锁功能ID */
   protected int FunctionId;
+  /** 任务没跳转目标的提示 */
+  protected int JumpTips;
   /** 任务人数上下限 */
   protected List<Integer> MinandMax;
   /** 任务品质 */
@@ -72,6 +74,11 @@ public class TaskCfg extends BaseCfgBean {
   /** 返回解锁功能ID */
   public int getFunctionId() {
     return FunctionId;
+  }
+
+  /** 返回任务没跳转目标的提示 */
+  public int getJumpTips() {
+    return JumpTips;
   }
 
   /** 返回任务人数上下限 */

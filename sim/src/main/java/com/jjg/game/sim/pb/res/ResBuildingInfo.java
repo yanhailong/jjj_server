@@ -31,6 +31,8 @@ public class ResBuildingInfo extends AbstractResponse {
     public List<KVInfo> manageEmployeeFixBonus;
     @ProtoDesc("主管等级")
     public int managerLevel;
+    @ProtoDesc("是否有雇员可设置为主管")
+    public boolean canSetManager;
 
 
     public ResBuildingInfo(int code) {

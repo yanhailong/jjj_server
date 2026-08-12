@@ -109,7 +109,7 @@ public class SeasonConfigService {
 
     public List<SeasonShopCfg> shops(SeasonPhase phase) {
         int type = shopType(phase);
-        return shopConfigs().stream().filter(cfg -> cfg.getType() == type)
+        return shopConfigs().stream().filter(cfg -> cfg.getType() == type && cfg.getIsEnabled())
                 .sorted(Comparator.comparingInt(SeasonShopCfg::getOrder)).toList();
     }
 

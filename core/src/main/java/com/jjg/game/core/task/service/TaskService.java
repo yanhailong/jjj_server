@@ -9,6 +9,7 @@ import com.jjg.game.core.constant.PointsAwardType;
 import com.jjg.game.core.constant.TaskConstant;
 import com.jjg.game.core.logger.TaskLogger;
 import com.jjg.game.core.rpc.HallPointsAwardBridge;
+import com.jjg.game.core.service.GameFunctionService;
 import com.jjg.game.core.task.condition.AbstractTaskCondition;
 import com.jjg.game.core.task.db.TaskData;
 import com.jjg.game.core.task.db.TaskDataDao;
@@ -44,6 +45,7 @@ public class TaskService {
     private final RedissonClient redissonClient;
     private final TaskDataDao taskDataDao;
     private final RedisLock redisLock;
+    private final GameFunctionService gameFunctionService;
     @ClusterRpcReference()
     private HallPointsAwardBridge hallPointsAwardBridge;
 
@@ -56,11 +58,13 @@ public class TaskService {
     public TaskService(RedissonClient redissonClient,
                        TaskDataDao taskDataDao,
                        RedisLock redisLock,
-                       TaskLogger taskLogger) {
+                       TaskLogger taskLogger,
+                       GameFunctionService gameFunctionService) {
         this.redissonClient = redissonClient;
         this.taskDataDao = taskDataDao;
         this.redisLock = redisLock;
         this.taskLogger = taskLogger;
+        this.gameFunctionService = gameFunctionService;
     }
 
 
@@ -193,6 +197,7 @@ public class TaskService {
                            DefaultTaskConditionParam param, boolean isNotify) {
 //        log.info("玩家[{}]触发条件[{}]conditionId[{}]参数[{}]", playerId, condition.getClass().getSimpleName(), condition.getId(), param == null ? "null" : param.toString());
         List<Pair<TaskDetail, TaskCfg>> updateTasks = new ArrayList<>();
+        Set<Integer> completedFunctionIds = new LinkedHashSet<>();
         AtomicBoolean hasFinished = new AtomicBoolean(false);
         try {
             long timestamp = System.currentTimeMillis();
@@ -221,6 +226,7 @@ public class TaskService {
                             taskLogger.completeTask(playerId, taskDetail.getConfigId());
                             log.info("玩家[{}]完成任务[{}]", playerId, taskDetail.getConfigId());
                         }
+                        completedFunctionIds.add(taskCfg.getFunctionId());
                     }
                     updateTasks.add(Pair.newPair(taskData.getTaskDetail(taskCfg.getId()), taskCfg));
                 }
@@ -228,6 +234,7 @@ public class TaskService {
         } catch (Exception e) {
             log.error("玩家增加任务进度异常 playerId:{} param:{}", playerId, param, e);
         }
+        gameFunctionService.notifyTaskFunctionOpen(playerId, completedFunctionIds);
         if (isNotify && CollectionUtil.isNotEmpty(updateTasks)) {
             return hasFinished.get();
             //通知进度更新

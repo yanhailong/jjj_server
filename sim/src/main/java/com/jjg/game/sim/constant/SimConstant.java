@@ -355,6 +355,8 @@ public interface SimConstant {
         int ID_CLEAR_CD = 1024007;
         //赛季币
         int ID_SEASON_COIN = GameConstant.Item.ID_SEASON_COIN;
+        //场景经验
+        int CASINO_EXP = 1022505;
 
         //联盟-声誉值
         int ID_ALLIANCE_REPUTATION = 1024011;

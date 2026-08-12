@@ -9,7 +9,7 @@ import java.util.List;
 
 /**
  * 通知功能开放，通过游戏中的某些操作触发了功能的开放
- *
+ * 增量
  * @author 2CL
  */
 @ProtobufMessage(

@@ -9,6 +9,7 @@ import com.jjg.game.core.data.CommonResult;
 import com.jjg.game.core.data.Item;
 import com.jjg.game.core.dao.PlayerRechargeFlowDao;
 import com.jjg.game.core.logger.TaskLogger;
+import com.jjg.game.core.service.GameFunctionService;
 import com.jjg.game.sampledata.bean.TaskCfg;
 import com.jjg.game.season.config.SeasonTrialDef;
 import com.jjg.game.season.data.SeasonPlayerData;
@@ -50,11 +51,12 @@ public class SeasonTrialService {
     private final SimAutoSaveService autoSaveService;
     private final PlayerRechargeFlowDao playerRechargeFlowDao;
     private final TaskLogger taskLogger;
+    private final GameFunctionService gameFunctionService;
 
     public SeasonTrialService(SeasonTrialConfigService trialConfigService, SeasonConfigService configService,
                               SeasonEconomyService economyService, PlayerPackService playerPackService,
                               SimAutoSaveService autoSaveService, PlayerRechargeFlowDao playerRechargeFlowDao,
-                              TaskLogger taskLogger) {
+                              TaskLogger taskLogger, GameFunctionService gameFunctionService) {
         this.trialConfigService = trialConfigService;
         this.configService = configService;
         this.economyService = economyService;
@@ -62,6 +64,7 @@ public class SeasonTrialService {
         this.autoSaveService = autoSaveService;
         this.playerRechargeFlowDao = playerRechargeFlowDao;
         this.taskLogger = taskLogger;
+        this.gameFunctionService = gameFunctionService;
     }
 
     /**
@@ -277,9 +280,11 @@ public class SeasonTrialService {
             return Map.of();
         }
         Map<Integer, Long> total = new HashMap<>();
+        List<Integer> completedFunctionIds = new ArrayList<>(toInclusive - fromExclusive);
         for (int star = fromExclusive + 1; star <= toInclusive; star++) {
             TaskCfg cfg = def.starTasks().get(star - 1);
             taskLogger.completeTask(ctx.playerId(), cfg.getId());
+            completedFunctionIds.add(cfg.getFunctionId());
             List<Item> logItems = null;
             if (cfg.getGetItem() != null && !cfg.getGetItem().isEmpty()) {
                 grant(ctx, cfg.getGetItem(), cfg.getId());
@@ -289,6 +294,7 @@ public class SeasonTrialService {
             taskLogger.receiveTaskAward(ctx.playerId(), cfg.getId(), logItems,
                     cfg.getIntegralNum(), TaskConstant.TaskStatus.STATUS_REWARDED);
         }
+        gameFunctionService.notifyTaskFunctionOpen(ctx.playerId(), completedFunctionIds);
         return total;
     }
 

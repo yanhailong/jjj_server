@@ -27,7 +27,7 @@ public class PlayerLevelPackCfg extends BaseCfgBean {
   protected Map<Integer,Long> levelRewards;
   /** 购买金额 */
   protected BigDecimal pay;
-  /** 等级 */
+  /** 娱乐城等级 */
   protected int playerlevel;
   /** 有效时长(分钟) */
   protected int time;
@@ -47,7 +47,7 @@ public class PlayerLevelPackCfg extends BaseCfgBean {
     return pay;
   }
 
-  /** 返回等级 */
+  /** 返回娱乐城等级 */
   public int getPlayerlevel() {
     return playerlevel;
   }

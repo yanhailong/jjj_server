@@ -15,6 +15,7 @@ import com.jjg.game.core.base.gameevent.GameEventListener;
 import com.jjg.game.core.base.gameevent.PlayerEvent;
 import com.jjg.game.core.data.Player;
 import com.jjg.game.core.data.PlayerController;
+import com.jjg.game.core.listener.GameFunctionListener;
 import com.jjg.game.core.manager.ConditionManager;
 import com.jjg.game.core.pb.NotifyOpenFunction;
 import com.jjg.game.sampledata.GameDataManager;
@@ -40,11 +41,13 @@ public class GameFunctionService implements GameEventListener {
     private final ConditionManager conditionManager;
     private final ConditionParser conditionParser;
     private final ClusterSystem clusterSystem;
+    private final List<GameFunctionListener> gameFunctionListeners;
 
-    public GameFunctionService(ConditionManager conditionManager, ConditionParser conditionParser, ClusterSystem clusterSystem) {
+    public GameFunctionService(ConditionManager conditionManager, ConditionParser conditionParser, ClusterSystem clusterSystem, List<GameFunctionListener> gameFunctionListeners) {
         this.conditionManager = conditionManager;
         this.conditionParser = conditionParser;
         this.clusterSystem = clusterSystem;
+        this.gameFunctionListeners = gameFunctionListeners;
     }
 
     /**
@@ -65,6 +68,46 @@ public class GameFunctionService implements GameEventListener {
         return functionIdList;
     }
 
+    /**
+     * 根据任务配置的功能 ID 构建增量开放通知，未配置或功能未开发时不通知。
+     */
+    public NotifyOpenFunction buildTaskFunctionOpenNotify(Collection<Integer> functionIds) {
+        if (functionIds == null || functionIds.isEmpty()) {
+            return null;
+        }
+        Set<Integer> openedFunctionIds = new LinkedHashSet<>();
+        for (Integer functionId : functionIds) {
+            if (functionId == null || functionId <= 0) {
+                continue;
+            }
+            GameFunctionCfg functionCfg = GameDataManager.getGameFunctionCfg(functionId);
+            if (functionCfg == null) {
+                log.warn("任务解锁的功能配置不存在 functionId={}", functionId);
+                continue;
+            }
+            if (checkGameFunctionOpen(functionCfg)) {
+                openedFunctionIds.add(functionCfg.getId());
+            }
+        }
+        if (openedFunctionIds.isEmpty()) {
+            return null;
+        }
+        NotifyOpenFunction notify = new NotifyOpenFunction();
+        notify.functionIdList = new ArrayList<>(openedFunctionIds);
+        return notify;
+    }
+
+    public void notifyTaskFunctionOpen(long playerId, Collection<Integer> functionIds) {
+        NotifyOpenFunction notify = buildTaskFunctionOpenNotify(functionIds);
+        if (notify == null) {
+            return;
+        }
+        PFSession session = clusterSystem.getSession(playerId);
+        if (session != null) {
+            session.send(notify);
+        }
+    }
+
     @Override
     public <T extends GameEvent> void handleEvent(T gameEvent) {
         Player player = null;
@@ -82,12 +125,7 @@ public class GameFunctionService implements GameEventListener {
             }
         }
         List<Integer> openedFuncIdList = getOpenedFuncIdList(player);
-        // 推送功能发生了变化
-        NotifyOpenFunction notifyOpenFunction = new NotifyOpenFunction();
-        notifyOpenFunction.functionIdList = openedFuncIdList;
-        if (session != null) {
-            session.send(notifyOpenFunction);
-        }
+        gameFunctionListeners.forEach(gameFunctionListener -> {gameFunctionListener.notifyAllFunction(session,openedFuncIdList);});
     }
 
 

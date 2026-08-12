@@ -23,6 +23,8 @@ public class SeasonShopCfg extends BaseCfgBean {
   protected int DailyPurchaseLimit;
   /** 商品 */
   protected Map<Integer,Long> Goods;
+  /** 是否开启 */
+  protected boolean IsEnabled;
   /** 序列 */
   protected int Order;
   /** 是否每日重置 */
@@ -44,6 +46,11 @@ public class SeasonShopCfg extends BaseCfgBean {
   /** 返回商品 */
   public Map<Integer,Long> getGoods() {
     return Goods;
+  }
+
+  /** 返回是否开启 */
+  public boolean getIsEnabled() {
+    return IsEnabled;
   }
 
   /** 返回序列 */

@@ -7,7 +7,9 @@ import com.jjg.game.core.data.CommonResult;
 import com.jjg.game.core.data.Item;
 import com.jjg.game.core.data.Player;
 import com.jjg.game.core.pb.KVInfo;
+import com.jjg.game.core.pb.NotifyOpenFunction;
 import com.jjg.game.core.service.CorePlayerService;
+import com.jjg.game.core.service.GameFunctionService;
 import com.jjg.game.core.service.MailService;
 import com.jjg.game.core.service.PlayerPackService;
 import com.jjg.game.sampledata.GameDataManager;
@@ -21,6 +23,7 @@ import com.jjg.game.sim.data.*;
 import com.jjg.game.sim.manager.SimPlayerContextRegistry;
 import com.jjg.game.sim.pb.res.*;
 import com.jjg.game.sim.pb.struct.CoopTaskInfo;
+import com.jjg.game.social.service.SocialSender;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -72,6 +75,10 @@ public class SimCoopTaskService {
     private SimSkillsDao simSkillsDao;
     @Autowired
     private SimPlayerContextRegistry simPlayerContextRegistry;
+    @Autowired
+    private GameFunctionService gameFunctionService;
+    @Autowired
+    private SocialSender socialSender;
 
     // =====================================================================
     // 加载 / 每日重置
@@ -477,15 +484,24 @@ public class SimCoopTaskService {
             }
         }
 
+        TaskCfg completedTaskCfg = success && (firstSettle || helperIds != null && !helperIds.isEmpty())
+                ? GameDataManager.getTaskCfg(taskId) : null;
+        if (firstSettle && completedTaskCfg != null) {
+            NotifyOpenFunction functionNotify = gameFunctionService.buildTaskFunctionOpenNotify(
+                    List.of(completedTaskCfg.getFunctionId()));
+            if (functionNotify != null) {
+                socialSender.sendTo(ownerId, functionNotify);
+            }
+        }
+
         //协助者奖励按 roomId+helperId 幂等；即使 DB 已先成功而进程随后崩溃，重试也能补齐未发送邮件。
         //TODO 待策划提供独立协助奖励字段/邮件模板, 当前同任务奖励
         if (success && helperIds != null && !helperIds.isEmpty()) {
-            TaskCfg cfg = GameDataManager.getTaskCfg(taskId);
-            if (cfg == null || cfg.getGetItem() == null || cfg.getGetItem().isEmpty()) {
+            if (completedTaskCfg == null || completedTaskCfg.getGetItem() == null || completedTaskCfg.getGetItem().isEmpty()) {
                 log.error("多人任务协助奖励配置缺失 taskId={},roomId={}", taskId, roomId);
                 return false;
             } else {
-                List<Item> items = toItemList(cfg.getGetItem());
+                List<Item> items = toItemList(completedTaskCfg.getGetItem());
                 for (Long helperId : helperIds) {
                     if (helperId == null || helperId == ownerId) {
                         continue;
