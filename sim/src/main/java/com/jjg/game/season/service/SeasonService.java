@@ -240,6 +240,26 @@ public class SeasonService implements SimPlayerTickListener {
         return response;
     }
 
+    /** 批量合成请求开始时背包内已有的指定品质宝石。 */
+    public ResSeasonCraftBatchGem craftBatch(SimPlayerContext ctx, List<Integer> qualities) {
+        lifecycleService.ensureCurrent(ctx, System.currentTimeMillis());
+        CommonResult<SeasonBatchCraftResult> result = gemService.craftBatch(ctx, qualities);
+        ResSeasonCraftBatchGem response = new ResSeasonCraftBatchGem(result.code);
+        if (result.data != null) {
+            response.craftCount = result.data.getCraftCount();
+            response.successCount = result.data.getSuccessCount();
+            response.consumedItems = ItemUtils.buildItemInfo(result.data.getConsumedItems());
+            response.resultItems = ItemUtils.buildItemInfo(result.data.getResultItems());
+            response.failKeepItems = ItemUtils.buildItemInfo(result.data.getFailKeepItems());
+        } else {
+            response.consumedItems = List.of();
+            response.resultItems = List.of();
+            response.failKeepItems = List.of();
+        }
+        response.seasonCoin = ctx.getSeasonPlayerData().getSeasonCoin();
+        return response;
+    }
+
     /** 玩家离线前结清宝石在线收益，并切断在线计时。 */
     public void stopGemEarnings(SimPlayerContext ctx, long systemTime) {
         gemService.stopOnlineEarnings(ctx, systemTime);

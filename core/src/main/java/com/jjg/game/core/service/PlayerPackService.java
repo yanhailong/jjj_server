@@ -930,6 +930,136 @@ public class PlayerPackService implements IPlayerRegister {
         return result;
     }
 
+    /**
+     * 在同一背包锁和一次 Redis 写入内完成普通背包道具兑换。
+     * 仅支持非货币、非特殊、可入背包道具；适用于配方合成等批量扣料并发奖场景。
+     */
+    public CommonResult<ItemOperationResult> exchangePackItems(Player player,
+                                                                Map<Integer, Long> requiredItems,
+                                                                Map<Integer, Long> removeItems,
+                                                                Map<Integer, Long> addItems,
+                                                                AddType addType, String desc) {
+        CommonResult<ItemOperationResult> result = new CommonResult<>(Code.FAIL);
+        result.data = new ItemOperationResult();
+        if (player == null) {
+            result.code = Code.NOT_FOUND;
+            return result;
+        }
+        List<Item> requirements = checkItemParam(requiredItems);
+        List<Item> removes = checkItemParam(removeItems);
+        List<Item> adds = checkItemParam(addItems);
+        if (!validPackExchangeItems(requirements)
+                || !validPackExchangeItems(removes) || !validPackExchangeItems(adds)) {
+            result.code = Code.PARAM_ERROR;
+            return result;
+        }
+        if (requirements.isEmpty() && removes.isEmpty() && adds.isEmpty()) {
+            result.code = Code.SUCCESS;
+            return result;
+        }
+
+        long playerId = player.getId();
+        Map<Integer, Long> beforeRemove = new HashMap<>();
+        Map<Integer, Long> afterRemove = new HashMap<>();
+        Map<Integer, Long> afterExchange = new HashMap<>();
+        String key = getLockKey(playerId);
+        boolean lock = false;
+        try {
+            lock = redisLock.tryLockWithDefaultTime(key);
+            if (!lock) {
+                return result;
+            }
+            PlayerPack pack = getFromAllDB(playerId);
+            if (pack == null) {
+                result.code = Code.NOT_FOUND;
+                return result;
+            }
+            boolean requirementsEnough = pack.checkHasItems(requirements);
+            if (!requirementsEnough || !pack.checkHasItems(removes)) {
+                result.code = Code.NOT_ENOUGH_ITEM;
+                notifyItemsNotEnough(player, requirementsEnough ? removes : requirements, addType);
+                return result;
+            }
+
+            Set<Integer> changedItemIds = new LinkedHashSet<>();
+            removes.forEach(item -> changedItemIds.add(item.getId()));
+            adds.forEach(item -> changedItemIds.add(item.getId()));
+            changedItemIds.forEach(itemId -> beforeRemove.put(itemId, pack.getItemCount(itemId)));
+
+            for (Item item : removes) {
+                CommonResult<Long> removed = pack.removeItem(item.getId(), item.getItemCount());
+                if (!removed.success()) {
+                    result.code = removed.code;
+                    return result;
+                }
+            }
+            changedItemIds.forEach(itemId -> afterRemove.put(itemId, pack.getItemCount(itemId)));
+
+            for (Item item : adds) {
+                ItemCfg itemCfg = GameDataManager.getItemCfg(item.getId());
+                pack.addItem(item.getId(), item.getItemCount(), itemCfg.getProp());
+            }
+            changedItemIds.forEach(itemId -> afterExchange.put(itemId, pack.getItemCount(itemId)));
+            if (!changedItemIds.isEmpty()) {
+                redisTemplate.opsForHash().put(tableName, playerId, pack);
+            }
+            result.data.setChangeBeforeItemNum(beforeRemove);
+            result.data.setChangeEndItemNum(afterExchange);
+            result.code = Code.SUCCESS;
+        } catch (Exception e) {
+            log.error("兑换背包道具失败 playerId={},requiredItems={},removeItems={},addItems={}",
+                    playerId, requiredItems, removeItems, addItems, e);
+        } finally {
+            if (lock) {
+                redisLock.tryUnlock(key);
+            }
+        }
+
+        if (result.success()) {
+            Map<Integer, Long> consumed = removes.stream().collect(HashMap::new,
+                    (map, item) -> map.merge(item.getId(), item.getItemCount(), Long::sum), HashMap::putAll);
+            Map<Integer, Long> rewarded = adds.stream().collect(HashMap::new,
+                    (map, item) -> map.merge(item.getId(), item.getItemCount(), Long::sum), HashMap::putAll);
+            if (!consumed.isEmpty()) {
+                coreLogger.consumeItem(playerId, beforeRemove, consumed, afterRemove, addType);
+                notifyItemsConsumed(playerId, consumed, addType);
+                try {
+                    for (Item item : removes) {
+                        taskManager.trigger(playerId, TaskConstant.ConditionType.PLAY_USE_ITEM, () -> {
+                            TaskConditionParam12101 param = new TaskConditionParam12101();
+                            param.setItemId(item.getId());
+                            param.setAddValue(item.getItemCount());
+                            return param;
+                        });
+                    }
+                } catch (Exception e) {
+                    log.error("兑换背包道具成功后触发任务失败 playerId={}", playerId, e);
+                }
+            }
+            if (!rewarded.isEmpty()) {
+                coreLogger.addItems(playerId, afterRemove, rewarded, afterExchange, addType, desc);
+                notifyItemsAdded(playerId, adds, addType);
+            }
+        }
+        return result;
+    }
+
+    private boolean validPackExchangeItems(List<Item> items) {
+        for (Item item : items) {
+            if (item == null || item.getItemCount() <= 0 || isSpecialItem(item.getId())) {
+                return false;
+            }
+            ItemCfg itemCfg = GameDataManager.getItemCfg(item.getId());
+            if (itemCfg == null || !itemCfg.getIsBag()
+                    || itemCfg.getType() == GameConstant.Item.TYPE_GOLD
+                    || itemCfg.getType() == GameConstant.Item.TYPE_DIAMOND
+                    || itemCfg.getType() == GameConstant.Item.TYPE_SHELL) {
+                return false;
+            }
+        }
+        return true;
+    }
+
     public PlayerPack checkAndSave(long playerId, DataSaveCallback<PlayerPack> cbk) {
         String key = getLockKey(playerId);
         boolean lock = false;

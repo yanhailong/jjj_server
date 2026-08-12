@@ -244,7 +244,7 @@ public class SeasonGemService implements SimPlayerTickListener {
      */
     public CommonResult<SeasonCraftResult> craft(SimPlayerContext ctx, List<Integer> itemIds) {
         SeasonPlayerData data = ctx.getSeasonPlayerData();
-        CommonResult<CraftContext> resolved = resolveCraft(ctx, itemIds, true);
+        CommonResult<CraftContext> resolved = resolveCraft(ctx, itemIds);
         if (!resolved.success()) {
             return new CommonResult<>(resolved.code);
         }
@@ -260,8 +260,8 @@ public class SeasonGemService implements SimPlayerTickListener {
         if (!rolled.success()) {
             return new CommonResult<>(rolled.code);
         }
-        int code = commitCraft(ctx, data, rolled.data.consumedItems, rolled.data.resultItems,
-                craft.getMergeCost(), "season-gem-craft");
+        int code = commitCraft(ctx, data, rolled.data.requiredItems, rolled.data.consumedItems,
+                rolled.data.resultItems, craft.getMergeCost(), "season-gem-craft");
         return code == Code.SUCCESS
                 ? new CommonResult<>(Code.SUCCESS, rolled.data.result)
                 : new CommonResult<>(code);
@@ -323,7 +323,7 @@ public class SeasonGemService implements SimPlayerTickListener {
                     : (data.getSeasonCoin() - batch.totalCost) / craft.getMergeCost();
             int craftLimit = (int) Math.min(Integer.MAX_VALUE, Math.min(possibleCrafts, affordableCrafts));
             for (List<Integer> group : materialGroups(materials, craft.getCostAmount(), craftLimit)) {
-                CommonResult<CraftContext> resolved = resolveCraft(ctx, group, false);
+                CommonResult<CraftContext> resolved = resolveCraft(ctx, group);
                 if (!resolved.success()) {
                     return new CommonResult<>(resolved.code);
                 }
@@ -338,8 +338,8 @@ public class SeasonGemService implements SimPlayerTickListener {
             return new CommonResult<>(hasMaterials ? Code.NOT_ENOUGH : Code.NOT_ENOUGH_ITEM);
         }
 
-        int code = commitCraft(ctx, data, batch.consumedItems, batch.resultItems,
-                batch.totalCost, "season-gem-craft-batch");
+        int code = commitCraft(ctx, data, batch.requiredItems, batch.consumedItems,
+                batch.resultItems, batch.totalCost, "season-gem-craft-batch");
         if (code != Code.SUCCESS) {
             return new CommonResult<>(code);
         }
@@ -355,8 +355,7 @@ public class SeasonGemService implements SimPlayerTickListener {
     /**
      * 校验合成材料并解析出合成上下文(材料构成、配置、品质等)，不含赛季币校验。
      */
-    private CommonResult<CraftContext> resolveCraft(SimPlayerContext ctx, List<Integer> itemIds,
-                                                     boolean checkItems) {
+    private CommonResult<CraftContext> resolveCraft(SimPlayerContext ctx, List<Integer> itemIds) {
         if (itemIds == null || itemIds.isEmpty()) {
             log.warn("赛季宝石合成参数为空 playerId={}", ctx.playerId());
             return new CommonResult<>(Code.PARAM_ERROR);
@@ -385,11 +384,6 @@ public class SeasonGemService implements SimPlayerTickListener {
             allSame &= itemId == first.getItemId();
             input.merge(itemId, 1L, Long::sum);
         }
-        if (checkItems && !playerPackService.checkHasItems(ctx.getPlayerController().getPlayer(), input)) {
-            log.warn("赛季宝石合成道具不足 playerId={},quality={},count={}",
-                    ctx.playerId(), quality, itemIds.size());
-            return new CommonResult<>(Code.NOT_ENOUGH_ITEM);
-        }
         return new CommonResult<>(Code.SUCCESS, new CraftContext(quality, craft, first, allSame, input));
     }
 
@@ -402,7 +396,7 @@ public class SeasonGemService implements SimPlayerTickListener {
         Map<Integer, Long> rewards = new HashMap<>();
         Map<Integer, Long> kept = new HashMap<>();
         if (!success) {
-            int keepItemId = RandomUtils.randomEle(new ArrayList<>(expandItems(craftCtx.input)));
+            int keepItemId = RandomUtils.randomEle(expandItems(craftCtx.input));
             long keepCount = Math.min(Math.max(0, craft.getFailKeepAmount()), consumed.get(keepItemId));
             consumed.computeIfPresent(keepItemId,
                     (itemId, count) -> count > keepCount ? count - keepCount : null);
@@ -410,7 +404,8 @@ public class SeasonGemService implements SimPlayerTickListener {
                 kept.put(keepItemId, keepCount);
             }
             result.setFailKeepItemId(keepItemId);
-            return new CommonResult<>(Code.SUCCESS, new CraftOutcome(result, consumed, rewards, kept));
+            return new CommonResult<>(Code.SUCCESS,
+                    new CraftOutcome(result, craftCtx.input, consumed, rewards, kept));
         }
 
         SeasonGemCfg output = chooseOutput(craftCtx.first, craftCtx.allSame, craft.getSuccessGem());
@@ -422,30 +417,21 @@ public class SeasonGemService implements SimPlayerTickListener {
         rewards.put(output.getItemId(), (long) count);
         result.setResultItemId(output.getItemId());
         result.setResultCount(count);
-        return new CommonResult<>(Code.SUCCESS, new CraftOutcome(result, consumed, rewards, kept));
+        return new CommonResult<>(Code.SUCCESS,
+                new CraftOutcome(result, craftCtx.input, consumed, rewards, kept));
     }
 
-    private int commitCraft(SimPlayerContext ctx, SeasonPlayerData data, Map<Integer, Long> consumed,
-                            Map<Integer, Long> rewards, long coinCost, String desc) {
+    private int commitCraft(SimPlayerContext ctx, SeasonPlayerData data, Map<Integer, Long> required,
+                            Map<Integer, Long> consumed, Map<Integer, Long> rewards,
+                            long coinCost, String desc) {
         if (data.getSeasonCoin() < coinCost) {
             return Code.NOT_ENOUGH;
         }
-        if (!consumed.isEmpty()) {
-            CommonResult<?> remove = playerPackService.removeItems(ctx.getPlayer(), consumed,
-                    AddType.ITEM_EXCHANGE, desc);
-            if (!remove.success()) {
-                log.warn("赛季宝石合成扣除材料失败 playerId={},code={}", ctx.playerId(), remove.code);
-                return remove.code;
-            }
-        }
-        if (!rewards.isEmpty()) {
-            CommonResult<?> add = playerPackService.addItems(ctx.playerId(), rewards,
-                    AddType.ITEM_EXCHANGE, desc, true);
-            if (!add.success()) {
-                rollbackItems(ctx, consumed, desc);
-                log.warn("赛季宝石合成产出入账失败 playerId={},code={}", ctx.playerId(), add.code);
-                return add.code;
-            }
+        CommonResult<?> exchange = playerPackService.exchangePackItems(ctx.getPlayer(), required,
+                consumed, rewards, AddType.ITEM_EXCHANGE, desc);
+        if (!exchange.success()) {
+            log.warn("赛季宝石合成兑换道具失败 playerId={},code={}", ctx.playerId(), exchange.code);
+            return exchange.code;
         }
         data.setSeasonCoin(data.getSeasonCoin() - coinCost);
         autoSaveService.enqueueSave(data);
@@ -615,6 +601,50 @@ public class SeasonGemService implements SimPlayerTickListener {
         }
     }
 
+    private static final class CraftOutcome {
+        final SeasonCraftResult result;
+        final Map<Integer, Long> requiredItems;
+        final Map<Integer, Long> consumedItems;
+        final Map<Integer, Long> resultItems;
+        final Map<Integer, Long> failKeepItems;
+
+        CraftOutcome(SeasonCraftResult result, Map<Integer, Long> requiredItems,
+                     Map<Integer, Long> consumedItems, Map<Integer, Long> resultItems,
+                     Map<Integer, Long> failKeepItems) {
+            this.result = result;
+            this.requiredItems = requiredItems;
+            this.consumedItems = consumedItems;
+            this.resultItems = resultItems;
+            this.failKeepItems = failKeepItems;
+        }
+    }
+
+    private static final class BatchAccumulator {
+        int craftCount;
+        int successCount;
+        long totalCost;
+        final Map<Integer, Long> requiredItems = new LinkedHashMap<>();
+        final Map<Integer, Long> consumedItems = new LinkedHashMap<>();
+        final Map<Integer, Long> resultItems = new LinkedHashMap<>();
+        final Map<Integer, Long> failKeepItems = new LinkedHashMap<>();
+
+        void add(CraftOutcome outcome, int coinCost) {
+            craftCount++;
+            if (outcome.result.isSuccess()) {
+                successCount++;
+            }
+            totalCost += coinCost;
+            merge(requiredItems, outcome.requiredItems);
+            merge(consumedItems, outcome.consumedItems);
+            merge(resultItems, outcome.resultItems);
+            merge(failKeepItems, outcome.failKeepItems);
+        }
+
+        private static void merge(Map<Integer, Long> target, Map<Integer, Long> source) {
+            source.forEach((itemId, count) -> target.merge(itemId, count, Long::sum));
+        }
+    }
+
     private SeasonGemCfg chooseOutput(SeasonGemCfg first, boolean allSame, List<List<Integer>> rows) {
         if (rows == null || rows.isEmpty()) {
             return null;
@@ -648,10 +678,4 @@ public class SeasonGemService implements SimPlayerTickListener {
         return 1;
     }
 
-    private void rollback(SimPlayerContext ctx, SeasonPlayerData data, Map<Integer, Long> consumed, int coin) {
-        data.setSeasonCoin(data.getSeasonCoin() + coin);
-        if (!consumed.isEmpty()) {
-            playerPackService.addItems(ctx.playerId(), consumed, AddType.FAIL_ROLLBACK, "season-gem-craft", true);
-        }
-    }
 }
