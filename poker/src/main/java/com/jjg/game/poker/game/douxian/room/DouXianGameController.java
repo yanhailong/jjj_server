@@ -1251,12 +1251,20 @@ public class DouXianGameController extends BasePokerGameController<DouXianGameDa
     // ------------------------------------------------------------------
 
     public void reqPlaceCard(long playerId, ReqDouXianPlaceCard req) {
+        if (req == null) {
+            log.warn("斗仙牌摆牌被拒绝(PARAM_ERROR) playerId:{} 原因:请求为空", playerId);
+            sendPlaceCardError(playerId, Code.PARAM_ERROR);
+            return;
+        }
+        // PB repeated 空数组在部分客户端/解码链路中会反序列化为 null。
+        // 摆牌协议是区域整体替换语义，空列表表示取回本回合放入该区域的全部牌。
+        List<Integer> requestedClientIds = req.cardIds == null ? List.of() : req.cardIds;
         if (getCurrentGamePhase() != EGamePhase.PLAY_CART
                 || gameDataVo.getConcededPlayerIds().contains(playerId)
                 || gameDataVo.getConfirmedPlayerIds().contains(playerId)) {
             log.warn("斗仙牌摆牌被拒绝(FORBID) playerId:{} 原因:当前阶段:{}(需要PLAY_CART) 已认输:{} 已确认出牌:{} req:{}",
                     playerId, getCurrentGamePhase(), gameDataVo.getConcededPlayerIds().contains(playerId),
-                    gameDataVo.getConfirmedPlayerIds().contains(playerId), req.cardIds);
+                    gameDataVo.getConfirmedPlayerIds().contains(playerId), requestedClientIds);
             sendPlaceCardError(playerId, Code.FORBID);
             return;
         }
@@ -1269,9 +1277,9 @@ public class DouXianGameController extends BasePokerGameController<DouXianGameDa
             return;
         }
         DouXianZoneCards zoneCards = gameDataVo.getPlayerZoneCards(playerId).get(zone);
-        if (req.cardIds.size() > zone.getCapacity() - zoneCards.getCarriedCards().size()) {
+        if (requestedClientIds.size() > zone.getCapacity() - zoneCards.getCarriedCards().size()) {
             log.warn("斗仙牌摆牌被拒绝(PARAM_ERROR) playerId:{} zone:{} 原因:请求摆{}张，超出该区域剩余可摆数量(容量{}-已锁定{}张)",
-                    playerId, zone, req.cardIds.size(), zone.getCapacity(), zoneCards.getCarriedCards().size());
+                    playerId, zone, requestedClientIds.size(), zone.getCapacity(), zoneCards.getCarriedCards().size());
             sendPlaceCardError(playerId, Code.PARAM_ERROR);
             return;
         }
@@ -1280,7 +1288,7 @@ public class DouXianGameController extends BasePokerGameController<DouXianGameDa
         available.addAll(zoneCards.getNewCards());
         List<Integer> requestedCfgIds = new ArrayList<>();
         Set<Integer> seen = new HashSet<>();
-        for (Integer clientId : req.cardIds) {
+        for (Integer clientId : requestedClientIds) {
             Integer cfgId = DouXianDataHelper.findCfgIdByClientId(gameDataVo, clientId);
             if (cfgId == null || !available.contains(cfgId) || !seen.add(cfgId)) {
                 // cfgId为null:客户端id无效；不在available里:不属于该玩家；seen.add()==false:请求里重复摆了同一张牌
@@ -1288,7 +1296,7 @@ public class DouXianGameController extends BasePokerGameController<DouXianGameDa
                         !available.contains(cfgId) ? "这张牌不在该玩家手牌/该区域已摆的牌里(不属于该玩家或已经用过)" :
                                 "请求里重复摆了同一张牌";
                 log.warn("斗仙牌摆牌被拒绝(PARAM_ERROR) playerId:{} zone:{} 原因:{} 出问题的clientId:{} 解析出的cfgId:{} 请求整体:{} 手牌:{}",
-                        playerId, zone, reason, clientId, cfgId, req.cardIds, DouXianDataHelper.cfgIdsToString(gameDataVo, hand));
+                        playerId, zone, reason, clientId, cfgId, requestedClientIds, DouXianDataHelper.cfgIdsToString(gameDataVo, hand));
                 sendPlaceCardError(playerId, Code.PARAM_ERROR);
                 return;
             }
