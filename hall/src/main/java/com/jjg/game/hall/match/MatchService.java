@@ -3,6 +3,7 @@ package com.jjg.game.hall.match;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.jjg.game.common.proto.Pair;
 import com.jjg.game.common.utils.ObjectMapperUtil;
+import com.jjg.game.core.constant.EGameType;
 import com.jjg.game.core.data.Room;
 import com.jjg.game.core.match.MatchDataDao;
 import com.jjg.game.hall.dao.HallRoomDao;
@@ -41,20 +42,33 @@ public class MatchService {
                 return nil
             end
 
-            local entries = redis.call('ZRANGE', KEYS[1], 0, 0, 'WITHSCORES')
+            local preferMostPlayers = tonumber(ARGV[4]) == 1
+            local rangeEnd = preferMostPlayers and -1 or 0
+            local entries = redis.call('ZRANGE', KEYS[1], 0, rangeEnd, 'WITHSCORES')
             if not entries or #entries == 0 then
                 return createRoom()
             end
-            local roomId = entries[1]
-            local score = tonumber(entries[2])
-
-            local seconds = score % 4294967296
-            local rest = math.floor(score / 4294967296)
-            local readyPlayers = rest % 1024
-            local currentMaxPlayers = math.floor(rest / 1024)
 
             local maxLimit = tonumber(ARGV[1])
-            if currentMaxPlayers >= maxLimit then
+            local roomId = nil
+            local currentMaxPlayers = -1
+            local readyPlayers = 0
+            local seconds = 0
+            for i = 1, #entries, 2 do
+                local candidateScore = tonumber(entries[i + 1])
+                local candidateSeconds = candidateScore % 4294967296
+                local rest = math.floor(candidateScore / 4294967296)
+                local candidateReadyPlayers = rest % 1024
+                local candidateMaxPlayers = math.floor(rest / 1024)
+                if candidateMaxPlayers < maxLimit
+                        and (roomId == nil or candidateMaxPlayers > currentMaxPlayers) then
+                    roomId = entries[i]
+                    currentMaxPlayers = candidateMaxPlayers
+                    readyPlayers = candidateReadyPlayers
+                    seconds = candidateSeconds
+                end
+            end
+            if roomId == nil then
                 return createRoom()
             end
 
@@ -85,7 +99,8 @@ public class MatchService {
                         TRY_JOIN_ROOM_SCRIPT,
                         RScript.ReturnType.INTEGER,
                         List.of(matchRedisKey, hallRoomDao.getTableName(gameType)), // 传入两个 KEY
-                        maxPlayer, preCreateData.getFirst(), preCreateData.getSecond());
+                        maxPlayer, preCreateData.getFirst(), preCreateData.getSecond(),
+                        gameType == EGameType.DOU_XIAN.getGameTypeId() ? 1 : 0);
         if (result == null) {
             return 0;
         }
