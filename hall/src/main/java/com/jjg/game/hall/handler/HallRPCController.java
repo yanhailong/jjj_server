@@ -25,10 +25,12 @@ import com.jjg.game.sim.data.*;
 import com.jjg.game.sim.logger.SimGuideLogger;
 import com.jjg.game.sim.manager.SimManager;
 import com.jjg.game.sim.manager.SimPlayerContextRegistry;
+import com.jjg.game.sim.pb.res.ResSimTaskReward;
 import com.jjg.game.sim.service.SimCoopTaskService;
 import com.jjg.game.sim.service.SimGuideService;
 import com.jjg.game.sim.service.SimPackService;
 import com.jjg.game.sim.service.SimSkillService;
+import com.jjg.game.sim.service.SimTaskService;
 import com.jjg.game.social.bridge.ToSocialBridge;
 import com.jjg.game.social.service.ChatService;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -64,6 +66,8 @@ public class HallRPCController extends CoreRPCController implements GmToHallBrid
     private SeasonService seasonService;
     @Autowired
     private SimCoopTaskService simCoopTaskService;
+    @Autowired
+    private SimTaskService simTaskService;
     @Autowired
     private SimPackService simPackService;
     @Autowired
@@ -189,6 +193,17 @@ public class HallRPCController extends CoreRPCController implements GmToHallBrid
     public CommonResult<SlotsSpinResult> onSlotsSpin(long playerId, int gameType, int winTimes, boolean changeNode,
                                                      SpinStatInfo statInfo, VisitTrialSpinPermit trialPermit, int enterType) {
         return simManager.onSlotsSpin(playerId, gameType, winTimes, changeNode, statInfo, trialPermit, enterType);
+    }
+
+    @Override
+    @RpcCallSetting(processorModKey = "#arg0")
+    public ResSimTaskReward claimSimTaskReward(long playerId, int taskId) {
+        SimPlayerContext ctx = simPlayerContextRegistry.getContext(playerId);
+        if (ctx == null) {
+            log.warn("领取 sim 任务奖励失败，未找到玩家 sim 数据 playerId={},taskId={}", playerId, taskId);
+            return new ResSimTaskReward(Code.NOT_FOUND);
+        }
+        return simTaskService.claimReward(ctx, taskId);
     }
 
     @Override

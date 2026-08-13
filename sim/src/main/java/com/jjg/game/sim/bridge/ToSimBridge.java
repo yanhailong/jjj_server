@@ -12,6 +12,7 @@ import com.jjg.game.sim.data.SimSkillsData;
 import com.jjg.game.sim.data.SlotsSpinResult;
 import com.jjg.game.sim.data.SpinStatInfo;
 import com.jjg.game.sim.data.VisitTrialSpinPermit;
+import com.jjg.game.sim.pb.res.ResSimTaskReward;
 
 import java.util.List;
 import java.util.Map;
@@ -53,6 +54,11 @@ public interface ToSimBridge extends IGameRpc {
      */
     CommonResult<SlotsSpinResult> onSlotsSpin(long playerId, int gameType, int winTimes, boolean changeNode,
                                               SpinStatInfo statInfo, VisitTrialSpinPermit trialPermit, int enterType);
+
+    /**
+     * 在玩家的 sim owner 节点领取主线/成就任务奖励。
+     */
+    ResSimTaskReward claimSimTaskReward(long playerId, int taskId);
 
     /**
      * 发起赛季匹配，始终在玩家的 sim owner 节点执行。

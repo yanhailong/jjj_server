@@ -1,16 +1,20 @@
 package com.jjg.game.sim.handler;
 
+import com.jjg.game.common.cluster.ClusterClient;
 import com.jjg.game.common.constant.MessageConst;
 import com.jjg.game.common.pb.AbstractResponse;
 import com.jjg.game.common.protostuff.Command;
 import com.jjg.game.common.protostuff.MessageType;
+import com.jjg.game.common.rpc.ClusterRpcReference;
+import com.jjg.game.common.rpc.GameRpcContext;
+import com.jjg.game.common.rpc.RpcReqParameterBuilder;
 import com.jjg.game.core.constant.Code;
 import com.jjg.game.core.data.CommonResult;
 import com.jjg.game.core.data.PlayerController;
 import com.jjg.game.core.listener.GmListener;
-import com.jjg.game.core.service.PlayerPackService;
 import com.jjg.game.sampledata.GameDataManager;
 import com.jjg.game.sampledata.bean.CasinoStatsSheetCfg;
+import com.jjg.game.sim.bridge.ToSimBridge;
 import com.jjg.game.sim.constant.SimConstant;
 import com.jjg.game.sim.data.BuildingData;
 import com.jjg.game.sim.data.SimPlayerContext;
@@ -74,11 +78,13 @@ public class SimMessageHandler implements GmListener {
     @Autowired
     private SimCoopRoomRouteService coopRoomRouteService;
     @Autowired
-    private PlayerPackService playerPackService;
-    @Autowired
     private SimGuideLogger simGuideLogger;
     @Autowired
     private SimGuideService guideService;
+    @Autowired
+    private SimNodeService simNodeService;
+    @ClusterRpcReference
+    private ToSimBridge toSimBridge;
 
 
     /**
@@ -132,7 +138,7 @@ public class SimMessageHandler implements GmListener {
     public void reqUnlockCasino(PlayerController playerController, ReqUnlockCasino req) {
         execute(playerController, ctx -> {
             casinoService.onUnlockCasino(ctx, req.casinoId);
-        });
+        }, ReqUnlockCasino.class);
     }
 
     /**
@@ -142,7 +148,7 @@ public class SimMessageHandler implements GmListener {
     public void reqSwitchCasino(PlayerController playerController, ReqSwitchCasino req) {
         execute(playerController, ctx -> {
             casinoService.onSwitchCasino(ctx, req.casinoId);
-        });
+        }, ReqSwitchCasino.class);
     }
 
     /**
@@ -154,7 +160,7 @@ public class SimMessageHandler implements GmListener {
             //回到自己场景即结束拜访态, 之后查留言板看到的是自己的
             ctx.setVisitTargetId(0);
             casinoService.onCasinoInfo(ctx);
-        });
+        }, ReqSimCasinoInfo.class);
     }
 
     //--------------------------建筑相关 begin--------------------------
@@ -167,7 +173,7 @@ public class SimMessageHandler implements GmListener {
         execute(playerController, ctx -> {
             ResUnlockBuilding res = buildingService.onUnlockBuilding(ctx, req.id);
             ctx.send(res);
-        });
+        }, ReqUnlockBuilding.class);
     }
 
     /**
@@ -177,7 +183,7 @@ public class SimMessageHandler implements GmListener {
     public void reqBuildingInfo(PlayerController playerController, ReqBuildingInfo req) {
         execute(playerController, ctx -> {
             buildingService.onBuildingInfo(ctx, req.id);
-        });
+        }, ReqBuildingInfo.class);
     }
 
     /**
@@ -187,7 +193,7 @@ public class SimMessageHandler implements GmListener {
     public void reqAllBuildingInfo(PlayerController playerController, ReqAllBuildingInfo req) {
         execute(playerController, ctx -> {
             buildingService.onAllBuildingInfo(ctx);
-        });
+        }, ReqAllBuildingInfo.class);
     }
 
     /**
@@ -197,7 +203,7 @@ public class SimMessageHandler implements GmListener {
     public void reqUpgradeBuilding(PlayerController playerController, ReqUpgradeBuilding req) {
         execute(playerController, ctx -> {
             buildingService.onUpgradeBuilding(ctx, req.id);
-        });
+        }, ReqUpgradeBuilding.class);
     }
 
     /**
@@ -207,7 +213,7 @@ public class SimMessageHandler implements GmListener {
     public void reqCompleteBuildingUpgrade(PlayerController playerController, ReqCompleteBuildingUpgrade req) {
         execute(playerController, ctx -> {
             buildingService.onCompleteBuildingUpgrade(ctx, req.id);
-        });
+        }, ReqCompleteBuildingUpgrade.class);
     }
 
     /**
@@ -217,7 +223,7 @@ public class SimMessageHandler implements GmListener {
     public void reqClearBuildingCD(PlayerController playerController, ReqClearBuildingCD req) {
         execute(playerController, ctx -> {
             buildingService.onClearBuildingCD(ctx, req.id, req.costCount, req.watchAd);
-        });
+        }, ReqClearBuildingCD.class);
     }
 
     /**
@@ -227,7 +233,7 @@ public class SimMessageHandler implements GmListener {
     public void reqClaimOfflineReward(PlayerController playerController, ReqClaimOfflineReward req) {
         execute(playerController, ctx -> {
             buildingService.onClaimOfflineReward(ctx, req.watchAd);
-        });
+        }, ReqClaimOfflineReward.class);
     }
 
 
@@ -240,7 +246,7 @@ public class SimMessageHandler implements GmListener {
     public void reqRecruitEmployee(PlayerController playerController, ReqRecruitEmployee req) {
         execute(playerController, ctx -> {
             employeeService.onRecruitEmployee(ctx, req.count);
-        });
+        }, ReqRecruitEmployee.class);
     }
 
     /**
@@ -250,7 +256,7 @@ public class SimMessageHandler implements GmListener {
     public void reqUpgradeEmployee(PlayerController playerController, ReqUpgradeEmployee req) {
         execute(playerController, ctx -> {
             employeeService.onUpgradeEmployee(ctx, req.employeeId);
-        });
+        }, ReqUpgradeEmployee.class);
     }
 
     /**
@@ -260,7 +266,7 @@ public class SimMessageHandler implements GmListener {
     public void reqStarUpEmployee(PlayerController playerController, ReqStarUpEmployee req) {
         execute(playerController, ctx -> {
             employeeService.onStarUpEmployee(ctx, req.employeeId);
-        });
+        }, ReqStarUpEmployee.class);
     }
 
     /**
@@ -270,7 +276,7 @@ public class SimMessageHandler implements GmListener {
     public void reqAssignSupervisor(PlayerController playerController, ReqAssignSupervisor req) {
         execute(playerController, ctx -> {
             employeeService.onAssignSupervisor(ctx, req.employeeId);
-        });
+        }, ReqAssignSupervisor.class);
     }
 
 
@@ -281,7 +287,7 @@ public class SimMessageHandler implements GmListener {
     public void reqAllEmployee(PlayerController playerController, ReqAllEmployee req) {
         execute(playerController, ctx -> {
             employeeService.onAllEmployee(ctx);
-        });
+        }, ReqAllEmployee.class);
     }
 
     /**
@@ -291,7 +297,7 @@ public class SimMessageHandler implements GmListener {
     public void reqEmployeePool(PlayerController playerController, ReqEmployeePool req) {
         execute(playerController, ctx -> {
             employeeService.onPool(ctx);
-        });
+        }, ReqEmployeePool.class);
     }
 
     //--------------------------雇员相关 end--------------------------
@@ -301,14 +307,14 @@ public class SimMessageHandler implements GmListener {
     public void reqSlotsGetSkills(PlayerController playerController, ReqSimGetSkills req) {
         execute(playerController, ctx -> {
             skillService.onLoadSlotsSkills(ctx, req.gameType);
-        });
+        }, ReqSimGetSkills.class);
     }
 
     @Command(SimConstant.MsgBean.REQ_SIM_UPGRADE_SKILL)
     public void reqSimUpgradeSkill(PlayerController playerController, ReqSimUpgradeSkill req) {
         execute(playerController, ctx -> {
             skillService.onUpgradeSkill(ctx, req.gameType, req.skillId);
-        });
+        }, ReqSimUpgradeSkill.class);
     }
 
     //--------------------------游客相关 begin--------------------------
@@ -320,7 +326,7 @@ public class SimMessageHandler implements GmListener {
     public void reqGenPurchasedGuest(PlayerController playerController, ReqGenPurchasedGuest req) {
         execute(playerController, ctx -> {
             guestService.generatePurchasedGuest(ctx, req.guestId, req.count);
-        });
+        }, ReqGenPurchasedGuest.class);
     }
 
     /**
@@ -330,7 +336,7 @@ public class SimMessageHandler implements GmListener {
     public void reqPurchasedGuestReward(PlayerController playerController, ReqPurchasedGuestReward req) {
         execute(playerController, ctx -> {
             guestService.claimPurchasedGuestReward(ctx, req.uid, req.index);
-        });
+        }, ReqPurchasedGuestReward.class);
     }
 
     /**
@@ -340,7 +346,7 @@ public class SimMessageHandler implements GmListener {
     public void reqAllGuest(PlayerController playerController, ReqAllGuest req) {
         execute(playerController, ctx -> {
             guestService.onAllGuest(ctx);
-        });
+        }, ReqAllGuest.class);
     }
 
     /**
@@ -350,7 +356,7 @@ public class SimMessageHandler implements GmListener {
     public void reqRecruitGuest(PlayerController playerController, ReqRecruitGuest req) {
         execute(playerController, ctx -> {
             guestService.onRecruitGuest(ctx, req.count);
-        });
+        }, ReqRecruitGuest.class);
     }
 
     /**
@@ -360,7 +366,7 @@ public class SimMessageHandler implements GmListener {
     public void reqStarUpGuest(PlayerController playerController, ReqStarUpGuest req) {
         execute(playerController, ctx -> {
             guestService.onStarUpGuest(ctx, req.guestId);
-        });
+        }, ReqStarUpGuest.class);
     }
 
     /**
@@ -370,7 +376,7 @@ public class SimMessageHandler implements GmListener {
     public void reqUnlockBonds(PlayerController playerController, ReqGuestBonds req) {
         execute(playerController, ctx -> {
             guestService.onBonds(ctx);
-        });
+        }, ReqGuestBonds.class);
     }
 
     /**
@@ -380,7 +386,7 @@ public class SimMessageHandler implements GmListener {
     public void reqSimPool(PlayerController playerController, ReqGuestPool req) {
         execute(playerController, ctx -> {
             guestService.onPool(ctx);
-        });
+        }, ReqGuestPool.class);
     }
     //--------------------------游客相关 end--------------------------
 
@@ -393,7 +399,7 @@ public class SimMessageHandler implements GmListener {
     public void reqOperationData(PlayerController playerController, ReqOperationData req) {
         execute(playerController, ctx -> {
             statsService.onOperationData(ctx);
-        });
+        }, ReqOperationData.class);
     }
 
     /**
@@ -403,7 +409,7 @@ public class SimMessageHandler implements GmListener {
     public void reqSlotStat(PlayerController playerController, ReqSlotStat req) {
         execute(playerController, ctx -> {
             statsService.onSlotStat(ctx, req.gameType);
-        });
+        }, ReqSlotStat.class);
     }
 
     //--------------------------经营信息 end--------------------------
@@ -423,7 +429,7 @@ public class SimMessageHandler implements GmListener {
      */
     @Command(SimConstant.MsgBean.REQ_SIM_TASK_LIST)
     public void reqSimTaskList(PlayerController playerController, ReqSimTaskList req) {
-        execute(playerController, ctx -> ctx.send(taskService.buildTaskList(ctx)));
+        execute(playerController, ctx -> ctx.send(taskService.buildTaskList(ctx)), ReqSimTaskList.class);
     }
 
     /**
@@ -431,7 +437,35 @@ public class SimMessageHandler implements GmListener {
      */
     @Command(SimConstant.MsgBean.REQ_SIM_TASK_REWARD)
     public void reqSimTaskReward(PlayerController playerController, ReqSimTaskReward req) {
-        execute(playerController, ctx -> ctx.send(taskService.claimReward(ctx, req.taskId)));
+        long playerId = playerController.playerId();
+        SimPlayerContext ctx = simPlayerContextRegistry.getContext(playerId);
+        ResSimTaskReward response = ctx == null
+                ? claimTaskRewardRemotely(playerController, req.taskId)
+                : taskService.claimReward(ctx, req.taskId);
+        playerController.send(response);
+    }
+
+    private ResSimTaskReward claimTaskRewardRemotely(PlayerController playerController, int taskId) {
+        long playerId = playerController.playerId();
+        ClusterClient client = simNodeService.getSimClusterClient(playerId, playerController.ipAddress());
+        if (client == null) {
+            log.warn("领取 sim 任务奖励失败，未找到玩家 sim 节点 playerId={},taskId={}", playerId, taskId);
+            return new ResSimTaskReward(Code.NOT_FOUND);
+        }
+
+        GameRpcContext rpcContext = GameRpcContext.getContext();
+        RpcReqParameterBuilder previousBuilder = rpcContext.getReqParameterBuilder();
+        try {
+            rpcContext.withReqParameterBuilder(RpcReqParameterBuilder.create()
+                    .addClusterClient(client).setTryMillisPerClient(1000));
+            ResSimTaskReward response = toSimBridge.claimSimTaskReward(playerId, taskId);
+            return response == null ? new ResSimTaskReward(Code.EXCEPTION) : response;
+        } catch (Exception e) {
+            log.error("跨节点领取 sim 任务奖励异常 playerId={},taskId={}", playerId, taskId, e);
+            return new ResSimTaskReward(Code.EXCEPTION);
+        } finally {
+            rpcContext.setReqParameterBuilder(previousBuilder);
+        }
     }
 
     /**
@@ -439,7 +473,8 @@ public class SimMessageHandler implements GmListener {
      */
     @Command(SimConstant.MsgBean.REQ_SET_DISPLAYED_MEDALS)
     public void reqSetDisplayedMedals(PlayerController playerController, ReqSetDisplayedMedals req) {
-        execute(playerController, ctx -> ctx.send(taskService.setDisplayedMedals(ctx, req.medalIds)));
+        execute(playerController, ctx -> ctx.send(taskService.setDisplayedMedals(ctx, req.medalIds)),
+                ReqSetDisplayedMedals.class);
     }
 
     /**
@@ -447,7 +482,7 @@ public class SimMessageHandler implements GmListener {
      */
     @Command(SimConstant.MsgBean.REQ_MEDAL_PANEL)
     public void reqMedalPanel(PlayerController playerController, ReqMedalPanel req) {
-        execute(playerController, ctx -> ctx.send(medalService.buildMedalPanel(ctx)));
+        execute(playerController, ctx -> ctx.send(medalService.buildMedalPanel(ctx)), ReqMedalPanel.class);
     }
 
     /**
@@ -455,7 +490,8 @@ public class SimMessageHandler implements GmListener {
      */
     @Command(SimConstant.MsgBean.REQ_CHANGE_SHOW_MEDAL)
     public void reqChangeShowMwdal(PlayerController playerController, ReqChangeShowMedal req) {
-        execute(playerController, ctx -> ctx.send(medalService.changeShowMedal(ctx, req.newMedalId)));
+        execute(playerController, ctx -> ctx.send(medalService.changeShowMedal(ctx, req.newMedalId)),
+                ReqChangeShowMedal.class);
     }
 
     //--------------------------任务 (主线/成就) end--------------------------
@@ -467,7 +503,7 @@ public class SimMessageHandler implements GmListener {
      */
     @Command(SimConstant.MsgBean.REQ_COOP_TASK_LIST)
     public void reqCoopTaskList(PlayerController playerController, ReqCoopTaskList req) {
-        execute(playerController, ctx -> ctx.send(coopTaskService.buildTaskList(ctx)));
+        execute(playerController, ctx -> ctx.send(coopTaskService.buildTaskList(ctx)), ReqCoopTaskList.class);
     }
 
     /**
@@ -475,7 +511,7 @@ public class SimMessageHandler implements GmListener {
      */
     @Command(SimConstant.MsgBean.REQ_COOP_TASK_REFRESH)
     public void reqCoopTaskRefresh(PlayerController playerController, ReqCoopTaskRefresh req) {
-        execute(playerController, ctx -> ctx.send(coopTaskService.refresh(ctx)));
+        execute(playerController, ctx -> ctx.send(coopTaskService.refresh(ctx)), ReqCoopTaskRefresh.class);
     }
 
     /**
@@ -483,7 +519,7 @@ public class SimMessageHandler implements GmListener {
      */
     @Command(SimConstant.MsgBean.REQ_COOP_TASK_CLAIM)
     public void reqCoopTaskClaim(PlayerController playerController, ReqCoopTaskClaim req) {
-        execute(playerController, ctx -> ctx.send(coopTaskService.claim(ctx, req.taskId)));
+        execute(playerController, ctx -> ctx.send(coopTaskService.claim(ctx, req.taskId)), ReqCoopTaskClaim.class);
     }
 
     /**
@@ -491,7 +527,8 @@ public class SimMessageHandler implements GmListener {
      */
     @Command(SimConstant.MsgBean.REQ_COOP_TASK_REWARD)
     public void reqCoopTaskReward(PlayerController playerController, ReqCoopTaskReward req) {
-        execute(playerController, ctx -> ctx.send(coopTaskService.claimReward(ctx, req.taskId)));
+        execute(playerController, ctx -> ctx.send(coopTaskService.claimReward(ctx, req.taskId)),
+                ReqCoopTaskReward.class);
     }
 
     /**
@@ -505,7 +542,7 @@ public class SimMessageHandler implements GmListener {
             if (res != null) {
                 ctx.send(res);
             }
-        });
+        }, ReqCreateCoopRoom.class);
     }
 
     /**
@@ -518,7 +555,7 @@ public class SimMessageHandler implements GmListener {
             if (res != null) {
                 ctx.send(res);
             }
-        });
+        }, ReqJoinCoopRoom.class);
     }
 
     /**
@@ -526,7 +563,8 @@ public class SimMessageHandler implements GmListener {
      */
     @Command(SimConstant.MsgBean.REQ_COMBAT_POWER)
     public void reqCombatPower(PlayerController playerController, ReqCombatPower req) {
-        execute(playerController, ctx -> ctx.send(coopTaskService.combatPowers(ctx, req.playerId)));
+        execute(playerController, ctx -> ctx.send(coopTaskService.combatPowers(ctx, req.playerId)),
+                ReqCombatPower.class);
     }
 
     /**
@@ -534,7 +572,8 @@ public class SimMessageHandler implements GmListener {
      */
     @Command(SimConstant.MsgBean.REQ_COOP_TASK_MEMBERS)
     public void reqCoopTaskMembers(PlayerController playerController, ReqCoopTaskMembers req) {
-        execute(playerController, ctx -> ctx.send(coopRoomRouteService.memberCounts(req.members)));
+        execute(playerController, ctx -> ctx.send(coopRoomRouteService.memberCounts(req.members)),
+                ReqCoopTaskMembers.class);
     }
 
     //--------------------------多人协作任务 end--------------------------
@@ -544,33 +583,33 @@ public class SimMessageHandler implements GmListener {
     @Command(SimConstant.MsgBean.REQ_VISIT_CASINO)
     public void reqVisitCasino(PlayerController playerController, ReqVisitCasino req) {
         executeVisit(playerController, ctx -> visitService.visit(ctx, req.playerId, req.casinoId),
-                ResVisitCasino::new);
+                ResVisitCasino::new, ReqVisitCasino.class);
     }
 
     @Command(SimConstant.MsgBean.REQ_RANDOM_VISIT)
     public void reqRandomVisit(PlayerController playerController, ReqRandomVisit req) {
         executeVisit(playerController, ctx -> visitService.randomVisit(ctx, req.lastPlayerId),
-                ResVisitCasino::new);
+                ResVisitCasino::new, ReqRandomVisit.class);
     }
 
     @Command(SimConstant.MsgBean.REQ_VISIT_LIKE)
     public void reqVisitLike(PlayerController playerController, ReqVisitLike req) {
         executeVisit(playerController, ctx -> visitService.like(ctx, req.playerId, req.casinoId),
-                ResVisitAction::new);
+                ResVisitAction::new, ReqVisitLike.class);
     }
 
     @Command(SimConstant.MsgBean.REQ_VISIT_COMMENT)
     public void reqVisitComment(PlayerController playerController, ReqVisitComment req) {
         executeVisit(playerController,
                 ctx -> visitService.comment(ctx, req.playerId, req.casinoId, req.content),
-                ResVisitAction::new);
+                ResVisitAction::new, ReqVisitComment.class);
     }
 
     @Command(SimConstant.MsgBean.REQ_VISIT_GIFT)
     public void reqVisitGift(PlayerController playerController, ReqVisitGift req) {
         executeVisit(playerController,
                 ctx -> visitService.gift(ctx, req.playerId, req.casinoId, req.giftId),
-                ResVisitAction::new);
+                ResVisitAction::new, ReqVisitGift.class);
     }
 
     @Command(SimConstant.MsgBean.REQ_VISIT_RECORDS)
@@ -583,7 +622,7 @@ public class SimMessageHandler implements GmListener {
     @Command(SimConstant.MsgBean.REQ_VISIT_COMMENTS)
     public void reqVisitComments(PlayerController playerController, ReqVisitComments req) {
         executeVisit(playerController, ctx -> visitService.comments(ctx, req.offset, req.limit),
-                ResVisitComments::new);
+                ResVisitComments::new, ReqVisitComments.class);
     }
 
     @Command(SimConstant.MsgBean.REQ_DELETE_VISIT_COMMENT)
@@ -613,7 +652,7 @@ public class SimMessageHandler implements GmListener {
             if (res != null) {
                 ctx.send(res);
             }
-        });
+        }, ReqEnterVisitGame.class);
     }
 
     @Command(SimConstant.MsgBean.REQ_EXIT_VISIT_TRIAL)
@@ -686,7 +725,7 @@ public class SimMessageHandler implements GmListener {
                 int guestId = Integer.parseInt(gmOrders[1]);
                 execute(playerController, ctx -> {
                     guestService.unlockGuest(ctx, guestId);
-                });
+                }, String[].class);
             } else if ("unlockBuilding".equalsIgnoreCase(gmOrders[0])) {
                 ReqUnlockBuilding req = new ReqUnlockBuilding();
                 req.id = Integer.parseInt(gmOrders[1]);
@@ -772,12 +811,12 @@ public class SimMessageHandler implements GmListener {
                 int guestId = Integer.parseInt(gmOrders[1]);
                 execute(playerController, ctx -> {
                     guestService.generatePurchasedGuest(ctx, guestId, 1);
-                });
+                }, String[].class);
             } else if ("claimPurchasedGuest".equalsIgnoreCase(gmOrders[0])) {
                 int index = Integer.parseInt(gmOrders[2]);
                 execute(playerController, ctx -> {
                     guestService.claimPurchasedGuestReward(ctx, gmOrders[1], index);
-                });
+                }, String[].class);
             } else if ("operationData".equalsIgnoreCase(gmOrders[0])) {
                 reqOperationData(playerController, null);
             } else if ("slotStat".equalsIgnoreCase(gmOrders[0])) {
@@ -809,7 +848,7 @@ public class SimMessageHandler implements GmListener {
                     }
                     long roomId = entry == null ? 0L : entry.getRoomId();
                     coopTaskService.onSettle(ctx, ctx.playerId(), taskId, roomId, success, java.util.List.of());
-                });
+                }, String[].class);
             } else if ("casinoLevelUp".equalsIgnoreCase(gmOrders[0])) {
                 int statsId = Integer.parseInt(gmOrders[1]);
                 CasinoStatsSheetCfg cfg = GameDataManager.getCasinoStatsSheetCfg(statsId);
@@ -855,10 +894,10 @@ public class SimMessageHandler implements GmListener {
         return res;
     }
 
-    public <T extends AbstractResponse> void execute(PlayerController pc, Consumer<SimPlayerContext> action) {
+    public void execute(PlayerController pc, Consumer<SimPlayerContext> action, Class<?> requestClass) {
         SimPlayerContext ctx = this.simPlayerContextRegistry.getContext(pc.playerId());
         if (ctx == null) {
-            log.warn("获取ctx为空 playerId={}", pc.playerId());
+            log.warn("获取ctx为空 playerId={},request={}", pc.playerId(), requestClass.getSimpleName());
             return;
         }
         action.accept(ctx);
@@ -866,7 +905,8 @@ public class SimMessageHandler implements GmListener {
 
     private <T extends AbstractResponse> void executeVisit(PlayerController pc,
                                                            Function<SimPlayerContext, T> action,
-                                                           IntFunction<T> exceptionResponse) {
+                                                           IntFunction<T> exceptionResponse,
+                                                           Class<?> requestClass) {
         execute(pc, ctx -> {
             try {
                 ctx.send(action.apply(ctx));
@@ -874,7 +914,7 @@ public class SimMessageHandler implements GmListener {
                 log.error("处理拜访请求异常 playerId={}", pc.playerId(), e);
                 ctx.send(exceptionResponse.apply(Code.EXCEPTION));
             }
-        });
+        }, requestClass);
     }
 
     private <T extends AbstractResponse> void sendVisit(PlayerController pc, Supplier<T> action,
