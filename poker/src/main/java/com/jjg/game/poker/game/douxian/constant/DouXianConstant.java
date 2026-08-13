@@ -36,7 +36,7 @@ public interface DouXianConstant {
         //匹配倒计时
         int MATCH_TIME = 30_000;
         //匹配无真人后机器人替补等待
-        int MATCH_ROBOT_FILL_TIME = 3_000;
+        int MATCH_ROBOT_FILL_TIME = 10_000;
         //发牌动画时长(开局/补牌阶段结束后自动进入出牌阶段)
         int DEAL_TIME = 2_000;
         //出牌倒计时
