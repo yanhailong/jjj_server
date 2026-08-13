@@ -883,6 +883,10 @@ public class SimMessageHandler implements GmListener {
                     return res;
                 }
                 buildingData.setLevel(level);
+            } else if ("simAddExp".equalsIgnoreCase(gmOrders[0])) {
+                int exp = Integer.parseInt(gmOrders[1]);
+                SimPlayerContext ctx = this.simPlayerContextRegistry.getContext(playerController.playerId());
+                casinoService.addCasinoExp(ctx, exp);
             } else {
                 res.code = Code.NOT_FOUND;
             }

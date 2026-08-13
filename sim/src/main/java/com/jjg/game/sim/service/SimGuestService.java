@@ -578,7 +578,7 @@ public class SimGuestService implements SimPlayerTickListener, ItemListener, Sim
      * - 有奖励交互点结算奖励到 dest.rewards (是否添加到玩家身上由调用方决定)
      */
     private List<DestinationInfo> planDestinations(GuestData guest, VisitorQuestCfg cfg, SimCasinoData casino, int rewardedCount) {
-        if(rewardedCount < 1){
+        if (rewardedCount < 1) {
             return Collections.emptyList();
         }
         List<DestinationInfo> result = new ArrayList<>();
@@ -643,11 +643,19 @@ public class SimGuestService implements SimPlayerTickListener, ItemListener, Sim
         if (building == null) {
             return null;
         }
-        BuildingUpgradeTableCfg cfg = configCache.getBuildingUpgradeCfg(buildingId, building.getLevel());
-        if (cfg == null || cfg.getUnlockEquipment() == null || cfg.getUnlockEquipment().isEmpty()) {
+
+        BuildingUnlockEquipmentData data = configCache.getBuildingUnlockEquipmentDataByBuildId(buildingId);
+        if (data == null) {
             return null;
         }
-        int deviceId = cfg.getUnlockEquipment().get(RandomUtils.randomInt(cfg.getUnlockEquipment().size()));
+
+        int level = Math.min(building.getLevel(), data.getMaxLevel());
+        List<Integer> list = data.getLevelUnlockEquipment(level);
+
+        if (list == null || list.isEmpty()) {
+            return null;
+        }
+        int deviceId = list.get(RandomUtils.randomInt(list.size()));
 
         DestinationInfo destinationInfo = new DestinationInfo();
         destinationInfo.buildingId = buildingId;

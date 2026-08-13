@@ -13,6 +13,7 @@ import com.jjg.game.core.listener.ConfigExcelChangeListener;
 import com.jjg.game.sampledata.GameDataManager;
 import com.jjg.game.sampledata.bean.*;
 import com.jjg.game.sim.constant.SimConstant;
+import com.jjg.game.sim.data.BuildingUnlockEquipmentData;
 import com.jjg.game.social.data.SendGiftConfig;
 import org.apache.commons.lang3.StringUtils;
 import org.slf4j.Logger;
@@ -69,6 +70,9 @@ public class SimConfigCacheService implements ConfigExcelChangeListener {
 
     //建筑等级配置 buildingId -> level -> cfg
     private Map<Integer, Map<Integer, BuildingUpgradeTableCfg>> buildingUpgradeCfgMap;
+    //建筑等级解锁设备的信息
+    private Map<Integer, BuildingUnlockEquipmentData> buildingUnlockEquipmentDataMap;
+
     //建筑设备列表 buildingId -> 该建筑下所有设备 (EquipmentTable type==设备)
     private Map<Integer, List<Integer>> buildingDeviceMap;
     //gameType -> BuildingAreaTableCfg
@@ -326,16 +330,39 @@ public class SimConfigCacheService implements ConfigExcelChangeListener {
      */
     private void loadBuildingUpgradeConfig() {
         Map<Integer, Map<Integer, BuildingUpgradeTableCfg>> tmp = new HashMap<>();
+        Map<Integer, BuildingUnlockEquipmentData> tmpBuildingUnlockEquipmentDataMap = new HashMap<>();
         for (BuildingUpgradeTableCfg cfg : GameDataManager.getBuildingUpgradeTableCfgList()) {
             tmp.computeIfAbsent(cfg.getBuildingID(), k -> new HashMap<>()).put(cfg.getLevel(), cfg);
+
+            BuildingUnlockEquipmentData buildingUnlockEquipmentData = tmpBuildingUnlockEquipmentDataMap.computeIfAbsent(cfg.getBuildingID(), k -> {
+                BuildingUnlockEquipmentData data = new BuildingUnlockEquipmentData();
+                data.setBuildId(cfg.getBuildingID());
+                return data;
+            });
+
+            if(cfg.getUnlockEquipment() != null && !cfg.getUnlockEquipment().isEmpty()) {
+                if(buildingUnlockEquipmentData.getMaxLevel() < cfg.getLevel()){
+                    buildingUnlockEquipmentData.setMaxLevel(cfg.getLevel());
+                }
+
+                List<Integer> tmpList = buildingUnlockEquipmentData.getLevelUnlockEquipment(cfg.getLevel() - 1);
+                List<Integer> allList = new ArrayList<>();
+                if(tmpList != null) {
+                    allList.addAll(tmpList);
+                }
+                allList.addAll(new HashSet<>(cfg.getUnlockEquipment()));
+                buildingUnlockEquipmentData.setLevelUnlockEquipment(cfg.getLevel(), allList);
+            }
+
         }
         this.buildingUpgradeCfgMap = tmp;
+        this.buildingUnlockEquipmentDataMap = tmpBuildingUnlockEquipmentDataMap;
     }
 
-    private void loadBuildingAreaTableConfig(){
-        Map<Integer, BuildingAreaTableCfg> tmpGameBuildingAreaTableCfg = new  HashMap<>();
+    private void loadBuildingAreaTableConfig() {
+        Map<Integer, BuildingAreaTableCfg> tmpGameBuildingAreaTableCfg = new HashMap<>();
         for (BuildingAreaTableCfg cfg : GameDataManager.getBuildingAreaTableCfgList()) {
-            if(cfg.getUnlockGameId() > 0){
+            if (cfg.getUnlockGameId() > 0) {
                 tmpGameBuildingAreaTableCfg.put(cfg.getUnlockGameId(), cfg);
             }
         }
@@ -831,9 +858,16 @@ public class SimConfigCacheService implements ConfigExcelChangeListener {
     }
 
     public BuildingAreaTableCfg getBuildingAreaTableCfgByGameType(int gameType) {
-        if(gameType < 1){
+        if (gameType < 1) {
             return null;
         }
         return this.gameBuildingAreaTableCfg.get(gameType);
+    }
+
+    public BuildingUnlockEquipmentData getBuildingUnlockEquipmentDataByBuildId(int buildId) {
+        if (buildingUnlockEquipmentDataMap == null) {
+            return null;
+        }
+        return this.buildingUnlockEquipmentDataMap.get(buildId);
     }
 }
