@@ -629,26 +629,9 @@ public class DouXianGameController extends BasePokerGameController<DouXianGameDa
         gameDataVo.setMatchState(DouXianConstant.MatchState.MATCHING);
         gameDataVo.setMatchEndTime(now + DouXianConstant.Time.MATCH_TIME);
         gameDataVo.setMatchRobotFillTime(now + DouXianConstant.Time.MATCH_ROBOT_FILL_TIME);
-        // One player starts room-level matching; all seated real players participate automatically.
-        readySeatedRealPlayersForMatching();
         broadcastMatchState();
         log.info("斗仙牌开始匹配 roomId:{} currentPlayerNum:{} maxPlayerNum:{} endTime:{}",
                 getRoom().getId(), getMatchPlayerNum(), DouXianConstant.Common.PLAYER_NUM, gameDataVo.getMatchEndTime());
-    }
-
-    private void readySeatedRealPlayersForMatching() {
-        for (SeatInfo seatInfo : gameDataVo.getSeatInfo().values()) {
-            if (!seatInfo.isSeatDown()) {
-                continue;
-            }
-            long seatedPlayerId = seatInfo.getPlayerId();
-            if (gameDataVo.getGamePlayer(seatedPlayerId) instanceof GameRobotPlayer) {
-                continue;
-            }
-            if (gameDataVo.getReadyPlayerIds().add(seatedPlayerId)) {
-                broadcastReadyState(seatedPlayerId, 1);
-            }
-        }
     }
 
     private void completeMatching() {
@@ -1204,13 +1187,7 @@ public class DouXianGameController extends BasePokerGameController<DouXianGameDa
         super.onRobotPlayerJoinRoom(playerController, gamePlayer);
         if (getCurrentGamePhase() == EGamePhase.WAIT_READY
                 && gameDataVo.getMatchState() == DouXianConstant.MatchState.MATCHING) {
-            // A real player entering during the countdown joins the current room-level match automatically.
-            if (!(gamePlayer instanceof GameRobotPlayer)
-                    && gameDataVo.getReadyPlayerIds().add(gamePlayer.getId())) {
-                broadcastReadyState(gamePlayer.getId(), 1);
-            }
             broadcastMatchState();
-            tryStartGame();
         }
     }
 
