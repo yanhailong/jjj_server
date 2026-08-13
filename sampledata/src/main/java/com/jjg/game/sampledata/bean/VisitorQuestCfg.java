@@ -29,6 +29,8 @@ public class VisitorQuestCfg extends BaseCfgBean {
   protected Map<Integer,Integer> InteractionWeight;
   /** 是否默认解锁 */
   protected boolean IsDefaultUnlocked;
+  /** 是否显示 */
+  protected boolean IsVisible;
   /** 游客品质 */
   protected int Quality;
   /** 场景 ID */
@@ -41,6 +43,8 @@ public class VisitorQuestCfg extends BaseCfgBean {
   protected List<Integer> TargetArea;
   /** 知名度 */
   protected int awareness;
+  /** 类型 */
+  protected int type;
 
   /** 返回无奖励的服务能力 */
   public int getBaseServiceCapacity() {
@@ -65,6 +69,11 @@ public class VisitorQuestCfg extends BaseCfgBean {
   /** 返回是否默认解锁 */
   public boolean getIsDefaultUnlocked() {
     return IsDefaultUnlocked;
+  }
+
+  /** 返回是否显示 */
+  public boolean getIsVisible() {
+    return IsVisible;
   }
 
   /** 返回游客品质 */
@@ -95,6 +104,11 @@ public class VisitorQuestCfg extends BaseCfgBean {
   /** 返回知名度 */
   public int getAwareness() {
     return awareness;
+  }
+
+  /** 返回类型 */
+  public int getType() {
+    return type;
   }
 
   @Override
