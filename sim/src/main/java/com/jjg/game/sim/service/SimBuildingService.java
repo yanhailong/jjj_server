@@ -467,7 +467,7 @@ public class SimBuildingService implements SimPlayerTickListener, SimTaskStateRe
     /**
      * 清除建筑升级 CD
      */
-    public void onClearBuildingCD(SimPlayerContext ctx, int buildingId, int costCount, boolean watchAd) {
+    public void onClearBuildingCD(SimPlayerContext ctx, int buildingId, int costCount, boolean watchAd, int costItemId) {
         ResClearBuildingCD res = new ResClearBuildingCD(Code.SUCCESS);
         ResCompleteBuildingUpgrade completeRes = null;
         try {
@@ -514,21 +514,31 @@ public class SimBuildingService implements SimPlayerTickListener, SimTaskStateRe
                 //主线任务: 观看广告一次 -> 推进 12209
                 allianceEventService.onAdWatch(ctx.playerId());
             } else if (upgrading) {
+                if (costItemId != SimConstant.Item.ID_CLEAR_CD && costItemId != ItemUtils.getDiamondItemId()) {
+                    res.code = Code.PARAM_ERROR;
+                    ctx.send(res);
+                    log.warn("清除建筑升级 CD失败，道具id错误 playerId={},costItemId={}", ctx.playerId(), costItemId);
+                    return;
+                }
                 if (costCount < 1) {
                     res.code = Code.NOT_ENOUGH;
                     ctx.send(res);
                     log.warn("道具清除建筑升级 CD失败，costCount不能小于1 playerId={},buildingId={},costCount={}", ctx.playerId(), buildingId, costCount);
                     return;
                 }
-                boolean remove = playerPackService.removeItem(ctx.getPlayer(), SimConstant.Item.ID_CLEAR_CD, costCount, AddType.SIM_BUILDING_UPGRADE).success();
+                long reduceMs = (long) costCount * TimeHelper.ONE_MINUTE_OF_MILLIS;
+                if (costItemId == ItemUtils.getDiamondItemId()) {
+                    int diamondCostPerMinute = GameDataManager.getGlobalConfigCfg(SimConstant.Global.ID_DIAMOND_CLEAR_CD_COST).getIntValue();
+                    reduceMs /= diamondCostPerMinute;
+                }
+                boolean remove = playerPackService.removeItem(ctx.getPlayer(), costItemId, costCount, AddType.SIM_BUILDING_UPGRADE).success();
                 if (!remove) {
                     res.code = Code.NOT_ENOUGH;
                     ctx.send(res);
-                    log.warn("道具清除建筑升级 CD失败，道具不足 playerId={},buildingId={},costCount={}", ctx.playerId(), buildingId, costCount);
+                    log.warn("道具清除建筑升级 CD失败，道具不足 playerId={},buildingId={},costItemId={},costCount={}", ctx.playerId(), buildingId, costItemId, costCount);
                     return;
                 }
-                //每消耗 1 个道具, CD 减少 1 分钟
-                long reduceMs = (long) costCount * TimeHelper.ONE_MINUTE_OF_MILLIS;
+                //costCount 表示实际消耗数量：加速卡每张清 1 分钟，钻石按全局配置换算时长
                 data.setCdEndTime(data.getCdEndTime() - reduceMs);
             }
 

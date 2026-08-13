@@ -222,7 +222,7 @@ public class SimMessageHandler implements GmListener {
     @Command(SimConstant.MsgBean.REQ_CLEAR_BUILDING_CD)
     public void reqClearBuildingCD(PlayerController playerController, ReqClearBuildingCD req) {
         execute(playerController, ctx -> {
-            buildingService.onClearBuildingCD(ctx, req.id, req.costCount, req.watchAd);
+            buildingService.onClearBuildingCD(ctx, req.id, req.costCount, req.watchAd, req.costItemId);
         }, ReqClearBuildingCD.class);
     }
 
