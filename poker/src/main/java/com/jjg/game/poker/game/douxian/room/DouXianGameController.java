@@ -1474,8 +1474,7 @@ public class DouXianGameController extends BasePokerGameController<DouXianGameDa
         for (DouXianZone zone : DouXianZone.values()) {
             if (zone.isOpenAt(round)) {
                 DouXianZoneCards zoneCards = playerZones.get(zone);
-                candidateHand.addAll(zoneCards.getNewCards());
-                totalNeed += zone.getCapacity() - zoneCards.getCarriedCards().size();
+                totalNeed += zone.getCapacity() - zoneCards.getCarriedCards().size() - zoneCards.getNewCards().size();
             }
         }
         if (candidateHand.size() < totalNeed) {
@@ -1492,9 +1491,9 @@ public class DouXianGameController extends BasePokerGameController<DouXianGameDa
                 continue;
             }
             DouXianZoneCards zoneCards = playerZones.get(zone);
-            int need = zone.getCapacity() - zoneCards.getCarriedCards().size();
+            int need = zone.getCapacity() - zoneCards.getCarriedCards().size() - zoneCards.getNewCards().size();
             if (need <= 0) {
-                plannedNewCards.put(zone, List.of());
+                plannedNewCards.put(zone, new ArrayList<>(zoneCards.getNewCards()));
                 continue;
             }
             if (remainingHand.size() < need) {
@@ -1502,16 +1501,18 @@ public class DouXianGameController extends BasePokerGameController<DouXianGameDa
                         playerId, zone, need, remainingHand.size());
                 return false;
             }
-            List<Card> carried = DouXianDataHelper.toCards(gameDataVo, zoneCards.getCarriedCards());
+            List<Integer> fixedCardIds = new ArrayList<>(zoneCards.getCarriedCards());
+            fixedCardIds.addAll(zoneCards.getNewCards());
+            List<Card> fixedCards = DouXianDataHelper.toCards(gameDataVo, fixedCardIds);
             List<Card> candidates = DouXianDataHelper.toCards(gameDataVo, remainingHand);
-            DouXianHandResult best = DouXianHandEvaluator.findBestZone(gameDataVo, zone, carried, candidates, round);
+            DouXianHandResult best = DouXianHandEvaluator.findBestZone(gameDataVo, zone, fixedCards, candidates, round);
             if (best == null || best.getCards().size() != zone.getCapacity()) {
                 log.error("斗仙牌托管摆牌规划失败 playerId:{} zone:{} need:{} bestSize:{}",
                         playerId, zone, need, best == null ? -1 : best.getCards().size());
                 return false;
             }
-            List<Card> chosenNew = best.getCards().subList(carried.size(), best.getCards().size());
-            List<Integer> chosenCfgIds = new ArrayList<>(chosenNew.size());
+            List<Card> chosenNew = best.getCards().subList(fixedCards.size(), best.getCards().size());
+            List<Integer> chosenCfgIds = new ArrayList<>(zoneCards.getNewCards());
             for (Card card : chosenNew) {
                 int cfgId = DouXianDataHelper.toCfgId(card);
                 if (!remainingHand.remove(Integer.valueOf(cfgId))) {
