@@ -71,6 +71,8 @@ public class SimConfigCacheService implements ConfigExcelChangeListener {
     private Map<Integer, Map<Integer, BuildingUpgradeTableCfg>> buildingUpgradeCfgMap;
     //建筑设备列表 buildingId -> 该建筑下所有设备 (EquipmentTable type==设备)
     private Map<Integer, List<Integer>> buildingDeviceMap;
+    //gameType -> BuildingAreaTableCfg
+    private Map<Integer, BuildingAreaTableCfg> gameBuildingAreaTableCfg;
 
     //技能配置
     private Map<Integer, List<PropCfg>> propCfgMap;
@@ -124,6 +126,7 @@ public class SimConfigCacheService implements ConfigExcelChangeListener {
 
         loadBuildingDeviceConfig();
         loadBuildingUpgradeConfig();
+        loadBuildingAreaTableConfig();
 
         loadEmployeeLevelConfig();
         loadEmployeeStarConfig();
@@ -327,6 +330,16 @@ public class SimConfigCacheService implements ConfigExcelChangeListener {
             tmp.computeIfAbsent(cfg.getBuildingID(), k -> new HashMap<>()).put(cfg.getLevel(), cfg);
         }
         this.buildingUpgradeCfgMap = tmp;
+    }
+
+    private void loadBuildingAreaTableConfig(){
+        Map<Integer, BuildingAreaTableCfg> tmpGameBuildingAreaTableCfg = new  HashMap<>();
+        for (BuildingAreaTableCfg cfg : GameDataManager.getBuildingAreaTableCfgList()) {
+            if(cfg.getUnlockGameId() > 0){
+                tmpGameBuildingAreaTableCfg.put(cfg.getUnlockGameId(), cfg);
+            }
+        }
+        this.gameBuildingAreaTableCfg = tmpGameBuildingAreaTableCfg;
     }
 
     /**
@@ -536,6 +549,9 @@ public class SimConfigCacheService implements ConfigExcelChangeListener {
 
         addInitSampleFileObserveWithCallBack(BuildingUpgradeTableCfg.EXCEL_NAME, this::loadBuildingUpgradeConfig);
         addInitSampleFileObserveWithCallBack(BuildingEquipmentTableCfg.EXCEL_NAME, this::loadBuildingDeviceConfig);
+        addInitSampleFileObserveWithCallBack(BuildingAreaTableCfg.EXCEL_NAME, this::loadBuildingAreaTableConfig);
+
+
         addInitSampleFileObserveWithCallBack(GlobalConfigCfg.EXCEL_NAME, this::loadGlobalConfig);
 
         addInitSampleFileObserveWithCallBack(PropCfg.EXCEL_NAME, this::loadPropConfig);
@@ -812,5 +828,12 @@ public class SimConfigCacheService implements ConfigExcelChangeListener {
 
     public Set<Integer> getGenGuestGuideSet() {
         return genGuestGuideSet;
+    }
+
+    public BuildingAreaTableCfg getBuildingAreaTableCfgByGameType(int gameType) {
+        if(gameType < 1){
+            return null;
+        }
+        return this.gameBuildingAreaTableCfg.get(gameType);
     }
 }
