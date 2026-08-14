@@ -222,7 +222,7 @@ public class SimMessageHandler implements GmListener {
     @Command(SimConstant.MsgBean.REQ_CLEAR_BUILDING_CD)
     public void reqClearBuildingCD(PlayerController playerController, ReqClearBuildingCD req) {
         execute(playerController, ctx -> {
-            buildingService.onClearBuildingCD(ctx, req.id, req.costCount, req.watchAd);
+            buildingService.onClearBuildingCD(ctx, req.id, req.costCount, req.watchAd, req.costItemId);
         }, ReqClearBuildingCD.class);
     }
 
@@ -883,6 +883,10 @@ public class SimMessageHandler implements GmListener {
                     return res;
                 }
                 buildingData.setLevel(level);
+            } else if ("simAddExp".equalsIgnoreCase(gmOrders[0])) {
+                int exp = Integer.parseInt(gmOrders[1]);
+                SimPlayerContext ctx = this.simPlayerContextRegistry.getContext(playerController.playerId());
+                casinoService.addCasinoExp(ctx, exp);
             } else {
                 res.code = Code.NOT_FOUND;
             }

@@ -335,6 +335,8 @@ public interface SimConstant {
         int ID_WATCH_AD_CLEAR_TIME = 136;
         //观看广告次数限制
         int ID_WATCH_AD_LIMIT = 137;
+        //清除建筑 CD 每分钟需要消耗的钻石数量
+        int ID_DIAMOND_CLEAR_CD_COST = 138;
         //赛季：免费游戏次数（进阶赛季、循环赛季）
         int ID_SEASON_FEEE_GAME_COUNT = 280;
         //赛季：赛季机台每次旋转被动触发匹配的概率(百分比, 8% 填 8)

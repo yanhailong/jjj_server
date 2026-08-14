@@ -10,10 +10,12 @@ import com.jjg.game.core.data.CommonResult;
 import com.jjg.game.core.data.PlayerPack;
 import com.jjg.game.core.listener.ConfigExcelChangeListener;
 import com.jjg.game.sampledata.GameDataManager;
+import com.jjg.game.sampledata.bean.BuildingAreaTableCfg;
 import com.jjg.game.sampledata.bean.ItemCfg;
 import com.jjg.game.sampledata.bean.PropCfg;
 import com.jjg.game.sampledata.bean.ResearchSkillsCfg;
 import com.jjg.game.sim.dao.SimSkillsDao;
+import com.jjg.game.sim.data.BuildingData;
 import com.jjg.game.sim.data.SimPlayerContext;
 import com.jjg.game.sim.data.SimSkillsData;
 import com.jjg.game.sim.pb.SimPbConverter;
@@ -157,6 +159,29 @@ public class SimSkillService extends AbstractSkillService implements ConfigExcel
             Integer beforeLevel = skillData.findSkilLevelByPropId(skillPropId);
             if (beforeLevel == null) {
                 log.warn("升级技能失败，该技能还未解锁 playerId={},propId={}", skillData.getPlayerId(), skillPropId);
+                res.code = Code.PARAM_ERROR;
+                ctx.send(res);
+                return;
+            }
+
+            BuildingAreaTableCfg buildingAreaTableCfg = simConfigCacheService.getBuildingAreaTableCfgByGameType(gameType);
+            if (buildingAreaTableCfg == null) {
+                log.warn("升级技能失败，根据游戏未找到配置 playerId={},propId={},gameType={}", skillData.getPlayerId(), skillPropId, gameType);
+                res.code = Code.PARAM_ERROR;
+                ctx.send(res);
+                return;
+            }
+
+            BuildingData building = ctx.getCurrentCasino().findBuilding(buildingAreaTableCfg.getId());
+            if (building == null) {
+                log.warn("升级技能失败，未找到对应的建筑信息 playerId={},propId={},gameType={},buildingId={}", skillData.getPlayerId(), skillPropId, gameType, buildingAreaTableCfg.getId());
+                res.code = Code.PARAM_ERROR;
+                ctx.send(res);
+                return;
+            }
+
+            if (beforeLevel >= building.getLevel()) {
+                log.warn("升级技能失败，技能等级不能超过建筑等级 playerId={},propId={},gameType={},buildingId={},buildingLevel={}", skillData.getPlayerId(), skillPropId, gameType, buildingAreaTableCfg.getId(), building.getLevel());
                 res.code = Code.PARAM_ERROR;
                 ctx.send(res);
                 return;
@@ -306,10 +331,11 @@ public class SimSkillService extends AbstractSkillService implements ConfigExcel
 
     /**
      * 单个游戏计算出来的战力
+     *
      * @param skillsData
      * @return
      */
-    public int oneGameCombatPower(SimSkillsData skillsData){
+    public int oneGameCombatPower(SimSkillsData skillsData) {
         Map<Integer, Integer> skillsMap = skillsData.getSkillsMap();
         if (skillsMap == null || skillsMap.isEmpty()) {
             return 0;

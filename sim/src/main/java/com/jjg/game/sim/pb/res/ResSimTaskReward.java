@@ -21,6 +21,10 @@ public class ResSimTaskReward extends AbstractResponse {
     @ProtoDesc("领奖后新激活的下一节点 (链结束时为空)")
     public Task nextTask;
 
+    public ResSimTaskReward() {
+        super(0);
+    }
+
     public ResSimTaskReward(int code) {
         super(code);
     }
