@@ -602,14 +602,22 @@ public class DouXianGameController extends BasePokerGameController<DouXianGameDa
         gameDataVo.getReadyTimerScheduled().remove(playerId);
 
         GamePlayer gamePlayer = gameDataVo.getGamePlayer(playerId);
-        if (!(gamePlayer instanceof GameRobotPlayer)) {
+        RoomPlayer roomPlayer = getRoomController().getRoomPlayer(playerId);
+        PlayerController playerController = getRoomController().getPlayerController(playerId);
+        boolean onlineRealPlayer = !(gamePlayer instanceof GameRobotPlayer)
+                && playerController != null
+                && (roomPlayer == null || roomPlayer.isOnline());
+        if (onlineRealPlayer) {
             NotifyExitRoom notify = new NotifyExitRoom();
             notify.langId = Code.USER_NOT_GOLD;
             broadcastToPlayers(RoomMessageBuilder.newBuilder().sendPlayer(playerId, notify));
+            log.warn("斗仙牌余额不足，已通知在线玩家退出房间 playerId:{} balance:{} minBalance:{} reason:{}",
+                    playerId, balance, minBalance, reason);
+            return;
         }
 
         int exitCode = getRoomController().getRoomManager().exitRoom(playerId);
-        log.warn("斗仙牌余额不足，拒绝进入下一局并移出房间 playerId:{} balance:{} minBalance:{} reason:{} exitCode:{}",
+        log.warn("斗仙牌余额不足，服务端直接移出离线玩家/机器人 playerId:{} balance:{} minBalance:{} reason:{} exitCode:{}",
                 playerId, balance, minBalance, reason, exitCode);
     }
 
@@ -1192,8 +1200,18 @@ public class DouXianGameController extends BasePokerGameController<DouXianGameDa
     }
 
     @Override
+    public <R extends Room> CommonResult<R> onPlayerLeaveRoom(PlayerController playerController) {
+        try {
+            return super.onPlayerLeaveRoom(playerController);
+        } finally {
+            // PokerBuilder builds the leaving-player snapshot after onPlayerLeaveRoomAction.
+            // Keep the season account available until that snapshot and player persistence finish.
+            seasonAccounts.remove(playerController.playerId());
+        }
+    }
+
+    @Override
     public void onPlayerLeaveRoomAction(RoomPlayer roomPlayer, SeatInfo remove) {
-        seasonAccounts.remove(remove.getPlayerId());
         gameDataVo.getHandCards().remove(remove.getPlayerId());
         gameDataVo.getConfirmedPlayerIds().remove(remove.getPlayerId());
         boolean keepConceded = getCurrentGamePhase() != EGamePhase.WAIT_READY
