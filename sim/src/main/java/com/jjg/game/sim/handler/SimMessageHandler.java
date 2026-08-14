@@ -129,6 +129,68 @@ public class SimMessageHandler implements GmListener {
                 playerController.playerId(), result.triggeredGuideGroupIds());
     }
 
+    /**
+     * 客户端上报类型10的新手引导事件。
+     * 玩家位于 poker 等非 SIM 节点时，转发到玩家所属 SIM 节点修改引导状态。
+     */
+    @Command(SimConstant.MsgBean.REQ_TRIGGER_GUIDE_EVENT)
+    public void reqTriggerGuideEvent(PlayerController playerController, ReqTriggerGuideEvent req) {
+        ResTriggerGuideEvent res = new ResTriggerGuideEvent(Code.SUCCESS);
+        res.condition = req.condition;
+        res.param = req.param;
+        if (req.condition != SimConstant.GuideCondition.CLIENT_EVENT || req.param <= 0) {
+            res.code = Code.PARAM_ERROR;
+            playerController.send(res);
+            return;
+        }
+
+        long playerId = playerController.playerId();
+        SimPlayerContext ctx = simPlayerContextRegistry.getContext(playerId);
+        CommonResult<List<Integer>> result = ctx == null
+                ? triggerGuideEventRemotely(playerController, req.condition, req.param)
+                : new CommonResult<>(Code.SUCCESS, guideService.triggerClientEvent(ctx, req.condition, req.param));
+        if (result == null) {
+            res.code = Code.EXCEPTION;
+        } else {
+            res.code = result.code;
+        }
+        // 先确认上报处理结果，再用原有通知协议启动本次首次命中的引导组。
+        playerController.send(res);
+        if (res.code == Code.SUCCESS && result.data != null && !result.data.isEmpty()) {
+            NotifyGuideTrigger notify = new NotifyGuideTrigger(Code.SUCCESS);
+            notify.guideGroupIds = result.data;
+            playerController.send(notify);
+        }
+        log.info("处理客户端新手引导事件 playerId={},condition={},param={},code={},groups={}",
+                playerId, req.condition, req.param, res.code,
+                result == null ? null : result.data);
+    }
+
+    private CommonResult<List<Integer>> triggerGuideEventRemotely(PlayerController playerController,
+                                                                   int condition, int param) {
+        long playerId = playerController.playerId();
+        ClusterClient client = simNodeService.getSimClusterClient(playerId, playerController.ipAddress());
+        if (client == null) {
+            log.warn("转发客户端新手引导事件失败，未找到玩家 sim 节点 playerId={},condition={},param={}",
+                    playerId, condition, param);
+            return new CommonResult<>(Code.NOT_FOUND);
+        }
+        GameRpcContext rpcContext = GameRpcContext.getContext();
+        RpcReqParameterBuilder previousBuilder = rpcContext.getReqParameterBuilder();
+        try {
+            rpcContext.withReqParameterBuilder(RpcReqParameterBuilder.create()
+                    .addClusterClient(client).setTryMillisPerClient(1000));
+            CommonResult<List<Integer>> result = toSimBridge.triggerGuideEvent(playerId, condition, param);
+            return result == null ? new CommonResult<>(Code.EXCEPTION) : result;
+        } catch (Exception e) {
+            log.error("跨节点处理客户端新手引导事件异常 playerId={},condition={},param={}",
+                    playerId, condition, param, e);
+            return new CommonResult<>(Code.EXCEPTION);
+        } finally {
+            rpcContext.setReqParameterBuilder(previousBuilder);
+        }
+    }
+
     //--------------------------Casino相关 begin--------------------------
 
     /**

@@ -170,6 +170,12 @@ public interface ToSimBridge extends IGameRpc {
     CommonResult<Boolean> onPackItemsConsumed(long playerId, Map<Integer, Long> items, AddType addType);
 
     /**
+     * 非 SIM 节点向玩家所属 SIM 节点上报客户端新手引导事件。
+     * 返回本次首次触发的引导组；重复上报成功但返回空列表。
+     */
+    CommonResult<List<Integer>> triggerGuideEvent(long playerId, int condition, int param);
+
+    /**
      * 多人协作任务结算回写 (slots 房间结束时调用发起者所在 sim 节点):
      * 发起者任务态 -> 待领奖/失败; 协助者奖励经邮件发放。
      *

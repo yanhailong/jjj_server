@@ -237,7 +237,8 @@ public class SimGuideConfigService implements ConfigExcelChangeListener {
                 || condition == SimConstant.GuideCondition.ITEM_NOT_ENOUGH
                 || condition == SimConstant.GuideCondition.ITEM_GAINED
                 || condition == SimConstant.GuideCondition.FUNCTION_UNLOCKED
-                || condition == SimConstant.GuideCondition.GUIDE_GROUP_FINISHED;
+                || condition == SimConstant.GuideCondition.GUIDE_GROUP_FINISHED
+                || condition == SimConstant.GuideCondition.CLIENT_EVENT;
     }
 
     private boolean conditionNeedsParam(int condition) {

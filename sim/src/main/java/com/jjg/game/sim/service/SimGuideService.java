@@ -42,6 +42,22 @@ public class SimGuideService implements ItemAddListener, ItemNotEnoughListener {
     private SimPackService simPackService;
 
     public List<Integer> trigger(SimPlayerContext ctx, int condition, int param, boolean notify) {
+        return trigger(ctx, condition, param, notify, true);
+    }
+
+    /**
+     * 处理客户端主动上报的类型10事件。
+     * 前端已经确认玩家进入了对应功能节点，因此本次触发不再受 PathName 限制。
+     */
+    public List<Integer> triggerClientEvent(SimPlayerContext ctx, int condition, int param) {
+        if (condition != SimConstant.GuideCondition.CLIENT_EVENT || param <= 0) {
+            return Collections.emptyList();
+        }
+        return trigger(ctx, condition, param, false, false);
+    }
+
+    private List<Integer> trigger(SimPlayerContext ctx, int condition, int param,
+                                  boolean notify, boolean checkPath) {
         if (ctx == null || ctx.getSimBaseData() == null) {
             return Collections.emptyList();
         }
@@ -54,7 +70,7 @@ public class SimGuideService implements ItemAddListener, ItemNotEnoughListener {
         List<Integer> deferred = new ArrayList<>(groups.size());
         for (int groupId : groups) {
             String requiredPathName = configService.pathNameOfGroup(groupId);
-            if (pathMatches(ctx, requiredPathName)) {
+            if (!checkPath || pathMatches(ctx, requiredPathName)) {
                 if (base.triggerGuideGroup(groupId)) {
                     triggered.add(groupId);
                 }

@@ -233,10 +233,14 @@ public interface SimConstant {
         //跳过整个新手引导组
         int REQ_SKIP_GUIDE_GROUP = BASE_MSG_PREFIX | 0x75;
         int RES_SKIP_GUIDE_GROUP = BASE_MSG_PREFIX | 0x76;
+
+        //客户端上报新手引导触发事件
+        int REQ_TRIGGER_GUIDE_EVENT = BASE_MSG_PREFIX | 0x77;
+        int RES_TRIGGER_GUIDE_EVENT = BASE_MSG_PREFIX | 0x78;
     }
 
     interface GuideCondition {
-        // 当前 Guide.xlsx 最终约定：1=创建新号、3=场景累计等级、4=玩家等级、5=道具不足、6=获得道具、7=功能解锁、8=引导组完成。
+        // 当前 Guide.xlsx 约定：1=创建新号、3=场景累计等级、4=玩家等级、5=道具不足、6=获得道具、7=功能解锁、8=引导组完成、10=客户端事件。
         int NEW_PLAYER = 1;
         int SCENE_TOTAL_LEVEL = 3;
         int PLAYER_LEVEL = 4;
@@ -244,6 +248,8 @@ public interface SimConstant {
         int ITEM_GAINED = 6;
         int FUNCTION_UNLOCKED = 7;
         int GUIDE_GROUP_FINISHED = 8;
+        /** 客户端进入指定功能节点时主动上报的引导事件。 */
+        int CLIENT_EVENT = 10;
 
         // 旧版条件已不再接受配置，仅保留常量以兼容尚未清理的事件调用点。
         @Deprecated int TASK_REWARD = 2;
