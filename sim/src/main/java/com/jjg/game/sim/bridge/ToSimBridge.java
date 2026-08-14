@@ -9,6 +9,8 @@ import com.jjg.game.season.data.SeasonSlotsSessionData;
 import com.jjg.game.season.pb.res.ResSeasonMatch;
 import com.jjg.game.season.pb.res.ResSeasonTrialProgress;
 import com.jjg.game.sim.data.SimSkillsData;
+import com.jjg.game.sim.data.FinishGuideRpcResult;
+import com.jjg.game.sim.data.SkipGuideGroupRpcResult;
 import com.jjg.game.sim.data.SlotsSpinResult;
 import com.jjg.game.sim.data.SpinStatInfo;
 import com.jjg.game.sim.data.VisitTrialSpinPermit;
@@ -22,6 +24,12 @@ import java.util.Map;
  * @date 2026/5/25
  */
 public interface ToSimBridge extends IGameRpc {
+    /** 在玩家所属 SIM 节点完成一个新手引导步骤。 */
+    FinishGuideRpcResult finishGuide(long playerId, int guideId);
+
+    /** 在玩家所属 SIM 节点跳过整个新手引导组。 */
+    SkipGuideGroupRpcResult skipGuideGroup(long playerId, int guideGroupId);
+
     /**
      * 添加技能
      *

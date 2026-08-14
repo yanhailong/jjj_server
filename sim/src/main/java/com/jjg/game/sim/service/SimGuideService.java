@@ -181,7 +181,12 @@ public class SimGuideService implements ItemAddListener, ItemNotEnoughListener {
     private boolean pathMatches(SimPlayerContext ctx, String requiredPathName) {
         if (requiredPathName == null || requiredPathName.isBlank()) return true;
         if (SimConstant.GuidePath.SIM_HALL.equals(requiredPathName)) {
-            return ctx.getPlayerController() != null && ctx.getPlayerController().getScene() == ctx;
+            // 切换到 poker/slots 等节点后，SIM 会保留上下文和旧 PlayerController，
+            // 只有当前 Hall 会话仍引用该控制器时，才能判定玩家确实位于模拟经营大厅。
+            return ctx.getPlayerController() != null
+                    && ctx.getPlayerController().getSession() != null
+                    && ctx.getPlayerController().getSession().getReference() == ctx.getPlayerController()
+                    && ctx.getPlayerController().getScene() == ctx;
         }
         return false;
     }

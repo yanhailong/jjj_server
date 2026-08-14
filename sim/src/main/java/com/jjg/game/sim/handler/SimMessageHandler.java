@@ -1,6 +1,8 @@
 package com.jjg.game.sim.handler;
 
 import com.jjg.game.common.cluster.ClusterClient;
+import com.jjg.game.common.concurrent.BaseHandler;
+import com.jjg.game.common.concurrent.PlayerExecutorGroupDisruptor;
 import com.jjg.game.common.constant.MessageConst;
 import com.jjg.game.common.pb.AbstractResponse;
 import com.jjg.game.common.protostuff.Command;
@@ -8,6 +10,7 @@ import com.jjg.game.common.protostuff.MessageType;
 import com.jjg.game.common.rpc.ClusterRpcReference;
 import com.jjg.game.common.rpc.GameRpcContext;
 import com.jjg.game.common.rpc.RpcReqParameterBuilder;
+import com.jjg.game.common.utils.WheelTimerUtil;
 import com.jjg.game.core.constant.Code;
 import com.jjg.game.core.data.CommonResult;
 import com.jjg.game.core.data.PlayerController;
@@ -17,7 +20,9 @@ import com.jjg.game.sampledata.bean.CasinoStatsSheetCfg;
 import com.jjg.game.sim.bridge.ToSimBridge;
 import com.jjg.game.sim.constant.SimConstant;
 import com.jjg.game.sim.data.BuildingData;
+import com.jjg.game.sim.data.FinishGuideRpcResult;
 import com.jjg.game.sim.data.SimPlayerContext;
+import com.jjg.game.sim.data.SkipGuideGroupRpcResult;
 import com.jjg.game.sim.logger.SimGuideLogger;
 import com.jjg.game.sim.manager.SimManager;
 import com.jjg.game.sim.manager.SimPlayerContextRegistry;
@@ -37,6 +42,7 @@ import java.util.function.Consumer;
 import java.util.function.Function;
 import java.util.function.IntFunction;
 import java.util.function.Supplier;
+import java.util.concurrent.TimeUnit;
 
 /**
  * 模拟经营游戏消息处理器
@@ -109,11 +115,21 @@ public class SimMessageHandler implements GmListener {
      */
     @Command(SimConstant.MsgBean.REQ_FINISH_GUIDE)
     public void reqFinishGuide(PlayerController playerController, ReqFinishGuide req) {
-        SimGuideService.FinishGuideResult result =
-                simManager.onFinishGuideWithTriggers(playerController.playerId(), req.guideId);
+        long playerId = playerController.playerId();
+        SimPlayerContext ctx = simPlayerContextRegistry.getContext(playerId);
+        if (ctx == null) {
+            FinishGuideRpcResult result = finishGuideRemotely(playerController, req.guideId);
+            ResFinishGuide response = new ResFinishGuide(result.code);
+            response.guideId = result.guideId;
+            playerController.send(response);
+            notifyGuideTriggersDelayedOnCurrentNode(
+                    playerController, result.triggeredGuideGroupIds);
+            return;
+        }
+        SimGuideService.FinishGuideResult result = simManager.onFinishGuideWithTriggers(playerId, req.guideId);
         // 先发送完成响应，再稍作延迟通知由条件8触发的新引导组，给前端留出上一组的结束表现时间。
         playerController.send(result.response());
-        simManager.notifyGuideTriggersDelayed(playerController.playerId(), result.triggeredGuideGroupIds());
+        simManager.notifyGuideTriggersDelayed(playerId, result.triggeredGuideGroupIds());
     }
 
     /**
@@ -121,12 +137,103 @@ public class SimMessageHandler implements GmListener {
      */
     @Command(SimConstant.MsgBean.REQ_SKIP_GUIDE_GROUP)
     public void reqSkipGuideGroup(PlayerController playerController, ReqSkipGuideGroup req) {
+        long playerId = playerController.playerId();
+        SimPlayerContext ctx = simPlayerContextRegistry.getContext(playerId);
+        if (ctx == null) {
+            SkipGuideGroupRpcResult result = skipGuideGroupRemotely(playerController, req.guideGroupId);
+            ResSkipGuideGroup response = new ResSkipGuideGroup(result.code);
+            response.guideGroupId = result.guideGroupId;
+            response.completedGuideIds = result.completedGuideIds;
+            playerController.send(response);
+            notifyGuideTriggersDelayedOnCurrentNode(
+                    playerController, result.triggeredGuideGroupIds);
+            return;
+        }
         SimGuideService.SkipGuideGroupResult result =
-                simManager.onSkipGuideGroup(playerController.playerId(), req.guideGroupId);
+                simManager.onSkipGuideGroup(playerId, req.guideGroupId);
         // 先返回跳过结果，再延迟通知由条件8触发的下一引导组。
         playerController.send(result.response());
-        simManager.notifyGuideTriggersDelayed(
-                playerController.playerId(), result.triggeredGuideGroupIds());
+        simManager.notifyGuideTriggersDelayed(playerId, result.triggeredGuideGroupIds());
+    }
+
+    private FinishGuideRpcResult finishGuideRemotely(PlayerController playerController, int guideId) {
+        long playerId = playerController.playerId();
+        ClusterClient client = simNodeService.getSimClusterClient(playerId, playerController.ipAddress());
+        if (client == null) {
+            log.warn("转发完成新手引导失败，未找到玩家 sim 节点 playerId={},guideId={}", playerId, guideId);
+            return new FinishGuideRpcResult(Code.NOT_FOUND, guideId, List.of());
+        }
+        GameRpcContext rpcContext = GameRpcContext.getContext();
+        RpcReqParameterBuilder previousBuilder = rpcContext.getReqParameterBuilder();
+        try {
+            rpcContext.withReqParameterBuilder(RpcReqParameterBuilder.create()
+                    .addClusterClient(client).setTryMillisPerClient(1000));
+            FinishGuideRpcResult result = toSimBridge.finishGuide(playerId, guideId);
+            return result == null
+                    ? new FinishGuideRpcResult(Code.EXCEPTION, guideId, List.of()) : result;
+        } catch (Exception e) {
+            log.error("跨节点完成新手引导异常 playerId={},guideId={}", playerId, guideId, e);
+            return new FinishGuideRpcResult(Code.EXCEPTION, guideId, List.of());
+        } finally {
+            rpcContext.setReqParameterBuilder(previousBuilder);
+        }
+    }
+
+    private SkipGuideGroupRpcResult skipGuideGroupRemotely(PlayerController playerController,
+                                                            int guideGroupId) {
+        long playerId = playerController.playerId();
+        ClusterClient client = simNodeService.getSimClusterClient(playerId, playerController.ipAddress());
+        if (client == null) {
+            log.warn("转发跳过新手引导组失败，未找到玩家 sim 节点 playerId={},groupId={}",
+                    playerId, guideGroupId);
+            return new SkipGuideGroupRpcResult(Code.NOT_FOUND, guideGroupId, List.of(), List.of());
+        }
+        GameRpcContext rpcContext = GameRpcContext.getContext();
+        RpcReqParameterBuilder previousBuilder = rpcContext.getReqParameterBuilder();
+        try {
+            rpcContext.withReqParameterBuilder(RpcReqParameterBuilder.create()
+                    .addClusterClient(client).setTryMillisPerClient(1000));
+            SkipGuideGroupRpcResult result = toSimBridge.skipGuideGroup(playerId, guideGroupId);
+            return result == null
+                    ? new SkipGuideGroupRpcResult(Code.EXCEPTION, guideGroupId, List.of(), List.of()) : result;
+        } catch (Exception e) {
+            log.error("跨节点跳过新手引导组异常 playerId={},groupId={}", playerId, guideGroupId, e);
+            return new SkipGuideGroupRpcResult(Code.EXCEPTION, guideGroupId, List.of(), List.of());
+        } finally {
+            rpcContext.setReqParameterBuilder(previousBuilder);
+        }
+    }
+
+    /** 在 poker 等当前游戏节点延迟发送条件8触发通知，保持响应先于通知。 */
+    private void notifyGuideTriggersDelayedOnCurrentNode(PlayerController playerController,
+                                                          List<Integer> guideGroupIds) {
+        if (guideGroupIds == null || guideGroupIds.isEmpty()) {
+            return;
+        }
+        long playerId = playerController.playerId();
+        List<Integer> groupSnapshot = List.copyOf(guideGroupIds);
+        WheelTimerUtil.schedule(() ->
+                        PlayerExecutorGroupDisruptor.getDefaultExecutor().publishWithFallback(
+                                playerId, 0, new BaseHandler<String>() {
+                                    @Override
+                                    public void action() {
+                                        if (playerController.getSession() == null
+                                                || playerController.getSession().getReference() != playerController) {
+                                            log.info("跳过非当前节点的新手引导组通知 playerId={},groups={}",
+                                                    playerId, groupSnapshot);
+                                            return;
+                                        }
+                                        NotifyGuideTrigger notify = new NotifyGuideTrigger(Code.SUCCESS);
+                                        notify.guideGroupIds = groupSnapshot;
+                                        playerController.send(notify);
+                                        log.info("当前游戏节点延迟发送新手引导组通知 playerId={},delayMs={},groups={}",
+                                                playerId,
+                                                SimConstant.GuideTiming.GROUP_FINISH_NOTIFY_DELAY_MILLIS,
+                                                groupSnapshot);
+                                    }
+                                }.setHandlerParamWithSelf("remote sim guide group finish delayed notify")),
+                SimConstant.GuideTiming.GROUP_FINISH_NOTIFY_DELAY_MILLIS,
+                TimeUnit.MILLISECONDS);
     }
 
     /**

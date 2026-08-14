@@ -152,6 +152,22 @@ public class HallRPCController extends CoreRPCController implements GmToHallBrid
 
     @Override
     @RpcCallSetting(processorModKey = "#arg0")
+    public FinishGuideRpcResult finishGuide(long playerId, int guideId) {
+        SimGuideService.FinishGuideResult result = simManager.onFinishGuideWithTriggers(playerId, guideId);
+        return new FinishGuideRpcResult(result.response().code, result.response().guideId,
+                result.triggeredGuideGroupIds());
+    }
+
+    @Override
+    @RpcCallSetting(processorModKey = "#arg0")
+    public SkipGuideGroupRpcResult skipGuideGroup(long playerId, int guideGroupId) {
+        SimGuideService.SkipGuideGroupResult result = simManager.onSkipGuideGroup(playerId, guideGroupId);
+        return new SkipGuideGroupRpcResult(result.response().code, result.response().guideGroupId,
+                result.response().completedGuideIds, result.triggeredGuideGroupIds());
+    }
+
+    @Override
+    @RpcCallSetting(processorModKey = "#arg0")
     public CommonResult<SimSkillsData> addSkillById(long playerId, int gameType, int skillId) {
         ResearchSkillsCfg cfg = GameDataManager.getResearchSkillsCfg(skillId);
         if (cfg == null) {
