@@ -1905,7 +1905,7 @@ public class DouXianGameController extends BasePokerGameController<DouXianGameDa
                 return;
             }
             log.warn("斗仙牌即时充值复活超时，按认输处理 playerId:{}", playerId);
-            doConcede(playerId);
+            doConcede(playerId, true, Code.USER_NOT_GOLD);
         }
         gameDataVo.getRechargingPlayerIds().clear();
         if (getCurrentGamePhase() == EGamePhase.RECHARGE) {
@@ -1922,7 +1922,7 @@ public class DouXianGameController extends BasePokerGameController<DouXianGameDa
             return;
         }
         log.info("斗仙牌玩家主动认输 playerId:{}", playerId);
-        doConcede(playerId);
+        doConcede(playerId, true, gameDataVo.getRoomCfg().getEscTipText());
     }
 
     /**
@@ -1931,6 +1931,10 @@ public class DouXianGameController extends BasePokerGameController<DouXianGameDa
      * 见 DESIGN.md)，不再等到下一次飞升。
      */
     private void doConcede(long playerId) {
+        doConcede(playerId, false, 0);
+    }
+
+    private void doConcede(long playerId, boolean exitAfterConcede, int exitLangId) {
         if (gameDataVo.getConcededPlayerIds().contains(playerId)) {
             return;
         }
@@ -1953,6 +1957,10 @@ public class DouXianGameController extends BasePokerGameController<DouXianGameDa
         broadcastToPlayers(RoomMessageBuilder.newBuilder().toAllPlayer().setData(notify));
         log.info("斗仙牌玩家认输完成 playerId:{} 剩余活跃玩家数:{}", playerId, gameDataVo.getActivePlayerIds().size());
 
+        if (exitAfterConcede) {
+            exitConcededPlayer(playerId, exitLangId);
+        }
+
         if (notify.triggerGrandSettlement) {
             log.info("========== 斗仙牌只剩一名未认输玩家，触发大结算 roomCfgId:{} ==========", gameDataVo.getRoomCfg().getId());
             triggerGrandSettlement();
@@ -1966,5 +1974,24 @@ public class DouXianGameController extends BasePokerGameController<DouXianGameDa
             removePokerPhaseTimer();
             currentGamePhase.phaseFinish();
         }
+    }
+
+    private void exitConcededPlayer(long playerId, int langId) {
+        GamePlayer gamePlayer = gameDataVo.getGamePlayer(playerId);
+        RoomPlayer roomPlayer = getRoomController().getRoomPlayer(playerId);
+        PlayerController playerController = getRoomController().getPlayerController(playerId);
+        boolean onlineRealPlayer = !(gamePlayer instanceof GameRobotPlayer)
+                && playerController != null
+                && (roomPlayer == null || roomPlayer.isOnline());
+        if (onlineRealPlayer) {
+            NotifyExitRoom notify = new NotifyExitRoom();
+            notify.langId = langId;
+            broadcastToPlayers(RoomMessageBuilder.newBuilder().sendPlayer(playerId, notify));
+            log.info("斗仙牌认输后已通知在线玩家退出房间 playerId:{} langId:{}", playerId, langId);
+            return;
+        }
+
+        int exitCode = getRoomController().getRoomManager().exitRoom(playerId);
+        log.info("斗仙牌认输后服务端直接移出离线玩家/机器人 playerId:{} exitCode:{}", playerId, exitCode);
     }
 }
