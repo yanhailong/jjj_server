@@ -322,14 +322,6 @@ public class SimCasinoService implements SimTaskStateReporter {
                         matched = false;
                         break;
                     }
-
-                    BuildingUpgradeTableCfg nextBuildingCfg = configCacheService.getBuildingUpgradeCfg(building.getId(), building.getLevel() + 1);
-                    if (nextBuildingCfg != null) {
-                        if (ctx.getSimBaseData().getAllLevel() < nextBuildingCfg.getNeedLevel()) {
-                            matched = false;
-                            break;
-                        }
-                    }
                 }
                 if (!matched) {
                     break;

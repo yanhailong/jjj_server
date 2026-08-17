@@ -402,10 +402,8 @@ public class SimBuildingService implements SimPlayerTickListener, SimTaskStateRe
                 ctx.send(res);
                 return;
             }
-            //建筑等级 <= 经营等级 (简化: 以场景 stats level 为经营等级)
-            CasinoStatsSheetCfg statsCfg = configCache.getCasinoStatsSheetCfg(casino.getCasinoId(), casino.getCasinoLevel());
-            if (buildingNextLevel > statsCfg.getLevel()) {
-                log.warn("升级建筑失败, 经营等级不足 playerId={},buildingId={},buildingNextLevel={},casinoLevel={}", ctx.playerId(), buildingId, buildingNextLevel, statsCfg.getLevel());
+            if(next.getNeedLevel() > ctx.getSimBaseData().getAllLevel()){
+                log.warn("升级建筑失败, 经营等级不足 playerId={},buildingId={},buildingNextLevel={},needLevel={}", ctx.playerId(), buildingId, buildingNextLevel, next.getNeedLevel());
                 res.code = Code.SIM_CASINO_LEVEL_LOW;
                 ctx.send(res);
                 return;
