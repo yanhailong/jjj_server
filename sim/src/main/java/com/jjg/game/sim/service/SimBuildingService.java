@@ -372,6 +372,13 @@ public class SimBuildingService implements SimPlayerTickListener, SimTaskStateRe
                 return;
             }
 
+            if(currentCfg.getNeedLevel() > ctx.getSimBaseData().getAllLevel()){
+                log.warn("升级建筑失败, 经营等级不足 playerId={},buildingId={},buildingLevel={},needLevel={}", ctx.playerId(), buildingId, data.getLevel(), currentCfg.getNeedLevel());
+                res.code = Code.SIM_CASINO_LEVEL_LOW;
+                ctx.send(res);
+                return;
+            }
+
             //先检查是不是添加进度条
             if (currentCfg.getCostPerLevel() != null && !currentCfg.getCostPerLevel().isEmpty()) {
                 //添加进度条
@@ -402,12 +409,7 @@ public class SimBuildingService implements SimPlayerTickListener, SimTaskStateRe
                 ctx.send(res);
                 return;
             }
-            if(next.getNeedLevel() > ctx.getSimBaseData().getAllLevel()){
-                log.warn("升级建筑失败, 经营等级不足 playerId={},buildingId={},buildingNextLevel={},needLevel={}", ctx.playerId(), buildingId, buildingNextLevel, next.getNeedLevel());
-                res.code = Code.SIM_CASINO_LEVEL_LOW;
-                ctx.send(res);
-                return;
-            }
+
             boolean remove = playerPackService.removeItems(ctx.getPlayer(), currentCfg.getUpgradeCost(), AddType.SIM_BUILDING_UPGRADE, null).success();
             if (!remove) {
                 log.warn("升级建筑失败, 资源不足 playerId={},buildingId={},cost={}", ctx.playerId(), buildingId, currentCfg.getUpgradeCost());

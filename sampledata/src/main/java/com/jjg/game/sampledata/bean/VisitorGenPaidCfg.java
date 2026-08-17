@@ -25,8 +25,6 @@ public class VisitorGenPaidCfg extends BaseCfgBean {
   protected int CostType;
   /** 单日限购次数 */
   protected int DailyLimitCount;
-  /** 价格数量 */
-  protected List<Integer> PriceValue;
   /** 价格数量1 */
   protected BigDecimal PriceValue1;
   /** 单个游客数量 */
@@ -44,11 +42,6 @@ public class VisitorGenPaidCfg extends BaseCfgBean {
   /** 返回单日限购次数 */
   public int getDailyLimitCount() {
     return DailyLimitCount;
-  }
-
-  /** 返回价格数量 */
-  public List<Integer> getPriceValue() {
-    return PriceValue;
   }
 
   /** 返回价格数量1 */

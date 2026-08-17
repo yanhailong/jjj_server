@@ -180,7 +180,7 @@ public class SimMessageHandler implements GmListener {
     }
 
     private SkipGuideGroupRpcResult skipGuideGroupRemotely(PlayerController playerController,
-                                                            int guideGroupId) {
+                                                           int guideGroupId) {
         long playerId = playerController.playerId();
         ClusterClient client = simNodeService.getSimClusterClient(playerId, playerController.ipAddress());
         if (client == null) {
@@ -204,9 +204,11 @@ public class SimMessageHandler implements GmListener {
         }
     }
 
-    /** 在 poker 等当前游戏节点延迟发送条件8触发通知，保持响应先于通知。 */
+    /**
+     * 在 poker 等当前游戏节点延迟发送条件8触发通知，保持响应先于通知。
+     */
     private void notifyGuideTriggersDelayedOnCurrentNode(PlayerController playerController,
-                                                          List<Integer> guideGroupIds) {
+                                                         List<Integer> guideGroupIds) {
         if (guideGroupIds == null || guideGroupIds.isEmpty()) {
             return;
         }
@@ -274,7 +276,7 @@ public class SimMessageHandler implements GmListener {
     }
 
     private CommonResult<List<Integer>> triggerGuideEventRemotely(PlayerController playerController,
-                                                                   int condition, int param) {
+                                                                  int condition, int param) {
         long playerId = playerController.playerId();
         ClusterClient client = simNodeService.getSimClusterClient(playerId, playerController.ipAddress());
         if (client == null) {
@@ -556,6 +558,56 @@ public class SimMessageHandler implements GmListener {
         execute(playerController, ctx -> {
             guestService.onPool(ctx);
         }, ReqGuestPool.class);
+    }
+
+    /**
+     * 获取特殊游客列表
+     */
+    @Command(SimConstant.MsgBean.REQ_SPECIAL_GUEST_LIST)
+    public void reqSpecialGuestList(PlayerController playerController, ReqSpecialGuestList req) {
+        execute(playerController, ctx -> {
+            guestService.specialGuests(ctx);
+        }, ReqSpecialGuestList.class);
+    }
+
+    /**
+     * 刷新特殊游客列表
+     */
+    @Command(SimConstant.MsgBean.REQ_REFRESH_SPECIAL_GUEST_LIST)
+    public void reqRefreshSpecialGuestList(PlayerController playerController, ReqRefreshSpecialGuestList req) {
+        execute(playerController, ctx -> {
+            guestService.refreshSpecialGuests(ctx);
+        }, ReqRefreshSpecialGuestList.class);
+    }
+
+    /**
+     * 购买特殊游客
+     */
+    @Command(SimConstant.MsgBean.REQ_BUY_SPECIAL_GUEST)
+    public void reqBuySpecialGuest(PlayerController playerController, ReqBuySpecialGuest req) {
+        execute(playerController, ctx -> {
+            guestService.buySpecialGuest(ctx, req.id, req.costType, req.payType);
+        }, ReqBuySpecialGuest.class);
+    }
+
+    /**
+     * 获取当前场景已购买的特殊游客
+     */
+    @Command(SimConstant.MsgBean.REQ_OWNED_SPECIAL_GUEST_LIST)
+    public void reqOwnedSpecialGuestList(PlayerController playerController, ReqOwnedSpecialGuestList req) {
+        execute(playerController, ctx -> {
+            guestService.ownedSpecialGuests(ctx);
+        }, ReqOwnedSpecialGuestList.class);
+    }
+
+    /**
+     * 邀请特殊游客
+     */
+    @Command(SimConstant.MsgBean.REQ_INVITE_SPECIAL_GUEST)
+    public void reqInviteSpecialGuest(PlayerController playerController, ReqInviteSpecialGuest req) {
+        execute(playerController, ctx -> {
+            guestService.inviteSpecialGuests(ctx, req.itemIds);
+        }, ReqInviteSpecialGuest.class);
     }
     //--------------------------游客相关 end--------------------------
 
@@ -981,6 +1033,35 @@ public class SimMessageHandler implements GmListener {
                 execute(playerController, ctx -> {
                     guestService.generatePurchasedGuest(ctx, guestId, 1);
                 }, String[].class);
+            } else if ("specialGuestList".equalsIgnoreCase(gmOrders[0])) {
+                // specialGuestList 0；GM 总入口要求至少携带一个参数，参数值不使用。
+                reqSpecialGuestList(playerController, new ReqSpecialGuestList());
+                res.data = "已请求特殊游客列表";
+            } else if ("refreshSpecialGuestList".equalsIgnoreCase(gmOrders[0])) {
+                // refreshSpecialGuestList 0
+                reqRefreshSpecialGuestList(playerController, new ReqRefreshSpecialGuestList());
+                res.data = "已请求刷新特殊游客列表";
+            } else if ("buySpecialGuest".equalsIgnoreCase(gmOrders[0])) {
+                // buySpecialGuest <生成配置ID> [支付方式]；支付方式仅现金类型使用。
+                ReqBuySpecialGuest req = new ReqBuySpecialGuest();
+                req.id = Integer.parseInt(gmOrders[1]);
+                req.costType = Integer.parseInt(gmOrders[2]);
+                req.payType = gmOrders.length > 3 ? Integer.parseInt(gmOrders[3]) : 0;
+                reqBuySpecialGuest(playerController, req);
+                res.data = "已请求购买特殊游客";
+            } else if ("ownedSpecialGuestList".equalsIgnoreCase(gmOrders[0])) {
+                // ownedSpecialGuestList 0
+                reqOwnedSpecialGuestList(playerController, new ReqOwnedSpecialGuestList());
+                res.data = "已请求当前场景已购买特殊游客列表";
+            } else if ("inviteSpecialGuest".equalsIgnoreCase(gmOrders[0])) {
+                // inviteSpecialGuest <游客道具ID,游客道具ID...>
+                ReqInviteSpecialGuest req = new ReqInviteSpecialGuest();
+                req.itemIds = Arrays.stream(gmOrders[1].split(","))
+                        .map(String::trim)
+                        .map(Integer::parseInt)
+                        .toList();
+                reqInviteSpecialGuest(playerController, req);
+                res.data = "已请求邀请特殊游客：" + req.itemIds;
             } else if ("claimPurchasedGuest".equalsIgnoreCase(gmOrders[0])) {
                 int index = Integer.parseInt(gmOrders[2]);
                 execute(playerController, ctx -> {

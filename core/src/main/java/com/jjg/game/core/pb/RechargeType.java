@@ -51,6 +51,10 @@ public enum RechargeType {
      * 后台充值回调
      */
     BACKEND_CALLBACK(10),
+    /**
+     * 购买游客
+     */
+    BUY_GUEST(11),
     ;
     private final int type;
 

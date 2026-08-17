@@ -311,6 +311,10 @@ public enum AddType {
     SIM_COOP_ROOM_GIFT_REFUND(1820),
     //sim 技能升级消耗研究点
     SIM_SKILL_UPGRADE(1821),
+    //特殊游客列表刷新消耗
+    SIM_SPECIAL_GUEST_REFRESH(1822),
+    //特殊游客购买
+    SIM_SPECIAL_GUEST_BUY(1824),
 
     //创建联盟
     ALLIANCE_CREATE(2001),

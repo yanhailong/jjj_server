@@ -237,6 +237,33 @@ public interface SimConstant {
         //客户端上报新手引导触发事件
         int REQ_TRIGGER_GUIDE_EVENT = BASE_MSG_PREFIX | 0x77;
         int RES_TRIGGER_GUIDE_EVENT = BASE_MSG_PREFIX | 0x78;
+
+        //获取特殊游客列表
+        int REQ_SPECIAL_GUEST_LIST = BASE_MSG_PREFIX | 0x79;
+        int RES_SPECIAL_GUEST_LIST = BASE_MSG_PREFIX | 0x7A;
+
+        //刷新特殊游客列表
+        int REQ_REFRESH_SPECIAL_GUEST_LIST = BASE_MSG_PREFIX | 0x7B;
+
+        //获取当前场景已购买的特殊游客
+        int REQ_OWNED_SPECIAL_GUEST_LIST = BASE_MSG_PREFIX | 0x7C;
+        int RES_OWNED_SPECIAL_GUEST_LIST = BASE_MSG_PREFIX | 0x7D;
+
+        //邀请特殊游客
+        int REQ_INVITE_SPECIAL_GUEST = BASE_MSG_PREFIX | 0x7E;
+        int RES_INVITE_SPECIAL_GUEST = BASE_MSG_PREFIX | 0x7F;
+
+        //购买特殊游客
+        int REQ_BUY_SPECIAL_GUEST = BASE_MSG_PREFIX | 0x80;
+        int RES_BUY_SPECIAL_GUEST = BASE_MSG_PREFIX | 0x81;
+    }
+
+    interface SpecialGuest {
+        int POOL_AD = 1;
+        int POOL_PAID = 2;
+        int COST_AD = 0;
+        int COST_DIAMOND = 1;
+        int COST_CASH = 2;
     }
 
     interface GuideCondition {

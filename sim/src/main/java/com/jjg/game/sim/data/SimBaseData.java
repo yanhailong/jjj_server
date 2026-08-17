@@ -53,6 +53,12 @@ public class SimBaseData extends AbstractData {
     private Set<Integer> allMedalIds;
     //展示的勋章
     private List<Integer> showMedalIds;
+    //当前广告特殊游客配置ID
+    private List<Integer> specialGuestAdCfgIds;
+    //广告特殊游客列表刷新日 (yyyyMMdd)，广告展示和限制为玩家全局
+    private int specialGuestAdRefreshDay;
+    //广告特殊游客冷却结束时间 (ms)
+    private long specialGuestAdCdEndTime;
 
     public long getPlayerId() {
         return playerId;
@@ -363,5 +369,29 @@ public class SimBaseData extends AbstractData {
             this.allMedalIds = new HashSet<>();
         }
         this.allMedalIds.add(id);
+    }
+
+    public List<Integer> getSpecialGuestAdCfgIds() {
+        return specialGuestAdCfgIds;
+    }
+
+    public void setSpecialGuestAdCfgIds(List<Integer> specialGuestAdCfgIds) {
+        this.specialGuestAdCfgIds = specialGuestAdCfgIds;
+    }
+
+    public int getSpecialGuestAdRefreshDay() {
+        return specialGuestAdRefreshDay;
+    }
+
+    public void setSpecialGuestAdRefreshDay(int specialGuestAdRefreshDay) {
+        this.specialGuestAdRefreshDay = specialGuestAdRefreshDay;
+    }
+
+    public long getSpecialGuestAdCdEndTime() {
+        return specialGuestAdCdEndTime;
+    }
+
+    public void setSpecialGuestAdCdEndTime(long specialGuestAdCdEndTime) {
+        this.specialGuestAdCdEndTime = specialGuestAdCdEndTime;
     }
 }

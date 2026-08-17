@@ -11,6 +11,7 @@ import com.jjg.game.core.dao.AccountDao;
 import com.jjg.game.core.data.*;
 import com.jjg.game.core.handler.CoreRPCController;
 import com.jjg.game.core.rpc.GmToHallBridge;
+import com.jjg.game.core.rpc.SpecialGuestBridge;
 import com.jjg.game.hall.service.HallPlayerService;
 import com.jjg.game.hall.service.HallService;
 import com.jjg.game.sampledata.GameDataManager;
@@ -28,6 +29,7 @@ import com.jjg.game.sim.manager.SimPlayerContextRegistry;
 import com.jjg.game.sim.pb.res.ResSimTaskReward;
 import com.jjg.game.sim.service.SimCoopTaskService;
 import com.jjg.game.sim.service.SimGuideService;
+import com.jjg.game.sim.service.SimGuestService;
 import com.jjg.game.sim.service.SimPackService;
 import com.jjg.game.sim.service.SimSkillService;
 import com.jjg.game.sim.service.SimTaskService;
@@ -44,7 +46,8 @@ import java.util.Map;
  * @date 2026/1/19
  */
 @Component
-public class HallRPCController extends CoreRPCController implements GmToHallBridge, ToSimBridge, ToAllianceBridge, ToSocialBridge {
+public class HallRPCController extends CoreRPCController implements GmToHallBridge, ToSimBridge, ToAllianceBridge,
+        ToSocialBridge, SpecialGuestBridge {
 
     @Autowired
     private AccountDao accountDao;
@@ -73,9 +76,20 @@ public class HallRPCController extends CoreRPCController implements GmToHallBrid
     @Autowired
     private SimGuideService simGuideService;
     @Autowired
+    private SimGuestService simGuestService;
+    @Autowired
     private SimGuideLogger simGuideLogger;
     @Autowired
     private ChatService chatService;
+
+    @Override
+    @RpcCallSetting(processorModKey = "#arg0")
+    public CommonResult<Boolean> receiveSpecialGuest(long playerId, int casinoId, int itemId,
+                                                     long count, String orderId) {
+        boolean success = simGuestService.receiveCashSpecialGuest(
+                playerId, casinoId, itemId, count, orderId);
+        return new CommonResult<>(success ? Code.SUCCESS : Code.FAIL, success);
+    }
 
     @Override
     public int playerBindPhone(long playerId, String phone, int type, boolean reward) {

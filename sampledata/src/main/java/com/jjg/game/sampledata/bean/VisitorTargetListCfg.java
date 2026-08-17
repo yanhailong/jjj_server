@@ -31,6 +31,8 @@ public class VisitorTargetListCfg extends BaseCfgBean {
   protected int PoolType;
   /** 手动刷新的费用 */
   protected List<List<Integer>> RefreshCost;
+  /** 场景ID */
+  protected int RegionID;
   /** 礼包出现游客的种类个数 */
   protected int visitorGiftPackCount;
 
@@ -62,6 +64,11 @@ public class VisitorTargetListCfg extends BaseCfgBean {
   /** 返回手动刷新的费用 */
   public List<List<Integer>> getRefreshCost() {
     return RefreshCost;
+  }
+
+  /** 返回场景ID */
+  public int getRegionID() {
+    return RegionID;
   }
 
   /** 返回礼包出现游客的种类个数 */

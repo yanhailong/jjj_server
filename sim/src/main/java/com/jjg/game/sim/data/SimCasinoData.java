@@ -37,6 +37,18 @@ public class SimCasinoData extends AbstractData {
     private Map<Integer, GuestData> guestMap;
     //已生成待领奖的购买游客 (uid -> data, 落库用于断线重连)
     private Map<String, PurchasedGuestData> purchasedGuestMap;
+    //特殊游客列表刷新日 (yyyyMMdd)
+    private int specialGuestRefreshDay;
+    //特殊游客当日手动刷新次数
+    private int specialGuestRefreshCount;
+    //当前付费特殊游客配置ID
+    private List<Integer> specialGuestPaidCfgIds;
+    //当前场景持有的特殊游客数量 (游客道具ID -> 数量)
+    private Map<Integer, Long> specialGuestItemCounts;
+    //当前场景等待生成的特殊游客数量 (游客道具ID -> 数量)
+    private Map<Integer, Long> waitGenSpecialGuests;
+    //已到账的现金购买订单，用于防止充值重试重复发放
+    private Set<String> receivedSpecialGuestOrderIds;
     //主管id   employeeProfileConfig.ProfessionID -> employeeId
     private Map<Integer, Integer> managerEmployMap;
     //游客羁绊
@@ -247,6 +259,128 @@ public class SimCasinoData extends AbstractData {
             return null;
         }
         return this.purchasedGuestMap.remove(uid);
+    }
+
+    public int getSpecialGuestRefreshDay() {
+        return specialGuestRefreshDay;
+    }
+
+    public void setSpecialGuestRefreshDay(int specialGuestRefreshDay) {
+        this.specialGuestRefreshDay = specialGuestRefreshDay;
+    }
+
+    public int getSpecialGuestRefreshCount() {
+        return specialGuestRefreshCount;
+    }
+
+    public void setSpecialGuestRefreshCount(int specialGuestRefreshCount) {
+        this.specialGuestRefreshCount = specialGuestRefreshCount;
+    }
+
+    public List<Integer> getSpecialGuestPaidCfgIds() {
+        return specialGuestPaidCfgIds;
+    }
+
+    public void setSpecialGuestPaidCfgIds(List<Integer> specialGuestPaidCfgIds) {
+        this.specialGuestPaidCfgIds = specialGuestPaidCfgIds;
+    }
+
+    public Map<Integer, Long> getSpecialGuestItemCounts() {
+        if (specialGuestItemCounts == null) {
+            specialGuestItemCounts = new HashMap<>();
+        }
+        return specialGuestItemCounts;
+    }
+
+    public Map<Integer, Long> getWaitGenSpecialGuests() {
+        return waitGenSpecialGuests;
+    }
+
+    public void setWaitGenSpecialGuests(Map<Integer, Long> waitGenSpecialGuests) {
+        this.waitGenSpecialGuests = waitGenSpecialGuests;
+    }
+
+    /**
+     * 增加当前场景持有的特殊游客。
+     */
+    public void addSpecialGuest(int itemId, long count) {
+        if (itemId > 0 && count > 0) {
+            getSpecialGuestItemCounts().merge(itemId, count, Math::addExact);
+        }
+    }
+
+    /**
+     * 将当前场景持有的特殊游客移动到待生成队列；先整体校验，任一数量不足都不改变数据。
+     */
+    public boolean moveSpecialGuestsToWaitQueue(Map<Integer, Long> items) {
+        if (items == null || items.isEmpty()) {
+            return false;
+        }
+        for (Map.Entry<Integer, Long> entry : items.entrySet()) {
+            if (entry.getKey() == null || entry.getKey() <= 0
+                    || entry.getValue() == null || entry.getValue() <= 0
+                    || getSpecialGuestItemCounts().getOrDefault(entry.getKey(), 0L) < entry.getValue()) {
+                return false;
+            }
+        }
+
+        Map<Integer, Long> nextWaitCounts = new HashMap<>();
+        for (Map.Entry<Integer, Long> entry : items.entrySet()) {
+            long queued = waitGenSpecialGuests == null
+                    ? 0L : waitGenSpecialGuests.getOrDefault(entry.getKey(), 0L);
+            nextWaitCounts.put(entry.getKey(), Math.addExact(queued, entry.getValue()));
+        }
+        if (waitGenSpecialGuests == null) {
+            waitGenSpecialGuests = new HashMap<>();
+        }
+        for (Map.Entry<Integer, Long> entry : items.entrySet()) {
+            long remain = getSpecialGuestItemCounts().get(entry.getKey()) - entry.getValue();
+            if (remain == 0) {
+                getSpecialGuestItemCounts().remove(entry.getKey());
+            } else {
+                getSpecialGuestItemCounts().put(entry.getKey(), remain);
+            }
+            waitGenSpecialGuests.put(entry.getKey(), nextWaitCounts.get(entry.getKey()));
+        }
+        return true;
+    }
+
+    /**
+     * 待生成特殊游客成功生成一个后扣减队列数量。
+     */
+    public int completeWaitGenSpecialGuest(int itemId, int num) {
+        if (waitGenSpecialGuests == null) {
+            return 0;
+        }
+        Long count = waitGenSpecialGuests.get(itemId);
+        if (count == null) {
+            return 0;
+        }
+
+        if (count < num) {
+            waitGenSpecialGuests.remove(itemId);
+            return count.intValue();
+        }
+        waitGenSpecialGuests.put(itemId, count - num);
+        return num;
+    }
+
+    /**
+     * 现金订单幂等到账；重复订单视为成功但不重复增加游客。
+     */
+    public boolean receiveSpecialGuestOrder(String orderId, int itemId, long count) {
+        if (orderId == null || orderId.isEmpty() || itemId <= 0 || count <= 0) {
+            return false;
+        }
+        if (receivedSpecialGuestOrderIds == null) {
+            receivedSpecialGuestOrderIds = new HashSet<>();
+        }
+        if (receivedSpecialGuestOrderIds.contains(orderId)) {
+            return true;
+        }
+        addSpecialGuest(itemId, count);
+        receivedSpecialGuestOrderIds.add(orderId);
+        return true;
     }
 
     /**

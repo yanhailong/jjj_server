@@ -1,33 +1,32 @@
 package com.jjg.game.sim.service;
 
-import cn.hutool.core.lang.Snowflake;
+import com.alibaba.fastjson.JSONObject;
 import com.jjg.game.alliance.service.AllianceEventService;
 import com.jjg.game.common.pb.ItemInfo;
 import com.jjg.game.common.utils.RandomUtils;
 import com.jjg.game.common.utils.TimeHelper;
 import com.jjg.game.common.utils.WeightRandom;
-import com.jjg.game.core.service.PlayerPackService;
-import com.jjg.game.core.data.ItemOperationResult;
+import com.jjg.game.core.base.condition.numeric.ActionConditionEvent;
 import com.jjg.game.core.constant.AddType;
 import com.jjg.game.core.constant.Code;
-import com.jjg.game.core.data.CommonResult;
-import com.jjg.game.core.base.condition.numeric.ActionConditionEvent;
-import com.jjg.game.core.data.Player;
+import com.jjg.game.core.data.*;
 import com.jjg.game.core.listener.ItemListener;
+import com.jjg.game.core.pb.RechargeType;
+import com.jjg.game.core.service.OrderService;
+import com.jjg.game.core.service.PlayerPackService;
+import com.jjg.game.core.service.SpecialGuestDailyCountService;
 import com.jjg.game.core.utils.ItemUtils;
 import com.jjg.game.sampledata.GameDataManager;
 import com.jjg.game.sampledata.bean.*;
 import com.jjg.game.sim.constant.SimConstant;
+import com.jjg.game.sim.dao.SimCasinoDao;
 import com.jjg.game.sim.data.*;
 import com.jjg.game.sim.listener.SimPlayerTickListener;
 import com.jjg.game.sim.listener.SimTaskStateReporter;
 import com.jjg.game.sim.manager.SimPlayerContextRegistry;
 import com.jjg.game.sim.pb.SimPbConverter;
 import com.jjg.game.sim.pb.res.*;
-import com.jjg.game.sim.pb.struct.DestinationInfo;
-import com.jjg.game.sim.pb.struct.GuestDetailInfo;
-import com.jjg.game.sim.pb.struct.GuestInfo;
-import com.jjg.game.sim.pb.struct.RecruitItemInfo;
+import com.jjg.game.sim.pb.struct.*;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -47,15 +46,18 @@ import java.util.function.Consumer;
 public class SimGuestService implements SimPlayerTickListener, ItemListener, SimTaskStateReporter {
     private static final Logger log = LoggerFactory.getLogger(SimGuestService.class);
 
-    //购买游客 uid 生成器
-    private static final Snowflake UID_GENERATOR = new Snowflake(1, 1);
-
     @Autowired
     private SimConfigCacheService configCache;
+    @Autowired
+    private SimCasinoDao simCasinoDao;
     @Autowired
     private SimRewardService rewardService;
     @Autowired
     private PlayerPackService playerPackService;
+    @Autowired
+    private OrderService orderService;
+    @Autowired
+    private SpecialGuestDailyCountService specialGuestDailyCountService;
     @Autowired
     private SimPlayerContextRegistry simPlayerContextRegistry;
     @Autowired
@@ -101,14 +103,59 @@ public class SimGuestService implements SimPlayerTickListener, ItemListener, Sim
             return;
         }
 
-        //检查是否有解锁的游客
-        if (casino.getGuestMap() == null || casino.getGuestMap().isEmpty()) {
-            casino.setLastGenerateTime(now);
+        casino.setLastGenerateTime(now);
+        boolean hasNormalGuest = casino.getGuestMap() != null && !casino.getGuestMap().isEmpty();
+        boolean hasSpecialGuest = casino.getWaitGenSpecialGuests() != null
+                && casino.getWaitGenSpecialGuests().values().stream().anyMatch(count -> count != null && count > 0);
+        if (!hasNormalGuest && !hasSpecialGuest) {
+            return;
+        }
+
+        //普通和特殊游客都可生成时各占 50%；仅有一类时直接生成可用类型。
+        boolean generateSpecialGuest = hasSpecialGuest && (!hasNormalGuest || RandomUtils.nextBool());
+        if (generateSpecialGuest) {
+            int generated = generateWaitingSpecialGuest(ctx, casino, casinoCfg.getVisitorSpawnCount());
+            if (generated > 0) {
+                ctx.getSimBaseData().addReceptionCount(generated);
+                allianceEventService.onGuestGenerated(ctx.playerId(), true, generated);
+            }
             return;
         }
 
         int generated = batchGenerateGuest(ctx, casinoCfg.getVisitorSpawnCount(), casinoCfg, now, null);
         allianceEventService.onGuestGenerated(ctx.playerId(), false, generated);
+    }
+
+    /**
+     * 从当前场景待生成队列中取一个特殊游客，成功生成后再扣减队列。
+     */
+    int generateWaitingSpecialGuest(SimPlayerContext ctx, SimCasinoData casino, int num) {
+        for (Map.Entry<Integer, Long> entry : new ArrayList<>(casino.getWaitGenSpecialGuests().entrySet())) {
+            if (entry.getValue() == null || entry.getValue() <= 0) {
+                continue;
+            }
+            int itemId = entry.getKey();
+            VisitorQuestCfg visitorCfg = configCache.getVisitorQuestCfgByItemId(itemId);
+            if (visitorCfg == null) {
+                log.warn("生成待生成特殊游客失败，游客道具未关联游客配置 playerId={},casinoId={},itemId={}",
+                        ctx.playerId(), casino.getCasinoId(), itemId);
+                continue;
+            }
+
+            int canGenNum = casino.completeWaitGenSpecialGuest(itemId, num);
+            if(canGenNum < 1){
+                continue;
+            }
+
+            int generated = batchGenerateSpecifyIdGuest(ctx, visitorCfg.getId(), canGenNum);
+            if (generated > 0) {
+                long remain = casino.getWaitGenSpecialGuests().getOrDefault(itemId, 0L);
+                log.info("待生成特殊游客生成成功 playerId={},casinoId={},itemId={},guestId={},remain={}",
+                        ctx.playerId(), casino.getCasinoId(), itemId, visitorCfg.getId(), remain);
+            }
+            return generated;
+        }
+        return 0;
     }
 
     private boolean newGuide(SimBaseData simBaseData) {
@@ -131,31 +178,57 @@ public class SimGuestService implements SimPlayerTickListener, ItemListener, Sim
      * @param guestId
      * @param num
      */
-    public void batchGenerateSpecifyIdGuest(SimPlayerContext ctx, int guestId, int num) {
+    public int batchGenerateSpecifyIdGuest(SimPlayerContext ctx, int guestId, int num) {
+        List<GuestInfo> guests = generateSpecifyIdGuests(ctx, guestId, num);
+        if (!guests.isEmpty()) {
+            NotifyGenerateGuest notify = new NotifyGenerateGuest(Code.SUCCESS);
+            notify.guests = guests;
+            ctx.send(notify);
+        }
+        return guests.size();
+    }
+
+    private List<GuestInfo> generateSpecifyIdGuests(SimPlayerContext ctx, int guestId, int num) {
+        if (num <= 0) {
+            return Collections.emptyList();
+        }
         //当前场景
         SimCasinoData casino = ctx.getCurrentCasino();
         if (casino == null) {
             log.warn("生成指定游客id失败，当前场景数据不存在 playerId={},currentCasinoId={}", ctx.playerId(), ctx.getSimBaseData().getCurrentCasinoId());
-            return;
+            return Collections.emptyList();
         }
 
         VisitorQuestCfg visitorQuestCfg = GameDataManager.getVisitorQuestCfg(guestId);
         if (visitorQuestCfg == null) {
             log.warn("生成指定游客id失败，获取 visitorQuestCfg 配置未找到 playerId={},guestId={}", ctx.playerId(), guestId);
-            return;
+            return Collections.emptyList();
         }
 
         //场景配置
         CasinoStatsSheetCfg casinoCfg = configCache.getCasinoStatsSheetCfg(casino.getCasinoId(), casino.getCasinoLevel());
         if (casinoCfg == null) {
             log.warn("生成指定游客id失败，获取 CasinoStatsSheetCfg 配置未找到 playerId={},casinoId={},level={}", ctx.playerId(), casino.getCasinoId(), casino.getCasinoLevel());
-            return;
+            return Collections.emptyList();
         }
         GuestData guestData = new GuestData();
         guestData.setId(guestId);
         guestData.setLevel(1);
         guestData.setStar(1);
-        batchGenerateGuest(ctx, num, casinoCfg, System.currentTimeMillis(), guestData);
+
+        long now = System.currentTimeMillis();
+        List<GuestInfo> guests = new ArrayList<>(num);
+        for (int i = 0; i < num; i++) {
+            try {
+                GuestInfo guestInfo = generateOneGuest(ctx, null, casinoCfg, now, guestData);
+                if (guestInfo != null) {
+                    guests.add(guestInfo);
+                }
+            } catch (Exception e) {
+                log.error("生成指定游客异常 playerId={},guestId={}", ctx.playerId(), guestId, e);
+            }
+        }
+        return guests;
     }
 
     /**
@@ -1156,6 +1229,670 @@ public class SimGuestService implements SimPlayerTickListener, ItemListener, Sim
             res.code = Code.EXCEPTION;
         }
         ctx.send(res);
+    }
+
+    /**
+     * 获取玩家当前展示的广告、付费特殊游客列表；首次请求或跨天时按两个卡池的配置分别生成。
+     */
+    public void specialGuests(SimPlayerContext ctx) {
+        ResSpecialGuestList res = new ResSpecialGuestList(Code.SUCCESS);
+        try {
+            if (!ensureSpecialGuestOffers(ctx)) {
+                log.warn("获取特殊游客列表失败，卡池配置缺失 playerId={}", ctx.playerId());
+                res.code = Code.PARAM_ERROR;
+            } else {
+                fillSpecialGuestListResponse(ctx, res);
+            }
+        } catch (Exception e) {
+            log.error("获取特殊游客列表异常 playerId={}", ctx.playerId(), e);
+            res.code = Code.EXCEPTION;
+        }
+        ctx.send(res);
+        log.error("特殊游客列表 res={}", JSONObject.toJSONString(res));
+    }
+
+    /**
+     * 手动刷新付费特殊游客，广告游客不刷新。
+     */
+    public void refreshSpecialGuests(SimPlayerContext ctx) {
+        ResSpecialGuestList res = new ResSpecialGuestList(Code.SUCCESS);
+        try {
+            SimCasinoData casino = ctx.getCurrentCasino();
+            if (!ensureSpecialGuestOffers(ctx)) {
+                log.warn("刷新特殊游客失败，卡池配置缺失 playerId={}", ctx.playerId());
+                res.code = Code.PARAM_ERROR;
+                ctx.send(res);
+                return;
+            }
+
+            VisitorTargetListCfg paidPoolCfg = getSpecialGuestPoolCfg(casino, SimConstant.SpecialGuest.POOL_PAID);
+            int refreshCount = casino.getSpecialGuestRefreshCount();
+            if (!paidPoolCfg.getManualRefresh()
+                    || (paidPoolCfg.getDailyRefreshLimit() > 0 && refreshCount >= paidPoolCfg.getDailyRefreshLimit())) {
+                log.warn("刷新特殊游客被拒绝 playerId={},manualRefresh={},refreshCount={},dailyRefreshLimit={}",
+                        ctx.playerId(), paidPoolCfg.getManualRefresh(), refreshCount, paidPoolCfg.getDailyRefreshLimit());
+                res.code = Code.FAIL;
+                ctx.send(res);
+                return;
+            }
+
+            ItemInfo cost = getSpecialGuestRefreshCost(paidPoolCfg, refreshCount);
+            if (cost == null) {
+                log.warn("特殊游客刷新费用配置错误 playerId={},refreshCount={}", ctx.playerId(), refreshCount);
+                res.code = Code.PARAM_ERROR;
+                ctx.send(res);
+                return;
+            }
+            if (cost.count > 0) {
+                CommonResult<ItemOperationResult> removeResult = playerPackService.removeItem(
+                        ctx.getPlayer(), cost.itemId, cost.count, AddType.SIM_SPECIAL_GUEST_REFRESH);
+                if (!removeResult.success()) {
+                    log.warn("刷新特殊游客扣除费用失败 playerId={},itemId={},count={},code={}",
+                            ctx.playerId(), cost.itemId, cost.count, removeResult.code);
+                    res.code = removeResult.code;
+                    ctx.send(res);
+                    return;
+                }
+            }
+
+            List<Integer> oldCfgIds = new ArrayList<>(casino.getSpecialGuestPaidCfgIds());
+            casino.setSpecialGuestPaidCfgIds(selectPaidSpecialGuestCfgIds(
+                    paidPoolCfg, new HashSet<>(casino.getSpecialGuestPaidCfgIds())));
+            casino.setSpecialGuestRefreshCount(refreshCount + 1);
+            fillSpecialGuestListResponse(ctx, res);
+            log.info("刷新特殊游客成功 playerId={},oldCfgIds={},newCfgIds={},refreshCount={},costItemId={},costCount={}",
+                    ctx.playerId(), oldCfgIds, casino.getSpecialGuestPaidCfgIds(),
+                    casino.getSpecialGuestRefreshCount(), cost.itemId, cost.count);
+        } catch (Exception e) {
+            log.error("刷新特殊游客列表异常 playerId={}", ctx.playerId(), e);
+            res.code = Code.EXCEPTION;
+        }
+        ctx.send(res);
+        log.error("刷新特殊游客 res={}", JSONObject.toJSONString(res));
+    }
+
+    /**
+     * 购买当前场景展示的特殊游客。
+     *
+     * <p>按当前展示池和 CostType 路由：广告类型观看后写入当前场景并替换展示槽位，
+     * 钻石类型扣款后写入当前场景，现金类型创建订单并在到账后写入下单场景。</p>
+     */
+    public void buySpecialGuest(SimPlayerContext ctx, int cfgId, int costType, int payTypeValue) {
+        ResBuySpecialGuest res = new ResBuySpecialGuest(Code.SUCCESS);
+        try {
+            SimBaseData baseData = ctx.getSimBaseData();
+            SimCasinoData casino = ctx.getCurrentCasino();
+            if (!ensureSpecialGuestOffers(ctx)) {
+                log.warn("购买特殊游客失败，卡池配置缺失 playerId={},cfgId={}", ctx.playerId(), cfgId);
+                res.code = Code.PARAM_ERROR;
+                ctx.send(res);
+                return;
+            }
+
+            if (SimConstant.SpecialGuest.COST_AD == costType) { //看广告
+                if (baseData.getSpecialGuestAdCfgIds() != null
+                        && baseData.getSpecialGuestAdCfgIds().contains(cfgId)) {
+                    CommonResult<Integer> result = buySpecialGuestWithAd(ctx, baseData, cfgId);
+                    res.code = result.code;
+                    if (result.success()) {
+                        VisitorGenWatchVideoCfg nextCfg = GameDataManager.getVisitorGenWatchVideoCfg(result.data);
+                        if (nextCfg != null) {
+                            res.specialGuest = toSpecialGuestInfo(ctx, baseData, nextCfg,
+                                    getSpecialGuestPoolCfg(casino, SimConstant.SpecialGuest.POOL_AD));
+                        }
+                    }
+
+                } else {
+                    res.code = Code.PARAM_ERROR;
+                    log.warn("购买特殊游客时该配置不支持看广告 playerId={},cfgId={},costType={},payTypeValue={}", ctx.playerId(), cfgId, costType, payTypeValue);
+                }
+
+                ctx.send(res);
+                return;
+            }
+
+            //购买
+            if (casino.getSpecialGuestPaidCfgIds() == null
+                    || !casino.getSpecialGuestPaidCfgIds().contains(cfgId)) {
+                log.warn("购买特殊游客失败，配置不在当前展示列表 playerId={},cfgId={},currentCfgIds={}",
+                        ctx.playerId(), cfgId, casino.getSpecialGuestPaidCfgIds());
+                res.code = Code.PARAM_ERROR;
+                ctx.send(res);
+                return;
+            }
+
+            VisitorGenPaidCfg cfg = GameDataManager.getVisitorGenPaidCfg(cfgId);
+            if (!validPaidSpecialGuestCfg(cfg)) {
+                log.warn("购买特殊游客失败，配置无效 playerId={},cfgId={}", ctx.playerId(), cfgId);
+                res.code = Code.PARAM_ERROR;
+                ctx.send(res);
+                return;
+            }
+            int dailyCount = specialGuestDailyCountService.getPaidCount(ctx.playerId(), cfgId);
+            if (cfg.getDailyLimitCount() > 0 && dailyCount >= cfg.getDailyLimitCount()) {
+                log.warn("购买特殊游客失败，达到每日上限 playerId={},cfgId={},dailyCount={},dailyLimit={}",
+                        ctx.playerId(), cfgId, dailyCount, cfg.getDailyLimitCount());
+                res.code = Code.TODAY_CLIAM_LIMIT;
+                ctx.send(res);
+                return;
+            }
+
+            VisitorTargetListCfg paidPoolCfg = getSpecialGuestPoolCfg(casino, SimConstant.SpecialGuest.POOL_PAID);
+            if (cfg.getCostType() == SimConstant.SpecialGuest.COST_DIAMOND) {
+                buySpecialGuestWithDiamond(ctx, cfg, res);
+            } else if (cfg.getCostType() == SimConstant.SpecialGuest.COST_CASH) {
+                createSpecialGuestOrder(ctx, cfg, payTypeValue, res);
+            } else {
+                log.warn("购买特殊游客失败，不支持的付费类型 playerId={},cfgId={},costType={}",
+                        ctx.playerId(), cfgId, cfg.getCostType());
+                res.code = Code.PARAM_ERROR;
+            }
+            res.specialGuest = toSpecialGuestInfo(ctx, cfg, paidPoolCfg);
+        } catch (ArithmeticException e) {
+            log.error("购买特殊游客价格配置错误 playerId={},cfgId={}", ctx.playerId(), cfgId, e);
+            res.code = Code.PARAM_ERROR;
+        } catch (Exception e) {
+            log.error("购买特殊游客异常 playerId={},cfgId={}", ctx.playerId(), cfgId, e);
+            res.code = Code.EXCEPTION;
+        }
+        ctx.send(res);
+    }
+
+    /**
+     * 观看广告购买特殊游客。调用方需先完成卡池初始化；成功时返回替换后的广告配置 ID。
+     */
+    private CommonResult<Integer> buySpecialGuestWithAd(SimPlayerContext ctx, SimBaseData baseData, int cfgId) {
+        if (baseData.getSpecialGuestAdCfgIds() == null
+                || !baseData.getSpecialGuestAdCfgIds().contains(cfgId)) {
+            log.warn("观看特殊游客广告失败，配置不在当前展示列表 playerId={},cfgId={},currentCfgIds={}",
+                    ctx.playerId(), cfgId, baseData.getSpecialGuestAdCfgIds());
+            return new CommonResult<>(Code.PARAM_ERROR);
+        }
+
+        VisitorGenWatchVideoCfg cfg = GameDataManager.getVisitorGenWatchVideoCfg(cfgId);
+        if (cfg == null || cfg.getVisitorID() <= 0 || cfg.getVisitorCount() <= 0) {
+            log.warn("观看特殊游客广告失败，配置无效 playerId={},cfgId={}", ctx.playerId(), cfgId);
+            return new CommonResult<>(Code.PARAM_ERROR);
+        }
+        long now = System.currentTimeMillis();
+        if (now < baseData.getSpecialGuestAdCdEndTime()) {
+            log.warn("观看特殊游客广告失败，冷却未结束 playerId={},cfgId={},now={},cdEndTime={}",
+                    ctx.playerId(), cfgId, now, baseData.getSpecialGuestAdCdEndTime());
+            return new CommonResult<>(Code.EXPIRE);
+        }
+        int dailyCount = specialGuestDailyCountService.getAdCount(ctx.playerId());
+        if (cfg.getDailyViewLimit() > 0 && dailyCount >= cfg.getDailyViewLimit()) {
+            log.warn("观看特殊游客广告失败，达到每日上限 playerId={},cfgId={},dailyCount={},dailyLimit={}",
+                    ctx.playerId(), cfgId, dailyCount, cfg.getDailyViewLimit());
+            return new CommonResult<>(Code.TODAY_CLIAM_LIMIT);
+        }
+
+        if (!addSpecialGuestToCurrentCasino(ctx, cfg.getVisitorID(), cfg.getVisitorCount())) {
+            log.warn("观看特殊游客广告发放失败，当前场景不存在 playerId={},cfgId={},visitorItemId={},visitorCount={}",
+                    ctx.playerId(), cfgId, cfg.getVisitorID(), cfg.getVisitorCount());
+            return new CommonResult<>(Code.FAIL);
+        }
+        int newDailyCount = specialGuestDailyCountService.addAdCount(ctx.playerId());
+        baseData.setSpecialGuestAdCdEndTime(now + (long) cfg.getViewCD() * TimeHelper.ONE_MINUTE_OF_MILLIS);
+        int nextCfgId = replaceSpecialGuestAdOffer(baseData, cfgId);
+        baseData.incWatchAdCount();
+        allianceEventService.onAdWatch(ctx.playerId());
+        log.info("观看特殊游客广告成功 playerId={},cfgId={},nextCfgId={},visitorItemId={},visitorCount={},dailyBuyCount={},cdEndTime={}",
+                ctx.playerId(), cfgId, nextCfgId, cfg.getVisitorID(), cfg.getVisitorCount(), newDailyCount,
+                baseData.getSpecialGuestAdCdEndTime());
+        return new CommonResult<>(Code.SUCCESS, nextCfgId);
+    }
+
+    /**
+     * 使用 PriceValue1 作为钻石价格；只有扣款和场景写入均成功后才增加全局每日购买次数。
+     */
+    private void buySpecialGuestWithDiamond(SimPlayerContext ctx, VisitorGenPaidCfg cfg, ResBuySpecialGuest res) {
+        long price = cfg.getPriceValue1().longValueExact();
+        CommonResult<ItemOperationResult> removeResult = playerPackService.removeItem(
+                ctx.getPlayer(), ItemUtils.getDiamondItemId(), price, AddType.SIM_SPECIAL_GUEST_BUY);
+        if (!removeResult.success()) {
+            log.warn("钻石购买特殊游客扣款失败 playerId={},cfgId={},price={},code={}",
+                    ctx.playerId(), cfg.getId(), price, removeResult.code);
+            res.code = removeResult.code;
+            return;
+        }
+
+        if (!addSpecialGuestToCurrentCasino(ctx, cfg.getVisitorID(), cfg.getVisitorCount())) {
+            log.warn("钻石购买特殊游客发放失败，当前场景不存在 playerId={},cfgId={},visitorItemId={},visitorCount={}",
+                    ctx.playerId(), cfg.getId(), cfg.getVisitorID(), cfg.getVisitorCount());
+            CommonResult<ItemOperationResult> refundResult = playerPackService.addItem(
+                    ctx.playerId(), ItemUtils.getDiamondItemId(), price, AddType.FAIL_ROLLBACK);
+            if (!refundResult.success()) {
+                log.error("购买特殊游客写入场景失败且钻石回滚失败 playerId={},cfgId={},code={}",
+                        ctx.playerId(), cfg.getId(), refundResult.code);
+            }
+            res.code = Code.FAIL;
+            return;
+        }
+        int dailyBuyCount = specialGuestDailyCountService.addPaidCount(ctx.playerId(), cfg.getId());
+        log.info("钻石购买特殊游客成功 playerId={},cfgId={},visitorItemId={},visitorCount={},price={},dailyBuyCount={}",
+                ctx.playerId(), cfg.getId(), cfg.getVisitorID(), cfg.getVisitorCount(), price, dailyBuyCount);
+    }
+
+    /**
+     * 创建现金购买订单；实际场景写入和全局购买次数累计由充值到账回调完成。
+     */
+    private void createSpecialGuestOrder(SimPlayerContext ctx, VisitorGenPaidCfg cfg,
+                                         int payTypeValue, ResBuySpecialGuest res) {
+        PayType payType = PayType.valueOf(payTypeValue);
+        if (payType == null) {
+            log.warn("现金购买特殊游客下单失败，支付类型无效 playerId={},cfgId={},payType={}",
+                    ctx.playerId(), cfg.getId(), payTypeValue);
+            res.code = Code.PARAM_ERROR;
+            return;
+        }
+        Order order = orderService.generateOrder(ctx.getPlayer(), payType, String.valueOf(cfg.getId()),
+                cfg.getPriceValue1(), RechargeType.BUY_GUEST, String.valueOf(ctx.getCurrentCasino().getCasinoId()));
+        if (order == null) {
+            log.error("现金购买特殊游客创建订单失败 playerId={},cfgId={},payType={},price={}",
+                    ctx.playerId(), cfg.getId(), payType, cfg.getPriceValue1());
+            res.code = Code.FAIL;
+            return;
+        }
+        res.orderId = payType == PayType.IOS ? order.getUuid() : order.getId();
+        log.info("现金购买特殊游客创建订单成功 playerId={},cfgId={},payType={},price={},orderId={}",
+                ctx.playerId(), cfg.getId(), payType, cfg.getPriceValue1(), res.orderId);
+    }
+
+    /**
+     * 将购买所得直接存入当前场景，不进入玩家背包。
+     */
+    private boolean addSpecialGuestToCurrentCasino(SimPlayerContext ctx, int itemId, long count) {
+        SimCasinoData casino = ctx.getCurrentCasino();
+        if (casino == null) {
+            return false;
+        }
+        try {
+            casino.addSpecialGuest(itemId, count);
+            return true;
+        } catch (ArithmeticException e) {
+            log.error("增加场景特殊游客失败，数量溢出 playerId={},casinoId={},itemId={},count={}",
+                    ctx.playerId(), casino.getCasinoId(), itemId, count, e);
+            return false;
+        }
+    }
+
+    /**
+     * 现金订单到账后，将游客发放到下单时的场景。场景持久化订单 ID，保证充值重试不会重复发放。
+     */
+    public boolean receiveCashSpecialGuest(long playerId, int casinoId, int itemId, long count, String orderId) {
+        if (casinoId <= 0 || itemId <= 0 || count <= 0 || orderId == null || orderId.isEmpty()) {
+            log.warn("现金特殊游客到账参数错误 playerId={},casinoId={},itemId={},count={},orderId={}",
+                    playerId, casinoId, itemId, count, orderId);
+            return false;
+        }
+        SimPlayerContext ctx = simPlayerContextRegistry.getContext(playerId);
+        SimCasinoData casino = ctx != null && ctx.getCurrentCasino() != null
+                && ctx.getCurrentCasino().getCasinoId() == casinoId
+                ? ctx.getCurrentCasino() : simCasinoDao.findOne(playerId, casinoId);
+        if (casino == null) {
+            log.warn("现金特殊游客到账失败，场景不存在 playerId={},casinoId={},orderId={}",
+                    playerId, casinoId, orderId);
+            return false;
+        }
+        try {
+            if (!casino.receiveSpecialGuestOrder(orderId, itemId, count)) {
+                return false;
+            }
+            simCasinoDao.save(casino);
+            log.info("现金特殊游客写入场景成功 playerId={},casinoId={},itemId={},count={},orderId={}",
+                    playerId, casinoId, itemId, count, orderId);
+            return true;
+        } catch (Exception e) {
+            log.error("现金特殊游客写入场景异常 playerId={},casinoId={},itemId={},count={},orderId={}",
+                    playerId, casinoId, itemId, count, orderId, e);
+            return false;
+        }
+    }
+
+    /**
+     * 获取当前场景持有、尚未邀请的特殊游客。
+     */
+    public void ownedSpecialGuests(SimPlayerContext ctx) {
+        ResOwnedSpecialGuestList res = new ResOwnedSpecialGuestList(Code.SUCCESS);
+        try {
+            res.specialGuests = new ArrayList<>();
+            SimCasinoData casino = ctx.getCurrentCasino();
+            if (casino == null) {
+                res.code = Code.PARAM_ERROR;
+                ctx.send(res);
+                return;
+            }
+            for (Map.Entry<Integer, Long> entry : casino.getSpecialGuestItemCounts().entrySet()) {
+                int itemId = entry.getKey();
+                long count = entry.getValue();
+                if (count > 0) {
+                    res.specialGuests.add(toItemInfo(itemId, count));
+                }
+            }
+        } catch (Exception e) {
+            log.error("获取已购买特殊游客异常 playerId={}", ctx.playerId(), e);
+            res.code = Code.EXCEPTION;
+        }
+        ctx.send(res);
+        log.error("获取当前场景持有、尚未邀请的特殊游客 res={}", JSONObject.toJSONString(res));
+    }
+
+    /**
+     * 将当前场景中所选特殊游客的全部持有数量移动到当前场景待生成队列。
+     */
+    public void inviteSpecialGuests(SimPlayerContext ctx, List<Integer> itemIds) {
+        ResInviteSpecialGuest res = new ResInviteSpecialGuest(Code.SUCCESS);
+        try {
+            if (itemIds == null || itemIds.isEmpty() || ctx.getCurrentCasino() == null) {
+                log.warn("邀请特殊游客失败，请求参数或当前场景无效 playerId={},itemIds={},hasCasino={}",
+                        ctx.playerId(), itemIds, ctx.getCurrentCasino() != null);
+                res.code = Code.PARAM_ERROR;
+                ctx.send(res);
+                return;
+            }
+
+            SimCasinoData casino = ctx.getCurrentCasino();
+            Map<Integer, Long> inviteItems = new LinkedHashMap<>();
+            for (int itemId : new LinkedHashSet<>(itemIds)) {
+                VisitorQuestCfg visitorCfg = configCache.getVisitorQuestCfgByItemId(itemId);
+                if (visitorCfg == null) {
+                    log.warn("邀请特殊游客失败，特殊游客未关联游客配置 playerId={},itemId={}", ctx.playerId(), itemId);
+                    res.code = Code.PARAM_ERROR;
+                    ctx.send(res);
+                    return;
+                }
+                long count = casino.getSpecialGuestItemCounts().getOrDefault(itemId, 0L);
+                if (count > Integer.MAX_VALUE) {
+                    log.warn("邀请特殊游客失败，单种特殊游客数量超限 playerId={},itemId={},count={}",
+                            ctx.playerId(), itemId, count);
+                    res.code = Code.PARAM_ERROR;
+                    ctx.send(res);
+                    return;
+                }
+                if (count > 0) {
+                    inviteItems.put(itemId, count);
+                }
+            }
+            if (inviteItems.isEmpty()) {
+                log.warn("邀请特殊游客失败，当前场景未持有所选游客 playerId={},casinoId={},itemIds={}",
+                        ctx.playerId(), casino.getCasinoId(), itemIds);
+                res.code = Code.NOT_ENOUGH_ITEM;
+                ctx.send(res);
+                return;
+            }
+
+            if (!casino.moveSpecialGuestsToWaitQueue(inviteItems)) {
+                log.warn("邀请特殊游客移入待生成队列失败 playerId={},casinoId={},items={}",
+                        ctx.playerId(), casino.getCasinoId(), inviteItems);
+                res.code = Code.NOT_ENOUGH_ITEM;
+                ctx.send(res);
+                return;
+            }
+            log.info("邀请特殊游客进入待生成队列 playerId={},casinoId={},inviteItems={},waitGenSpecialGuests={}",
+                    ctx.playerId(), casino.getCasinoId(), inviteItems, casino.getWaitGenSpecialGuests());
+        } catch (Exception e) {
+            log.error("邀请特殊游客异常 playerId={},itemIds={}", ctx.playerId(), itemIds, e);
+            res.code = Code.EXCEPTION;
+        }
+        ctx.send(res);
+    }
+
+    /**
+     * 确保当前场景已有特殊游客展示数据。付费列表和手动刷新次数按场景保存；广告列表、冷却和购买限制为玩家全局。
+     */
+    private boolean ensureSpecialGuestOffers(SimPlayerContext ctx) {
+        SimBaseData baseData = ctx.getSimBaseData();
+        SimCasinoData casino = ctx.getCurrentCasino();
+        if (baseData == null || casino == null) {
+            return false;
+        }
+        VisitorTargetListCfg adPoolCfg = getSpecialGuestPoolCfg(casino, SimConstant.SpecialGuest.POOL_AD);
+        VisitorTargetListCfg paidPoolCfg = getSpecialGuestPoolCfg(casino, SimConstant.SpecialGuest.POOL_PAID);
+        if (adPoolCfg == null || paidPoolCfg == null) {
+            log.warn("初始化特殊游客展示失败，场景卡池配置缺失 playerId={},casinoId={},adPoolExists={},paidPoolExists={}",
+                    ctx.playerId(), casino.getCasinoId(), adPoolCfg != null, paidPoolCfg != null);
+            return false;
+        }
+
+        int today = TimeHelper.getDayNumerical();
+        if (baseData.getSpecialGuestAdRefreshDay() != today) {
+            baseData.setSpecialGuestAdRefreshDay(today);
+            baseData.setSpecialGuestAdCdEndTime(0);
+            if (adPoolCfg.getDailyRefresh() || baseData.getSpecialGuestAdCfgIds() == null) {
+                baseData.setSpecialGuestAdCfgIds(selectCfgIds(
+                        GameDataManager.getVisitorGenWatchVideoCfgList(), adPoolCfg.getDisplayCount(), Collections.emptySet()));
+            }
+        }
+        if (baseData.getSpecialGuestAdCfgIds() == null
+                || baseData.getSpecialGuestAdCfgIds().size() != Math.max(0, adPoolCfg.getDisplayCount())) {
+            baseData.setSpecialGuestAdCfgIds(selectCfgIds(
+                    GameDataManager.getVisitorGenWatchVideoCfgList(), adPoolCfg.getDisplayCount(), Collections.emptySet()));
+        }
+
+        if (casino.getSpecialGuestRefreshDay() != today) {
+            int previousDay = casino.getSpecialGuestRefreshDay();
+            casino.setSpecialGuestRefreshDay(today);
+            casino.setSpecialGuestRefreshCount(0);
+            if (paidPoolCfg.getDailyRefresh() || casino.getSpecialGuestPaidCfgIds() == null) {
+                casino.setSpecialGuestPaidCfgIds(selectPaidSpecialGuestCfgIds(paidPoolCfg, Collections.emptySet()));
+            }
+            log.info("特殊游客付费展示跨天刷新 playerId={},casinoId={},previousDay={},today={},paidCfgIds={}",
+                    ctx.playerId(), casino.getCasinoId(), previousDay, today, casino.getSpecialGuestPaidCfgIds());
+        }
+        if (casino.getSpecialGuestPaidCfgIds() == null) {
+            casino.setSpecialGuestPaidCfgIds(selectPaidSpecialGuestCfgIds(paidPoolCfg, Collections.emptySet()));
+        }
+        return true;
+    }
+
+    /**
+     * 获取当前场景和卡池类型唯一对应的 VisitorTargetList 配置。
+     */
+    private VisitorTargetListCfg getSpecialGuestPoolCfg(SimCasinoData casino, int poolType) {
+        if (casino == null) {
+            return null;
+        }
+        for (VisitorTargetListCfg cfg : GameDataManager.getVisitorTargetListCfgList()) {
+            if (cfg.getRegionID() == casino.getCasinoId() && cfg.getPoolType() == poolType) {
+                return cfg;
+            }
+        }
+        return null;
+    }
+
+    /**
+     * 按卡池展示数量选取付费游客，其中 VisitorGiftPackCount 指定需要预留的现金商品数量。
+     */
+    private List<Integer> selectPaidSpecialGuestCfgIds(VisitorTargetListCfg poolCfg, Set<Integer> excludedIds) {
+        List<VisitorGenPaidCfg> diamondCostCfgs = new ArrayList<>();
+        List<VisitorGenPaidCfg> cashCostCfgs = new ArrayList<>();
+        for (VisitorGenPaidCfg cfg : GameDataManager.getVisitorGenPaidCfgList()) {
+            if (cfg.getCostType() == SimConstant.SpecialGuest.COST_CASH) {
+                cashCostCfgs.add(cfg);
+            } else if (cfg.getCostType() == SimConstant.SpecialGuest.COST_DIAMOND) {
+                diamondCostCfgs.add(cfg);
+            }
+        }
+
+        int displayCount = Math.max(0, poolCfg.getDisplayCount());
+        int moneyCount = Math.min(Math.max(0, poolCfg.getVisitorGiftPackCount()), displayCount);
+        LinkedHashSet<Integer> result = new LinkedHashSet<>();
+        result.addAll(selectCfgIds(diamondCostCfgs, displayCount - moneyCount, excludedIds));
+        result.addAll(selectCfgIds(cashCostCfgs, moneyCount, excludedIds));
+
+        if (result.size() < displayCount) {
+            List<VisitorGenPaidCfg> allCfgs = new ArrayList<>(diamondCostCfgs.size() + cashCostCfgs.size());
+            allCfgs.addAll(diamondCostCfgs);
+            allCfgs.addAll(cashCostCfgs);
+            Set<Integer> excluded = new HashSet<>(excludedIds);
+            excluded.addAll(result);
+            result.addAll(selectCfgIds(allCfgs, displayCount - result.size(), excluded));
+        }
+        return new ArrayList<>(result);
+    }
+
+    private <T extends BaseCfgBean> List<Integer> selectCfgIds(List<T> cfgs, int count, Set<Integer> excludedIds) {
+        if (cfgs == null || cfgs.isEmpty() || count <= 0) {
+            return new ArrayList<>();
+        }
+        List<T> preferred = new ArrayList<>();
+        List<T> fallback = new ArrayList<>();
+        for (T cfg : cfgs) {
+            if (excludedIds.contains(cfg.getId())) {
+                fallback.add(cfg);
+            } else {
+                preferred.add(cfg);
+            }
+        }
+        Collections.shuffle(preferred);
+        Collections.shuffle(fallback);
+        preferred.addAll(fallback);
+
+        List<Integer> result = new ArrayList<>(Math.min(count, preferred.size()));
+        for (int i = 0; i < count && i < preferred.size(); i++) {
+            result.add(preferred.get(i).getId());
+        }
+        return result;
+    }
+
+    /**
+     * 将两个展示池合并为协议列表，并从跨节点每日计数中填充各配置的已使用次数。
+     */
+    private List<SpecialGuestInfo> buildSpecialGuestList(SimPlayerContext ctx, SimBaseData baseData) {
+        List<SpecialGuestInfo> result = new ArrayList<>();
+        SimCasinoData casino = ctx.getCurrentCasino();
+
+        VisitorTargetListCfg adPoolCfg = getSpecialGuestPoolCfg(casino, SimConstant.SpecialGuest.POOL_AD);
+        for (int cfgId : baseData.getSpecialGuestAdCfgIds()) {
+            VisitorGenWatchVideoCfg cfg = GameDataManager.getVisitorGenWatchVideoCfg(cfgId);
+            if (cfg != null) {
+                result.add(toSpecialGuestInfo(ctx, baseData, cfg, adPoolCfg));
+            }
+        }
+
+        VisitorTargetListCfg paidPoolCfg = getSpecialGuestPoolCfg(casino, SimConstant.SpecialGuest.POOL_PAID);
+        for (int cfgId : casino.getSpecialGuestPaidCfgIds()) {
+            VisitorGenPaidCfg cfg = GameDataManager.getVisitorGenPaidCfg(cfgId);
+            if (cfg != null) {
+                result.add(toSpecialGuestInfo(ctx, cfg, paidPoolCfg));
+            }
+        }
+        return result;
+    }
+
+    private SpecialGuestInfo toSpecialGuestInfo(SimPlayerContext ctx, SimBaseData baseData,
+                                                VisitorGenWatchVideoCfg cfg, VisitorTargetListCfg poolCfg) {
+        SpecialGuestInfo info = new SpecialGuestInfo();
+        info.id = cfg.getId();
+        info.itemId = cfg.getVisitorID();
+        info.count = cfg.getVisitorCount();
+        info.costType = SimConstant.SpecialGuest.COST_AD;
+        info.price = "0";
+        info.dailyBuyCount = specialGuestDailyCountService.getAdCount(ctx.playerId());
+        info.dailyLimitCount = cfg.getDailyViewLimit();
+        info.viewCd = cfg.getViewCD();
+        info.viewCdEndTime = baseData.getSpecialGuestAdCdEndTime();
+        info.output = getSpecialGuestOutput(ctx, info.itemId);
+        info.visitorGiftPackCount = poolCfg.getVisitorGiftPackCount();
+        return info;
+    }
+
+    private SpecialGuestInfo toSpecialGuestInfo(SimPlayerContext ctx, VisitorGenPaidCfg cfg, VisitorTargetListCfg poolCfg) {
+        SpecialGuestInfo info = new SpecialGuestInfo();
+        info.id = cfg.getId();
+        info.itemId = cfg.getVisitorID();
+        info.count = cfg.getVisitorCount();
+        info.costType = cfg.getCostType();
+        info.dailyBuyCount = specialGuestDailyCountService.getPaidCount(ctx.playerId(), cfg.getId());
+        info.dailyLimitCount = cfg.getDailyLimitCount();
+        if (cfg.getPriceValue1() != null) {
+            info.price = cfg.getPriceValue1().toPlainString();
+        }
+        info.output = getSpecialGuestOutput(ctx, info.itemId);
+        info.visitorGiftPackCount = poolCfg.getVisitorGiftPackCount();
+        return info;
+    }
+
+    /**
+     * 获取游客卡对应游客的等级产出；当前场景尚未解锁该游客时按 1 级展示。
+     */
+    private List<ItemInfo> getSpecialGuestOutput(SimPlayerContext ctx, int visitorItemId) {
+        VisitorQuestCfg visitorCfg = configCache.getVisitorQuestCfgByItemId(visitorItemId);
+        if (visitorCfg == null) {
+            log.warn("获取特殊游客产出失败，游客卡未关联游客配置 playerId={},visitorItemId={}",
+                    ctx.playerId(), visitorItemId);
+            return Collections.emptyList();
+        }
+
+        GuestData guest = ctx.getCurrentCasino() == null
+                ? null : ctx.getCurrentCasino().findGuestData(visitorCfg.getId());
+        int level = guest == null ? 1 : guest.getLevel();
+        List<ItemInfo> output = rewardService.getOutputPreview(visitorCfg.getId(), level);
+        if (output.isEmpty()) {
+            log.warn("获取特殊游客产出失败，等级产出配置为空 playerId={},guestId={},level={}",
+                    ctx.playerId(), visitorCfg.getId(), level);
+        }
+        return output;
+    }
+
+    private void fillSpecialGuestListResponse(SimPlayerContext ctx, ResSpecialGuestList res) {
+        SimBaseData baseData = ctx.getSimBaseData();
+        res.specialGuestList = buildSpecialGuestList(ctx, baseData);
+        res.refreshCount = ctx.getCurrentCasino().getSpecialGuestRefreshCount();
+        res.nextRefreshCost = nextSpecialGuestRefreshCost(ctx.getCurrentCasino());
+    }
+
+    private boolean validPaidSpecialGuestCfg(VisitorGenPaidCfg cfg) {
+        return cfg != null && cfg.getVisitorID() > 0 && cfg.getVisitorCount() > 0
+                && cfg.getPriceValue1() != null && cfg.getPriceValue1().signum() > 0;
+    }
+
+    /**
+     * 广告领取后只替换被观看的槽位，其他广告游客保持不变。
+     *
+     * @return 替换后的配置 ID；没有可替换配置时返回原配置 ID
+     */
+    private int replaceSpecialGuestAdOffer(SimBaseData baseData, int cfgId) {
+        List<Integer> cfgIds = new ArrayList<>(baseData.getSpecialGuestAdCfgIds());
+        int index = cfgIds.indexOf(cfgId);
+        if (index < 0) {
+            return cfgId;
+        }
+        List<Integer> next = selectCfgIds(GameDataManager.getVisitorGenWatchVideoCfgList(),
+                1, new HashSet<>(cfgIds));
+        if (!next.isEmpty()) {
+            cfgIds.set(index, next.getFirst());
+            baseData.setSpecialGuestAdCfgIds(cfgIds);
+            return next.getFirst();
+        }
+        return cfgId;
+    }
+
+    private ItemInfo nextSpecialGuestRefreshCost(SimCasinoData casino) {
+        VisitorTargetListCfg paidPoolCfg = getSpecialGuestPoolCfg(casino, SimConstant.SpecialGuest.POOL_PAID);
+        return getSpecialGuestRefreshCost(paidPoolCfg, casino.getSpecialGuestRefreshCount());
+    }
+
+    /**
+     * 刷新次数超过费用档位数量时，持续使用最后一个已配置档位。
+     */
+    private ItemInfo getSpecialGuestRefreshCost(VisitorTargetListCfg poolCfg, int refreshCount) {
+        if (poolCfg == null || poolCfg.getRefreshCost() == null || poolCfg.getRefreshCost().isEmpty()) {
+            return null;
+        }
+        List<Integer> costCfg = poolCfg.getRefreshCost().get(Math.min(refreshCount, poolCfg.getRefreshCost().size() - 1));
+        if (costCfg == null || costCfg.size() < 2 || costCfg.getFirst() <= 0 || costCfg.get(1) < 0) {
+            return null;
+        }
+        return toItemInfo(costCfg.getFirst(), costCfg.get(1));
+    }
+
+    private ItemInfo toItemInfo(int itemId, long count) {
+        ItemInfo info = new ItemInfo();
+        info.itemId = itemId;
+        info.count = count;
+        return info;
     }
 
     @Override
