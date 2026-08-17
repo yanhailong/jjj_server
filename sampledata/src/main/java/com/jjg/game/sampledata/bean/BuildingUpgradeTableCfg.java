@@ -25,6 +25,8 @@ public class BuildingUpgradeTableCfg extends BaseCfgBean {
   protected List<List<Integer>> CostPerLevel;
   /** 最大交互数量 */
   protected int MaxInteractionCount;
+  /** 经营等级 */
+  protected int NeedLevel;
   /** 解锁装饰 */
   protected List<Integer> UnlockDecorationId;
   /** 解锁设备 */
@@ -39,6 +41,8 @@ public class BuildingUpgradeTableCfg extends BaseCfgBean {
   protected long UpgradeExp;
   /** 建筑基础属性 */
   protected long UpgradeOutput;
+  /** 升级奖励 */
+  protected Map<Integer,Long> UpgradeReward;
   /** 等级 */
   protected int level;
   /** 多语言 */
@@ -57,6 +61,11 @@ public class BuildingUpgradeTableCfg extends BaseCfgBean {
   /** 返回最大交互数量 */
   public int getMaxInteractionCount() {
     return MaxInteractionCount;
+  }
+
+  /** 返回经营等级 */
+  public int getNeedLevel() {
+    return NeedLevel;
   }
 
   /** 返回解锁装饰 */
@@ -92,6 +101,11 @@ public class BuildingUpgradeTableCfg extends BaseCfgBean {
   /** 返回建筑基础属性 */
   public long getUpgradeOutput() {
     return UpgradeOutput;
+  }
+
+  /** 返回升级奖励 */
+  public Map<Integer,Long> getUpgradeReward() {
+    return UpgradeReward;
   }
 
   /** 返回等级 */

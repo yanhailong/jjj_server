@@ -24,4 +24,6 @@ public class PrivilegeCardDetailInfo extends BaseActivityDetailInfo {
     public long days;
     @ProtoDesc("商品id")
     public String productId;
+    @ProtoDesc("赠送倍率")
+    public int multiples;
 }

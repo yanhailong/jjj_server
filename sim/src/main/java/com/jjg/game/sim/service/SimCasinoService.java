@@ -318,9 +318,17 @@ public class SimCasinoService implements SimTaskStateReporter {
                 boolean matched = true;
                 for (Map.Entry<Integer, Integer> condition : levelUpCondition.entrySet()) {
                     BuildingData building = casino.findBuilding(condition.getKey());
-                    if(building == null || building.getLevel() < condition.getValue()){
+                    if (building == null || building.getLevel() < condition.getValue()) {
                         matched = false;
                         break;
+                    }
+
+                    BuildingUpgradeTableCfg nextBuildingCfg = configCacheService.getBuildingUpgradeCfg(building.getId(), building.getLevel() + 1);
+                    if (nextBuildingCfg != null) {
+                        if (ctx.getSimBaseData().getAllLevel() < nextBuildingCfg.getNeedLevel()) {
+                            matched = false;
+                            break;
+                        }
                     }
                 }
                 if (!matched) {

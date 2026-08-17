@@ -1100,12 +1100,21 @@ public class SimBuildingService implements SimPlayerTickListener, SimTaskStateRe
         if (!data.isUpgradeReady(now)) {
             return Code.PARAM_ERROR;
         }
-        data.setLevel(data.getLevel() + 1);
+        int afterLevel = data.getLevel() + 1;
+        data.setLevel(afterLevel);
         data.setCdEndTime(0);
         data.setAdClearCount(0);
         data.setProgress(0);
         simCasinoService.addCasinoExp(ctx, 0);
         allianceEventService.onBuildingUpgrade(ctx.playerId(), data.getId(), data.getLevel());
+
+        BuildingUpgradeTableCfg cfg = configCache.getBuildingUpgradeCfg(data.getId(), afterLevel);
+        if (cfg != null && cfg.getUpgradeReward() != null && !cfg.getUpgradeReward().isEmpty()) {
+            CommonResult<ItemOperationResult> result = playerPackService.addItems(ctx.playerId(), cfg.getUpgradeReward(), AddType.SIM_BUILDING_UPGRADE);
+            if (!result.success()) {
+                log.warn("建筑升级后添加道具失败 playerId={},buildingId={},afterLevel={}", ctx.playerId(), data.getId(), afterLevel);
+            }
+        }
         log.info("完成建筑升级 playerId={},buildingId={},newLevel={}", casino.getPlayerId(), data.getId(), data.getLevel());
         return Code.SUCCESS;
     }

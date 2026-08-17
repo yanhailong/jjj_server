@@ -29,6 +29,8 @@ public class PrivilegeCardCfg extends BaseCfgBean {
   protected int days;
   /** 额外道具 */
   protected Map<Integer,Long> getItem;
+  /** 赠送倍率 */
+  protected int multiples;
   /** 活动名称 */
   protected int name;
   /** 购买花费(充值) */
@@ -56,6 +58,11 @@ public class PrivilegeCardCfg extends BaseCfgBean {
   /** 返回额外道具 */
   public Map<Integer,Long> getGetItem() {
     return getItem;
+  }
+
+  /** 返回赠送倍率 */
+  public int getMultiples() {
+    return multiples;
   }
 
   /** 返回活动名称 */

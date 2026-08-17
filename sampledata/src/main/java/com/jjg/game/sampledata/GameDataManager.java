@@ -249,10 +249,13 @@ public class GameDataManager {
     containerMap.put(VideoRewardCfg.class, new VideoRewardCfgContainer());
     containerMap.put(ViplevelCfg.class, new ViplevelCfgContainer());
     containerMap.put(VisitorBondsCfg.class, new VisitorBondsCfgContainer());
+    containerMap.put(VisitorGenPaidCfg.class, new VisitorGenPaidCfgContainer());
+    containerMap.put(VisitorGenWatchVideoCfg.class, new VisitorGenWatchVideoCfgContainer());
     containerMap.put(VisitorLevelCfg.class, new VisitorLevelCfgContainer());
     containerMap.put(VisitorPoolCfg.class, new VisitorPoolCfgContainer());
     containerMap.put(VisitorQuestCfg.class, new VisitorQuestCfgContainer());
     containerMap.put(VisitorStarCfg.class, new VisitorStarCfgContainer());
+    containerMap.put(VisitorTargetListCfg.class, new VisitorTargetListCfgContainer());
     containerMap.put(WarehouseCfg.class, new WarehouseCfgContainer());
     containerMap.put(WealthRouletteRewardCfg.class, new WealthRouletteRewardCfgContainer());
     containerMap.put(WinPosWeightCfg.class, new WinPosWeightCfgContainer());
@@ -2229,6 +2232,30 @@ public class GameDataManager {
     return getInstance().getCfgContainer(VisitorBondsCfg.class).getCfgBeanList();
   }
 
+  public static VisitorGenPaidCfg getVisitorGenPaidCfg(int key) {
+    return getInstance().getCfgContainer(VisitorGenPaidCfg.class).getCfgBeanMap().get(key);
+  }
+
+  public static Map<Integer, VisitorGenPaidCfg> getVisitorGenPaidCfgMap() {
+    return getInstance().getCfgContainer(VisitorGenPaidCfg.class).getCfgBeanMap();
+  }
+
+  public static List<VisitorGenPaidCfg> getVisitorGenPaidCfgList() {
+    return getInstance().getCfgContainer(VisitorGenPaidCfg.class).getCfgBeanList();
+  }
+
+  public static VisitorGenWatchVideoCfg getVisitorGenWatchVideoCfg(int key) {
+    return getInstance().getCfgContainer(VisitorGenWatchVideoCfg.class).getCfgBeanMap().get(key);
+  }
+
+  public static Map<Integer, VisitorGenWatchVideoCfg> getVisitorGenWatchVideoCfgMap() {
+    return getInstance().getCfgContainer(VisitorGenWatchVideoCfg.class).getCfgBeanMap();
+  }
+
+  public static List<VisitorGenWatchVideoCfg> getVisitorGenWatchVideoCfgList() {
+    return getInstance().getCfgContainer(VisitorGenWatchVideoCfg.class).getCfgBeanList();
+  }
+
   public static VisitorLevelCfg getVisitorLevelCfg(int key) {
     return getInstance().getCfgContainer(VisitorLevelCfg.class).getCfgBeanMap().get(key);
   }
@@ -2275,6 +2302,18 @@ public class GameDataManager {
 
   public static List<VisitorStarCfg> getVisitorStarCfgList() {
     return getInstance().getCfgContainer(VisitorStarCfg.class).getCfgBeanList();
+  }
+
+  public static VisitorTargetListCfg getVisitorTargetListCfg(int key) {
+    return getInstance().getCfgContainer(VisitorTargetListCfg.class).getCfgBeanMap().get(key);
+  }
+
+  public static Map<Integer, VisitorTargetListCfg> getVisitorTargetListCfgMap() {
+    return getInstance().getCfgContainer(VisitorTargetListCfg.class).getCfgBeanMap();
+  }
+
+  public static List<VisitorTargetListCfg> getVisitorTargetListCfgList() {
+    return getInstance().getCfgContainer(VisitorTargetListCfg.class).getCfgBeanList();
   }
 
   public static WarehouseCfg getWarehouseCfg(int key) {

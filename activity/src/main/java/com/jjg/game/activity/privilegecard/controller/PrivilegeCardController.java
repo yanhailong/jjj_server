@@ -276,6 +276,7 @@ public class PrivilegeCardController extends BaseActivityController implements O
             info.remainTime = privilegeCard.getEndTime() - timeMillis;
         }
 
+        info.multiples = cfg.getMultiples();
         return info;
     }
 
