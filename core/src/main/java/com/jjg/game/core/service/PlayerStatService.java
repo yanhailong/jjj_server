@@ -38,6 +38,7 @@ public class PlayerStatService {
     public static final int GUEST_POOL_DRAW = 12270;
     public static final int EMPLOYEE_POOL_DRAW = 12271;
     public static final int SLOT_BET = 12272;
+    public static final int BUILDING_UNLOCK = 12273;
 
     public static final int GOLD_ITEM_ID = 1990000;
     public static final int DIAMOND_ITEM_ID = 1980000;
@@ -50,7 +51,7 @@ public class PlayerStatService {
 
     public static boolean supports(int conditionId) {
         return conditionId == BUILDING_LEVEL
-                || conditionId >= SLOT_ITEM && conditionId <= SLOT_BET && conditionId != 12258;
+                || conditionId >= SLOT_ITEM && conditionId <= BUILDING_UNLOCK && conditionId != 12258;
     }
 
     public static boolean recorded(int conditionId) {

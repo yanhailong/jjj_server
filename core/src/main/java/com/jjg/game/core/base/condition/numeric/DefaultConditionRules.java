@@ -13,6 +13,8 @@ import java.util.function.ToLongBiFunction;
  * 表内说明文字出现错误 id 时，以规则 id（即 Excel 的 id 列）为准。
  */
 final class DefaultConditionRules {
+    private static final int FIXED_TARGET_ONE = -1;
+
     private DefaultConditionRules() {
     }
 
@@ -143,7 +145,7 @@ final class DefaultConditionRules {
         rules.add(game(12221, 2, 2, 1, ProgressMode.ADD,
                 (s, e) -> e.matchesGame(s.parameter(0)), (s, e) -> 1));
 
-        //12251-12272 与上面的接取型条件判定口径一致，进度由玩家统计提供而非任务计数器。
+        //12251-12273 与上面的接取型条件判定口径一致，进度由玩家统计提供而非任务计数器。
         rules.add(game(12251, 3, 3, 2, ProgressMode.ADD,
                 (s, e) -> e.matchesGame(s.parameter(0)), (s, e) -> e.itemGain(s.intParameter(1))));
         rules.add(game(12252, 2, 2, 1, ProgressMode.ADD,
@@ -189,6 +191,9 @@ final class DefaultConditionRules {
                 (s, e) -> true, (s, e) -> positiveCount(e)));
         rules.add(game(12272, 2, 2, 1, ProgressMode.ADD,
                 (s, e) -> e.matchesGame(s.parameter(0)), (s, e) -> 1));
+        rules.add(action(12273, 2, 2, FIXED_TARGET_ONE, ProgressMode.SET,
+                ActionConditionEvent.Type.BUILDING_LEVEL,
+                (s, e) -> e.subjectId() == s.parameter(1), (s, e) -> 1));
     }
 
     private static void addAllianceRules(List<ConditionRule<?>> rules) {
@@ -380,7 +385,7 @@ final class DefaultConditionRules {
 
         @Override
         public long target(ConditionSpec spec) {
-            return spec.parameter(targetIndex);
+            return targetIndex == FIXED_TARGET_ONE ? 1 : spec.parameter(targetIndex);
         }
 
         @Override

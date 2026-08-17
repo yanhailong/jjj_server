@@ -12,6 +12,7 @@ import com.jjg.game.core.pb.KVInfo;
 import com.jjg.game.core.service.PlayerStatService;
 import com.jjg.game.sampledata.GameDataManager;
 import com.jjg.game.sampledata.bean.*;
+import com.jjg.game.season.service.SeasonRankingService;
 import com.jjg.game.sim.constant.BuildingOutputType;
 import com.jjg.game.sim.constant.SimConstant;
 import com.jjg.game.sim.dao.SimCasinoDao;
@@ -73,6 +74,8 @@ public class SimCasinoService implements SimTaskStateReporter {
     private PlayerStatService playerStatService;
     @Autowired
     private SimCoopTaskService simCoopTaskService;
+    @Autowired
+    private SeasonRankingService seasonRankingService;
     @Autowired
     private GameEventManager gameEventManager;
 
@@ -195,6 +198,7 @@ public class SimCasinoService implements SimTaskStateReporter {
             res.remainShare = quota.remainShare();
             res.dailyShareLimit = quota.dailyShareLimit();
             res.coopTaskInfo = simCoopTaskService.getBoundRoomInfo(ctx.playerId());
+            res.seasonRank = seasonRankingService.rankOf(ctx.getSeasonPlayerData());
 
             //获取下一等级的配置
             CasinoStatsSheetCfg nextLevelCfg = configCacheService.getCasinoStatsSheetCfg(casinoData.getCasinoId(), casinoData.getCasinoLevel() + 1);

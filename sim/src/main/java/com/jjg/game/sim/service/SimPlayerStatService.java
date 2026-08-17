@@ -59,6 +59,8 @@ public class SimPlayerStatService {
                     condition.spec().intParameter(0));
             case PlayerStatService.SKILL_COMBAT_POWER -> combatPower(ctx,
                     condition.spec().intParameter(0));
+            case PlayerStatService.BUILDING_UNLOCK -> building(ctx,
+                    condition.spec().intParameter(0), condition.spec().intParameter(1)) == null ? 0 : 1;
             default -> 0;
         };
     }
@@ -93,13 +95,21 @@ public class SimPlayerStatService {
             }
             return maxLevel;
         }
+        BuildingData building = building(ctx, buildingId);
+        return building == null ? 0 : building.getLevel();
+    }
+
+    private BuildingData building(SimPlayerContext ctx, int buildingId) {
         BuildingAreaTableCfg cfg = GameDataManager.getBuildingAreaTableCfg(buildingId);
         if (cfg == null) {
-            return 0;
+            return null;
         }
-        SimCasinoData casino = casino(ctx, cfg.getRegionID());
-        BuildingData building = casino == null ? null : casino.findBuilding(buildingId);
-        return building == null ? 0 : building.getLevel();
+        return building(ctx, cfg.getRegionID(), buildingId);
+    }
+
+    private BuildingData building(SimPlayerContext ctx, int casinoId, int buildingId) {
+        SimCasinoData casino = casino(ctx, casinoId);
+        return casino == null ? null : casino.findBuilding(buildingId);
     }
 
     private long employeeCount(SimPlayerContext ctx, int professionId, int minStar) {
