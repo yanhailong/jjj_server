@@ -2,6 +2,7 @@ package com.jjg.game.core.service;
 
 import com.jjg.game.core.base.gameevent.GameEventManager;
 import com.jjg.game.core.config.ConfigManager;
+import com.jjg.game.core.manager.AliyunOSSManager;
 import com.jjg.game.core.manager.SampleDataManager;
 import com.jjg.game.core.manager.SnowflakeManager;
 import com.jjg.game.core.task.manager.TaskManager;
@@ -30,6 +31,8 @@ public class CoreStartService {
     private TaskManager taskManager;
     @Autowired
     private SnowflakeManager snowflakeManager;
+    @Autowired
+    private AliyunOSSManager aliyunOSSManager;
 
     /**
      * 启动时初始化
@@ -44,6 +47,7 @@ public class CoreStartService {
         shopService.init();
         configManager.init();
         taskManager.init();
+        aliyunOSSManager.init();
     }
 
     /**

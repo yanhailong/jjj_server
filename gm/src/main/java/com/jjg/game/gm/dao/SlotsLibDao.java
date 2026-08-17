@@ -6,7 +6,7 @@ import com.alibaba.fastjson.JSONObject;
 import com.jjg.game.common.constant.CoreConst;
 import com.jjg.game.core.constant.Code;
 import com.jjg.game.core.data.CommonResult;
-import com.jjg.game.core.manager.AmazonBucketManager;
+import com.jjg.game.core.manager.AliyunOSSManager;
 import com.jjg.game.core.utils.LZ4CompressionUtil;
 import com.jjg.game.slots.dao.AbstractResultLibDao;
 import com.jjg.game.slots.data.SlotsResultLib;
@@ -47,7 +47,7 @@ import java.util.*;
 public class SlotsLibDao extends AbstractResultLibDao<SlotsResultLib> {
 
     @Autowired
-    private AmazonBucketManager amazonBucketManager;
+    private AliyunOSSManager aliyunOSSManager;
 
     // 游戏类型到ResultLib子类的映射
     private static final Map<Integer, Class<? extends SlotsResultLib>> GAME_TYPE_TO_CLASS_MAP = new HashMap<>();
@@ -206,7 +206,7 @@ public class SlotsLibDao extends AbstractResultLibDao<SlotsResultLib> {
             if (fileWriter != null) {
                 fileWriter.close();
                 log.warn("已写入完毕 fileName = {},totalLibs = {}", file.getName(), totalLibs);
-                this.amazonBucketManager.upload(file);
+                this.aliyunOSSManager.upload(file);
             }
         }
         return resultCode;

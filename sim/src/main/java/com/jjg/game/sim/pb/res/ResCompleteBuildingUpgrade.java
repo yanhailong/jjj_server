@@ -2,9 +2,12 @@ package com.jjg.game.sim.pb.res;
 
 import com.jjg.game.common.constant.MessageConst;
 import com.jjg.game.common.pb.AbstractResponse;
+import com.jjg.game.common.pb.ItemInfo;
 import com.jjg.game.common.proto.ProtoDesc;
 import com.jjg.game.common.proto.ProtobufMessage;
 import com.jjg.game.sim.constant.SimConstant;
+
+import java.util.List;
 
 /**
  * @author 11
@@ -17,6 +20,8 @@ public class ResCompleteBuildingUpgrade extends AbstractResponse {
     public int id;
     @ProtoDesc("新等级")
     public int level;
+    @ProtoDesc("升级奖励")
+    public List<ItemInfo> rewards;
 
     public ResCompleteBuildingUpgrade(int code) {
         super(code);

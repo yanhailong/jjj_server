@@ -26,7 +26,7 @@ import com.jjg.game.core.dao.*;
 import com.jjg.game.core.dao.redeemcode.RedeemCodeDao;
 import com.jjg.game.core.dao.redeemcode.RedeemCodeInfoDao;
 import com.jjg.game.core.data.*;
-import com.jjg.game.core.manager.AmazonBucketManager;
+import com.jjg.game.core.manager.AliyunOSSManager;
 import com.jjg.game.core.manager.CoreMarqueeManager;
 import com.jjg.game.core.manager.CoreSendMessageManager;
 import com.jjg.game.core.pb.KVInfo;
@@ -88,7 +88,7 @@ public class GMController extends AbstractController {
     @Autowired
     private BlackListService blackListService;
     @Autowired
-    private AmazonBucketManager amazonBucketManager;
+    private AliyunOSSManager aliyunOSSManager;
     @Autowired
     private CoreSendMessageManager coreSendMessageManager;
     @Autowired
@@ -1189,7 +1189,7 @@ public class GMController extends AbstractController {
             PFMessage pfMessage = MessageUtil.getPFMessage(notify);
             clusterSystem.sendClusterMessage(pfMessage, clusterList);
 
-            amazonBucketManager.dowmloadFiles(dto.nameList());
+            aliyunOSSManager.dowmloadFiles(dto.nameList());
             return success("common.success");
         } catch (Exception e) {
             log.error("", e);

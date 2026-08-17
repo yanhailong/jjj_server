@@ -14,7 +14,7 @@ import com.jjg.game.core.constant.GameConstant;
 import com.jjg.game.core.data.CommonResult;
 import com.jjg.game.core.data.Marquee;
 import com.jjg.game.core.data.Player;
-import com.jjg.game.core.manager.AmazonBucketManager;
+import com.jjg.game.core.manager.AliyunOSSManager;
 import com.jjg.game.core.manager.CoreMarqueeManager;
 import com.jjg.game.core.pb.NotifyAllNodesMarqueeServer;
 import com.jjg.game.core.pb.NotifyAllNodesStopMarqueeServer;
@@ -51,7 +51,7 @@ public class CoreToServerMessageHandler {
     @Autowired
     private ConfigManager configManager;
     @Autowired
-    private AmazonBucketManager amazonBucketManager;
+    private AliyunOSSManager aliyunOSSManager;
     @Autowired
     private LoginConfigService loginConfigService;
     @Autowired
@@ -188,7 +188,7 @@ public class CoreToServerMessageHandler {
     public void notifyExcelChange(NotifyExcelChange notify) {
         log.debug("收到需要更新配置表的消息 notify = {}", JSON.toJSONString(notify));
         try {
-            amazonBucketManager.dowmloadFiles(notify.nameList);
+            aliyunOSSManager.dowmloadFiles(notify.nameList);
         } catch (Exception e) {
             log.error("", e);
         }
