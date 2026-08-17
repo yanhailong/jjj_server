@@ -267,8 +267,10 @@ public interface SimConstant {
     }
 
     interface GuideCondition {
-        // 当前 Guide.xlsx 约定：1=创建新号、3=场景累计等级、4=玩家等级、5=道具不足、6=获得道具、7=功能解锁、8=引导组完成、10=客户端事件。
+        // 当前 Guide.xlsx 约定：1=创建新号、2=领取任务奖励、3=场景累计等级、4=玩家等级、5=道具不足、6=获得道具、7=功能解锁、8=引导组完成、10=客户端事件。
         int NEW_PLAYER = 1;
+        /** 领取模拟经营任务奖励，参数为任务ID。 */
+        int TASK_REWARD = 2;
         int SCENE_TOTAL_LEVEL = 3;
         int PLAYER_LEVEL = 4;
         int ITEM_NOT_ENOUGH = 5;
@@ -278,8 +280,6 @@ public interface SimConstant {
         /** 客户端进入指定功能节点时主动上报的引导事件。 */
         int CLIENT_EVENT = 10;
 
-        // 旧版条件已不再接受配置，仅保留常量以兼容尚未清理的事件调用点。
-        @Deprecated int TASK_REWARD = 2;
     }
 
     interface GuideTiming {
