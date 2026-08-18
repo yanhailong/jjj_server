@@ -888,9 +888,10 @@ public class SimGuestService implements SimPlayerTickListener, ItemListener, Sim
      * 招募游客
      *
      * @param ctx
+     * @param poolId 卡池id
      * @param count
      */
-    public void onRecruitGuest(SimPlayerContext ctx, int count) {
+    public void onRecruitGuest(SimPlayerContext ctx, int poolId, int count) {
         ResRecruitGuest res = new ResRecruitGuest(Code.SUCCESS);
         try {
             if (count != 1 && count != 10) {
@@ -900,66 +901,40 @@ public class SimGuestService implements SimPlayerTickListener, ItemListener, Sim
                 return;
             }
 
-            long now = System.currentTimeMillis();
-            PoolListCfg tmpCfg = null;
-            for (PoolListCfg cfg : GameDataManager.getPoolListCfgList()) {
-                if (cfg.getType() != SimConstant.PoolList.TYPE_GUEST) {
-                    continue;
-                }
-
-                if (!cfg.getOpen()) {
-                    continue;
-                }
-
-                if (cfg.getTime_start() != null && !cfg.getTime_start().isEmpty() && cfg.getTime_end() != null && !cfg.getTime_end().isEmpty()) {
-                    long startTime = TimeHelper.getTimeMillisBy(cfg.getTime_start());
-                    long endTime = TimeHelper.getTimeMillisBy(cfg.getTime_end());
-                    if (startTime >= endTime) {
-                        continue;
-                    }
-                    if (now >= startTime && now <= endTime) {
-                        tmpCfg = cfg;
-                        break;
-                    }
-                } else {
-                    tmpCfg = cfg;
-                    break;
-                }
-            }
-
-            if (tmpCfg == null) {
-                log.warn("招募游客失败,获取配置失败 playerId={},count={}", ctx.playerId(), count);
+            PoolListCfg poolCfg = configCache.getOpenPoolCfg(poolId, SimConstant.PoolList.TYPE_GUEST);
+            if (poolCfg == null) {
+                log.warn("招募游客失败,卡池不存在、未开启或类型错误 playerId={},poolId={},count={}", ctx.playerId(), poolId, count);
                 res.code = Code.PARAM_ERROR;
                 ctx.send(res);
                 return;
             }
 
-            WeightRandom<List<Integer>> poolRand = configCache.getPoolRand(tmpCfg.getDropItem());
+            WeightRandom<List<Integer>> poolRand = configCache.getPoolRand(poolCfg.getDropItem());
             if (poolRand == null) {
-                log.warn("招募游客失败,获取配置失败1 playerId={},count={}", ctx.playerId(), count);
+                log.warn("招募游客失败,获取卡池权重失败 playerId={},count={},poolId={}", ctx.playerId(), count, poolCfg.getId());
                 res.code = Code.PARAM_ERROR;
                 ctx.send(res);
                 return;
             }
 
-            if (tmpCfg.getDrawCost() != null && !tmpCfg.getDrawCost().isEmpty()) {
-                Map<Integer, Long> costMap = tmpCfg.getDrawCost();
+            if (poolCfg.getDrawCost() != null && !poolCfg.getDrawCost().isEmpty()) {
+                Map<Integer, Long> costMap = poolCfg.getDrawCost();
                 if (count > 1) {
                     costMap = new HashMap<>();
-                    for (Map.Entry<Integer, Long> en : tmpCfg.getDrawCost().entrySet()) {
+                    for (Map.Entry<Integer, Long> en : poolCfg.getDrawCost().entrySet()) {
                         costMap.put(en.getKey(), en.getValue() * count);
                     }
                 }
                 boolean remove = playerPackService.removeItems(ctx.getPlayer(), costMap, AddType.SIM_GUEST_RECRUIT, null).success();
                 if (!remove) {
-                    log.warn("招募游客失败,扣除道具失败 playerId={},count={},poolId={}", ctx.playerId(), count, tmpCfg.getId());
+                    log.warn("招募游客失败,扣除道具失败 playerId={},count={},poolId={}", ctx.playerId(), count, poolCfg.getId());
                     res.code = Code.PARAM_ERROR;
                     ctx.send(res);
                     return;
                 }
             }
 
-            VisitorPoolCfg visitorPoolCfg = GameDataManager.getVisitorPoolCfg(tmpCfg.getDropItem());
+            VisitorPoolCfg visitorPoolCfg = GameDataManager.getVisitorPoolCfg(poolCfg.getDropItem());
             List<Integer> newbieGuideDraw = visitorPoolCfg == null ? null : visitorPoolCfg.getNewbieGuideDraw();
             int guideItemId = guideConfigService.newbieFixedDrawItemId(ctx.getSimBaseData(), newbieGuideDraw);
 
@@ -1039,10 +1014,10 @@ public class SimGuestService implements SimPlayerTickListener, ItemListener, Sim
 
             res.shardInfos = recruitItems;
             //联盟任务: 卡池抽奖次数 (param=卡池ID, 供 0=任意/指定卡池 过滤; 10 连计为 10 次)
-            allianceEventService.onCardPoolDraw(ctx.playerId(), tmpCfg.getId(), count);
+            allianceEventService.onCardPoolDraw(ctx.playerId(), poolCfg.getId(), count);
             allianceEventService.onGuestPoolDraw(ctx.playerId(), count);
             allianceEventService.onGuestRecruit(ctx.playerId(),
-                    tmpCfg.getDrawCost() != null && !tmpCfg.getDrawCost().isEmpty(), count);
+                    poolCfg.getDrawCost() != null && !poolCfg.getDrawCost().isEmpty(), count);
             //主线任务: 招募改变各星级持有量 -> 上报 12214 "拥有 N 个 X 星游客"
             reportGuestCounts(ctx);
             log.info("招募游客成功 playerId={},count={},newEmployee={},addAllItems={}", ctx.playerId(), count, addGuest, addAllItems);

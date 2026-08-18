@@ -256,6 +256,10 @@ public interface SimConstant {
         //购买特殊游客
         int REQ_BUY_SPECIAL_GUEST = BASE_MSG_PREFIX | 0x80;
         int RES_BUY_SPECIAL_GUEST = BASE_MSG_PREFIX | 0x81;
+
+        //获取开启的卡池
+        int REQ_OPEN_POOL_LIST = BASE_MSG_PREFIX | 0x82;
+        int RES_OPEN_POOL_LIST = BASE_MSG_PREFIX | 0x83;
     }
 
     interface SpecialGuest {

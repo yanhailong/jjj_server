@@ -726,6 +726,22 @@ public class SimConfigCacheService implements ConfigExcelChangeListener {
         return this.visitorQuestItemCfgMap.get(itemId);
     }
 
+    /** 当前卡池开放状态只使用 open 字段，暂不判断配置时间。 */
+    public List<Integer> getOpenPoolIds() {
+        return GameDataManager.getPoolListCfgList().stream()
+                .filter(PoolListCfg::getOpen)
+                .map(PoolListCfg::getId)
+                .toList();
+    }
+
+    public PoolListCfg getOpenPoolCfg(int poolId, int type) {
+        PoolListCfg cfg = GameDataManager.getPoolListCfg(poolId);
+        if (cfg == null || !cfg.getOpen() || cfg.getType() != type) {
+            return null;
+        }
+        return cfg;
+    }
+
     public WeightRandom<List<Integer>> getPoolRand(int cfgId) {
         if (this.visitorPoolRandomMap == null || this.visitorPoolRandomMap.isEmpty()) {
             return null;

@@ -66,9 +66,10 @@ public class SimEmployeeService implements SimTaskStateReporter {
      * 命中未拥有的雇员则解锁, 命中已拥有的雇员则转化为对应碎片
      *
      * @param ctx
+     * @param poolId 卡池id
      * @param count 招募次数 (1/10)
      */
-    public void onRecruitEmployee(SimPlayerContext ctx, int count) {
+    public void onRecruitEmployee(SimPlayerContext ctx, int poolId, int count) {
         ResRecruitEmployee res = new ResRecruitEmployee(Code.SUCCESS);
         try {
             if (count != 1 && count != 10) {
@@ -78,66 +79,40 @@ public class SimEmployeeService implements SimTaskStateReporter {
                 return;
             }
 
-            long now = System.currentTimeMillis();
-            PoolListCfg tmpCfg = null;
-            for (PoolListCfg cfg : GameDataManager.getPoolListCfgList()) {
-                if (cfg.getType() != SimConstant.PoolList.TYPE_EMPLOYEE) {
-                    continue;
-                }
-
-                if (!cfg.getOpen()) {
-                    continue;
-                }
-
-                if (cfg.getTime_start() != null && !cfg.getTime_start().isEmpty() && cfg.getTime_end() != null && !cfg.getTime_end().isEmpty()) {
-                    long startTime = TimeHelper.getTimeMillisBy(cfg.getTime_start());
-                    long endTime = TimeHelper.getTimeMillisBy(cfg.getTime_end());
-                    if (startTime >= endTime) {
-                        continue;
-                    }
-                    if (now >= startTime && now <= endTime) {
-                        tmpCfg = cfg;
-                        break;
-                    }
-                } else {
-                    tmpCfg = cfg;
-                    break;
-                }
-            }
-
-            if (tmpCfg == null) {
-                log.warn("招募雇员失败,获取卡池配置失败 playerId={},count={}", ctx.playerId(), count);
+            PoolListCfg poolCfg = configCache.getOpenPoolCfg(poolId, SimConstant.PoolList.TYPE_EMPLOYEE);
+            if (poolCfg == null) {
+                log.warn("招募雇员失败,卡池不存在、未开启或类型错误 playerId={},poolId={},count={}", ctx.playerId(), poolId, count);
                 res.code = Code.PARAM_ERROR;
                 ctx.send(res);
                 return;
             }
 
-            WeightRandom<List<Integer>> poolRand = configCache.getEmployeePoolRand(tmpCfg.getDropItem());
+            WeightRandom<List<Integer>> poolRand = configCache.getEmployeePoolRand(poolCfg.getDropItem());
             if (poolRand == null) {
-                log.warn("招募雇员失败,获取卡池权重失败 playerId={},count={},poolId={}", ctx.playerId(), count, tmpCfg.getId());
+                log.warn("招募雇员失败,获取卡池权重失败 playerId={},count={},poolId={}", ctx.playerId(), count, poolCfg.getId());
                 res.code = Code.PARAM_ERROR;
                 ctx.send(res);
                 return;
             }
 
-            if (tmpCfg.getDrawCost() != null && !tmpCfg.getDrawCost().isEmpty()) {
-                Map<Integer, Long> costMap = tmpCfg.getDrawCost();
+            if (poolCfg.getDrawCost() != null && !poolCfg.getDrawCost().isEmpty()) {
+                Map<Integer, Long> costMap = poolCfg.getDrawCost();
                 if (count > 1) {
                     costMap = new HashMap<>();
-                    for (Map.Entry<Integer, Long> en : tmpCfg.getDrawCost().entrySet()) {
+                    for (Map.Entry<Integer, Long> en : poolCfg.getDrawCost().entrySet()) {
                         costMap.put(en.getKey(), en.getValue() * count);
                     }
                 }
                 boolean remove = playerPackService.removeItems(ctx.getPlayer(), costMap, AddType.SIM_EMPLOYEE_RECRUIT, null).success();
                 if (!remove) {
-                    log.warn("招募雇员失败,扣除道具失败 playerId={},count={},poolId={}", ctx.playerId(), count, tmpCfg.getId());
+                    log.warn("招募雇员失败,扣除道具失败 playerId={},count={},poolId={}", ctx.playerId(), count, poolCfg.getId());
                     res.code = Code.PARAM_ERROR;
                     ctx.send(res);
                     return;
                 }
             }
 
-            EmployeePoolCfg employeePoolCfg = GameDataManager.getEmployeePoolCfg(tmpCfg.getDropItem());
+            EmployeePoolCfg employeePoolCfg = GameDataManager.getEmployeePoolCfg(poolCfg.getDropItem());
             List<Integer> newbieGuideDraw = employeePoolCfg == null ? null : employeePoolCfg.getNewbieGuideDraw();
             int guideItemId = guideConfigService.newbieFixedDrawItemId(ctx.getSimBaseData(), newbieGuideDraw);
 
@@ -210,7 +185,7 @@ public class SimEmployeeService implements SimTaskStateReporter {
 
             res.shardInfos = recruitItems;
             //联盟任务: 卡池抽奖次数 (param=卡池ID, 供 0=任意/指定卡池 过滤; 10 连计为 10 次)
-            allianceEventService.onCardPoolDraw(ctx.playerId(), tmpCfg.getId(), count);
+            allianceEventService.onCardPoolDraw(ctx.playerId(), poolCfg.getId(), count);
             allianceEventService.onEmployeePoolDraw(ctx.playerId(), count);
             recruitedProfessions.forEach((professionId, recruited) ->
                     allianceEventService.onEmployeeRecruit(ctx.playerId(), professionId, recruited));

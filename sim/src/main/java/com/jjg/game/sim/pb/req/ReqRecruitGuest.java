@@ -13,6 +13,8 @@ import com.jjg.game.sim.constant.SimConstant;
 @ProtobufMessage(messageType = MessageConst.MessageTypeDef.SIM_GAME, cmd = SimConstant.MsgBean.REQ_RECRUIT_GUEST)
 @ProtoDesc("招募游客")
 public class ReqRecruitGuest extends AbstractMessage {
+    @ProtoDesc("卡池id")
+    public int poolId;
     @ProtoDesc("招募次数")
     public int count;
 }

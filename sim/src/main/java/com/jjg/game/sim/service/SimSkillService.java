@@ -164,6 +164,15 @@ public class SimSkillService extends AbstractSkillService implements ConfigExcel
                 return;
             }
 
+            //新等级的配置
+            ResearchSkillsCfg newLevelCfg = levelMap.get(beforeLevel + 1);
+            if (newLevelCfg == null) {
+                log.warn("升级技能失败，该技能已达到上限 playerId={},propId={}", skillData.getPlayerId(), skillPropId);
+                res.code = Code.NOT_FOUND;
+                ctx.send(res);
+                return;
+            }
+
             BuildingAreaTableCfg buildingAreaTableCfg = simConfigCacheService.getBuildingAreaTableCfgByGameType(gameType);
             if (buildingAreaTableCfg == null) {
                 log.warn("升级技能失败，根据游戏未找到配置 playerId={},propId={},gameType={}", skillData.getPlayerId(), skillPropId, gameType);
@@ -180,18 +189,10 @@ public class SimSkillService extends AbstractSkillService implements ConfigExcel
                 return;
             }
 
-            if (beforeLevel >= building.getLevel()) {
-                log.warn("升级技能失败，技能等级不能超过建筑等级 playerId={},propId={},gameType={},buildingId={},buildingLevel={}", skillData.getPlayerId(), skillPropId, gameType, buildingAreaTableCfg.getId(), building.getLevel());
-                res.code = Code.PARAM_ERROR;
-                ctx.send(res);
-                return;
-            }
-
-            //新等级的配置
-            ResearchSkillsCfg newLevelCfg = levelMap.get(beforeLevel + 1);
-            if (newLevelCfg == null) {
-                log.warn("升级技能失败，该技能已达到上限 playerId={},propId={}", skillData.getPlayerId(), skillPropId);
-                res.code = Code.NOT_FOUND;
+            if (building.getLevel() < newLevelCfg.getBuildingLevel()) {
+                log.warn("升级技能失败，建筑等级不足 playerId={},propId={},gameType={},buildingId={},buildingLevel={},requiredBuildingLevel={}",
+                        skillData.getPlayerId(), skillPropId, gameType, buildingAreaTableCfg.getId(), building.getLevel(), newLevelCfg.getBuildingLevel());
+                res.code = Code.LEVEL_NOT_ENOUGH;
                 ctx.send(res);
                 return;
             }

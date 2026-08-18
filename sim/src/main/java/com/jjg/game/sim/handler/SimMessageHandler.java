@@ -416,7 +416,7 @@ public class SimMessageHandler implements GmListener {
     @Command(SimConstant.MsgBean.REQ_RECRUIT_EMPLOYEE)
     public void reqRecruitEmployee(PlayerController playerController, ReqRecruitEmployee req) {
         execute(playerController, ctx -> {
-            employeeService.onRecruitEmployee(ctx, req.count);
+            employeeService.onRecruitEmployee(ctx, req.poolId, req.count);
         }, ReqRecruitEmployee.class);
     }
 
@@ -526,8 +526,20 @@ public class SimMessageHandler implements GmListener {
     @Command(SimConstant.MsgBean.REQ_RECRUIT_GUEST)
     public void reqRecruitGuest(PlayerController playerController, ReqRecruitGuest req) {
         execute(playerController, ctx -> {
-            guestService.onRecruitGuest(ctx, req.count);
+            guestService.onRecruitGuest(ctx, req.poolId, req.count);
         }, ReqRecruitGuest.class);
+    }
+
+    /**
+     * 获取开启的卡池
+     */
+    @Command(SimConstant.MsgBean.REQ_OPEN_POOL_LIST)
+    public void reqOpenPoolList(PlayerController playerController, ReqOpenPoolList req) {
+        execute(playerController, ctx -> {
+            ResOpenPoolList res = new ResOpenPoolList(Code.SUCCESS);
+            res.poolIds = configCacheService.getOpenPoolIds();
+            ctx.send(res);
+        }, ReqOpenPoolList.class);
     }
 
     /**
@@ -983,7 +995,8 @@ public class SimMessageHandler implements GmListener {
                 reqAssignSupervisor(playerController, req);
             } else if ("recruitEmployee".equalsIgnoreCase(gmOrders[0])) {
                 ReqRecruitEmployee req = new ReqRecruitEmployee();
-                req.count = gmOrders.length > 1 ? Integer.parseInt(gmOrders[1]) : 1;
+                req.poolId = Integer.parseInt(gmOrders[1]);
+                req.count = gmOrders.length > 2 ? Integer.parseInt(gmOrders[2]) : 1;
                 reqRecruitEmployee(playerController, req);
             } else if ("claimOffline".equalsIgnoreCase(gmOrders[0])) {
                 boolean watchAd = gmOrders.length > 1 && "1".equals(gmOrders[1]);
