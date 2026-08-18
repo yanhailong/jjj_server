@@ -258,6 +258,8 @@ public class TaskManager implements ConfigExcelChangeListener, IRedDotService, O
         task.setStatus(taskDetail.getStatus());
         //任务条件
         task.setConditions(assembleTaskConditions(playerId, taskDetail, config));
+        //任务奖励道具
+        task.rewards = ItemUtils.buildItemInfo(config.getGetItem());
         return task;
     }
 

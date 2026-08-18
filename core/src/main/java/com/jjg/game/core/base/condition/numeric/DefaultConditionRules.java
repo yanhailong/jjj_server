@@ -144,6 +144,12 @@ final class DefaultConditionRules {
                 (s, e) -> e.matchesSubject(s.parameter(0)), (s, e) -> e.value()));
         rules.add(game(12221, 2, 2, 1, ProgressMode.ADD,
                 (s, e) -> e.matchesGame(s.parameter(0)), (s, e) -> 1));
+        rules.add(rule(12222, GuestInviteConditionEvent.class, 2, 2, 1, ProgressMode.ADD,
+                (s, e) -> e.matchesGuest(s.parameter(0)), (s, e) -> 1, nonNegativeParameters()));
+        rules.add(action(12223, 1, 1, 0, ProgressMode.ADD, ActionConditionEvent.Type.DOUXIAN_SETTLEMENT,
+                (s, e) -> true, (s, e) -> positiveCount(e)));
+        rules.add(action(12224, 1, 1, 0, ProgressMode.ADD, ActionConditionEvent.Type.ACHIEVEMENT_REWARD,
+                (s, e) -> true, (s, e) -> positiveCount(e)));
 
         //12251-12273 与上面的接取型条件判定口径一致，进度由玩家统计提供而非任务计数器。
         rules.add(game(12251, 3, 3, 2, ProgressMode.ADD,

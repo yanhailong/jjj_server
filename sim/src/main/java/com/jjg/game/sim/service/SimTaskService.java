@@ -1,6 +1,5 @@
 package com.jjg.game.sim.service;
 
-import com.alibaba.fastjson.JSON;
 import com.jjg.game.common.utils.TimeHelper;
 import com.jjg.game.core.base.condition.numeric.*;
 import com.jjg.game.core.constant.AddType;
@@ -13,9 +12,12 @@ import com.jjg.game.core.service.CorePlayerService;
 import com.jjg.game.core.service.GameFunctionService;
 import com.jjg.game.core.service.PlayerPackService;
 import com.jjg.game.core.service.PlayerStatService;
+import com.jjg.game.core.task.condition.TaskCondition12001;
 import com.jjg.game.core.task.db.TaskDetail;
+import com.jjg.game.core.task.param.TaskConditionParam12001;
 import com.jjg.game.core.task.pb.Task;
 import com.jjg.game.core.task.pb.TaskCondition;
+import com.jjg.game.core.utils.ItemUtils;
 import com.jjg.game.sampledata.GameDataManager;
 import com.jjg.game.sampledata.bean.TaskCfg;
 import com.jjg.game.sim.dao.SimTaskDao;
@@ -60,6 +62,8 @@ public class SimTaskService {
     private static final String PREFIX_ACH = "simTaskAch";
     private static final int MAIN_COUNTER_VERSION = 1;
     private static final int MAX_DISPLAYED_MEDALS = 3;
+    private static final Set<Integer> TASK_DETAIL_PROGRESS_CONDITIONS = Set.of(
+            TaskConstant.ConditionType.PLAYER_BET_ALL, 12222, 12223, 12224);
 
     @Autowired
     private SimTaskConfigService taskConfig;
@@ -69,6 +73,8 @@ public class SimTaskService {
     private PlayerPackService playerPackService;
     @Autowired
     private CountDao countDao;
+    @Autowired
+    private TaskCondition12001 taskCondition12001;
     @Autowired
     private SimPlayerStatService playerStatService;
     @Autowired
@@ -240,6 +246,48 @@ public class SimTaskService {
         return node;
     }
 
+    /**
+     * GM 将主线或某个成就组向前跳到指定任务。目标必须是当前节点的后置节点，禁止原地设置或回退。
+     */
+    public CommonResult<String> jumpTask(SimPlayerContext ctx, int taskId) {
+        if (ctx == null || ctx.getSimTaskData() == null) {
+            return new CommonResult<>(Code.FAIL, "玩家模拟经营任务数据未加载");
+        }
+        TaskCfg targetCfg = GameDataManager.getTaskCfg(taskId);
+        if (targetCfg == null
+                || (targetCfg.getTaskType() != TaskConstant.TaskType.MAIN_LINE
+                && targetCfg.getTaskType() != TaskConstant.TaskType.ACHIEVEMENT)) {
+            return new CommonResult<>(Code.PARAM_ERROR, "任务不存在或不是主线/成就任务：" + taskId);
+        }
+
+        SimTaskData data = ctx.getSimTaskData();
+        TaskDetail current = findActiveNode(data, targetCfg, taskId);
+        if (current == null) {
+            return new CommonResult<>(Code.FAIL, "目标任务所属任务链尚未接取：" + taskId);
+        }
+
+        int nextId = taskConfig.next(current.getConfigId());
+        while (nextId > 0 && nextId != taskId) {
+            nextId = taskConfig.next(nextId);
+        }
+        if (nextId != taskId) {
+            return new CommonResult<>(Code.PARAM_ERROR,
+                    "只能向前跳转任务，当前任务：" + current.getConfigId() + "，目标任务：" + taskId);
+        }
+
+        TaskDetail target = createNode(ctx.playerId(), taskId);
+        if (targetCfg.getTaskType() == TaskConstant.TaskType.MAIN_LINE) {
+            data.setMainTask(target);
+        } else {
+            data.getAchievements().put(targetCfg.getGroup(), target);
+        }
+        ctx.setLastSaveTime(0);
+        log.info("GM向前跳转sim任务 playerId={},currentTaskId={},targetTaskId={},taskType={},group={}",
+                ctx.playerId(), current.getConfigId(), taskId, targetCfg.getTaskType(), targetCfg.getGroup());
+        return new CommonResult<>(Code.SUCCESS,
+                "已将当前任务从 " + current.getConfigId() + " 设置为 " + taskId);
+    }
+
     // =====================================================================
     // 进度 (旋转事件驱动)
     // =====================================================================
@@ -348,6 +396,14 @@ public class SimTaskService {
         if (def == null) {
             return;
         }
+        if (def.condition().spec().id() == TaskConstant.ConditionType.PLAYER_BET_ALL) {
+            evaluateEffectiveBet(ctx, player, data, baseData, node, cfg, event, changed);
+            return;
+        }
+        if (TASK_DETAIL_PROGRESS_CONDITIONS.contains(def.condition().spec().id())) {
+            evaluateTaskDetailProgress(ctx, player, data, baseData, node, cfg, def.condition(), event, changed);
+            return;
+        }
         if (playerStatService.supports(def.condition())) {
             boolean relevant = def.condition().evaluate(event).matched()
                     || (def.condition().spec().id() == PlayerStatService.FREE_MODE
@@ -382,6 +438,48 @@ public class SimTaskService {
                     progress, def.condition().target(), featureId, customId);
         }
         if (progress >= def.condition().target()) {
+            onComplete(ctx, player, data, baseData, node, cfg, changed);
+        }
+    }
+
+    /** 12001 沿用旧任务条件的任务内进度，只累计当前已接取节点收到的有效下注事件。 */
+    private void evaluateEffectiveBet(SimPlayerContext ctx, Player player, SimTaskData data,
+                                      SimBaseData baseData, TaskDetail node, TaskCfg cfg,
+                                      ConditionEvent event, List<Task> changed) {
+        if (!(event instanceof GameConditionEvent gameEvent) || gameEvent.bet() <= 0) {
+            return;
+        }
+        TaskConditionParam12001 param = new TaskConditionParam12001();
+        param.setGameId(gameEvent.gameId());
+        param.setAddValue(gameEvent.bet());
+        if (!taskCondition12001.trigger(player.getId(), cfg, node, param)) {
+            return;
+        }
+        ctx.setLastSaveTime(0);
+        if (node.getFinishConditionIds().contains(TaskConstant.ConditionType.PLAYER_BET_ALL)) {
+            onComplete(ctx, player, data, baseData, node, cfg, changed);
+        }
+    }
+
+    /** 接取后累计型条件直接保存在当前任务节点中，不继承接取前的任何历史进度。 */
+    private void evaluateTaskDetailProgress(SimPlayerContext ctx, Player player, SimTaskData data,
+                                            SimBaseData baseData, TaskDetail node, TaskCfg cfg,
+                                            PreparedCondition condition, ConditionEvent event,
+                                            List<Task> changed) {
+        ConditionUpdate update = condition.evaluate(event);
+        if (!update.matched() || update.value() <= 0) {
+            return;
+        }
+        int conditionId = condition.spec().id();
+        long current = node.getProgress().getOrDefault(conditionId, 0L);
+        long progress = update.apply(current);
+        if (progress == current) {
+            return;
+        }
+        node.getProgress().put(conditionId, progress);
+        ctx.setLastSaveTime(0);
+        if (progress >= condition.target()) {
+            node.getFinishConditionIds().add(conditionId);
             onComplete(ctx, player, data, baseData, node, cfg, changed);
         }
     }
@@ -438,7 +536,7 @@ public class SimTaskService {
         SimTaskConfigService.TaskConditionDef def = taskConfig.conditionOf(cfg.getId());
         int conditionId = def == null ? 0 : def.condition().spec().id();
         long target = def == null ? 0 : def.condition().target();
-        long completedProgress = def == null ? 0 : currentProgress(ctx, player, cfg);
+        long completedProgress = def == null ? 0 : currentProgress(ctx, player, node, cfg);
         if (def != null) {
             node.getProgress().put(conditionId, completedProgress);
         }
@@ -559,11 +657,15 @@ public class SimTaskService {
                 achievementTaskLogger.allCompleted(playerId, player.getNickName(), taskId,
                         cfg.getGroup(), rewardTime);
             }
+            //领取成功后、激活同组下一节点前触发，确保只有本次领取时已经接取的任务能够累计。
+            onConditionEvent(ctx, new ActionConditionEvent(
+                    ActionConditionEvent.Type.ACHIEVEMENT_REWARD, 0, 0, 0, 1, 0, false));
         }
         res.nextTask = advance(ctx, player, data, node, cfg);
         if (res.nextTask != null) {
             res.nextTask = settleAdvancedChain(ctx, player, data, cfg);
         }
+        res.rewards = ItemUtils.buildItemInfosByItem(rewardItems);
         //领奖后强制下个 tick 尽快落库(走 autosave 规范路径), 收窄崩溃重复领取窗口
         ctx.setLastSaveTime(0);
         //成就任务末节点奖励含勋章道具, 领取后可能新激活勋章 -> 刷新全服勋章榜分值
@@ -633,7 +735,7 @@ public class SimTaskService {
                 TaskCfg activatedCfg = GameDataManager.getTaskCfg(activatedNode.getConfigId());
                 SimTaskConfigService.TaskConditionDef def = activatedCfg == null
                         ? null : taskConfig.conditionOf(activatedCfg.getId());
-                if (def != null && currentProgress(ctx, player, activatedCfg) >= def.condition().target()) {
+                if (def != null && currentProgress(ctx, player, activatedNode, activatedCfg) >= def.condition().target()) {
                     onComplete(ctx, player, data, baseData, activatedNode, activatedCfg, changed);
                 }
             }
@@ -659,10 +761,13 @@ public class SimTaskService {
         SimTaskConfigService.TaskConditionDef def = cfg == null ? null : taskConfig.conditionOf(cfg.getId());
         log.info("主线当前节点: taskId={},status={},进度={}/{},condition={},进度来源={}",
                 main.getConfigId(), main.getStatus(),
-                cfg == null ? -1 : currentProgress(ctx, player, cfg),
+                cfg == null ? -1 : currentProgress(ctx, player, main, cfg),
                 def == null ? -1 : def.condition().target(),
                 cfg == null ? "配置缺失" : cfg.getTaskConditionId(),
-                def == null || cfg == null ? "无" : playerStatService.supports(def.condition())
+                def == null || cfg == null ? "无"
+                        : TASK_DETAIL_PROGRESS_CONDITIONS.contains(def.condition().spec().id())
+                        ? "SimTaskData.progress"
+                        : playerStatService.supports(def.condition())
                         ? CountDao.CountType.PLAYER_STAT.getParam().formatted(def.condition().spec().id())
                         : "count:" + def.counterType() + prefixOf(cfg) + ":" + player.getId());
     }
@@ -794,13 +899,14 @@ public class SimTaskService {
     }
 
     /**
-     * 组装任务协议体: configId + 状态 + 单条件(当前进度/目标/是否完成)。
+     * 组装任务协议体: configId + 状态 + 奖励道具 + 单条件(当前进度/目标/是否完成)。
      * 进行中节点回读实时进度，完成节点返回完成时保存的进度快照。
      */
     private Task assemble(SimPlayerContext ctx, Player player, TaskDetail node, TaskCfg cfg) {
         Task task = new Task();
         task.setConfigId(cfg.getId());
         task.setStatus(node.getStatus());
+        task.rewards = ItemUtils.buildItemInfo(cfg.getGetItem());
 
         List<Long> cond = cfg.getTaskConditionId();
         TaskCondition c = new TaskCondition();
@@ -808,7 +914,7 @@ public class SimTaskService {
         SimTaskConfigService.TaskConditionDef def = taskConfig.conditionOf(cfg.getId());
         c.setConfigParam(def == null ? cond.getLast() : def.condition().target());
         c.setProgress(node.getStatus() == TaskConstant.TaskStatus.STATUS_IN_PROGRESS
-                ? currentProgress(ctx, player, cfg)
+                ? currentProgress(ctx, player, node, cfg)
                 : completedProgress(node));
         c.setFinish(node.getStatus() != TaskConstant.TaskStatus.STATUS_IN_PROGRESS);
         task.getConditions().add(c);
@@ -820,12 +926,15 @@ public class SimTaskService {
     }
 
     /**
-     * 当前进度: 玩家统计型取玩家级统计，状态型取实时状态，其余事件型从任务计数器回读。
+     * 当前进度: 接取后累计型取任务节点内进度，玩家统计型取玩家级统计，状态型取实时状态，其余事件型从任务计数器回读。
      */
-    private long currentProgress(SimPlayerContext ctx, Player player, TaskCfg cfg) {
+    private long currentProgress(SimPlayerContext ctx, Player player, TaskDetail node, TaskCfg cfg) {
         SimTaskConfigService.TaskConditionDef def = taskConfig.conditionOf(cfg.getId());
         if (def == null) {
             return 0;
+        }
+        if (TASK_DETAIL_PROGRESS_CONDITIONS.contains(def.condition().spec().id())) {
+            return node.getProgress().getOrDefault(def.condition().spec().id(), 0L);
         }
         if (playerStatService.supports(def.condition())) {
             return playerStatService.progress(ctx, def.condition());

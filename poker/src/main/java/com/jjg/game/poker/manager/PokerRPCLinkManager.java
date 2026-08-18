@@ -14,6 +14,10 @@ import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Component;
 
+import java.util.ArrayList;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
 import java.util.concurrent.ThreadLocalRandom;
 import java.util.function.LongFunction;
 
@@ -76,6 +80,50 @@ public class PokerRPCLinkManager {
         }
         updateBalance(account, result);
         return result;
+    }
+
+    /** 斗仙牌大结算完成后按所属 SIM 节点批量通知，不阻塞牌桌收尾。 */
+    public void notifyDouXianSettled(Map<Long, String> players) {
+        if (players == null || players.isEmpty()) {
+            return;
+        }
+        Map<String, ClusterClient> clients = new HashMap<>();
+        Map<String, List<Long>> playerIdsByNode = new HashMap<>();
+        for (Map.Entry<Long, String> entry : players.entrySet()) {
+            long playerId = entry.getKey();
+            ClusterClient client = simNodeService.getSimClusterClient(
+                    playerId, entry.getValue() == null ? "" : entry.getValue());
+            if (client == null) {
+                log.warn("斗仙牌结算任务推进失败，未找到 SIM 节点 playerId:{}", playerId);
+                continue;
+            }
+            String nodePath = client.marsNode.getNodePath();
+            clients.putIfAbsent(nodePath, client);
+            playerIdsByNode.computeIfAbsent(nodePath, key -> new ArrayList<>()).add(playerId);
+        }
+        for (Map.Entry<String, List<Long>> entry : playerIdsByNode.entrySet()) {
+            notifyDouXianSettled(clients.get(entry.getKey()), List.copyOf(entry.getValue()));
+        }
+    }
+
+    private void notifyDouXianSettled(ClusterClient client, List<Long> playerIds) {
+        GameRpcContext rpcContext = GameRpcContext.getContext();
+        RpcReqParameterBuilder previousBuilder = rpcContext.getReqParameterBuilder();
+        try {
+            rpcContext.withReqParameterBuilder(RpcReqParameterBuilder.create()
+                    .addClusterClient(client).setTryMillisPerClient(1000));
+            rpcContext.asyncCall(() -> toSimBridge.onDouXianSettled(playerIds))
+                    .whenComplete((result, throwable) -> {
+                        if (throwable != null || result == null || !result.success()
+                                || !Boolean.TRUE.equals(result.data)) {
+                            log.warn("斗仙牌结算任务批量推进失败 playerIds:{}", playerIds, throwable);
+                        }
+                    });
+        } catch (Exception e) {
+            log.error("斗仙牌结算任务批量推进异常 playerIds:{}", playerIds, e);
+        } finally {
+            rpcContext.setReqParameterBuilder(previousBuilder);
+        }
     }
 
     private CommonResult<Long> getSeasonCoin(PokerSeasonAccount account) {

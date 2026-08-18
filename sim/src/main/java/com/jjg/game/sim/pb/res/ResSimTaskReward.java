@@ -2,10 +2,13 @@ package com.jjg.game.sim.pb.res;
 
 import com.jjg.game.common.constant.MessageConst;
 import com.jjg.game.common.pb.AbstractResponse;
+import com.jjg.game.common.pb.ItemInfo;
 import com.jjg.game.common.proto.ProtoDesc;
 import com.jjg.game.common.proto.ProtobufMessage;
 import com.jjg.game.core.task.pb.Task;
 import com.jjg.game.sim.constant.SimConstant;
+
+import java.util.List;
 
 /**
  * 领取任务奖励返回。
@@ -20,6 +23,8 @@ public class ResSimTaskReward extends AbstractResponse {
     public int taskId;
     @ProtoDesc("领奖后新激活的下一节点 (链结束时为空)")
     public Task nextTask;
+    @ProtoDesc("任务奖励道具")
+    public List<ItemInfo> rewards;
 
     public ResSimTaskReward() {
         super(0);

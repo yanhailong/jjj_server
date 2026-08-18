@@ -11,14 +11,12 @@ import com.jjg.game.season.constant.SeasonConstant;
 public class ResSeasonCraftGem extends AbstractResponse {
     @ProtoDesc("是否合成成功")
     public boolean success;
-    @ProtoDesc("成功产出的宝石道具ID")
+    @ProtoDesc("成功产出或者失败返回的宝石道具ID")
     public int resultItemId;
     @ProtoDesc("成功产出数量")
     public int resultCount;
     @ProtoDesc("扣除合成费用后的赛季币")
     public long seasonCoin;
-    @ProtoDesc("合成失败后返还的宝石道具id")
-    public int failKeepItemId;
 
     public ResSeasonCraftGem(int code) {
         super(code);

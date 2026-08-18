@@ -23,6 +23,8 @@ public class ResearchSkillsCfg extends BaseCfgBean {
   protected int Attr;
   /** 自动旋转次数 */
   protected int AutoSpin;
+  /** 要求建筑等级 */
+  protected int BuildingLevel;
   /** 战力值 */
   protected int CombatPower;
   /** 每级所需研究点 */
@@ -52,6 +54,11 @@ public class ResearchSkillsCfg extends BaseCfgBean {
   /** 返回自动旋转次数 */
   public int getAutoSpin() {
     return AutoSpin;
+  }
+
+  /** 返回要求建筑等级 */
+  public int getBuildingLevel() {
+    return BuildingLevel;
   }
 
   /** 返回战力值 */

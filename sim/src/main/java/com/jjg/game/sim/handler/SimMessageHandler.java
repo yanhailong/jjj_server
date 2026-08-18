@@ -936,6 +936,20 @@ public class SimMessageHandler implements GmListener {
                     res.data = "玩家模拟经营数据未加载，无法完成指定引导：" + guideIds;
                 }
                 return res;
+            } else if ("jumpTask".equalsIgnoreCase(gmOrders[0])) {
+                if (gmOrders.length < 2 || !gmOrders[1].matches("\\d+")) {
+                    res.code = Code.PARAM_ERROR;
+                    res.data = "参数错误，格式：jumpTask <taskId>";
+                    return res;
+                }
+                int taskId = Integer.parseInt(gmOrders[1]);
+                if (taskId <= 0) {
+                    res.code = Code.PARAM_ERROR;
+                    res.data = "taskId 必须大于0";
+                    return res;
+                }
+                SimPlayerContext ctx = simPlayerContextRegistry.getContext(playerController.playerId());
+                return taskService.jumpTask(ctx, taskId);
             } else if ("printGuest".equalsIgnoreCase(gmOrders[0])) {
                 SimPlayerContext context = this.simPlayerContextRegistry.getContext(playerController.playerId());
                 context.printGuest();

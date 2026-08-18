@@ -3,7 +3,10 @@ package com.jjg.game.hall.handler;
 import com.jjg.game.alliance.bridge.ToAllianceBridge;
 import com.jjg.game.alliance.service.AllianceCacheService;
 import com.jjg.game.alliance.service.AllianceEventService;
+import com.jjg.game.common.concurrent.BaseHandler;
+import com.jjg.game.common.concurrent.PlayerExecutorGroupDisruptor;
 import com.jjg.game.common.rpc.RpcCallSetting;
+import com.jjg.game.core.base.condition.numeric.ActionConditionEvent;
 import com.jjg.game.core.constant.AddType;
 import com.jjg.game.core.constant.BackendGMCmd;
 import com.jjg.game.core.constant.Code;
@@ -38,8 +41,10 @@ import com.jjg.game.social.service.ChatService;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Component;
 
+import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 
 /**
  * @author 11
@@ -234,6 +239,35 @@ public class HallRPCController extends CoreRPCController implements GmToHallBrid
             return new ResSimTaskReward(Code.NOT_FOUND);
         }
         return simTaskService.claimReward(ctx, taskId);
+    }
+
+    @Override
+    public CommonResult<Boolean> onDouXianSettled(List<Long> playerIds) {
+        if (playerIds == null || playerIds.isEmpty()) {
+            return new CommonResult<>(Code.PARAM_ERROR, false);
+        }
+        Set<Long> distinctPlayerIds = new LinkedHashSet<>(playerIds);
+        distinctPlayerIds.removeIf(playerId -> playerId == null || playerId <= 0);
+        if (distinctPlayerIds.isEmpty()) {
+            return new CommonResult<>(Code.PARAM_ERROR, false);
+        }
+        for (long playerId : distinctPlayerIds) {
+            PlayerExecutorGroupDisruptor.getDefaultExecutor().publishWithFallback(
+                    playerId, 0, new BaseHandler<String>() {
+                        @Override
+                        public void action() {
+                            SimPlayerContext ctx = simPlayerContextRegistry.getContext(playerId);
+                            if (ctx == null) {
+                                log.warn("斗仙牌结算任务推进失败，未找到玩家 sim 数据 playerId={}", playerId);
+                                return;
+                            }
+                            simTaskService.onConditionEvent(ctx, new ActionConditionEvent(
+                                    ActionConditionEvent.Type.DOUXIAN_SETTLEMENT,
+                                    0, 0, 0, 1, 0, false));
+                        }
+                    }.setHandlerParamWithSelf("dou xian settlement task progress"));
+        }
+        return new CommonResult<>(Code.SUCCESS, true);
     }
 
     @Override

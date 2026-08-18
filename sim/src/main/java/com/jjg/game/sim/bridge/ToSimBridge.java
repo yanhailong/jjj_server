@@ -68,6 +68,9 @@ public interface ToSimBridge extends IGameRpc {
      */
     ResSimTaskReward claimSimTaskReward(long playerId, int taskId);
 
+    /** 斗仙牌完成一次大结算后，批量推进真人玩家当前已接取的对应任务。 */
+    CommonResult<Boolean> onDouXianSettled(List<Long> playerIds);
+
     /**
      * 发起赛季匹配，始终在玩家的 sim owner 节点执行。
      */

@@ -10,7 +10,7 @@ import com.jjg.game.sim.constant.SimConstant;
 import java.util.List;
 
 /**
- * 任务列表返回。任务静态信息(图标/描述/奖励/跳转)客户端依配置 id 自取, 服务端只下发进度与状态。
+ * 任务列表返回。图标/描述/跳转等静态信息由客户端依配置 id 自取，服务端下发进度、状态与奖励道具。
  *
  * @author 11
  * @date 2026/6/25

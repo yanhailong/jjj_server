@@ -844,11 +844,29 @@ public class DouXianGameController extends BasePokerGameController<DouXianGameDa
                 gameDataVo.getRound() >= DouXianConstant.Common.TOTAL_ROUND
                         ? "NORMAL" : "ONLY_ONE_ACTIVE_PLAYER");
         roundLog.gameData().put("grandSettlement", grandSettlement);
+        notifySettledPlayers();
         flushKafkaRoundLog();
         goBackWaitReadyPhase();
         gameDataVo.resetData(this);
         removeOfflineRealPlayersInWaitReady("大结算");
         tryStartNextGame();
+    }
+
+    /** 只统计本局实际开局的真人玩家；认输仍属于完成了本局结算。 */
+    private void notifySettledPlayers() {
+        Map<Long, String> players = new HashMap<>();
+        for (Long playerId : new ArrayList<>(gameDataVo.getGameStartBalance().keySet())) {
+            if (gameDataVo.getGamePlayer(playerId) instanceof GameRobotPlayer) {
+                continue;
+            }
+            PlayerController controller = getRoomController().getPlayerController(playerId);
+            players.put(playerId, controller == null ? "" : controller.ipAddress());
+        }
+        try {
+            getPokerRPCLinkManager().notifyDouXianSettled(players);
+        } catch (Exception e) {
+            log.error("斗仙牌结算任务批量推进异常 playerIds:{}", players.keySet(), e);
+        }
     }
 
     /**

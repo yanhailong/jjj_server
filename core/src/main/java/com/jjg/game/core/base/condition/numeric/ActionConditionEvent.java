@@ -28,6 +28,8 @@ public record ActionConditionEvent(Type type, int subjectId, int relatedId, long
         CASINO_UNLOCK,
         SCENE_TOTAL_LEVEL,
         ITEM_CONSUME,
+        DOUXIAN_SETTLEMENT,
+        ACHIEVEMENT_REWARD,
         CARD_POOL_DRAW,
         GUEST_POOL_DRAW,
         EMPLOYEE_POOL_DRAW,

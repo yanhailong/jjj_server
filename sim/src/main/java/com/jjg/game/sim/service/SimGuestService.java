@@ -7,6 +7,7 @@ import com.jjg.game.common.utils.RandomUtils;
 import com.jjg.game.common.utils.TimeHelper;
 import com.jjg.game.common.utils.WeightRandom;
 import com.jjg.game.core.base.condition.numeric.ActionConditionEvent;
+import com.jjg.game.core.base.condition.numeric.GuestInviteConditionEvent;
 import com.jjg.game.core.constant.AddType;
 import com.jjg.game.core.constant.Code;
 import com.jjg.game.core.data.*;
@@ -517,7 +518,7 @@ public class SimGuestService implements SimPlayerTickListener, ItemListener, Sim
         int unrewardedCount = computeInteractionCount(visitorQuestCfg.getBaseServiceCapacity(), casinoCfg.getProsperity(), starCfg);
         if (rewardedCount + unrewardedCount <= 0) {
             ctx.getCurrentCasino().setLastGenerateTime(now);
-            log.info("生成游客但交互次数为 0, 跳过 playerId={},guestId={}", ctx.playerId(), visitorQuestCfg.getId());
+//            log.info("生成游客但交互次数为 0, 跳过 playerId={},guestId={}", ctx.playerId(), visitorQuestCfg.getId());
             return null;
         }
 
@@ -1594,6 +1595,7 @@ public class SimGuestService implements SimPlayerTickListener, ItemListener, Sim
 
             SimCasinoData casino = ctx.getCurrentCasino();
             Map<Integer, Long> inviteItems = new LinkedHashMap<>();
+            Set<Integer> invitedGuestIds = new LinkedHashSet<>();
             for (int itemId : new LinkedHashSet<>(itemIds)) {
                 VisitorQuestCfg visitorCfg = configCache.getVisitorQuestCfgByItemId(itemId);
                 if (visitorCfg == null) {
@@ -1612,6 +1614,7 @@ public class SimGuestService implements SimPlayerTickListener, ItemListener, Sim
                 }
                 if (count > 0) {
                     inviteItems.put(itemId, count);
+                    invitedGuestIds.add(visitorCfg.getId());
                 }
             }
             if (inviteItems.isEmpty()) {
@@ -1631,6 +1634,7 @@ public class SimGuestService implements SimPlayerTickListener, ItemListener, Sim
             }
             log.info("邀请特殊游客进入待生成队列 playerId={},casinoId={},inviteItems={},waitGenSpecialGuests={}",
                     ctx.playerId(), casino.getCasinoId(), inviteItems, casino.getWaitGenSpecialGuests());
+            simTaskService.onConditionEvent(ctx, new GuestInviteConditionEvent(invitedGuestIds));
         } catch (Exception e) {
             log.error("邀请特殊游客异常 playerId={},itemIds={}", ctx.playerId(), itemIds, e);
             res.code = Code.EXCEPTION;

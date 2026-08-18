@@ -1,6 +1,5 @@
 package com.jjg.game.season.service;
 
-import com.alibaba.fastjson.JSON;
 import com.jjg.game.core.base.condition.numeric.GameConditionEvent;
 import com.jjg.game.core.constant.Code;
 import com.jjg.game.core.data.CommonResult;
@@ -197,7 +196,7 @@ public class SeasonService implements SimPlayerTickListener {
             info.cost = cfg.getMergeCost();
             response.craftInfos.add(info);
         }
-        log.warn("返回宝石信息 playerId={},res={}", ctx.playerId(), JSON.toJSONString(response));
+//        log.warn("返回宝石信息 playerId={},res={}", ctx.playerId(), JSON.toJSONString(response));
         return response;
     }
 
@@ -233,8 +232,14 @@ public class SeasonService implements SimPlayerTickListener {
         if (result.data != null) {
             response.success = result.data.isSuccess();
             response.resultItemId = result.data.getResultItemId();
-            response.resultCount = result.data.getResultCount();
-            response.failKeepItemId = result.data.getFailKeepItemId();
+
+            if(response.success){
+                response.resultItemId = result.data.getResultItemId();
+                response.resultCount = result.data.getResultCount();
+            }else {
+                response.resultItemId = result.data.getFailKeepItemId();
+                response.resultCount = 1;
+            }
         }
         response.seasonCoin = ctx.getSeasonPlayerData().getSeasonCoin();
         return response;

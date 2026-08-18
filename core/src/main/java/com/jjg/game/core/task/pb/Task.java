@@ -1,5 +1,6 @@
 package com.jjg.game.core.task.pb;
 
+import com.jjg.game.common.pb.ItemInfo;
 import com.jjg.game.common.proto.ProtoDesc;
 import com.jjg.game.common.proto.ProtobufMessage;
 
@@ -30,6 +31,9 @@ public class Task {
      */
     @ProtoDesc("任务状态 0-进行中 1-已完成 2-已领取奖励")
     private int status;
+
+    @ProtoDesc("任务奖励道具")
+    public List<ItemInfo> rewards;
 
     public int getConfigId() {
         return configId;
