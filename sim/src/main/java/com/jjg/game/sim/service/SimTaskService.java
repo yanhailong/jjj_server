@@ -561,6 +561,9 @@ public class SimTaskService {
             }
         }
         res.nextTask = advance(ctx, player, data, node, cfg);
+        if (res.nextTask != null) {
+            res.nextTask = settleAdvancedChain(ctx, player, data, cfg);
+        }
         //领奖后强制下个 tick 尽快落库(走 autosave 规范路径), 收窄崩溃重复领取窗口
         ctx.setLastSaveTime(0);
         //成就任务末节点奖励含勋章道具, 领取后可能新激活勋章 -> 刷新全服勋章榜分值
@@ -594,6 +597,51 @@ public class SimTaskService {
         }
         TaskCfg nextCfg = GameDataManager.getTaskCfg(nextId);
         return nextCfg == null ? null : assemble(ctx, player, next, nextCfg);
+    }
+
+    /**
+     * 领奖续接后立即结算同一条任务链，避免下一节点的历史/状态进度已达标但仍返回进行中。
+     * 无奖励节点完成时会在 {@link #onComplete} 中继续续接，因此循环到当前节点稳定为止。
+     */
+    private Task settleAdvancedChain(SimPlayerContext ctx, Player player, SimTaskData data, TaskCfg chainCfg) {
+        List<Task> changed = new ArrayList<>();
+        SimBaseData baseData = ctx.getSimBaseData();
+        TaskDetail node;
+        do {
+            node = findActiveNode(data, chainCfg, chainCfg.getId());
+            if (node == null) {
+                return null;
+            }
+            TaskDetail activatedNode = node;
+            for (SimTaskStateReporter reporter : stateReporters) {
+                try {
+                    reporter.reportTaskState(ctx, event -> {
+                        try {
+                            evaluateOnEvent(ctx, player, data, baseData, activatedNode, event, changed);
+                        } catch (Exception e) {
+                            log.error("sim 新接取任务状态补报失败 reporter={},playerId={},taskId={}",
+                                    reporter.getClass().getSimpleName(), ctx.playerId(), activatedNode.getConfigId(), e);
+                        }
+                    });
+                } catch (Exception e) {
+                    log.error("sim 新接取任务状态补报失败 reporter={},playerId={},taskId={}",
+                            reporter.getClass().getSimpleName(), ctx.playerId(), activatedNode.getConfigId(), e);
+                }
+            }
+            pollState(ctx, player, data, baseData, activatedNode, changed, true);
+            if (activatedNode.getStatus() == TaskConstant.TaskStatus.STATUS_IN_PROGRESS) {
+                TaskCfg activatedCfg = GameDataManager.getTaskCfg(activatedNode.getConfigId());
+                SimTaskConfigService.TaskConditionDef def = activatedCfg == null
+                        ? null : taskConfig.conditionOf(activatedCfg.getId());
+                if (def != null && currentProgress(ctx, player, activatedCfg) >= def.condition().target()) {
+                    onComplete(ctx, player, data, baseData, activatedNode, activatedCfg, changed);
+                }
+            }
+        } while (node != findActiveNode(data, chainCfg, chainCfg.getId()));
+
+        TaskDetail active = findActiveNode(data, chainCfg, chainCfg.getId());
+        TaskCfg activeCfg = active == null ? null : GameDataManager.getTaskCfg(active.getConfigId());
+        return activeCfg == null ? null : assemble(ctx, player, active, activeCfg);
     }
 
     /**
