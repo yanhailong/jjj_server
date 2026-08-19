@@ -335,13 +335,13 @@ public class SimCasinoService implements SimTaskStateReporter {
             casino.setCasinoLevel(nextCfg.getLevel());
         }
         casino.setExp((int) Math.min(exp, Integer.MAX_VALUE));
+        notifyCasinoUpgrade(ctx, casino, currentCfg, nextCfg);
 
         int addedLevels = casino.getCasinoLevel() - oldLevel;
         if (addedLevels <= 0) {
             return;
         }
         addAllLevel(ctx, addedLevels);
-        notifyCasinoUpgrade(ctx, casino, currentCfg, nextCfg);
         simGuideService.triggerSceneTotalLevelReached(ctx, ctx.getSimBaseData().getAllLevel(), true);
         simTaskService.onConditionEvent(ctx,
                 SimConditionEventFactory.sceneLevel(casino.getCasinoId(), casino.getCasinoLevel()));

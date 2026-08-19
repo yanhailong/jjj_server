@@ -619,12 +619,17 @@ public class SimBuildingService implements SimPlayerTickListener, SimTaskStateRe
                     notify.rewards = new ArrayList<>();
 
                     for (Map.Entry<BuildingOutputType, Long> en : total.entrySet()) {
+                        if (en.getKey() == BuildingOutputType.CASINO_LEVEL_EXP) {
+                            continue;
+                        }
                         ItemInfo itemInfo = new ItemInfo();
                         itemInfo.itemId = en.getKey().getCode();
                         itemInfo.count = en.getValue();
                         notify.rewards.add(itemInfo);
                     }
-                    ctx.send(notify);
+                    if (!notify.rewards.isEmpty()) {
+                        ctx.send(notify);
+                    }
                 }
                 return;
             }
