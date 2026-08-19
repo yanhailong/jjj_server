@@ -25,7 +25,7 @@ public class BuildingAreaTableCfg extends BaseCfgBean {
   protected int CasinoLevel;
   /** 受影响的雇员类型 */
   protected int EmployeeProfile;
-  /** 交互时间(S) */
+  /** 交互时间(MS) */
   protected int InteractTime;
   /** 等级上限 */
   protected int MaxLevel;
@@ -59,7 +59,7 @@ public class BuildingAreaTableCfg extends BaseCfgBean {
     return EmployeeProfile;
   }
 
-  /** 返回交互时间(S) */
+  /** 返回交互时间(MS) */
   public int getInteractTime() {
     return InteractTime;
   }

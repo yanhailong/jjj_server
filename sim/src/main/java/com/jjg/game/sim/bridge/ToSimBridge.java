@@ -73,6 +73,9 @@ public interface ToSimBridge extends IGameRpc {
     /** 斗仙牌完成一次大结算后，批量推进真人玩家当前已接取的对应任务。 */
     CommonResult<Boolean> onDouXianSettled(List<Long> playerIds);
 
+    /** 批量上报斗仙牌单回合中实际净赢为正的真人玩家。 */
+    CommonResult<Boolean> onDouXianWins(int transactionItemId, Map<Long, Long> playerWins);
+
     /**
      * 发起赛季匹配，始终在玩家的 sim owner 节点执行。
      */

@@ -451,7 +451,7 @@ public abstract class AbstractSlotsGameManager<T extends SlotsPlayerGameData, L 
         if (gameRunInfo != null && gameRunInfo.success()) {
             boolean freeModeAfter = isFreeMode(playerGameData);
             SpinStatInfo statInfo = buildSpinStatInfo(
-                    gameRunInfo, freeMode, !freeMode && freeModeAfter);
+                    playerGameData, gameRunInfo, freeMode, !freeMode && freeModeAfter);
             long spinId = slotsRPCLinkManager.ensureSpinId(statInfo);
             //新触发的被动匹配从下一次旋转开始计数；已有对局仍正常记录本次旋转
             boolean passiveMatchStarted = tryPassiveSeasonMatch(
@@ -473,12 +473,17 @@ public abstract class AbstractSlotsGameManager<T extends SlotsPlayerGameData, L 
     /**
      * 由本次旋转结果构建上报 sim 的统计明细 (经营信息 SPINE游戏面板)
      */
-    private SpinStatInfo buildSpinStatInfo(G gameRunInfo, boolean freeMode, boolean triggerFree) {
+    private SpinStatInfo buildSpinStatInfo(T playerGameData, G gameRunInfo,
+                                           boolean freeMode, boolean triggerFree) {
         SpinStatInfo statInfo = new SpinStatInfo();
         statInfo.setFreeMode(freeMode);
         statInfo.setTriggerFree(triggerFree);
         statInfo.setBet(gameRunInfo.getStake());
         statInfo.setWin(gameRunInfo.getAllWinGold());
+        WarehouseCfg warehouseCfg = GameDataManager.getWarehouseCfg(playerGameData.getRoomCfgId());
+        statInfo.setTransactionItemId(playerGameData.isSeason()
+                ? SimConstant.Item.ID_SEASON_COIN
+                : warehouseCfg == null ? 0 : warehouseCfg.getTransactionItemId());
         statInfo.setMultiple(gameRunInfo.getAllWinTimes());
         statInfo.setBigShowId(gameRunInfo.getBigShowId());
         statInfo.setJackpotCounts(gameRunInfo.getJackpotCounts());

@@ -150,6 +150,9 @@ final class DefaultConditionRules {
                 (s, e) -> true, (s, e) -> positiveCount(e)));
         rules.add(action(12224, 1, 1, 0, ProgressMode.ADD, ActionConditionEvent.Type.ACHIEVEMENT_REWARD,
                 (s, e) -> true, (s, e) -> positiveCount(e)));
+        rules.add(rule(12225, GameWinEvent.class, 3, 3, 2, ProgressMode.ADD,
+                (s, e) -> e.matchesGame(s.parameter(0)) && e.winItemId() == s.parameter(1),
+                (s, e) -> Math.max(0, e.win()), nonNegativeParameters()));
 
         //12251-12273 与上面的接取型条件判定口径一致，进度由玩家统计提供而非任务计数器。
         rules.add(game(12251, 3, 3, 2, ProgressMode.ADD,

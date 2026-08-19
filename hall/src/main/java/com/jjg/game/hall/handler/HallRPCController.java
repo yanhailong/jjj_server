@@ -7,9 +7,12 @@ import com.jjg.game.common.concurrent.BaseHandler;
 import com.jjg.game.common.concurrent.PlayerExecutorGroupDisruptor;
 import com.jjg.game.common.rpc.RpcCallSetting;
 import com.jjg.game.core.base.condition.numeric.ActionConditionEvent;
+import com.jjg.game.core.base.condition.numeric.ConditionEvent;
+import com.jjg.game.core.base.condition.numeric.GameWinConditionEvent;
 import com.jjg.game.core.constant.AddType;
 import com.jjg.game.core.constant.BackendGMCmd;
 import com.jjg.game.core.constant.Code;
+import com.jjg.game.core.constant.EGameType;
 import com.jjg.game.core.dao.AccountDao;
 import com.jjg.game.core.data.*;
 import com.jjg.game.core.handler.CoreRPCController;
@@ -279,22 +282,47 @@ public class HallRPCController extends CoreRPCController implements GmToHallBrid
             return new CommonResult<>(Code.PARAM_ERROR, false);
         }
         for (long playerId : distinctPlayerIds) {
-            PlayerExecutorGroupDisruptor.getDefaultExecutor().publishWithFallback(
-                    playerId, 0, new BaseHandler<String>() {
-                        @Override
-                        public void action() {
-                            SimPlayerContext ctx = simPlayerContextRegistry.getContext(playerId);
-                            if (ctx == null) {
-                                log.warn("斗仙牌结算任务推进失败，未找到玩家 sim 数据 playerId={}", playerId);
-                                return;
-                            }
-                            simTaskService.onConditionEvent(ctx, new ActionConditionEvent(
-                                    ActionConditionEvent.Type.DOUXIAN_SETTLEMENT,
-                                    0, 0, 0, 1, 0, false));
-                        }
-                    }.setHandlerParamWithSelf("dou xian settlement task progress"));
+            enqueueSimTaskEvent(playerId, new ActionConditionEvent(
+                    ActionConditionEvent.Type.DOUXIAN_SETTLEMENT,
+                    0, 0, 0, 1, 0, false), "dou xian settlement task progress");
         }
         return new CommonResult<>(Code.SUCCESS, true);
+    }
+
+    @Override
+    public CommonResult<Boolean> onDouXianWins(int transactionItemId, Map<Long, Long> playerWins) {
+        if (transactionItemId <= 0 || playerWins == null || playerWins.isEmpty()) {
+            return new CommonResult<>(Code.PARAM_ERROR, false);
+        }
+        boolean accepted = false;
+        for (Map.Entry<Long, Long> entry : playerWins.entrySet()) {
+            Long playerId = entry.getKey();
+            Long win = entry.getValue();
+            if (playerId == null || playerId <= 0 || win == null || win <= 0) {
+                continue;
+            }
+            enqueueSimTaskEvent(playerId, new GameWinConditionEvent(
+                    EGameType.DOU_XIAN.getGameTypeId(), transactionItemId, win),
+                    "dou xian win task progress");
+            accepted = true;
+        }
+        return new CommonResult<>(accepted ? Code.SUCCESS : Code.PARAM_ERROR, accepted);
+    }
+
+    private void enqueueSimTaskEvent(long playerId, ConditionEvent event, String handlerParam) {
+        PlayerExecutorGroupDisruptor.getDefaultExecutor().publishWithFallback(
+                playerId, 0, new BaseHandler<String>() {
+                    @Override
+                    public void action() {
+                        SimPlayerContext ctx = simPlayerContextRegistry.getContext(playerId);
+                        if (ctx == null) {
+                            log.warn("sim 任务事件推进失败，未找到玩家 sim 数据 playerId={},event={}",
+                                    playerId, event);
+                            return;
+                        }
+                        simTaskService.onConditionEvent(ctx, event);
+                    }
+                }.setHandlerParamWithSelf(handlerParam));
     }
 
     @Override

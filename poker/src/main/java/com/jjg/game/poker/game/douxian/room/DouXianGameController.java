@@ -869,6 +869,31 @@ public class DouXianGameController extends BasePokerGameController<DouXianGameDa
         }
     }
 
+    /** 每回合仅上报真人玩家的实际正向净赢；同一回合的亏损不抵扣此前已经累计的任务进度。 */
+    public void notifyRoundWins(Map<Long, Long> roundChanges) {
+        if (roundChanges == null || roundChanges.isEmpty()) {
+            return;
+        }
+        Map<Long, String> players = new HashMap<>();
+        Map<Long, Long> playerWins = new HashMap<>();
+        for (Map.Entry<Long, Long> entry : roundChanges.entrySet()) {
+            long playerId = entry.getKey();
+            long win = entry.getValue();
+            if (win <= 0 || gameDataVo.getGamePlayer(playerId) instanceof GameRobotPlayer) {
+                continue;
+            }
+            PlayerController controller = getRoomController().getPlayerController(playerId);
+            players.put(playerId, controller == null ? "" : controller.ipAddress());
+            playerWins.put(playerId, win);
+        }
+        try {
+            getPokerRPCLinkManager().notifyDouXianWins(
+                    players, getGameTransactionItemId(), playerWins);
+        } catch (Exception e) {
+            log.error("斗仙牌赢钱任务批量推进异常 playerWins:{}", playerWins, e);
+        }
+    }
+
     /**
      * 掉线玩家在牌局进行中只会被标记为离线并保留在房间中，便于中途重连。
      * 回到等待阶段后已经没有继续保留的必要，此时统一走正常退出流程，清除房间成员关系及持久化 roomId。
