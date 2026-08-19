@@ -515,8 +515,9 @@ public class TaskManager implements ConfigExcelChangeListener, IRedDotService, O
      * 返回 null 表示失败；成功时返回本次实际完成的 TaskId。
      */
     public List<Integer> gmFinishTasks(long playerId, Collection<Integer> specifiedTaskIds) {
-        TaskData taskData = playerTaskMap.get(playerId);
+        TaskData taskData = playerTaskMap.computeIfAbsent(playerId, taskService::getPlayerTask);
         if (taskData == null) {
+            log.warn("GM完成玩家任务失败，任务数据加载失败 playerId={}", playerId);
             return null;
         }
         if (!TimeHelper.inSameDay(taskData.getLastCheckTime(), System.currentTimeMillis())) {
@@ -533,11 +534,23 @@ public class TaskManager implements ConfigExcelChangeListener, IRedDotService, O
                     .toList();
         } else {
             LinkedHashSet<Integer> uniqueIds = new LinkedHashSet<>(specifiedTaskIds);
-            if (uniqueIds.isEmpty()) return null;
+            if (uniqueIds.isEmpty()) {
+                log.warn("GM完成玩家任务失败，指定任务列表为空 playerId={}", playerId);
+                return null;
+            }
             for (Integer taskId : uniqueIds) {
                 TaskCfg cfg = taskId == null ? null : GameDataManager.getTaskCfg(taskId);
-                if (taskId == null || taskId <= 0 || cfg == null
-                        || cfg.getTaskType() != TaskConstant.TaskType.POINTS_AWARD) {
+                if (taskId == null || taskId <= 0) {
+                    log.warn("GM完成玩家任务失败，任务ID非法 playerId={},taskId={}", playerId, taskId);
+                    return null;
+                }
+                if (cfg == null) {
+                    log.warn("GM完成玩家任务失败，任务配置不存在 playerId={},taskId={}", playerId, taskId);
+                    return null;
+                }
+                if (cfg.getTaskType() != TaskConstant.TaskType.POINTS_AWARD) {
+                    log.warn("GM完成玩家任务失败，任务类型不属于通用任务 playerId={},taskId={},taskType={}",
+                            playerId, taskId, cfg.getTaskType());
                     return null;
                 }
             }

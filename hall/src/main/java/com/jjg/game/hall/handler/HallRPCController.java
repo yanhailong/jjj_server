@@ -177,15 +177,23 @@ public class HallRPCController extends CoreRPCController implements GmToHallBrid
     @Override
     @RpcCallSetting(processorModKey = "#arg0")
     public int finishTask(long playerId, int operationType, List<Integer> taskIds) {
+        log.info("Hall收到后台完成任务请求 playerId={},operationType={},taskIds={}",
+                playerId, operationType, taskIds);
         List<Integer> completed;
         if (operationType == BackendGMCmd.TaskOperation.FINISH_ALL) {
             completed = taskManager.gmFinishTasks(playerId, null);
         } else if (operationType == BackendGMCmd.TaskOperation.FINISH_SPECIFIED) {
             completed = taskManager.gmFinishTasks(playerId, taskIds);
         } else {
+            log.warn("后台完成任务失败，操作类型错误 playerId={},operationType={},taskIds={}",
+                    playerId, operationType, taskIds);
             return Code.PARAM_ERROR;
         }
-        if (completed == null) return Code.PARAM_ERROR;
+        if (completed == null) {
+            log.warn("后台完成任务失败，任务校验或数据加载失败 playerId={},operationType={},taskIds={}",
+                    playerId, operationType, taskIds);
+            return Code.PARAM_ERROR;
+        }
         taskOperationLogger.completed(playerId, operationType,
                 operationType == BackendGMCmd.TaskOperation.FINISH_SPECIFIED ? completed : null);
         log.info("后台完成任务处理结束 playerId={},operationType={},taskIds={},completed={}",
