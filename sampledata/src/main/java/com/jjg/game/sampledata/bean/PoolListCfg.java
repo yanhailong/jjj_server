@@ -23,6 +23,8 @@ public class PoolListCfg extends BaseCfgBean {
   protected Map<Integer,Long> DrawCost;
   /** 掉落物品 */
   protected int DropItem;
+  /** 卡池名称 */
+  protected int languageID;
   /** 开启状态 */
   protected boolean open;
   /** 结束时间 */
@@ -40,6 +42,11 @@ public class PoolListCfg extends BaseCfgBean {
   /** 返回掉落物品 */
   public int getDropItem() {
     return DropItem;
+  }
+
+  /** 返回卡池名称 */
+  public int getLanguageID() {
+    return languageID;
   }
 
   /** 返回开启状态 */

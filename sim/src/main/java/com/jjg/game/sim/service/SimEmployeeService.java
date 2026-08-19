@@ -1,7 +1,6 @@
 package com.jjg.game.sim.service;
 
 import com.jjg.game.alliance.service.AllianceEventService;
-import com.jjg.game.common.utils.TimeHelper;
 import com.jjg.game.common.utils.WeightRandom;
 import com.jjg.game.core.service.PlayerPackService;
 import com.jjg.game.core.data.ItemOperationResult;
@@ -81,7 +80,7 @@ public class SimEmployeeService implements SimTaskStateReporter {
 
             PoolListCfg poolCfg = configCache.getOpenPoolCfg(poolId, SimConstant.PoolList.TYPE_EMPLOYEE);
             if (poolCfg == null) {
-                log.warn("招募雇员失败,卡池不存在、未开启或类型错误 playerId={},poolId={},count={}", ctx.playerId(), poolId, count);
+                log.warn("招募雇员失败,卡池不存在、未开启、不在开放时间或类型错误 playerId={},poolId={},count={}", ctx.playerId(), poolId, count);
                 res.code = Code.PARAM_ERROR;
                 ctx.send(res);
                 return;
@@ -624,47 +623,22 @@ public class SimEmployeeService implements SimTaskStateReporter {
      * 获取卡池
      *
      * @param ctx
+     * @param poolId 卡池id
      */
-    public void onPool(SimPlayerContext ctx) {
+    public void onPool(SimPlayerContext ctx, int poolId) {
         ResEmployeePool res = new ResEmployeePool(Code.SUCCESS);
         try {
-            long now = System.currentTimeMillis();
-            PoolListCfg tmpCfg = null;
-            for (PoolListCfg cfg : GameDataManager.getPoolListCfgList()) {
-                if (cfg.getType() != SimConstant.PoolList.TYPE_EMPLOYEE) {
-                    continue;
-                }
-
-                if (!cfg.getOpen()) {
-                    continue;
-                }
-
-                if (cfg.getTime_start() != null && !cfg.getTime_start().isEmpty() && cfg.getTime_end() != null && !cfg.getTime_end().isEmpty()) {
-                    long startTime = TimeHelper.getTimeMillisBy(cfg.getTime_start());
-                    long endTime = TimeHelper.getTimeMillisBy(cfg.getTime_end());
-                    if (startTime >= endTime) {
-                        continue;
-                    }
-                    if (now >= startTime && now <= endTime) {
-                        tmpCfg = cfg;
-                        break;
-                    }
-                } else {
-                    tmpCfg = cfg;
-                    break;
-                }
-            }
-
-            if (tmpCfg == null) {
-                log.warn("获取雇员卡池失败1,playerId={}", ctx.playerId());
+            PoolListCfg poolCfg = configCache.getOpenPoolCfg(poolId, SimConstant.PoolList.TYPE_EMPLOYEE);
+            if (poolCfg == null) {
+                log.warn("获取雇员卡池失败,卡池不存在、未开启、未到开放时间或类型错误 playerId={},poolId={}", ctx.playerId(), poolId);
                 res.code = Code.PARAM_ERROR;
                 ctx.send(res);
                 return;
             }
 
-            EmployeePoolCfg employeePoolCfg = GameDataManager.getEmployeePoolCfg(tmpCfg.getDropItem());
+            EmployeePoolCfg employeePoolCfg = GameDataManager.getEmployeePoolCfg(poolCfg.getDropItem());
             if (employeePoolCfg == null || employeePoolCfg.getDetailedDropItem() == null) {
-                log.warn("获取雇员卡池失败2,playerId={}", ctx.playerId());
+                log.warn("获取雇员卡池失败,掉落配置不存在 playerId={},poolId={},dropItem={}", ctx.playerId(), poolId, poolCfg.getDropItem());
                 res.code = Code.PARAM_ERROR;
                 ctx.send(res);
                 return;

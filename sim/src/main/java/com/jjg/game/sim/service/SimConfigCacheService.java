@@ -1,11 +1,12 @@
 package com.jjg.game.sim.service;
 
+import com.jjg.game.alliance.data.AllianceRefreshTaskConfig;
+import com.jjg.game.alliance.data.DonateCfg;
+import com.jjg.game.common.utils.TimeHelper;
+import com.jjg.game.common.utils.WeightRandom;
 import com.jjg.game.core.base.condition.numeric.ConditionRuleRegistry;
 import com.jjg.game.core.base.condition.numeric.ConditionSpec;
 import com.jjg.game.core.base.condition.numeric.PreparedCondition;
-import com.jjg.game.alliance.data.AllianceRefreshTaskConfig;
-import com.jjg.game.alliance.data.DonateCfg;
-import com.jjg.game.common.utils.WeightRandom;
 import com.jjg.game.core.constant.GameConstant;
 import com.jjg.game.core.constant.TaskConstant;
 import com.jjg.game.core.data.Item;
@@ -14,14 +15,19 @@ import com.jjg.game.sampledata.GameDataManager;
 import com.jjg.game.sampledata.bean.*;
 import com.jjg.game.sim.constant.SimConstant;
 import com.jjg.game.sim.data.BuildingUnlockEquipmentData;
+import com.jjg.game.sim.pb.struct.RecruitPoolInfo;
 import com.jjg.game.social.data.SendGiftConfig;
 import org.apache.commons.lang3.StringUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.scheduling.support.CronExpression;
 import org.springframework.stereotype.Component;
 
 import java.text.NumberFormat;
+import java.time.LocalDateTime;
+import java.time.format.DateTimeFormatter;
+import java.time.format.DateTimeParseException;
 import java.util.*;
 
 /**
@@ -33,6 +39,8 @@ import java.util.*;
 @Component
 public class SimConfigCacheService implements ConfigExcelChangeListener {
     private static final Logger log = LoggerFactory.getLogger(SimConfigCacheService.class);
+    private static final DateTimeFormatter POOL_DATE_TIME_FORMATTER =
+            DateTimeFormatter.ofPattern("[yyyy-MM-dd HH:mm:ss][yyyy/MM/dd HH:mm:ss]");
 
     //CasinoStatsSheet配置 regionID -> level -> cfg
     private Map<Integer, Map<Integer, CasinoStatsSheetCfg>> casinoStatsSheetCfgMap;
@@ -340,14 +348,14 @@ public class SimConfigCacheService implements ConfigExcelChangeListener {
                 return data;
             });
 
-            if(cfg.getUnlockEquipment() != null && !cfg.getUnlockEquipment().isEmpty()) {
-                if(buildingUnlockEquipmentData.getMaxLevel() < cfg.getLevel()){
+            if (cfg.getUnlockEquipment() != null && !cfg.getUnlockEquipment().isEmpty()) {
+                if (buildingUnlockEquipmentData.getMaxLevel() < cfg.getLevel()) {
                     buildingUnlockEquipmentData.setMaxLevel(cfg.getLevel());
                 }
 
                 List<Integer> tmpList = buildingUnlockEquipmentData.getLevelUnlockEquipment(cfg.getLevel() - 1);
                 List<Integer> allList = new ArrayList<>();
-                if(tmpList != null) {
+                if (tmpList != null) {
                     allList.addAll(tmpList);
                 }
                 allList.addAll(new HashSet<>(cfg.getUnlockEquipment()));
@@ -726,17 +734,77 @@ public class SimConfigCacheService implements ConfigExcelChangeListener {
         return this.visitorQuestItemCfgMap.get(itemId);
     }
 
-    /** 当前卡池开放状态只使用 open 字段，暂不判断配置时间。 */
-    public List<Integer> getOpenPoolIds() {
-        return GameDataManager.getPoolListCfgList().stream()
-                .filter(PoolListCfg::getOpen)
-                .map(PoolListCfg::getId)
-                .toList();
+    public List<RecruitPoolInfo> getOpenPoolIds(int poolType) {
+        LocalDateTime now = LocalDateTime.now();
+        List<RecruitPoolInfo> poolInfos = new ArrayList<>();
+        for (PoolListCfg cfg : GameDataManager.getPoolListCfgList()) {
+            if (!cfg.getOpen()) {
+                continue;
+            }
+            if(cfg.getType() != poolType) {
+                continue;
+            }
+
+            Integer endTimestamp = getPoolEndTimestamp(cfg, now);
+            if (endTimestamp == null) {
+                continue;
+            }
+
+            RecruitPoolInfo re = new RecruitPoolInfo();
+            re.id = cfg.getId();
+            re.endTime = endTimestamp;
+            re.langId = cfg.getLanguageID();
+            poolInfos.add(re);
+        }
+        return poolInfos;
+    }
+
+    private Integer getPoolEndTimestamp(PoolListCfg cfg, LocalDateTime now) {
+        if (StringUtils.isEmpty(cfg.getTime_start()) || StringUtils.isEmpty(cfg.getTime_end())) {
+            return 0;
+        }
+
+        String timeStart = cfg.getTime_start().trim();
+        String timeEnd = cfg.getTime_end().trim();
+        boolean startIsCron = CronExpression.isValidExpression(timeStart);
+        boolean endIsCron = CronExpression.isValidExpression(timeEnd);
+        if (startIsCron != endIsCron) {
+            log.error("卡池开始和结束时间类型不一致 poolId={},timeStart={},timeEnd={}", cfg.getId(), timeStart, timeEnd);
+            return null;
+        }
+
+        LocalDateTime startTime;
+        LocalDateTime endTime;
+        if (startIsCron) {
+            CronExpression startCron = CronExpression.parse(timeStart);
+            CronExpression endCron = CronExpression.parse(timeEnd);
+            startTime = startCron.next(now.minusMonths(1));
+            endTime = startTime == null ? null : endCron.next(startTime);
+            while (endTime != null && !now.isBefore(endTime)) {
+                startTime = startCron.next(endTime);
+                endTime = startTime == null ? null : endCron.next(startTime);
+            }
+        } else {
+            try {
+                startTime = LocalDateTime.parse(timeStart, POOL_DATE_TIME_FORMATTER);
+                endTime = LocalDateTime.parse(timeEnd, POOL_DATE_TIME_FORMATTER);
+            } catch (DateTimeParseException e) {
+                log.error("卡池时间配置解析失败 poolId={},timeStart={},timeEnd={}", cfg.getId(), timeStart, timeEnd);
+                return null;
+            }
+        }
+
+        if (startTime == null || endTime == null || !startTime.isBefore(endTime)
+                || now.isBefore(startTime) || !now.isBefore(endTime)) {
+            return null;
+        }
+        return (int) (TimeHelper.getTimestamp(endTime) / TimeHelper.ONE_SECOND_OF_MILLIS);
     }
 
     public PoolListCfg getOpenPoolCfg(int poolId, int type) {
         PoolListCfg cfg = GameDataManager.getPoolListCfg(poolId);
-        if (cfg == null || !cfg.getOpen() || cfg.getType() != type) {
+        if (cfg == null || !cfg.getOpen() || cfg.getType() != type
+                || getPoolEndTimestamp(cfg, LocalDateTime.now()) == null) {
             return null;
         }
         return cfg;

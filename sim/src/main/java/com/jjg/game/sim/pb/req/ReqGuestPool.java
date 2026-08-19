@@ -13,4 +13,6 @@ import com.jjg.game.sim.constant.SimConstant;
 @ProtobufMessage(messageType = MessageConst.MessageTypeDef.SIM_GAME, cmd = SimConstant.MsgBean.REQ_GUEST_POOL)
 @ProtoDesc("获取游客卡池")
 public class ReqGuestPool extends AbstractMessage {
+    @ProtoDesc("卡池id")
+    public int poolId;
 }

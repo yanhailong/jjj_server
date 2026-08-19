@@ -467,7 +467,7 @@ public class SimMessageHandler implements GmListener {
     @Command(SimConstant.MsgBean.REQ_EMPLOYEE_POOL)
     public void reqEmployeePool(PlayerController playerController, ReqEmployeePool req) {
         execute(playerController, ctx -> {
-            employeeService.onPool(ctx);
+            employeeService.onPool(ctx, req.poolId);
         }, ReqEmployeePool.class);
     }
 
@@ -537,7 +537,7 @@ public class SimMessageHandler implements GmListener {
     public void reqOpenPoolList(PlayerController playerController, ReqOpenPoolList req) {
         execute(playerController, ctx -> {
             ResOpenPoolList res = new ResOpenPoolList(Code.SUCCESS);
-            res.poolIds = configCacheService.getOpenPoolIds();
+            res.poolIds = configCacheService.getOpenPoolIds(req.poolType);
             ctx.send(res);
         }, ReqOpenPoolList.class);
     }
@@ -568,7 +568,7 @@ public class SimMessageHandler implements GmListener {
     @Command(SimConstant.MsgBean.REQ_GUEST_POOL)
     public void reqSimPool(PlayerController playerController, ReqGuestPool req) {
         execute(playerController, ctx -> {
-            guestService.onPool(ctx);
+            guestService.onPool(ctx, req.poolId);
         }, ReqGuestPool.class);
     }
 

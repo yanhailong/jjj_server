@@ -9,4 +9,6 @@ import com.jjg.game.sim.constant.SimConstant;
 @ProtobufMessage(messageType = MessageConst.MessageTypeDef.SIM_GAME, cmd = SimConstant.MsgBean.REQ_OPEN_POOL_LIST)
 @ProtoDesc("获取开启的卡池")
 public class ReqOpenPoolList extends AbstractMessage {
+    @ProtoDesc("卡池类型 1.游客  2.雇员")
+    public int poolType;
 }
