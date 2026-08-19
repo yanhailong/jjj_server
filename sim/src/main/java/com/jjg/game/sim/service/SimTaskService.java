@@ -291,6 +291,105 @@ public class SimTaskService {
                 "已将当前任务从 " + current.getConfigId() + " 设置为 " + taskId);
     }
 
+    /**
+     * GM 强制完成主线/成就任务。未接取的目标会直接成为所属任务链的当前节点并置为待领奖。
+     * 指定 null 表示完成主线末节点及每个成就组的末节点。
+     */
+    public List<Integer> gmFinishTasks(SimPlayerContext ctx, Collection<Integer> specifiedTaskIds) {
+        if (ctx == null || ctx.getSimTaskData() == null) {
+            log.warn("GM完成sim任务失败，玩家模拟经营任务数据未加载 playerId={}",
+                    ctx == null ? 0 : ctx.playerId());
+            return null;
+        }
+        List<TaskCfg> targets;
+        if (specifiedTaskIds == null) {
+            Map<String, TaskCfg> tails = new HashMap<>();
+            for (TaskCfg cfg : GameDataManager.getTaskCfgList()) {
+                if (!isSimTaskCfg(cfg) || taskConfig.conditionOf(cfg.getId()) == null) {
+                    continue;
+                }
+                String chainKey = cfg.getTaskType() == TaskConstant.TaskType.MAIN_LINE
+                        ? "main" : "achievement:" + cfg.getGroup();
+                tails.merge(chainKey, cfg,
+                        (left, right) -> left.getId() >= right.getId() ? left : right);
+            }
+            targets = tails.values().stream().sorted(Comparator.comparingInt(TaskCfg::getId)).toList();
+        } else {
+            LinkedHashSet<Integer> uniqueIds = new LinkedHashSet<>(specifiedTaskIds);
+            if (uniqueIds.isEmpty()) {
+                log.warn("GM完成sim任务失败，指定任务列表为空 playerId={}", ctx.playerId());
+                return null;
+            }
+            targets = new ArrayList<>(uniqueIds.size());
+            for (Integer taskId : uniqueIds) {
+                TaskCfg cfg = taskId == null ? null : GameDataManager.getTaskCfg(taskId);
+                if (!isSimTaskCfg(cfg) || taskConfig.conditionOf(taskId) == null) {
+                    log.warn("GM完成sim任务失败，任务不存在或不属于有效主线/成就链 playerId={},taskId={}",
+                            ctx.playerId(), taskId);
+                    return null;
+                }
+                targets.add(cfg);
+            }
+        }
+
+        Player player = resolvePlayer(ctx);
+        if (player == null) {
+            log.warn("GM完成sim任务失败，玩家数据未加载 playerId={}", ctx.playerId());
+            return null;
+        }
+        SimTaskData data = ctx.getSimTaskData();
+        List<Task> changed = new ArrayList<>();
+        List<Integer> completed = new ArrayList<>();
+        long now = System.currentTimeMillis();
+        for (TaskCfg cfg : targets) {
+            TaskDetail current = findActiveNode(data, cfg, cfg.getId());
+            if (current != null && current.getConfigId() > cfg.getId()) {
+                continue;
+            }
+            TaskDetail node = current != null && current.getConfigId() == cfg.getId()
+                    ? current : createNode(ctx.playerId(), cfg.getId());
+            if (node.getStatus() != TaskConstant.TaskStatus.STATUS_IN_PROGRESS) {
+                continue;
+            }
+            if (cfg.getTaskType() == TaskConstant.TaskType.MAIN_LINE) {
+                data.setMainTask(node);
+            } else {
+                data.getAchievements().put(cfg.getGroup(), node);
+            }
+            SimTaskConfigService.TaskConditionDef def = taskConfig.conditionOf(cfg.getId());
+            int conditionId = def.condition().spec().id();
+            long target = def.condition().target();
+            node.getProgress().put(conditionId, target);
+            node.setStatus(TaskConstant.TaskStatus.STATUS_COMPLETED);
+            node.setCompleteTime(now);
+            if (ctx.getSimBaseData() != null) {
+                ctx.getSimBaseData().incFinishedTaskCount();
+            }
+            taskLogger.completeTask(ctx.playerId(), cfg.getId());
+            gameFunctionService.notifyTaskFunctionOpen(ctx.playerId(), List.of(cfg.getFunctionId()));
+            if (cfg.getTaskType() == TaskConstant.TaskType.MAIN_LINE) {
+                mainTaskLogger.completed(ctx.playerId(), player.getNickName(), cfg.getId(),
+                        conditionId, target, target, now);
+            } else {
+                achievementTaskLogger.completed(ctx.playerId(), player.getNickName(), cfg.getId(), cfg.getGroup(),
+                        conditionId, target, target, now);
+            }
+            changed.add(assemble(ctx, player, node, cfg));
+            completed.add(cfg.getId());
+        }
+        if (!completed.isEmpty()) {
+            ctx.setLastSaveTime(0);
+            notifyChanged(ctx, changed);
+        }
+        log.info("GM完成sim任务 playerId={},taskIds={}", ctx.playerId(), completed);
+        return completed;
+    }
+
+    private boolean isSimTaskCfg(TaskCfg cfg) {
+        return cfg != null && (cfg.getTaskType() == TaskConstant.TaskType.MAIN_LINE
+                || cfg.getTaskType() == TaskConstant.TaskType.ACHIEVEMENT);
+    }
+
     // =====================================================================
     // 进度 (旋转事件驱动)
     // =====================================================================

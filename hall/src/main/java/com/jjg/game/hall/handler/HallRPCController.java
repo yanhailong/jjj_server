@@ -13,6 +13,7 @@ import com.jjg.game.core.constant.AddType;
 import com.jjg.game.core.constant.BackendGMCmd;
 import com.jjg.game.core.constant.Code;
 import com.jjg.game.core.constant.EGameType;
+import com.jjg.game.core.constant.TaskConstant;
 import com.jjg.game.core.dao.AccountDao;
 import com.jjg.game.core.data.*;
 import com.jjg.game.core.handler.CoreRPCController;
@@ -24,6 +25,7 @@ import com.jjg.game.hall.service.HallPlayerService;
 import com.jjg.game.hall.service.HallService;
 import com.jjg.game.sampledata.GameDataManager;
 import com.jjg.game.sampledata.bean.ResearchSkillsCfg;
+import com.jjg.game.sampledata.bean.TaskCfg;
 import com.jjg.game.season.data.SeasonFreeSpinResult;
 import com.jjg.game.season.pb.res.ResSeasonMatch;
 import com.jjg.game.season.pb.res.ResSeasonTrialProgress;
@@ -46,6 +48,7 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Component;
 
 import java.util.LinkedHashSet;
+import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
@@ -182,21 +185,55 @@ public class HallRPCController extends CoreRPCController implements GmToHallBrid
     public int finishTask(long playerId, int operationType, List<Integer> taskIds) {
         log.info("Hall收到后台完成任务请求 playerId={},operationType={},taskIds={}",
                 playerId, operationType, taskIds);
-        List<Integer> completed;
+        List<Integer> coreTaskIds = null;
+        List<Integer> simTaskIds = null;
         if (operationType == BackendGMCmd.TaskOperation.FINISH_ALL) {
-            completed = taskManager.gmFinishTasks(playerId, null);
+            // null 分别表示完成 core 全部任务，以及 sim 主线/各成就组末节点。
         } else if (operationType == BackendGMCmd.TaskOperation.FINISH_SPECIFIED) {
-            completed = taskManager.gmFinishTasks(playerId, taskIds);
+            if (taskIds == null || taskIds.isEmpty()) {
+                return Code.PARAM_ERROR;
+            }
+            coreTaskIds = new ArrayList<>();
+            simTaskIds = new ArrayList<>();
+            for (Integer taskId : new LinkedHashSet<>(taskIds)) {
+                TaskCfg cfg = taskId == null ? null : GameDataManager.getTaskCfg(taskId);
+                if (cfg == null) {
+                    log.warn("后台完成任务失败，任务配置不存在 playerId={},taskId={}", playerId, taskId);
+                    return Code.PARAM_ERROR;
+                }
+                if (cfg.getTaskType() == TaskConstant.TaskType.POINTS_AWARD) {
+                    coreTaskIds.add(taskId);
+                } else if (cfg.getTaskType() == TaskConstant.TaskType.MAIN_LINE
+                        || cfg.getTaskType() == TaskConstant.TaskType.ACHIEVEMENT) {
+                    simTaskIds.add(taskId);
+                } else {
+                    log.warn("后台完成任务失败，不支持的任务类型 playerId={},taskId={},taskType={}",
+                            playerId, taskId, cfg.getTaskType());
+                    return Code.PARAM_ERROR;
+                }
+            }
         } else {
             log.warn("后台完成任务失败，操作类型错误 playerId={},operationType={},taskIds={}",
                     playerId, operationType, taskIds);
             return Code.PARAM_ERROR;
         }
-        if (completed == null) {
+        if ((operationType == BackendGMCmd.TaskOperation.FINISH_ALL || !simTaskIds.isEmpty())
+                && simPlayerContextRegistry.getContext(playerId) == null) {
+            log.warn("后台完成任务失败，玩家模拟经营上下文未加载 playerId={}", playerId);
+            return Code.PARAM_ERROR;
+        }
+        List<Integer> completed = new ArrayList<>();
+        List<Integer> coreCompleted = operationType == BackendGMCmd.TaskOperation.FINISH_ALL || !coreTaskIds.isEmpty()
+                ? taskManager.gmFinishTasks(playerId, coreTaskIds) : List.of();
+        List<Integer> simCompleted = operationType == BackendGMCmd.TaskOperation.FINISH_ALL || !simTaskIds.isEmpty()
+                ? simTaskService.gmFinishTasks(simPlayerContextRegistry.getContext(playerId), simTaskIds) : List.of();
+        if (coreCompleted == null || simCompleted == null) {
             log.warn("后台完成任务失败，任务校验或数据加载失败 playerId={},operationType={},taskIds={}",
                     playerId, operationType, taskIds);
             return Code.PARAM_ERROR;
         }
+        completed.addAll(coreCompleted);
+        completed.addAll(simCompleted);
         taskOperationLogger.completed(playerId, operationType,
                 operationType == BackendGMCmd.TaskOperation.FINISH_SPECIFIED ? completed : null);
         log.info("后台完成任务处理结束 playerId={},operationType={},taskIds={},completed={}",
