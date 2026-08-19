@@ -20,7 +20,6 @@ import com.jjg.game.hall.service.HallService;
 import com.jjg.game.sampledata.GameDataManager;
 import com.jjg.game.sampledata.bean.ResearchSkillsCfg;
 import com.jjg.game.season.data.SeasonFreeSpinResult;
-import com.jjg.game.season.data.SeasonSlotsSessionData;
 import com.jjg.game.season.pb.res.ResSeasonMatch;
 import com.jjg.game.season.pb.res.ResSeasonTrialProgress;
 import com.jjg.game.season.service.SeasonService;
@@ -213,14 +212,9 @@ public class HallRPCController extends CoreRPCController implements GmToHallBrid
 
     @Override
     @RpcCallSetting(processorModKey = "#arg0")
-    public CommonResult<SimSkillsData> getSkillData(long playerId, int gameType) {
-        SimPlayerContext ctx = this.simPlayerContextRegistry.getContext(playerId);
-        if (ctx != null) {
-            //在线: 以内存态为准 (定时落库前内存可能比 DB 新); 该游戏无技能返回 null 属正常
-            return new CommonResult<>(Code.SUCCESS, ctx.getSkillData(gameType));
-        }
-        //离线: sim 内存无数据, 回退读库
-        return new CommonResult<>(Code.SUCCESS, simSkillService.getSkillDataByGameType(playerId, gameType));
+    public CommonResult<SlotsEntrySessionData> getSlotsSessionData(long skillOwnerId, int casinoId,
+                                                                   int gameType, boolean seasonEntry) {
+        return simManager.getSlotsSessionData(skillOwnerId, casinoId, gameType, seasonEntry);
     }
 
     @Override
@@ -334,12 +328,6 @@ public class HallRPCController extends CoreRPCController implements GmToHallBrid
     @RpcCallSetting(processorModKey = "#arg0")
     public CommonResult<SeasonFreeSpinResult> useSeasonFreeSpin(long playerId, int gameType) {
         return simManager.useSeasonFreeSpin(playerId, gameType);
-    }
-
-    @Override
-    @RpcCallSetting(processorModKey = "#arg0")
-    public CommonResult<SeasonSlotsSessionData> getSeasonSlotsSessionData(long playerId, int gameType) {
-        return simManager.getSeasonSlotsSessionData(playerId, gameType);
     }
 
     @Override

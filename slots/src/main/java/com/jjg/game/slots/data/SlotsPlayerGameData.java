@@ -5,6 +5,7 @@ import com.jjg.game.core.data.Player;
 import com.jjg.game.core.data.PlayerController;
 import com.jjg.game.core.data.RoomType;
 import com.jjg.game.season.data.SeasonSlotsSessionData;
+import com.jjg.game.sim.data.SlotsSkillEffectData;
 import com.jjg.game.slots.controller.SlotsRoomController;
 import org.springframework.data.annotation.Id;
 import org.springframework.data.annotation.Transient;
@@ -82,6 +83,9 @@ public class SlotsPlayerGameData {
     //普通/客座入口的研发技能快照；赛季入口保持为空，防止两类效果混用
     @Transient
     protected transient Map<Integer, Integer> skillsMap;
+    //当前场景匹配本游戏的 VisitorBonds 技能快照
+    @Transient
+    protected transient SlotsSkillEffectData visitorBondsEffect;
     //当前入口额外解锁的下注额，仅用于校验基础房间配置以外的下注
     @Transient
     protected transient Set<Long> tmpUnlockedStakeSet;
@@ -92,7 +96,7 @@ public class SlotsPlayerGameData {
     protected transient long visitOwnerId;
     @Transient
     protected transient int visitCasinoId;
-    //赛季运行态统一收口于此，包含入口类型、赛季币、宝石效果及每日免费局状态
+    //赛季运行态，包含宝石加成、赛季币及每日免费局状态
     @Transient
     protected transient SeasonSlotsSessionData seasonSlotsSessionData;
     //进入游戏的方式
@@ -416,6 +420,18 @@ public class SlotsPlayerGameData {
 
     public void setSkillsMap(Map<Integer, Integer> skillsMap) {
         this.skillsMap = skillsMap;
+    }
+
+    public SlotsSkillEffectData getVisitorBondsEffect() {
+        if (visitorBondsEffect == null) {
+            visitorBondsEffect = new SlotsSkillEffectData();
+        }
+        return visitorBondsEffect;
+    }
+
+    public void setVisitorBondsEffect(SlotsSkillEffectData visitorBondsEffect) {
+        this.visitorBondsEffect = visitorBondsEffect == null
+                ? new SlotsSkillEffectData() : visitorBondsEffect;
     }
 
     public Set<Long> getTmpUnlockedStakeSet() {

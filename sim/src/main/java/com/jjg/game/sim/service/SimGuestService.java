@@ -12,6 +12,7 @@ import com.jjg.game.core.constant.AddType;
 import com.jjg.game.core.constant.Code;
 import com.jjg.game.core.data.*;
 import com.jjg.game.core.listener.ItemListener;
+import com.jjg.game.core.pb.KVInfo;
 import com.jjg.game.core.pb.RechargeType;
 import com.jjg.game.core.service.OrderService;
 import com.jjg.game.core.service.PlayerPackService;
@@ -144,7 +145,7 @@ public class SimGuestService implements SimPlayerTickListener, ItemListener, Sim
             }
 
             int canGenNum = casino.completeWaitGenSpecialGuest(itemId, num);
-            if(canGenNum < 1){
+            if (canGenNum < 1) {
                 continue;
             }
 
@@ -729,11 +730,15 @@ public class SimGuestService implements SimPlayerTickListener, ItemListener, Sim
         if (list == null || list.isEmpty()) {
             return null;
         }
+
+        BuildingAreaTableCfg cfg = GameDataManager.getBuildingAreaTableCfg(buildingId);
+
         int deviceId = list.get(RandomUtils.randomInt(list.size()));
 
         DestinationInfo destinationInfo = new DestinationInfo();
         destinationInfo.buildingId = buildingId;
         destinationInfo.deviceId = deviceId;
+        destinationInfo.interactTime = cfg.getInteractTime();
         return destinationInfo;
     }
 
@@ -1066,23 +1071,53 @@ public class SimGuestService implements SimPlayerTickListener, ItemListener, Sim
             if (ctx.getCurrentCasino().getGuestBondsSet() != null && !ctx.getCurrentCasino().getGuestBondsSet().isEmpty()) {
                 res.bonds = new ArrayList<>(ctx.getCurrentCasino().getGuestBondsSet());
 
-                Map<Integer, Long> map = new HashMap<>();
+                Map<Integer, Integer> map = new HashMap<>();
                 for (int id : ctx.getCurrentCasino().getGuestBondsSet()) {
                     VisitorBondsCfg cfg = GameDataManager.getVisitorBondsCfg(id);
-                    if (cfg == null || cfg.getReward() == null || cfg.getReward().isEmpty()) {
+                    if (cfg == null) {
                         continue;
                     }
-                    for (Map.Entry<Integer, Long> en : cfg.getReward().entrySet()) {
-                        map.merge(en.getKey(), en.getValue(), Long::sum);
+                    if (cfg.getStatBoost() > 0) {
+                        map.merge(cfg.getLanguageID(), cfg.getStatBoost(), Integer::sum);
                     }
                 }
-                res.rewards = ItemUtils.buildItemInfo(map);
+
+                if(!map.isEmpty()) {
+                    res.rewards = new ArrayList<>();
+                    for (Map.Entry<Integer, Integer> en : map.entrySet()) {
+                        res.rewards.add(new KVInfo(en.getKey(), en.getValue()));
+                    }
+                }
             }
         } catch (Exception e) {
             log.error("", e);
             res.code = Code.EXCEPTION;
         }
         ctx.send(res);
+    }
+
+    /**
+     * 将指定场景已解锁、且匹配当前 slots 游戏的游客羁绊加入进场技能快照。
+     */
+    public void addVisitorBondsSkillBonus(long skillOwnerId, SimCasinoData currentCasino,
+                                          int casinoId, int gameType,
+                                          SlotsSkillEffectData visitorBondsEffect) {
+        if (visitorBondsEffect == null) {
+            return;
+        }
+        SimCasinoData casino = casinoId <= 0 || (currentCasino != null && currentCasino.getCasinoId() == casinoId)
+                ? currentCasino : simCasinoDao.findOne(skillOwnerId, casinoId);
+        if (casino == null || casino.getGuestBondsSet() == null || casino.getGuestBondsSet().isEmpty()) {
+            return;
+        }
+        for (int bondsId : casino.getGuestBondsSet()) {
+            VisitorBondsCfg cfg = GameDataManager.getVisitorBondsCfg(bondsId);
+            if (cfg == null || cfg.getGameType() != gameType) {
+                continue;
+            }
+            visitorBondsEffect.addBonus(
+                    cfg.getSpecialMode(), cfg.getWinRate(), cfg.getSpecialModeProbUp());
+        }
     }
 
     /**
@@ -1126,12 +1161,6 @@ public class SimGuestService implements SimPlayerTickListener, ItemListener, Sim
                 }
                 //添加羁绊
                 casino.addGuestBonds(visitorBondsCfg.getId());
-
-                if (visitorBondsCfg.getReward() != null && !visitorBondsCfg.getReward().isEmpty()) {
-                    for (Map.Entry<Integer, Long> en : visitorBondsCfg.getReward().entrySet()) {
-                        addItems.merge(en.getKey(), en.getValue(), Long::sum);
-                    }
-                }
                 log.info("成功解锁羁绊 playerId={},bondsId={}", casino.getPlayerId(), visitorBondsCfg.getId());
             }
         }

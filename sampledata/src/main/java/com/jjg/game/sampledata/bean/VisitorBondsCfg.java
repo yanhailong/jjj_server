@@ -23,8 +23,18 @@ public class VisitorBondsCfg extends BaseCfgBean {
   protected List<Integer> Members;
   /** 多语言 */
   protected int NameId;
-  /** 羁绊奖励 */
-  protected Map<Integer,Long> Reward;
+  /** 属性提升 */
+  protected int StatBoost;
+  /** 游戏ID */
+  protected int gameType;
+  /** 多语言ID */
+  protected int languageID;
+  /** 进入特殊模式概率提升 */
+  protected Map<Integer,Integer> specialMode;
+  /** 特殊模式X-Y倍中奖概率提升 */
+  protected Map<Integer,Map<Integer,Integer>> specialModeProbUp;
+  /** 中奖概率提升（常规模式X-Y倍中奖概率提升） */
+  protected Map<Integer,Map<Integer,Integer>> winRate;
 
   /** 返回成员组成 */
   public List<Integer> getMembers() {
@@ -36,9 +46,34 @@ public class VisitorBondsCfg extends BaseCfgBean {
     return NameId;
   }
 
-  /** 返回羁绊奖励 */
-  public Map<Integer,Long> getReward() {
-    return Reward;
+  /** 返回属性提升 */
+  public int getStatBoost() {
+    return StatBoost;
+  }
+
+  /** 返回游戏ID */
+  public int getGameType() {
+    return gameType;
+  }
+
+  /** 返回多语言ID */
+  public int getLanguageID() {
+    return languageID;
+  }
+
+  /** 返回进入特殊模式概率提升 */
+  public Map<Integer,Integer> getSpecialMode() {
+    return specialMode;
+  }
+
+  /** 返回特殊模式X-Y倍中奖概率提升 */
+  public Map<Integer,Map<Integer,Integer>> getSpecialModeProbUp() {
+    return specialModeProbUp;
+  }
+
+  /** 返回中奖概率提升（常规模式X-Y倍中奖概率提升） */
+  public Map<Integer,Map<Integer,Integer>> getWinRate() {
+    return winRate;
   }
 
   @Override

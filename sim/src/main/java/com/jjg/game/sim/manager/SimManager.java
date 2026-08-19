@@ -30,7 +30,6 @@ import com.jjg.game.sim.pb.res.ResSimPlayerInfo;
 import com.jjg.game.season.dao.SeasonPlayerDao;
 import com.jjg.game.season.data.SeasonFreeSpinResult;
 import com.jjg.game.season.data.SeasonPlayerData;
-import com.jjg.game.season.data.SeasonSlotsSessionData;
 import com.jjg.game.season.service.SeasonEconomyService;
 import com.jjg.game.season.service.SeasonFreeGameService;
 import com.jjg.game.season.service.SeasonLifecycleService;
@@ -770,18 +769,36 @@ public class SimManager {
         }
     }
 
-    public CommonResult<SeasonSlotsSessionData> getSeasonSlotsSessionData(long playerId, int gameType) {
+    public CommonResult<SlotsEntrySessionData> getSlotsSessionData(long skillOwnerId, int casinoId,
+                                                                   int gameType, boolean seasonEntry) {
         try {
-            SimPlayerContext ctx = this.simPlayerContextRegistry.getContext(playerId);
-            if (ctx == null) {
-                ctx = createContextByPlayerId(playerId);
+            SimPlayerContext ctx = this.simPlayerContextRegistry.getContext(skillOwnerId);
+            if (seasonEntry && ctx == null) {
+                ctx = createContextByPlayerId(skillOwnerId);
             }
-            if (ctx == null || ctx.getSeasonPlayerData() == null) {
+            if (seasonEntry && (ctx == null || ctx.getSeasonPlayerData() == null)) {
                 return new CommonResult<>(Code.NOT_FOUND);
             }
-            return new CommonResult<>(Code.SUCCESS, seasonService.slotsSessionData(ctx, gameType));
+            SlotsEntrySessionData sessionData = new SlotsEntrySessionData();
+            if (seasonEntry) {
+                sessionData.setSeasonData(seasonService.slotsSessionData(ctx, gameType));
+            } else {
+                SimSkillsData skillsData = ctx == null
+                        ? skillService.getSkillDataByGameType(skillOwnerId, gameType) : ctx.getSkillData(gameType);
+                sessionData.setResearchSkills(skillsData == null ? null : skillsData.getSkillsMap());
+            }
+            SimCasinoData currentCasino = ctx == null ? null : ctx.getCurrentCasino();
+            int skillCasinoId = casinoId;
+            if (skillCasinoId <= 0 && currentCasino == null) {
+                SimBaseData baseData = simPlayerGameDao.findById(skillOwnerId).orElse(null);
+                skillCasinoId = baseData == null ? 0 : baseData.getCurrentCasinoId();
+            }
+            simGuestService.addVisitorBondsSkillBonus(
+                    skillOwnerId, currentCasino, skillCasinoId, gameType, sessionData.getVisitorBondsEffect());
+            return new CommonResult<>(Code.SUCCESS, sessionData);
         } catch (Exception e) {
-            log.error("获取赛季 slots 进场快照失败 playerId={},gameType={}", playerId, gameType, e);
+            log.error("获取 slots 进场快照失败 skillOwnerId={},casinoId={},gameType={},seasonEntry={}",
+                    skillOwnerId, casinoId, gameType, seasonEntry, e);
             return new CommonResult<>(Code.EXCEPTION);
         }
     }

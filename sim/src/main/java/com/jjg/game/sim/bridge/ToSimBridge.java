@@ -5,9 +5,9 @@ import com.jjg.game.core.constant.AddType;
 import com.jjg.game.core.data.CommonResult;
 import com.jjg.game.core.data.Item;
 import com.jjg.game.season.data.SeasonFreeSpinResult;
-import com.jjg.game.season.data.SeasonSlotsSessionData;
 import com.jjg.game.season.pb.res.ResSeasonMatch;
 import com.jjg.game.season.pb.res.ResSeasonTrialProgress;
+import com.jjg.game.sim.data.SlotsEntrySessionData;
 import com.jjg.game.sim.data.SimSkillsData;
 import com.jjg.game.sim.data.FinishGuideRpcResult;
 import com.jjg.game.sim.data.SkipGuideGroupRpcResult;
@@ -41,14 +41,16 @@ public interface ToSimBridge extends IGameRpc {
     CommonResult<SimSkillsData> addSkillById(long playerId, int gameType, int skillId);
 
     /**
-     * 获取玩家指定游戏的最新技能数据 (在线以 sim 内存态为准, 离线回退读库)。
-     * 供 slots 进游戏时读取, 避免 sim 内存改动未到定时落库导致的脏读。
+     * 获取 slots 进场快照。普通入口包含 ResearchSkills + VisitorBonds，
+     * 赛季入口包含 SeasonGem + VisitorBonds。
      *
-     * @param playerId 技能归属玩家 (客座赌局为房主)
-     * @param gameType 游戏类型
-     * @return data 可能为 null (该游戏无技能数据)
+     * @param skillOwnerId 技能归属玩家（客座赌局为房主）
+     * @param casinoId   羁绊所属场景；0 表示玩家当前场景
+     * @param gameType   游戏类型
+     * @param seasonEntry 是否从赛季入口进入
      */
-    CommonResult<SimSkillsData> getSkillData(long playerId, int gameType);
+    CommonResult<SlotsEntrySessionData> getSlotsSessionData(long skillOwnerId, int casinoId,
+                                                             int gameType, boolean seasonEntry);
 
     /**
      * slots spin
@@ -95,11 +97,6 @@ public interface ToSimBridge extends IGameRpc {
      * 赛季每日免费局: 扣费前申请消耗一次免费次数 (仅赛季机台默认下注的普通旋转会调用)。
      */
     CommonResult<SeasonFreeSpinResult> useSeasonFreeSpin(long playerId, int gameType);
-
-    /**
-     * 获取赛季 slots 进场快照。快照包含当前赛季币余额，以及已镶嵌宝石中匹配当前游戏的效果。
-     */
-    CommonResult<SeasonSlotsSessionData> getSeasonSlotsSessionData(long playerId, int gameType);
 
     /**
      * 旧 slots 节点滚动升级期间使用的余额查询兼容入口；新节点统一使用进场快照接口。

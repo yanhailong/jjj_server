@@ -12,10 +12,9 @@ import com.jjg.game.core.data.PlayerController;
 import com.jjg.game.core.service.PlayerStatService;
 import com.jjg.game.core.utils.ItemUtils;
 import com.jjg.game.season.data.SeasonFreeSpinResult;
-import com.jjg.game.season.data.SeasonSlotsSessionData;
 import com.jjg.game.season.pb.res.ResSeasonMatch;
 import com.jjg.game.sim.bridge.ToSimBridge;
-import com.jjg.game.sim.data.SimSkillsData;
+import com.jjg.game.sim.data.SlotsEntrySessionData;
 import com.jjg.game.sim.data.SlotsSpinResult;
 import com.jjg.game.sim.data.SpinStatInfo;
 import com.jjg.game.sim.data.VisitTrialSpinPermit;
@@ -144,12 +143,11 @@ public class SlotsRPCLinkManager {
     }
 
     /**
-     * 进游戏读取技能: 走 RPC 拿 sim 节点最新技能 (在线取内存态, 离线由 sim 侧回退读库),
-     * sim 节点不可达时返回失败, 由调用方回退本地读库。
-     *
-     * @param skillOwnerId 技能归属玩家 (客座赌局为房主, 普通为玩家自己)
+     * 进游戏读取技能快照：普通入口为研发技能+游客羁绊，赛季入口为宝石+游客羁绊。
      */
-    public CommonResult<SimSkillsData> getSimSkillData(long skillOwnerId, int gameType, String ip) {
+    public CommonResult<SlotsEntrySessionData> getSlotsSessionData(long skillOwnerId, int casinoId,
+                                                                   int gameType, boolean seasonEntry,
+                                                                   String ip) {
         try {
             ClusterClient client = simNodeService.getSimClusterClient(skillOwnerId, ip);
             if (client == null) {
@@ -160,12 +158,15 @@ public class SlotsRPCLinkManager {
             try {
                 rpcContext.withReqParameterBuilder(RpcReqParameterBuilder.create()
                         .addClusterClient(client).setTryMillisPerClient(1000));
-                return toSimBridge.getSkillData(skillOwnerId, gameType);
+                CommonResult<SlotsEntrySessionData> result = toSimBridge.getSlotsSessionData(
+                        skillOwnerId, casinoId, gameType, seasonEntry);
+                return result == null ? new CommonResult<>(Code.EXCEPTION) : result;
             } finally {
                 rpcContext.setReqParameterBuilder(previousBuilder);
             }
         } catch (Exception e) {
-            log.error("获取sim技能数据异常 skillOwnerId={},gameType={}", skillOwnerId, gameType, e);
+            log.error("获取 slots 进场快照异常 skillOwnerId={},casinoId={},gameType={},seasonEntry={}",
+                    skillOwnerId, casinoId, gameType, seasonEntry, e);
             return new CommonResult<>(Code.EXCEPTION);
         }
     }
@@ -222,32 +223,6 @@ public class SlotsRPCLinkManager {
             log.error("赛季被动匹配 RPC 异常 playerId={},gameType={},stake={}",
                     playerGameData.getPlayerId(), gameType, stake, e);
             return null;
-        }
-    }
-
-    /**
-     * 从玩家所属 sim 节点读取赛季 slots 进场快照。该调用只在进场时执行一次，避免 spin 热路径跨节点访问。
-     */
-    public CommonResult<SeasonSlotsSessionData> getSeasonSlotsSessionData(long playerId, int gameType, String ip) {
-        try {
-            ClusterClient client = simNodeService.getSimClusterClient(playerId, ip);
-            if (client == null) {
-                return new CommonResult<>(Code.NOT_FOUND);
-            }
-            GameRpcContext rpcContext = GameRpcContext.getContext();
-            RpcReqParameterBuilder previousBuilder = rpcContext.getReqParameterBuilder();
-            try {
-                rpcContext.withReqParameterBuilder(RpcReqParameterBuilder.create()
-                        .addClusterClient(client).setTryMillisPerClient(1000));
-                CommonResult<SeasonSlotsSessionData> result =
-                        toSimBridge.getSeasonSlotsSessionData(playerId, gameType);
-                return result == null ? new CommonResult<>(Code.EXCEPTION) : result;
-            } finally {
-                rpcContext.setReqParameterBuilder(previousBuilder);
-            }
-        } catch (Exception e) {
-            log.error("获取赛季 slots 进场快照 RPC 异常 playerId={},gameType={}", playerId, gameType, e);
-            return new CommonResult<>(Code.EXCEPTION);
         }
     }
 

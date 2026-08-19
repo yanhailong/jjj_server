@@ -4,6 +4,7 @@ import com.jjg.game.core.data.PropInfo;
 import com.jjg.game.core.utils.PropUtil;
 import com.jjg.game.sampledata.bean.ResearchSkillsCfg;
 import com.jjg.game.season.data.SeasonSlotsSessionData;
+import com.jjg.game.sim.data.SlotsSkillEffectData;
 import com.jjg.game.sim.service.AbstractSkillService;
 import org.springframework.stereotype.Service;
 
@@ -106,24 +107,43 @@ public class SlotsSkillService extends AbstractSkillService {
         return newPropInfo;
     }
 
-    /**
-     * 应用赛季宝石的 specialMode 效果。进场时已经由 sim 聚合，spin 热路径只需克隆并调整权重。
-     */
+    /** 应用赛季宝石的 specialMode 效果。 */
     public PropInfo useSeasonGemLibTypeBonus(SeasonSlotsSessionData sessionData, PropInfo propInfo) {
-        if (sessionData == null || sessionData.getLibTypeWeightDelta().isEmpty()) {
-            return propInfo;
-        }
-        return PropUtil.applyPropInfoDelta(propInfo, sessionData.getLibTypeWeightDelta());
+        return sessionData == null ? propInfo
+                : applyLibTypeWeightBonus(sessionData.getLibTypeWeightDelta(), propInfo);
     }
 
-    /**
-     * 应用赛季宝石的 winRate 与 specialModeProbUp 效果。
-     */
+    /** 应用赛季宝石的 winRate 与 specialModeProbUp 效果。 */
     public PropInfo useSeasonGemSectionBonus(SeasonSlotsSessionData sessionData, PropInfo propInfo, int libType) {
-        if (sessionData == null || sessionData.getSectionWeightDelta().isEmpty()) {
+        return sessionData == null ? propInfo
+                : applySectionWeightBonus(sessionData.getSectionWeightDelta(), propInfo, libType);
+    }
+
+    /** 应用游客羁绊的 specialMode 效果。 */
+    public PropInfo useSkillEffectLibTypeBonus(SlotsSkillEffectData effectData, PropInfo propInfo) {
+        return effectData == null ? propInfo
+                : applyLibTypeWeightBonus(effectData.getLibTypeWeightDelta(), propInfo);
+    }
+
+    /** 应用游客羁绊的 winRate 与 specialModeProbUp 效果。 */
+    public PropInfo useSkillEffectSectionBonus(SlotsSkillEffectData effectData, PropInfo propInfo, int libType) {
+        return effectData == null ? propInfo
+                : applySectionWeightBonus(effectData.getSectionWeightDelta(), propInfo, libType);
+    }
+
+    private PropInfo applyLibTypeWeightBonus(Map<Integer, Integer> delta, PropInfo propInfo) {
+        if (delta == null || delta.isEmpty()) {
             return propInfo;
         }
-        Map<Integer, Integer> sectionDelta = sessionData.getSectionWeightDelta().get(libType);
+        return PropUtil.applyPropInfoDelta(propInfo, delta);
+    }
+
+    private PropInfo applySectionWeightBonus(Map<Integer, Map<Integer, Integer>> delta,
+                                             PropInfo propInfo, int libType) {
+        if (delta == null || delta.isEmpty()) {
+            return propInfo;
+        }
+        Map<Integer, Integer> sectionDelta = delta.get(libType);
         if (sectionDelta == null || sectionDelta.isEmpty()) {
             return propInfo;
         }
