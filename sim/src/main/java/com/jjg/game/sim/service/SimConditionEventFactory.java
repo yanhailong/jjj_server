@@ -64,7 +64,9 @@ public final class SimConditionEventFactory {
                                                Map<Integer, Long> itemGains, boolean energyConsumed) {
         long bet = statInfo == null ? costPower : statInfo.getBet();
         long win = statInfo == null ? 0 : statInfo.getWin();
-        return new GameConditionEvent(gameType, gameType, 0, goldItemId, goldItemId,
+        int transactionItemId = statInfo != null && statInfo.getTransactionItemId() > 0
+                ? statInfo.getTransactionItemId() : goldItemId;
+        return new GameConditionEvent(gameType, gameType, 0, transactionItemId, transactionItemId,
                 bet, win, winTimes, energyConsumed, true,
                 statInfo == null ? 0 : statInfo.getBigShowId(),
                 statInfo == null ? Map.of() : statInfo.getJackpotCounts(),
@@ -74,7 +76,7 @@ public final class SimConditionEventFactory {
                 statInfo == null || statInfo.getSpecialModes() == null
                         ? Set.of() : Set.copyOf(statInfo.getSpecialModes()),
                 statInfo == null ? List.of() : statInfo.getIcons(),
-                mergeGains(goldItemId, win, itemGains));
+                mergeGains(transactionItemId, win, itemGains));
     }
 
     /**
@@ -87,10 +89,10 @@ public final class SimConditionEventFactory {
         return statInfo != null && statInfo.isTriggerFree() ? 1 : 0;
     }
 
-    /** 本局收益明细: 金币赢奖 + 本次旋转的道具产出, 空值与非正数安全 (record 构造会拒绝 null)。 */
-    private static Map<Integer, Long> mergeGains(int goldItemId, long win, Map<Integer, Long> itemGains) {
+    /** 本局收益明细: 交易货币赢奖 + 本次旋转的道具产出, 空值与非正数安全 (record 构造会拒绝 null)。 */
+    private static Map<Integer, Long> mergeGains(int transactionItemId, long win, Map<Integer, Long> itemGains) {
         if (itemGains == null || itemGains.isEmpty()) {
-            return win > 0 ? Map.of(goldItemId, win) : Map.of();
+            return win > 0 && transactionItemId > 0 ? Map.of(transactionItemId, win) : Map.of();
         }
         Map<Integer, Long> merged = new HashMap<>(itemGains.size() + 1);
         for (Map.Entry<Integer, Long> en : itemGains.entrySet()) {
@@ -98,8 +100,8 @@ public final class SimConditionEventFactory {
                 merged.merge(en.getKey(), en.getValue(), Long::sum);
             }
         }
-        if (win > 0) {
-            merged.merge(goldItemId, win, Long::sum);
+        if (win > 0 && transactionItemId > 0) {
+            merged.merge(transactionItemId, win, Long::sum);
         }
         return merged;
     }
@@ -108,10 +110,11 @@ public final class SimConditionEventFactory {
      * 非 spin 游戏结算和旧跨节点协议的统一适配入口，同样使用金币配置未就绪时的安全降级策略。
      */
     public static GameConditionEvent fromGameResult(int gameType, long bet, long win, long multiple) {
-        int goldItemId = resolveGoldItemId();
-        return new GameConditionEvent(gameType, gameType, 0, goldItemId, goldItemId,
+        int transactionItemId = resolveGoldItemId();
+        return new GameConditionEvent(gameType, gameType, 0, transactionItemId, transactionItemId,
                 bet, win, multiple, true, true, 0, Map.of(), 0, 0,
-                Set.of(), List.of(), win > 0 ? Map.of(goldItemId, win) : Map.of());
+                Set.of(), List.of(), win > 0 && transactionItemId > 0
+                ? Map.of(transactionItemId, win) : Map.of());
     }
 
     // =====================================================================

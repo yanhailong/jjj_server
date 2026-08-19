@@ -16,6 +16,8 @@ public class SpinStatInfo {
     private long bet;
     //本次赢奖 (GameRunInfo.allWinGold)
     private long win;
+    //本次下注和赢奖使用的实际交易货币
+    private int transactionItemId;
     //本次中奖倍数 (GameRunInfo.allWinTimes)
     private int multiple;
     //大奖展示id (GameRunInfo.bigShowId; 0=无, 1.SWEET 2.BIG 3.MEGA 4.EPIC 5.LEGENDARY)
@@ -53,6 +55,14 @@ public class SpinStatInfo {
 
     public void setWin(long win) {
         this.win = win;
+    }
+
+    public int getTransactionItemId() {
+        return transactionItemId;
+    }
+
+    public void setTransactionItemId(int transactionItemId) {
+        this.transactionItemId = transactionItemId;
     }
 
     public int getMultiple() {

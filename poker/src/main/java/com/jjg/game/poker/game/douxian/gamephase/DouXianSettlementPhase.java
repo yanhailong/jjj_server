@@ -177,6 +177,9 @@ public class DouXianSettlementPhase extends BasePokerPhase<DouXianGameDataVo> {
         for (Long playerId : activePlayerIds) {
             gameDataVo.recordRoundChange(playerId, roundChanges.getOrDefault(playerId, 0L));
         }
+        if (controller instanceof DouXianGameController douXianController) {
+            douXianController.notifyRoundWins(roundChanges);
+        }
         log.info("斗仙牌本回合实际输赢 round:{} changes:{}", round, roundChanges);
         // 结算已经发生，此时把所有玩家的完整牌面一起带上，前端可以直接渲染亮牌动画，
         // 不用再从pairResults的两两对比数据里反推每个人到底摆了什么牌(selfView=true，

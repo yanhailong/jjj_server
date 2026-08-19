@@ -63,7 +63,10 @@ public class SimTaskService {
     private static final int MAIN_COUNTER_VERSION = 1;
     private static final int MAX_DISPLAYED_MEDALS = 3;
     private static final Set<Integer> TASK_DETAIL_PROGRESS_CONDITIONS = Set.of(
-            TaskConstant.ConditionType.PLAYER_BET_ALL, 12222, 12223, 12224);
+            TaskConstant.ConditionType.PLAYER_BET_ALL,
+            12201, 12202, 12203, 12204, 12205, 12206,
+            12209, 12210, 12211, 12213, 12215, 12217, 12218,
+            12220, 12221, 12222, 12223, 12224, 12225);
 
     @Autowired
     private SimTaskConfigService taskConfig;

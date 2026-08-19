@@ -84,26 +84,48 @@ public class PokerRPCLinkManager {
 
     /** 斗仙牌大结算完成后按所属 SIM 节点批量通知，不阻塞牌桌收尾。 */
     public void notifyDouXianSettled(Map<Long, String> players) {
-        if (players == null || players.isEmpty()) {
+        for (SimPlayerBatch batch : groupBySimNode(players)) {
+            notifyDouXianSettled(batch.client(), List.copyOf(batch.playerIds()));
+        }
+    }
+
+    /** 斗仙牌每回合结算后，按所属 SIM 节点批量上报真人玩家的正向净赢。 */
+    public void notifyDouXianWins(Map<Long, String> players, int transactionItemId,
+                                  Map<Long, Long> playerWins) {
+        if (playerWins == null || playerWins.isEmpty()) {
             return;
         }
-        Map<String, ClusterClient> clients = new HashMap<>();
-        Map<String, List<Long>> playerIdsByNode = new HashMap<>();
+        for (SimPlayerBatch batch : groupBySimNode(players)) {
+            Map<Long, Long> batchWins = new HashMap<>();
+            for (long playerId : batch.playerIds()) {
+                Long win = playerWins.get(playerId);
+                if (win != null && win > 0) {
+                    batchWins.put(playerId, win);
+                }
+            }
+            if (!batchWins.isEmpty()) {
+                notifyDouXianWins(batch.client(), transactionItemId, Map.copyOf(batchWins));
+            }
+        }
+    }
+
+    private List<SimPlayerBatch> groupBySimNode(Map<Long, String> players) {
+        if (players == null || players.isEmpty()) {
+            return List.of();
+        }
+        Map<String, SimPlayerBatch> batches = new HashMap<>();
         for (Map.Entry<Long, String> entry : players.entrySet()) {
             long playerId = entry.getKey();
             ClusterClient client = simNodeService.getSimClusterClient(
                     playerId, entry.getValue() == null ? "" : entry.getValue());
             if (client == null) {
-                log.warn("斗仙牌结算任务推进失败，未找到 SIM 节点 playerId:{}", playerId);
+                log.warn("斗仙牌任务推进失败，未找到 SIM 节点 playerId:{}", playerId);
                 continue;
             }
-            String nodePath = client.marsNode.getNodePath();
-            clients.putIfAbsent(nodePath, client);
-            playerIdsByNode.computeIfAbsent(nodePath, key -> new ArrayList<>()).add(playerId);
+            batches.computeIfAbsent(client.marsNode.getNodePath(),
+                    key -> new SimPlayerBatch(client, new ArrayList<>())).playerIds().add(playerId);
         }
-        for (Map.Entry<String, List<Long>> entry : playerIdsByNode.entrySet()) {
-            notifyDouXianSettled(clients.get(entry.getKey()), List.copyOf(entry.getValue()));
-        }
+        return List.copyOf(batches.values());
     }
 
     private void notifyDouXianSettled(ClusterClient client, List<Long> playerIds) {
@@ -124,6 +146,30 @@ public class PokerRPCLinkManager {
         } finally {
             rpcContext.setReqParameterBuilder(previousBuilder);
         }
+    }
+
+    private void notifyDouXianWins(ClusterClient client, int transactionItemId,
+                                   Map<Long, Long> playerWins) {
+        GameRpcContext rpcContext = GameRpcContext.getContext();
+        RpcReqParameterBuilder previousBuilder = rpcContext.getReqParameterBuilder();
+        try {
+            rpcContext.withReqParameterBuilder(RpcReqParameterBuilder.create()
+                    .addClusterClient(client).setTryMillisPerClient(1000));
+            rpcContext.asyncCall(() -> toSimBridge.onDouXianWins(transactionItemId, playerWins))
+                    .whenComplete((result, throwable) -> {
+                        if (throwable != null || result == null || !result.success()
+                                || !Boolean.TRUE.equals(result.data)) {
+                            log.warn("斗仙牌赢钱任务批量推进失败 playerWins:{}", playerWins, throwable);
+                        }
+                    });
+        } catch (Exception e) {
+            log.error("斗仙牌赢钱任务批量推进异常 playerWins:{}", playerWins, e);
+        } finally {
+            rpcContext.setReqParameterBuilder(previousBuilder);
+        }
+    }
+
+    private record SimPlayerBatch(ClusterClient client, List<Long> playerIds) {
     }
 
     private CommonResult<Long> getSeasonCoin(PokerSeasonAccount account) {

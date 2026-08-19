@@ -27,7 +27,7 @@ public record GameConditionEvent(
         int gemDrops,
         Set<Integer> specialModes,
         List<Integer> icons,
-        Map<Integer, Long> itemGains) implements ConditionEvent {
+        Map<Integer, Long> itemGains) implements GameWinEvent {
 
     public GameConditionEvent {
         specialModes = specialModes == null ? Set.of() : Set.copyOf(specialModes);
