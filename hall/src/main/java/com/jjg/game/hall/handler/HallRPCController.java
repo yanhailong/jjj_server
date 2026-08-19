@@ -13,7 +13,9 @@ import com.jjg.game.core.constant.Code;
 import com.jjg.game.core.dao.AccountDao;
 import com.jjg.game.core.data.*;
 import com.jjg.game.core.handler.CoreRPCController;
+import com.jjg.game.core.logger.TaskOperationLogger;
 import com.jjg.game.core.rpc.GmToHallBridge;
+import com.jjg.game.core.task.manager.TaskManager;
 import com.jjg.game.core.rpc.SpecialGuestBridge;
 import com.jjg.game.hall.service.HallPlayerService;
 import com.jjg.game.hall.service.HallService;
@@ -83,6 +85,10 @@ public class HallRPCController extends CoreRPCController implements GmToHallBrid
     private SimGuestService simGuestService;
     @Autowired
     private SimGuideLogger simGuideLogger;
+    @Autowired
+    private TaskManager taskManager;
+    @Autowired
+    private TaskOperationLogger taskOperationLogger;
     @Autowired
     private ChatService chatService;
 
@@ -166,6 +172,25 @@ public class HallRPCController extends CoreRPCController implements GmToHallBrid
         log.info("后台完成新手引导处理结束 playerId={},operationType={},guideIds={},code={}",
                 playerId, operationType, guideIds, code);
         return code;
+    }
+
+    @Override
+    @RpcCallSetting(processorModKey = "#arg0")
+    public int finishTask(long playerId, int operationType, List<Integer> taskIds) {
+        List<Integer> completed;
+        if (operationType == BackendGMCmd.TaskOperation.FINISH_ALL) {
+            completed = taskManager.gmFinishTasks(playerId, null);
+        } else if (operationType == BackendGMCmd.TaskOperation.FINISH_SPECIFIED) {
+            completed = taskManager.gmFinishTasks(playerId, taskIds);
+        } else {
+            return Code.PARAM_ERROR;
+        }
+        if (completed == null) return Code.PARAM_ERROR;
+        taskOperationLogger.completed(playerId, operationType,
+                operationType == BackendGMCmd.TaskOperation.FINISH_SPECIFIED ? completed : null);
+        log.info("后台完成任务处理结束 playerId={},operationType={},taskIds={},completed={}",
+                playerId, operationType, taskIds, completed);
+        return Code.SUCCESS;
     }
 
     @Override

@@ -104,11 +104,18 @@ public interface BackendGMCmd {
     String CLEAN_SLOTS_STATUS = "cleanSlotsStatus";
     // 后台完成模拟经营新手引导
     String FINISH_SIM_GUIDE = "finishSimGuide";
+    // 后台完成通用任务
+    String FINISH_TASK = "finishTask";
 
     interface SimGuideOperation {
         // 完成全部引导
         int FINISH_ALL = 1;
         // 完成指定引导
+        int FINISH_SPECIFIED = 2;
+    }
+
+    interface TaskOperation {
+        int FINISH_ALL = 1;
         int FINISH_SPECIFIED = 2;
     }
 

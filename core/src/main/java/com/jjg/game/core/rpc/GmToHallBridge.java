@@ -40,4 +40,7 @@ public interface GmToHallBridge extends IGameRpc {
      * @return 处理结果码
      */
     int finishSimGuide(long playerId, int operationType, List<Integer> guideIds);
+
+    /** 后台完成玩家已接取的通用任务。 */
+    int finishTask(long playerId, int operationType, List<Integer> taskIds);
 }

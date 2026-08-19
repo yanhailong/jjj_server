@@ -2387,6 +2387,42 @@ public class GMController extends AbstractController {
             return fail("common.exception");
         }
     }
+
+    /** 后台完成玩家通用任务。 */
+    @RequestMapping(BackendGMCmd.FINISH_TASK)
+    public WebResult<String> finishTask(@RequestBody FinishTaskDto dto) {
+        log.info("收到后台完成任务请求 dto={}", dto);
+        try {
+            if (dto == null || dto.playerId() <= 0) return fail("common.paramerror");
+            List<Integer> taskIds = null;
+            if (dto.operationType() == BackendGMCmd.TaskOperation.FINISH_SPECIFIED) {
+                if (StringUtils.isBlank(dto.taskIds())) return fail("common.paramerror");
+                LinkedHashSet<Integer> uniqueIds = new LinkedHashSet<>();
+                for (String value : dto.taskIds().split(",", -1)) {
+                    String idText = value == null ? "" : value.trim();
+                    if (!idText.matches("\\d+")) return fail("common.paramerror");
+                    int taskId = Integer.parseInt(idText);
+                    if (taskId <= 0) return fail("common.paramerror");
+                    uniqueIds.add(taskId);
+                }
+                taskIds = new ArrayList<>(uniqueIds);
+            } else if (dto.operationType() != BackendGMCmd.TaskOperation.FINISH_ALL) {
+                return fail("common.paramerror");
+            }
+            PlayerSessionInfo sessionInfo = playerSessionService.getInfo(dto.playerId());
+            if (sessionInfo == null || StringUtils.isBlank(sessionInfo.getCurrentNode())) return fail("common.fail");
+            ClusterClient clusterClient = clusterSystem.getClusterByPath(sessionInfo.getCurrentNode());
+            if (clusterClient == null || !NodeType.HALL.toString().equals(clusterClient.getType())) return fail("common.fail");
+            GameRpcContext.getContext().withReqParameterBuilder(RpcReqParameterBuilder.create()
+                    .addClusterClient(clusterClient).setTryMillisPerClient(1000));
+            int code = gmToHallBridge.finishTask(dto.playerId(), dto.operationType(), taskIds);
+            if (code == Code.PARAM_ERROR) return fail("common.paramerror");
+            return code == Code.SUCCESS ? success("common.success") : fail("common.fail");
+        } catch (Exception e) {
+            log.error("后台完成任务异常 dto={}", dto, e);
+            return fail("common.exception");
+        }
+    }
     /**
      * common配置变化，需要更新到节点
      *

@@ -509,6 +509,73 @@ public class TaskManager implements ConfigExcelChangeListener, IRedDotService, O
         }
     }
 
+    /**
+     * GM 强制完成任务。任务尚未接取时会先创建任务数据，再置为已完成、待领奖。
+     * 指定任务先统一校验，避免部分完成；已完成或已领奖的任务不会重复处理。
+     * 返回 null 表示失败；成功时返回本次实际完成的 TaskId。
+     */
+    public List<Integer> gmFinishTasks(long playerId, Collection<Integer> specifiedTaskIds) {
+        TaskData taskData = playerTaskMap.get(playerId);
+        if (taskData == null) {
+            return null;
+        }
+        if (!TimeHelper.inSameDay(taskData.getLastCheckTime(), System.currentTimeMillis())) {
+            taskService.checkTask(playerId, taskData, this);
+        }
+        List<Integer> targetIds;
+        if (specifiedTaskIds == null) {
+            targetIds = GameDataManager.getTaskCfgList().stream()
+                    .filter(Objects::nonNull)
+                    .filter(cfg -> cfg.getTaskType() == TaskConstant.TaskType.POINTS_AWARD)
+                    .map(TaskCfg::getId)
+                    .distinct()
+                    .sorted()
+                    .toList();
+        } else {
+            LinkedHashSet<Integer> uniqueIds = new LinkedHashSet<>(specifiedTaskIds);
+            if (uniqueIds.isEmpty()) return null;
+            for (Integer taskId : uniqueIds) {
+                TaskCfg cfg = taskId == null ? null : GameDataManager.getTaskCfg(taskId);
+                if (taskId == null || taskId <= 0 || cfg == null
+                        || cfg.getTaskType() != TaskConstant.TaskType.POINTS_AWARD) {
+                    return null;
+                }
+            }
+            targetIds = new ArrayList<>(uniqueIds);
+        }
+        long now = System.currentTimeMillis();
+        List<Integer> completed = new ArrayList<>();
+        for (int taskId : targetIds) {
+            TaskDetail detail = taskData.getTaskDetail(taskId);
+            if (detail == null) {
+                detail = new TaskDetail();
+                detail.setConfigId(taskId);
+                detail.setPlayerId(playerId);
+                detail.setCreateTime(now);
+                detail.setStatus(TaskConstant.TaskStatus.STATUS_IN_PROGRESS);
+                taskData.addTaskDetail(detail);
+            }
+            if (detail.getStatus() != TaskConstant.TaskStatus.STATUS_IN_PROGRESS) continue;
+            TaskCfg cfg = GameDataManager.getTaskCfg(taskId);
+            List<TaskCondition> conditions = assembleTaskConditions(playerId, detail, cfg);
+            for (TaskCondition condition : conditions) {
+                detail.getProgress().put(condition.getConfigId(), condition.getConfigParam());
+                detail.getFinishConditionIds().add(condition.getConfigId());
+            }
+            detail.setStatus(TaskConstant.TaskStatus.STATUS_COMPLETED);
+            detail.setCompleteTime(now);
+            taskLogger.completeTask(playerId, taskId);
+            completed.add(taskId);
+        }
+        if (!completed.isEmpty()) {
+            taskService.saveTask(playerId, taskData);
+            noticeUpdateAll(playerId);
+            updateRedDot(playerId);
+        }
+        log.info("GM完成玩家任务 playerId={},taskIds={}", playerId, completed);
+        return completed;
+    }
+
 
     public void loadTaskData(long playerId) {
         playerTaskMap.computeIfAbsent(playerId, k -> {
