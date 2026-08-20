@@ -496,7 +496,7 @@ public class SimMessageHandler implements GmListener {
     @Command(SimConstant.MsgBean.REQ_GEN_PURCHASED_GUEST)
     public void reqGenPurchasedGuest(PlayerController playerController, ReqGenPurchasedGuest req) {
         execute(playerController, ctx -> {
-            guestService.generatePurchasedGuest(ctx, req.guestId, req.count);
+//            guestService.generatePurchasedGuest(ctx, req.guestId, req.count);
         }, ReqGenPurchasedGuest.class);
     }
 

@@ -45,8 +45,6 @@ public class SimCasinoData extends AbstractData {
     private List<Integer> specialGuestPaidCfgIds;
     //当前场景持有的特殊游客数量 (游客道具ID -> 数量)
     private Map<Integer, Long> specialGuestItemCounts;
-    //当前场景等待生成的特殊游客数量 (游客道具ID -> 数量)
-    private Map<Integer, Long> waitGenSpecialGuests;
     //已到账的现金购买订单，用于防止充值重试重复发放
     private Set<String> receivedSpecialGuestOrderIds;
     //主管id   employeeProfileConfig.ProfessionID -> employeeId
@@ -292,14 +290,6 @@ public class SimCasinoData extends AbstractData {
         return specialGuestItemCounts;
     }
 
-    public Map<Integer, Long> getWaitGenSpecialGuests() {
-        return waitGenSpecialGuests;
-    }
-
-    public void setWaitGenSpecialGuests(Map<Integer, Long> waitGenSpecialGuests) {
-        this.waitGenSpecialGuests = waitGenSpecialGuests;
-    }
-
     /**
      * 增加当前场景持有的特殊游客。
      */
@@ -310,9 +300,9 @@ public class SimCasinoData extends AbstractData {
     }
 
     /**
-     * 将当前场景持有的特殊游客移动到待生成队列；先整体校验，任一数量不足都不改变数据。
+     * 扣除当前场景持有的特殊游客；先整体校验，任一数量不足都不改变数据。
      */
-    public boolean moveSpecialGuestsToWaitQueue(Map<Integer, Long> items) {
+    public boolean consumeSpecialGuests(Map<Integer, Long> items) {
         if (items == null || items.isEmpty()) {
             return false;
         }
@@ -323,16 +313,6 @@ public class SimCasinoData extends AbstractData {
                 return false;
             }
         }
-
-        Map<Integer, Long> nextWaitCounts = new HashMap<>();
-        for (Map.Entry<Integer, Long> entry : items.entrySet()) {
-            long queued = waitGenSpecialGuests == null
-                    ? 0L : waitGenSpecialGuests.getOrDefault(entry.getKey(), 0L);
-            nextWaitCounts.put(entry.getKey(), Math.addExact(queued, entry.getValue()));
-        }
-        if (waitGenSpecialGuests == null) {
-            waitGenSpecialGuests = new HashMap<>();
-        }
         for (Map.Entry<Integer, Long> entry : items.entrySet()) {
             long remain = getSpecialGuestItemCounts().get(entry.getKey()) - entry.getValue();
             if (remain == 0) {
@@ -340,29 +320,8 @@ public class SimCasinoData extends AbstractData {
             } else {
                 getSpecialGuestItemCounts().put(entry.getKey(), remain);
             }
-            waitGenSpecialGuests.put(entry.getKey(), nextWaitCounts.get(entry.getKey()));
         }
         return true;
-    }
-
-    /**
-     * 待生成特殊游客成功生成一个后扣减队列数量。
-     */
-    public int completeWaitGenSpecialGuest(int itemId, int num) {
-        if (waitGenSpecialGuests == null) {
-            return 0;
-        }
-        Long count = waitGenSpecialGuests.get(itemId);
-        if (count == null) {
-            return 0;
-        }
-
-        if (count < num) {
-            waitGenSpecialGuests.remove(itemId);
-            return count.intValue();
-        }
-        waitGenSpecialGuests.put(itemId, count - num);
-        return num;
     }
 
     /**
