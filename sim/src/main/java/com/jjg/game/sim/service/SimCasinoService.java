@@ -201,7 +201,7 @@ public class SimCasinoService implements SimTaskStateReporter {
 
             //获取下一等级的配置
             CasinoStatsSheetCfg nextLevelCfg = configCacheService.getCasinoStatsSheetCfg(casinoData.getCasinoId(), casinoData.getCasinoLevel() + 1);
-            res.upgradeLevelConditions = toUpgradeLevelConditions(nextLevelCfg);
+            res.upgradeLevelConditions = toUpgradeLevelConditions(nextLevelCfg, ctx);
         } catch (Exception e) {
             log.error("", e);
             res.code = Code.EXCEPTION;
@@ -373,18 +373,23 @@ public class SimCasinoService implements SimTaskStateReporter {
         notify.level = casino.getCasinoLevel();
         notify.exp = casino.getExp();
         notify.upgradeCost = currentCfg == null ? 0 : currentCfg.getUpgradeCost();
-        notify.upgradeLevelConditions = toUpgradeLevelConditions(nextCfg);
+        notify.upgradeLevelConditions = toUpgradeLevelConditions(nextCfg, ctx);
         ctx.send(notify);
     }
 
-    private List<KVInfo> toUpgradeLevelConditions(CasinoStatsSheetCfg nextLevelCfg) {
+    private List<KVInfo> toUpgradeLevelConditions(CasinoStatsSheetCfg nextLevelCfg, SimPlayerContext ctx) {
         if (nextLevelCfg == null || nextLevelCfg.getLevelUpCondition() == null
                 || nextLevelCfg.getLevelUpCondition().isEmpty()) {
             return null;
         }
         List<KVInfo> conditions = new ArrayList<>(nextLevelCfg.getLevelUpCondition().size());
         for (Map.Entry<Integer, Integer> condition : nextLevelCfg.getLevelUpCondition().entrySet()) {
-            conditions.add(new KVInfo(condition.getKey(), condition.getValue()));
+            int buildingId = condition.getKey();
+            int needLevel = condition.getValue();
+            BuildingData building = ctx.getCurrentCasino().findBuilding(buildingId);
+            if (building == null || building.getLevel() < needLevel) {
+                conditions.add(new KVInfo(buildingId, needLevel));
+            }
         }
         return conditions;
     }
