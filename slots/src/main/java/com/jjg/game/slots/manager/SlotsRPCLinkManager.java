@@ -48,10 +48,10 @@ public class SlotsRPCLinkManager {
     @Autowired
     private PlayerStatService playerStatService;
 
-    /** 通知玩家所属 SIM 节点已进入指定引导场景，并返回本次激活的引导组。 */
-    public CommonResult<List<Integer>> enterGuidePath(PlayerController playerController, String pathName) {
-        long playerId = playerController.playerId();
-        ClusterClient client = simNodeService.getSimClusterClient(playerId, playerController.ipAddress());
+    /** 通知玩家所属 SIM 节点已进入指定引导场景，并返回该场景下尚未完成的引导组。 */
+    public CommonResult<List<Integer>> enterGuidePath(SlotsPlayerGameData playerGameData, String pathName) {
+        long playerId = playerGameData.getPlayerId();
+        ClusterClient client = resolveSimClient(playerGameData);
         if (client == null) {
             log.warn("SLOT通知进入引导场景失败，未找到玩家 sim 节点 playerId={},pathName={}",
                     playerId, pathName);

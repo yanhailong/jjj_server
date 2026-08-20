@@ -6,7 +6,6 @@ import com.jjg.game.common.listener.SessionCloseListener;
 import com.jjg.game.common.listener.SessionEnterListener;
 import com.jjg.game.common.protostuff.PFSession;
 import com.jjg.game.common.utils.TimeHelper;
-import com.jjg.game.common.utils.WheelTimerUtil;
 import com.jjg.game.core.constant.Code;
 import com.jjg.game.core.dao.PlayerSessionTokenDao;
 import com.jjg.game.core.data.*;
@@ -19,16 +18,10 @@ import com.jjg.game.slots.controller.SlotsRoomController;
 import com.jjg.game.slots.data.SlotsPlayerGameData;
 import com.jjg.game.social.constant.SocialConst;
 import com.jjg.game.social.service.SocialStatusService;
-import com.jjg.game.sim.constant.SimConstant;
-import com.jjg.game.sim.pb.res.NotifyGuideTrigger;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Component;
-
-import java.util.List;
-import java.util.concurrent.TimeUnit;
-
 
 /**
  * @author 11
@@ -58,9 +51,6 @@ public class SlotsPlayerEventListener implements SessionEnterListener, SessionCl
     private RechargeService rechargeService;
     @Autowired
     private SocialStatusService socialStatusService;
-    @Autowired
-    private SlotsRPCLinkManager slotsRPCLinkManager;
-
     @Override
     public void sessionClose(PFSession session) {
         exitGame(session, ExitType.DROPPED);
@@ -102,52 +92,15 @@ public class SlotsPlayerEventListener implements SessionEnterListener, SessionCl
             PlayerController playerController = new PlayerController(session, player);
             session.setReference(playerController);
 
-            boolean entered;
             if (player.getRoomId() < 1) {
-                entered = enterSlotsGame(session, player, playerController, info, gameManager);
+                enterSlotsGame(session, player, playerController, info, gameManager);
             } else {
-                entered = enterRoomSlotsGame(session, player, playerController, info, gameManager);
-            }
-            if (entered) {
-                notifySlotsGuideDelayed(playerController);
+                enterRoomSlotsGame(session, player, playerController, info, gameManager);
             }
             socialStatusService.broadcastStatus(playerId, SocialConst.FriendOnlineStatus.IN_GAME);
         } catch (Exception e) {
             log.error("", e);
         }
-    }
-
-    /**
-     * 玩家切换到 SLOT 节点后激活 PathName=2 的等待引导。
-     * 延迟执行以保证具体 SLOT 游戏的进场响应先于通用引导通知到达客户端。
-     */
-    private void notifySlotsGuideDelayed(PlayerController playerController) {
-        long playerId = playerController.playerId();
-        long workId = playerController.getSession().getWorkId();
-        WheelTimerUtil.schedule(() ->
-                        PlayerExecutorGroupDisruptor.getDefaultExecutor().publishWithFallback(
-                                workId, 0, new BaseHandler<String>() {
-                                    @Override
-                                    public void action() {
-                                        if (playerController.getSession() == null
-                                                || playerController.getSession().getReference() != playerController) {
-                                            log.info("跳过已离开SLOT节点的引导场景检查 playerId={}", playerId);
-                                            return;
-                                        }
-                                        CommonResult<List<Integer>> result = slotsRPCLinkManager.enterGuidePath(
-                                                playerController, SimConstant.GuidePath.SLOTS);
-                                        if (!result.success() || result.data == null || result.data.isEmpty()) {
-                                            return;
-                                        }
-                                        NotifyGuideTrigger notify = new NotifyGuideTrigger(Code.SUCCESS);
-                                        notify.guideGroupIds = result.data;
-                                        playerController.send(notify);
-                                        log.info("玩家进入SLOT场景后触发新手引导 playerId={},groups={}",
-                                                playerId, result.data);
-                                    }
-                                }.setHandlerParamWithSelf("slots guide path enter notify")),
-                SimConstant.GuideTiming.SLOTS_ENTER_TRIGGER_DELAY_MILLIS,
-                TimeUnit.MILLISECONDS);
     }
 
     /**
@@ -158,9 +111,9 @@ public class SlotsPlayerEventListener implements SessionEnterListener, SessionCl
      * @param playerSessionInfo
      * @param gameManager
      */
-    private boolean enterSlotsGame(PFSession session, Player player, PlayerController playerController, PlayerSessionInfo playerSessionInfo, AbstractSlotsGameManager gameManager) {
+    private void enterSlotsGame(PFSession session, Player player, PlayerController playerController, PlayerSessionInfo playerSessionInfo, AbstractSlotsGameManager gameManager) {
         //放入玩家对应线程中处理避免和回存冲突
-        boolean published = PlayerExecutorGroupDisruptor.getDefaultExecutor().tryPublish(session.getWorkId(), 0, new BaseHandler<String>() {
+        PlayerExecutorGroupDisruptor.getDefaultExecutor().tryPublish(session.getWorkId(), 0, new BaseHandler<String>() {
             @Override
             public void action() throws Exception {
                 //删除之前全部的playerGameData
@@ -175,7 +128,6 @@ public class SlotsPlayerEventListener implements SessionEnterListener, SessionCl
         PlayerSessionToken playerSessionToken = playerSessionTokenDao.getByPlayerId(player.getId());
         logger.enterGame(player, player.getGameType(), player.getRoomCfgId(), playerSessionToken.getDevice());
         log.debug("玩家进入slots 游戏 playerId = {},gameType = {},enterType={}", player.getId(), player.getGameType(), playerSessionInfo.getEnterType());
-        return published;
     }
 
     /**
@@ -186,21 +138,21 @@ public class SlotsPlayerEventListener implements SessionEnterListener, SessionCl
      * @param playerSessionInfo
      * @param gameManager
      */
-    private boolean enterRoomSlotsGame(PFSession session, Player player, PlayerController playerController, PlayerSessionInfo playerSessionInfo, AbstractSlotsGameManager gameManager) {
+    private void enterRoomSlotsGame(PFSession session, Player player, PlayerController playerController, PlayerSessionInfo playerSessionInfo, AbstractSlotsGameManager gameManager) {
         SlotsRoomController slotsRoomController = slotsRoomManager.enterRoom(playerController);
         if (slotsRoomController == null) {
             log.warn("进入好友房slots时失败 playerId = {},gameType = {},roomId = {}", player.getId(), player.getGameType(), player.getRoomId());
             playerService.doSave(player.getId(), p -> {
                 p.setRoomId(0);
             });
-            return false;
+            return;
         }
 
         //设置workId
         session.setWorkId(slotsRoomController.getRoom().getId());
 
         //放入玩家对应线程中处理避免和回存冲突
-        boolean published = PlayerExecutorGroupDisruptor.getDefaultExecutor().tryPublish(session.getWorkId(), 0, new BaseHandler<String>() {
+        PlayerExecutorGroupDisruptor.getDefaultExecutor().tryPublish(session.getWorkId(), 0, new BaseHandler<String>() {
             @Override
             public void action() throws Exception {
                 //删除之前全部的playerGameData
@@ -215,7 +167,6 @@ public class SlotsPlayerEventListener implements SessionEnterListener, SessionCl
         });
         logger.enterGame(player, player.getGameType(), player.getRoomCfgId(), player.getDeviceType());
         log.debug("玩家进入好友房slots 游戏 playerId = {},gameType = {},roomId = {},enterType={}", player.getId(), player.getGameType(), player.getRoomId(), playerSessionInfo.getEnterType());
-        return published;
     }
 
     /**
