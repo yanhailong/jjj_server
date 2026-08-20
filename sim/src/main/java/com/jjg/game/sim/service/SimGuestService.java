@@ -1367,12 +1367,17 @@ public class SimGuestService implements SimPlayerTickListener, ItemListener, Sim
             return new CommonResult<>(Code.EXPIRE);
         }
         int dailyCount = specialGuestDailyCountService.getAdCount(ctx.playerId());
-        if (cfg.getDailyViewLimit() > 0 && dailyCount >= cfg.getDailyViewLimit()) {
+        VisitorTargetListCfg adPoolCfg = getSpecialGuestPoolCfg(ctx.getCurrentCasino(), SimConstant.SpecialGuest.POOL_AD);
+        if(adPoolCfg == null){
+            log.warn("观看特殊游客广告失败，未找到广告卡池配置 playerId={},cfgId={},now={},cdEndTime={}",
+                    ctx.playerId(), cfgId, now, baseData.getSpecialGuestAdCdEndTime());
+            return new CommonResult<>(Code.SAMPLE_ERROR);
+        }
+        if (adPoolCfg.getDailyViewLimit() > 0 && dailyCount >= adPoolCfg.getDailyViewLimit()) {
             log.warn("观看特殊游客广告失败，达到每日上限 playerId={},cfgId={},dailyCount={},dailyLimit={}",
-                    ctx.playerId(), cfgId, dailyCount, cfg.getDailyViewLimit());
+                    ctx.playerId(), cfgId, dailyCount, adPoolCfg.getDailyViewLimit());
             return new CommonResult<>(Code.TODAY_CLIAM_LIMIT);
         }
-
         if (invitePurchasedSpecialGuest(ctx, cfg.getVisitorID(), cfg.getVisitorCount()) != Code.SUCCESS) {
             log.warn("观看特殊游客广告邀请失败 playerId={},cfgId={},visitorItemId={},visitorCount={}",
                     ctx.playerId(), cfgId, cfg.getVisitorID(), cfg.getVisitorCount());
@@ -1778,7 +1783,10 @@ public class SimGuestService implements SimPlayerTickListener, ItemListener, Sim
         info.costType = SimConstant.SpecialGuest.COST_AD;
         info.price = "0";
         info.dailyBuyCount = specialGuestDailyCountService.getAdCount(ctx.playerId());
-        info.dailyLimitCount = cfg.getDailyViewLimit();
+        VisitorTargetListCfg adPoolCfg = getSpecialGuestPoolCfg(ctx.getCurrentCasino(), SimConstant.SpecialGuest.POOL_AD);
+        if(adPoolCfg != null){
+            info.dailyLimitCount = adPoolCfg.getDailyViewLimit();
+        }
         info.viewCd = cfg.getViewCD();
         info.viewCdEndTime = baseData.getSpecialGuestAdCdEndTime();
         info.output = getSpecialGuestOutput(ctx, info.itemId);

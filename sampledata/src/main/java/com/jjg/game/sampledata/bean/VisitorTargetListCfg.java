@@ -23,6 +23,8 @@ public class VisitorTargetListCfg extends BaseCfgBean {
   protected boolean DailyRefresh;
   /** 每日刷新的次数上限 */
   protected int DailyRefreshLimit;
+  /** 单日观看次数上限 */
+  protected int DailyViewLimit;
   /** 界面显示的个数 */
   protected int DisplayCount;
   /** 是否可以手动刷新 */
@@ -44,6 +46,11 @@ public class VisitorTargetListCfg extends BaseCfgBean {
   /** 返回每日刷新的次数上限 */
   public int getDailyRefreshLimit() {
     return DailyRefreshLimit;
+  }
+
+  /** 返回单日观看次数上限 */
+  public int getDailyViewLimit() {
+    return DailyViewLimit;
   }
 
   /** 返回界面显示的个数 */

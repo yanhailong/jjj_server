@@ -19,8 +19,6 @@ public class VisitorGenWatchVideoCfg extends BaseCfgBean {
   /** 配置表工作薄名 */
   public static final String SHEET_NAME = "VisitorGenWatchVideo";
 
-  /** 单日观看次数上限 */
-  protected int DailyViewLimit;
   /** 观看CD时间（min） */
   protected int ViewCD;
   /** 单个游客数量 */
@@ -29,11 +27,6 @@ public class VisitorGenWatchVideoCfg extends BaseCfgBean {
   protected int VisitorID;
   /** 客户端资源 */
   protected String icon;
-
-  /** 返回单日观看次数上限 */
-  public int getDailyViewLimit() {
-    return DailyViewLimit;
-  }
 
   /** 返回观看CD时间（min） */
   public int getViewCD() {
