@@ -48,6 +48,7 @@ import com.jjg.game.sim.data.SimVisitTrialSession;
 import com.jjg.game.sim.data.SlotsEntrySessionData;
 import com.jjg.game.sim.data.SpinStatInfo;
 import com.jjg.game.sim.data.VisitTrialSpinPermit;
+import com.jjg.game.sim.pb.res.NotifyGuideTrigger;
 import com.jjg.game.sim.service.SimNodeService;
 import com.jjg.game.sim.service.SimVisitQuotaService;
 import com.jjg.game.slots.constant.SlotsConst;
@@ -366,7 +367,47 @@ public abstract class AbstractSlotsGameManager<T extends SlotsPlayerGameData, L 
 
         G gameRunInfo = createGameRunInfo(playerController.playerId(), Code.SUCCESS);
         gameRunInfo.setData(playerGameData);
+        notifyGuideAfterEnterGame(playerController, playerGameData);
         return gameRunInfo;
+    }
+
+    /**
+     * 具体 SLOT 的 EnterGame 请求处理完成后，延迟检查 PathName=2 的新手引导。
+     * 当前方法返回后消息处理器会先发送进场响应，随后再发送通用引导通知。
+     */
+    private void notifyGuideAfterEnterGame(PlayerController playerController, T playerGameData) {
+        long playerId = playerController.playerId();
+        long workId = playerController.getSession().getWorkId();
+        WheelTimerUtil.schedule(() ->
+                        PlayerExecutorGroupDisruptor.getDefaultExecutor().publishWithFallback(
+                                workId, 0, new BaseHandler<String>() {
+                                    @Override
+                                    public void action() {
+                                        if (playerController.getSession() == null
+                                                || playerController.getSession().getReference() != playerController) {
+                                            log.info("跳过已离开SLOT节点的引导场景检查 playerId={}", playerId);
+                                            return;
+                                        }
+                                        CommonResult<List<Integer>> result = slotsRPCLinkManager.enterGuidePath(
+                                                playerGameData, SimConstant.GuidePath.SLOTS);
+                                        if (result == null || !result.success()) {
+                                            log.warn("SLOT进场后检查新手引导失败 playerId={},code={}",
+                                                    playerId, result == null ? null : result.code);
+                                            return;
+                                        }
+                                        if (result.data == null || result.data.isEmpty()) {
+                                            log.info("SLOT进场后没有待触发的新手引导 playerId={}", playerId);
+                                            return;
+                                        }
+                                        NotifyGuideTrigger notify = new NotifyGuideTrigger(Code.SUCCESS);
+                                        notify.guideGroupIds = result.data;
+                                        playerController.send(notify);
+                                        log.info("玩家进入SLOT游戏后触发新手引导 playerId={},groups={}",
+                                                playerId, result.data);
+                                    }
+                                }.setHandlerParamWithSelf("slots guide after game enter")),
+                SimConstant.GuideTiming.SLOTS_ENTER_TRIGGER_DELAY_MILLIS,
+                TimeUnit.MILLISECONDS);
     }
 
     protected void resetFreeState(T gameData) {
