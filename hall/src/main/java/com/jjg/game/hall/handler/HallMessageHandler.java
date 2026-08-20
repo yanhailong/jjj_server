@@ -395,10 +395,12 @@ public class HallMessageHandler implements GmListener, ChooseWareListener, Choos
             finalUnlockMap.put(type, finalSet);
         }
 
+        SimPlayerContext context = simPlayerContextRegistry.getContext(playerSkin.getPlayerId());
+
         // 等级解锁
         for (Map.Entry<Integer, AvatarCfg> en : GameDataManager.getAvatarCfgMap().entrySet()) {
             AvatarCfg cfg = en.getValue();
-            if (cfg.getPlayerLv() < 1 || cfg.getPlayerLv() > playerLevel) {
+            if (cfg.getPlayerLv() < 1 || context == null || context.getSimBaseData().getAllLevel() < cfg.getPlayerLv()) {
                 continue;
             }
 

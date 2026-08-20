@@ -377,9 +377,9 @@ public class PlayerPackService implements IPlayerRegister {
         }
         List<Item> specialItems = new ArrayList<>();
         for (Item item : items) {
-            if (specialItemListener.support(item.getId())) {
+            if(isSpecialItem(item.getId())){
                 specialItems.add(item);
-            } else {
+            }else {
                 normalItems.add(item);
             }
         }
@@ -390,7 +390,20 @@ public class PlayerPackService implements IPlayerRegister {
      * 该道具是否由处理器承载
      */
     private boolean isSpecialItem(int itemId) {
-        return specialItemListener != null && specialItemListener.support(itemId);
+        if(specialItemListener == null){
+            return false;
+        }
+
+        boolean specialId = GameConstant.suportSpecialItem(itemId);
+        if(specialId){
+            return true;
+        }
+
+        ItemCfg itemCfg = GameDataManager.getItemCfg(itemId);
+        if(itemCfg == null || itemCfg.getItemType() < 1){
+            return false;
+        }
+        return GameConstant.SIM_SPECIAL_ITEM_TYPE.contains(itemCfg.getItemType());
     }
 
     private void notifyItemsAdded(long playerId, List<Item> items, AddType addType) {

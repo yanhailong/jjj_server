@@ -222,4 +222,7 @@ public interface Code {
     int TODAY_CLIAM_LIMIT = 4058262;
     // 钻石不足，无法刷新
     int DIAMOND_NOT_ENOUGH = 4058263;
+
+    //需要[%s]建筑达到lv%s
+    int NEED_BUILD_LEVEL = 4010046;
 }

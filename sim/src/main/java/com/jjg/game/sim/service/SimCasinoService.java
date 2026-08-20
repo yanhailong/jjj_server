@@ -198,7 +198,6 @@ public class SimCasinoService implements SimTaskStateReporter {
             res.remainShare = quota.remainShare();
             res.dailyShareLimit = quota.dailyShareLimit();
             res.coopTaskInfo = simCoopTaskService.getBoundRoomInfo(ctx.playerId());
-            res.seasonRank = seasonRankingService.rankOf(ctx.getSeasonPlayerData());
 
             //获取下一等级的配置
             CasinoStatsSheetCfg nextLevelCfg = configCacheService.getCasinoStatsSheetCfg(casinoData.getCasinoId(), casinoData.getCasinoLevel() + 1);
@@ -335,13 +334,13 @@ public class SimCasinoService implements SimTaskStateReporter {
             casino.setCasinoLevel(nextCfg.getLevel());
         }
         casino.setExp((int) Math.min(exp, Integer.MAX_VALUE));
+        notifyCasinoUpgrade(ctx, casino, currentCfg, nextCfg);
 
         int addedLevels = casino.getCasinoLevel() - oldLevel;
         if (addedLevels <= 0) {
             return;
         }
         addAllLevel(ctx, addedLevels);
-        notifyCasinoUpgrade(ctx, casino, currentCfg, nextCfg);
         simGuideService.triggerSceneTotalLevelReached(ctx, ctx.getSimBaseData().getAllLevel(), true);
         simTaskService.onConditionEvent(ctx,
                 SimConditionEventFactory.sceneLevel(casino.getCasinoId(), casino.getCasinoLevel()));

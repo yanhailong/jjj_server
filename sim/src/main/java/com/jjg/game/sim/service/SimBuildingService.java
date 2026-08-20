@@ -13,6 +13,7 @@ import com.jjg.game.core.data.ItemOperationResult;
 import com.jjg.game.core.pb.KVInfo;
 import com.jjg.game.core.service.PlayerPackService;
 import com.jjg.game.core.utils.ItemUtils;
+import com.jjg.game.core.utils.TipUtils;
 import com.jjg.game.sampledata.GameDataManager;
 import com.jjg.game.sampledata.bean.BuildingAreaTableCfg;
 import com.jjg.game.sampledata.bean.BuildingUpgradeTableCfg;
@@ -293,11 +294,19 @@ public class SimBuildingService implements SimPlayerTickListener, SimTaskStateRe
                         res.code = Code.PARAM_ERROR;
                         return res;
                     }
-
                     if (building.getLevel() < en.getValue()) {
+                        BuildingAreaTableCfg tmpCfg = GameDataManager.getBuildingAreaTableCfg(building.getId());
+                        if (tmpCfg == null) {
+                            log.warn("解锁建筑失败, 未找到该建筑配置 playerId={},buildingId={}", ctx.playerId(), building.getId());
+                            res.code = Code.PARAM_ERROR;
+                            return res;
+                        }
+                        Map<Integer, String> param = new LinkedHashMap<>();
+                        param.put(TipUtils.TipContextArgsType.LANGUAGE_ID, String.valueOf(tmpCfg.getBuildingNameId()));
+                        param.put(TipUtils.TipContextArgsType.PARAMETER, String.valueOf(en.getValue()));
+                        TipUtils.sendTip(ctx.playerId(), TipUtils.TipType.TOAST, Code.NEED_BUILD_LEVEL, param);
                         log.warn("解锁建筑失败, 解锁方式未通过 playerId={},buildingId={},level={},unLockBuildingId={},cfgLevel={}", ctx.playerId(), buildingId, building.getLevel(), en.getKey(), en.getValue());
-                        res.code = Code.PARAM_ERROR;
-                        return res;
+                        return null;
                     }
                 }
             }
@@ -365,20 +374,6 @@ public class SimBuildingService implements SimPlayerTickListener, SimTaskStateRe
                 return;
             }
 
-            if (currentCfg.getUpgradeCost() == null || currentCfg.getUpgradeCost().isEmpty()) {
-                log.warn("升级建筑失败, 没有配置升级消耗道具 playerId={},buildingId={},level={}", ctx.playerId(), buildingId, data.getLevel());
-                res.code = Code.PARAM_ERROR;
-                ctx.send(res);
-                return;
-            }
-
-            if(currentCfg.getNeedLevel() > ctx.getSimBaseData().getAllLevel()){
-                log.warn("升级建筑失败, 经营等级不足 playerId={},buildingId={},buildingLevel={},needLevel={}", ctx.playerId(), buildingId, data.getLevel(), currentCfg.getNeedLevel());
-                res.code = Code.SIM_CASINO_LEVEL_LOW;
-                ctx.send(res);
-                return;
-            }
-
             //先检查是不是添加进度条
             if (currentCfg.getCostPerLevel() != null && !currentCfg.getCostPerLevel().isEmpty()) {
                 //添加进度条
@@ -399,6 +394,20 @@ public class SimBuildingService implements SimPlayerTickListener, SimTaskStateRe
                     log.info("建筑增加进度条 playerId={},buildingInfo={}", ctx.playerId(), JSON.toJSONString(res.buildingInfo));
                     return;
                 }
+            }
+
+            if (currentCfg.getUpgradeCost() == null || currentCfg.getUpgradeCost().isEmpty()) {
+                log.warn("升级建筑失败, 没有配置升级消耗道具 playerId={},buildingId={},level={}", ctx.playerId(), buildingId, data.getLevel());
+                res.code = Code.PARAM_ERROR;
+                ctx.send(res);
+                return;
+            }
+
+            if (currentCfg.getNeedLevel() > ctx.getSimBaseData().getAllLevel()) {
+                log.warn("升级建筑失败, 经营等级不足 playerId={},buildingId={},buildingLevel={},needLevel={}", ctx.playerId(), buildingId, data.getLevel(), currentCfg.getNeedLevel());
+                res.code = Code.SIM_CASINO_LEVEL_LOW;
+                ctx.send(res);
+                return;
             }
 
             int buildingNextLevel = data.getLevel() + 1;
@@ -619,12 +628,17 @@ public class SimBuildingService implements SimPlayerTickListener, SimTaskStateRe
                     notify.rewards = new ArrayList<>();
 
                     for (Map.Entry<BuildingOutputType, Long> en : total.entrySet()) {
+                        if (en.getKey() == BuildingOutputType.CASINO_LEVEL_EXP) {
+                            continue;
+                        }
                         ItemInfo itemInfo = new ItemInfo();
                         itemInfo.itemId = en.getKey().getCode();
                         itemInfo.count = en.getValue();
                         notify.rewards.add(itemInfo);
                     }
-                    ctx.send(notify);
+                    if (!notify.rewards.isEmpty()) {
+                        ctx.send(notify);
+                    }
                 }
                 return;
             }

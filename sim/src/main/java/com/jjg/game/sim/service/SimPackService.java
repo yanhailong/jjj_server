@@ -6,9 +6,12 @@ import com.jjg.game.common.rpc.ClusterRpcReference;
 import com.jjg.game.common.rpc.GameRpcContext;
 import com.jjg.game.common.rpc.RpcReqParameterBuilder;
 import com.jjg.game.core.constant.AddType;
+import com.jjg.game.core.constant.GameConstant;
 import com.jjg.game.core.data.CommonResult;
 import com.jjg.game.core.data.Item;
 import com.jjg.game.core.listener.SpecialItemListener;
+import com.jjg.game.core.logger.CoreLogger;
+import com.jjg.game.sampledata.bean.ItemCfg;
 import com.jjg.game.sim.bridge.ToSimBridge;
 import com.jjg.game.sampledata.GameDataManager;
 import com.jjg.game.season.dao.SeasonPlayerDao;
@@ -29,6 +32,7 @@ import org.springframework.context.annotation.Lazy;
 import org.springframework.stereotype.Service;
 
 import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
@@ -61,6 +65,8 @@ public class SimPackService implements SpecialItemListener {
     @Autowired
     private SimNodeService simNodeService;
     @Autowired
+    private CoreLogger coreLogger;
+    @Autowired
     private ClusterSystem clusterSystem;
     @ClusterRpcReference
     private ToSimBridge toSimBridge;
@@ -70,16 +76,6 @@ public class SimPackService implements SpecialItemListener {
     private SeasonEconomyService seasonEconomyService;
     @Autowired(required = false)
     private List<SimSpecialItemBalanceListener> balanceListeners = List.of();
-
-    @Override
-    public boolean support(int itemId) {
-        return itemId == SimConstant.Item.ID_POWER
-                || itemId == SimConstant.Item.ID_AWARENESS
-                || itemId == SimConstant.Item.ID_EXPOD
-                || itemId == SimConstant.Item.CASINO_EXP
-                || itemId == SimConstant.Item.ID_SEASON_COIN
-                || GameDataManager.getMedalListCfg(itemId) != null;
-    }
 
     @Override
     public long getItemCount(long playerId, int itemId) {
@@ -126,6 +122,8 @@ public class SimPackService implements SpecialItemListener {
     @Override
     public boolean addItems(long playerId, List<Item> items, AddType addType, String desc, boolean notify) {
         ClusterClient owner = findRemoteSimNode(playerId);
+        Map<Integer, Long> addedItems = mergeItems(items, false);
+        Map<Integer, Long> beforeBalances = getCurrentBalances(owner, playerId, addedItems.keySet());
         boolean added;
         if (owner != null) {
             added = rpcCall(owner, playerId,
@@ -134,6 +132,10 @@ public class SimPackService implements SpecialItemListener {
             added = addItemsHere(playerId, items, addType);
         }
         if (added) {
+            if (!addedItems.isEmpty()) {
+                Map<Integer, Long> afterBalances = getCurrentBalances(owner, playerId, addedItems.keySet());
+                coreLogger.addItems(playerId, beforeBalances, addedItems, afterBalances, addType, desc);
+            }
             notifyCurrentBalances(owner, playerId, items);
         }
         return added;
@@ -157,6 +159,12 @@ public class SimPackService implements SpecialItemListener {
             if (count <= 0) {
                 continue;
             }
+
+            ItemCfg itemCfg = GameDataManager.getItemCfg(itemId);
+            if(itemCfg == null){
+                continue;
+            }
+
             if (itemId == SimConstant.Item.ID_POWER) {  //能量
                 SimBaseData base = ctx.getSimBaseData();
                 base.setPower(base.getPower() + (int) count);
@@ -173,6 +181,8 @@ public class SimPackService implements SpecialItemListener {
                 ctx.getSimBaseData().activeMedalId(itemId);
             } else if (itemId == SimConstant.Item.ID_SEASON_COIN) {  //赛季币
                 addSeasonCoin(ctx, count, addType);
+            } else if(itemCfg.getItemType() == GameConstant.Item.ITEM_TYPE_SIM_RECRUIT_CARD){  //招商卡
+                ctx.getCurrentCasino().addSpecialGuest(itemId, count);
             }
         }
         return true;
@@ -400,6 +410,8 @@ public class SimPackService implements SpecialItemListener {
     @Override
     public boolean removeItems(long playerId, List<Item> items, AddType addType, String desc) {
         ClusterClient owner = findRemoteSimNode(playerId);
+        Map<Integer, Long> removedItems = mergeItems(items, true);
+        Map<Integer, Long> beforeBalances = getCurrentBalances(owner, playerId, removedItems.keySet());
         boolean removed;
         if (owner != null) {
             removed = rpcCall(owner, playerId,
@@ -408,9 +420,45 @@ public class SimPackService implements SpecialItemListener {
             removed = removeItemsHere(playerId, items, addType);
         }
         if (removed) {
+            if (!removedItems.isEmpty()) {
+                Map<Integer, Long> afterBalances = getCurrentBalances(owner, playerId, removedItems.keySet());
+                coreLogger.consumeItem(playerId, beforeBalances, removedItems, afterBalances, addType);
+            }
             notifyCurrentBalances(owner, playerId, items);
         }
         return removed;
+    }
+
+    private Map<Integer, Long> mergeItems(List<Item> items, boolean removableOnly) {
+        Map<Integer, Long> itemCounts = new HashMap<>();
+        for (Item item : items) {
+            int itemId = item.getId();
+            if (item.getItemCount() <= 0 || removableOnly && !isRemovable(itemId)) {
+                continue;
+            }
+            itemCounts.merge(itemId, item.getItemCount(), Long::sum);
+        }
+        return itemCounts;
+    }
+
+    private boolean isRemovable(int itemId) {
+        return itemId == SimConstant.Item.ID_POWER
+                || itemId == SimConstant.Item.ID_AWARENESS
+                || itemId == SimConstant.Item.ID_SEASON_COIN;
+    }
+
+    private Map<Integer, Long> getCurrentBalances(ClusterClient owner, long playerId, Set<Integer> itemIds) {
+        Map<Integer, Long> balances = new HashMap<>(itemIds.size());
+        for (int itemId : itemIds) {
+            Long balance = owner == null
+                    ? getItemCountHere(playerId, itemId)
+                    : rpcCall(owner, playerId,
+                    () -> toSimBridge.getSimItemCount(playerId, itemId), null, "读取日志余额");
+            if (balance != null) {
+                balances.put(itemId, balance);
+            }
+        }
+        return balances;
     }
 
     /**

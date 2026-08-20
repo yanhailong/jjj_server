@@ -48,7 +48,7 @@ public class SeasonMessageHandler implements GmListener {
 
     @Command(SeasonConstant.MsgBean.REQ_SEASON_INFO)
     public void reqSeasonInfo(PlayerController playerController, ReqSeasonInfo req) {
-        execute(playerController, ctx -> ctx.send(seasonService.info(ctx)));
+        execute(playerController, ctx -> ctx.send(seasonService.info(ctx, req.reqType)));
     }
 
     @Command(SeasonConstant.MsgBean.REQ_SEASON_SHOP)

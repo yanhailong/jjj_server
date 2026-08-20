@@ -13,4 +13,6 @@ import com.jjg.game.sim.constant.SimConstant;
 @ProtobufMessage(messageType = MessageConst.MessageTypeDef.SIM_GAME, cmd = SimConstant.MsgBean.REQ_EMPLOYEE_POOL)
 @ProtoDesc("获取雇员卡池")
 public class ReqEmployeePool extends AbstractMessage {
+    @ProtoDesc("卡池id")
+    public int poolId;
 }
