@@ -289,6 +289,24 @@ public class SimGuideService implements ItemAddListener, ItemNotEnoughListener {
     }
 
     /**
+     * 返回当前场景可以执行的待进行引导组。
+     * PathName 为空的组不限制场景；指定了 PathName 的组只在对应场景下发。
+     */
+    public List<Integer> pendingOpenGuideGroupIds(SimPlayerContext ctx, String pathName) {
+        if (ctx == null || ctx.getSimBaseData() == null || pathName == null) {
+            return Collections.emptyList();
+        }
+        List<Integer> pending = ctx.getSimBaseData().pendingGuideGroupIds().stream()
+                .filter(configService::containsGroup)
+                .filter(groupId -> {
+                    String configuredPath = configService.pathNameOfGroup(groupId);
+                    return configuredPath.isBlank() || pathName.equals(configuredPath);
+                })
+                .toList();
+        return pending.isEmpty() ? Collections.emptyList() : pending;
+    }
+
+    /**
      * GM 强制完成指定引导步骤。先校验全部 ID，再统一修改，避免部分成功。
      */
     public int forceFinishGuides(SimPlayerContext ctx, Collection<Integer> guideIds) {

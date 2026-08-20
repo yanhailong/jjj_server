@@ -227,7 +227,9 @@ public class SimManager {
                         ctx, SimConstant.GuideCondition.NEW_PLAYER, 0, false);
             }
             guideService.skipReconnectGuides(ctx);
-            res.guideGroupIds = guideService.pendingOpenGuideGroupIds(ctx);
+            // 大厅只恢复 PathName 为空或 PathName=1 的引导，避免 SLOT 引导把玩家再次拉回游戏节点。
+            res.guideGroupIds = guideService.pendingOpenGuideGroupIds(
+                    ctx, SimConstant.GuidePath.SIM_HALL);
             res.completedGuideIds = ctx.getSimBaseData().completedGuideIds();
             res.guide = ctx.getSimBaseData().isGuide();
             log.info("进入模拟经营大厅检查等级引导 playerId={},playerLevel={},newGroups={},pendingGroups={}",

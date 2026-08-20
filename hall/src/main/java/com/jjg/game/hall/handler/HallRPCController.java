@@ -380,7 +380,9 @@ public class HallRPCController extends CoreRPCController implements GmToHallBrid
                     playerId, pathName);
             return new CommonResult<>(Code.NOT_FOUND);
         }
-        List<Integer> guideGroupIds = simGuideService.triggerDeferredForPath(ctx, pathName, false);
+        simGuideService.triggerDeferredForPath(ctx, pathName, false);
+        // 返回该场景下全部尚未完成的引导，兼容首次通知丢失及重新进入场景后的恢复。
+        List<Integer> guideGroupIds = simGuideService.pendingOpenGuideGroupIds(ctx, pathName);
         log.info("玩家进入引导场景处理完成 playerId={},pathName={},groups={}",
                 playerId, pathName, guideGroupIds);
         return new CommonResult<>(Code.SUCCESS, guideGroupIds);
