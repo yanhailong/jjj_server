@@ -79,7 +79,7 @@ public class SeasonService implements SimPlayerTickListener {
         this.simConfigCacheService = simConfigCacheService;
     }
 
-    public ResSeasonInfo info(SimPlayerContext ctx) {
+    public ResSeasonInfo info(SimPlayerContext ctx, int reqType) {
         ResSeasonInfo response = new ResSeasonInfo(Code.SUCCESS);
         long systemTime = System.currentTimeMillis();
         SeasonSnapshot snapshot = lifecycleService.ensureCurrent(ctx, systemTime);
@@ -128,7 +128,7 @@ public class SeasonService implements SimPlayerTickListener {
         }
         //跨赛季后首次请求: 下发上赛季结算信息, 下发即清除
         SeasonSettlement lastSettlement = data.getLastSettlement();
-        if (lastSettlement != null) {
+        if (reqType == 1 && lastSettlement != null) {
             response.lastSettlement = settlementInfo(lastSettlement);
             data.setLastSettlement(null);
             autoSaveService.enqueueSave(data);

@@ -198,8 +198,6 @@ public class SimCasinoService implements SimTaskStateReporter {
             res.remainShare = quota.remainShare();
             res.dailyShareLimit = quota.dailyShareLimit();
             res.coopTaskInfo = simCoopTaskService.getBoundRoomInfo(ctx.playerId());
-            res.seasonRank = seasonRankingService.rankOf(ctx.getSeasonPlayerData());
-            res.seasonCoin = ctx.getSeasonPlayerData().getSeasonCoin();
 
             //获取下一等级的配置
             CasinoStatsSheetCfg nextLevelCfg = configCacheService.getCasinoStatsSheetCfg(casinoData.getCasinoId(), casinoData.getCasinoLevel() + 1);

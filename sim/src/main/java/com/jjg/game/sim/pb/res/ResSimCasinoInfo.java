@@ -39,10 +39,6 @@ public class ResSimCasinoInfo extends AbstractResponse {
     public CoopTaskInfo coopTaskInfo;
     @ProtoDesc("升级需要的条件")
     public List<KVInfo> upgradeLevelConditions;
-    @ProtoDesc("赛季排名")
-    public int seasonRank;
-    @ProtoDesc("赛季币")
-    public long seasonCoin;
 
     public ResSimCasinoInfo(int code) {
         super(code);
