@@ -20,7 +20,6 @@ import com.jjg.game.core.handler.CoreRPCController;
 import com.jjg.game.core.logger.TaskOperationLogger;
 import com.jjg.game.core.rpc.GmToHallBridge;
 import com.jjg.game.core.task.manager.TaskManager;
-import com.jjg.game.core.rpc.SpecialGuestBridge;
 import com.jjg.game.hall.service.HallPlayerService;
 import com.jjg.game.hall.service.HallService;
 import com.jjg.game.sampledata.GameDataManager;
@@ -59,7 +58,7 @@ import java.util.Set;
  */
 @Component
 public class HallRPCController extends CoreRPCController implements GmToHallBridge, ToSimBridge, ToAllianceBridge,
-        ToSocialBridge, SpecialGuestBridge {
+        ToSocialBridge {
 
     @Autowired
     private AccountDao accountDao;
@@ -97,15 +96,6 @@ public class HallRPCController extends CoreRPCController implements GmToHallBrid
     private TaskOperationLogger taskOperationLogger;
     @Autowired
     private ChatService chatService;
-
-    @Override
-    @RpcCallSetting(processorModKey = "#arg0")
-    public CommonResult<Boolean> receiveSpecialGuest(long playerId, int casinoId, int itemId,
-                                                     long count, String orderId) {
-        boolean success = simGuestService.receiveCashSpecialGuest(
-                playerId, casinoId, itemId, count, orderId);
-        return new CommonResult<>(success ? Code.SUCCESS : Code.FAIL, success);
-    }
 
     @Override
     public int playerBindPhone(long playerId, String phone, int type, boolean reward) {

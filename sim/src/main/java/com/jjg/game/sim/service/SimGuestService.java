@@ -2,7 +2,9 @@ package com.jjg.game.sim.service;
 
 import com.alibaba.fastjson.JSONObject;
 import com.jjg.game.alliance.service.AllianceEventService;
+import com.jjg.game.common.config.NodeConfig;
 import com.jjg.game.common.pb.ItemInfo;
+import com.jjg.game.common.utils.HttpUtils;
 import com.jjg.game.common.utils.RandomUtils;
 import com.jjg.game.common.utils.TimeHelper;
 import com.jjg.game.common.utils.WeightRandom;
@@ -29,6 +31,7 @@ import com.jjg.game.sim.manager.SimPlayerContextRegistry;
 import com.jjg.game.sim.pb.SimPbConverter;
 import com.jjg.game.sim.pb.res.*;
 import com.jjg.game.sim.pb.struct.*;
+import org.apache.commons.lang3.StringUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -70,6 +73,8 @@ public class SimGuestService implements SimPlayerTickListener, ItemListener, Sim
     @Autowired
     @Lazy
     private SimTaskService simTaskService;
+    @Autowired
+    private NodeConfig nodeConfig;
 
     @Override
     public void onTick(SimPlayerContext ctx, long now) {
@@ -1042,7 +1047,7 @@ public class SimGuestService implements SimPlayerTickListener, ItemListener, Sim
                     }
                 }
 
-                if(!map.isEmpty()) {
+                if (!map.isEmpty()) {
                     res.rewards = new ArrayList<>();
                     for (Map.Entry<Integer, Integer> en : map.entrySet()) {
                         res.rewards.add(new KVInfo(en.getKey(), en.getValue()));
@@ -1253,10 +1258,12 @@ public class SimGuestService implements SimPlayerTickListener, ItemListener, Sim
     /**
      * 购买当前场景展示的特殊游客。
      *
-     * <p>按当前展示池和 CostType 路由：广告类型观看后写入当前场景并替换展示槽位，
-     * 钻石类型扣款后写入当前场景，现金类型创建订单并在到账后写入下单场景。</p>
+     * <p>按当前展示池和 CostType 路由：广告和钻石购买成功后直接邀请并生成游客，
+     * 现金类型创建订单并在到账后发放到下单场景。</p>
      */
     public void buySpecialGuest(SimPlayerContext ctx, int cfgId, int costType, int payTypeValue) {
+        log.warn("请求购买游客 cfgId={},costype={},paytype={}", cfgId, costType, payTypeValue);
+
         ResBuySpecialGuest res = new ResBuySpecialGuest(Code.SUCCESS);
         try {
             SimBaseData baseData = ctx.getSimBaseData();
@@ -1366,8 +1373,8 @@ public class SimGuestService implements SimPlayerTickListener, ItemListener, Sim
             return new CommonResult<>(Code.TODAY_CLIAM_LIMIT);
         }
 
-        if (!addSpecialGuestToCurrentCasino(ctx, cfg.getVisitorID(), cfg.getVisitorCount())) {
-            log.warn("观看特殊游客广告发放失败，当前场景不存在 playerId={},cfgId={},visitorItemId={},visitorCount={}",
+        if (invitePurchasedSpecialGuest(ctx, cfg.getVisitorID(), cfg.getVisitorCount()) != Code.SUCCESS) {
+            log.warn("观看特殊游客广告邀请失败 playerId={},cfgId={},visitorItemId={},visitorCount={}",
                     ctx.playerId(), cfgId, cfg.getVisitorID(), cfg.getVisitorCount());
             return new CommonResult<>(Code.FAIL);
         }
@@ -1383,7 +1390,7 @@ public class SimGuestService implements SimPlayerTickListener, ItemListener, Sim
     }
 
     /**
-     * 使用 PriceValue1 作为钻石价格；只有扣款和场景写入均成功后才增加全局每日购买次数。
+     * 使用 PriceValue1 作为钻石价格；只有扣款和邀请生成均成功后才增加全局每日购买次数。
      */
     private void buySpecialGuestWithDiamond(SimPlayerContext ctx, VisitorGenPaidCfg cfg, ResBuySpecialGuest res) {
         long price = cfg.getPriceValue1().longValueExact();
@@ -1396,13 +1403,13 @@ public class SimGuestService implements SimPlayerTickListener, ItemListener, Sim
             return;
         }
 
-        if (!addSpecialGuestToCurrentCasino(ctx, cfg.getVisitorID(), cfg.getVisitorCount())) {
-            log.warn("钻石购买特殊游客发放失败，当前场景不存在 playerId={},cfgId={},visitorItemId={},visitorCount={}",
+        if (invitePurchasedSpecialGuest(ctx, cfg.getVisitorID(), cfg.getVisitorCount()) != Code.SUCCESS) {
+            log.warn("钻石购买特殊游客邀请失败 playerId={},cfgId={},visitorItemId={},visitorCount={}",
                     ctx.playerId(), cfg.getId(), cfg.getVisitorID(), cfg.getVisitorCount());
             CommonResult<ItemOperationResult> refundResult = playerPackService.addItem(
                     ctx.playerId(), ItemUtils.getDiamondItemId(), price, AddType.FAIL_ROLLBACK);
             if (!refundResult.success()) {
-                log.error("购买特殊游客写入场景失败且钻石回滚失败 playerId={},cfgId={},code={}",
+                log.error("购买特殊游客邀请失败且钻石回滚失败 playerId={},cfgId={},code={}",
                         ctx.playerId(), cfg.getId(), refundResult.code);
             }
             res.code = Code.FAIL;
@@ -1436,24 +1443,28 @@ public class SimGuestService implements SimPlayerTickListener, ItemListener, Sim
         res.orderId = payType == PayType.IOS ? order.getUuid() : order.getId();
         log.info("现金购买特殊游客创建订单成功 playerId={},cfgId={},payType={},price={},orderId={}",
                 ctx.playerId(), cfg.getId(), payType, cfg.getPriceValue1(), res.orderId);
+
+        //如果有测试充值url直接调用
+        try{
+            if (StringUtils.isNotEmpty(nodeConfig.getTestRechargeUrl())) {
+                HttpUtils.HttpResponse httpResponse = HttpUtils.doPostWithJSON(nodeConfig.getTestRechargeUrl() + order.getId(), "");
+                if (!httpResponse.isOk()) {
+                    log.debug("测试充值玩家预下单调用失败 playerId={}", ctx.playerId());
+                }
+            }
+        }catch (Exception e){
+            log.error("",e);
+        }
+
     }
 
     /**
-     * 将购买所得直接存入当前场景，不进入玩家背包。
+     * 购买成功后直接执行邀请逻辑，不进入当前场景的特殊游客持有数量。
      */
-    private boolean addSpecialGuestToCurrentCasino(SimPlayerContext ctx, int itemId, long count) {
-        SimCasinoData casino = ctx.getCurrentCasino();
-        if (casino == null) {
-            return false;
-        }
-        try {
-            casino.addSpecialGuest(itemId, count);
-            return true;
-        } catch (ArithmeticException e) {
-            log.error("增加场景特殊游客失败，数量溢出 playerId={},casinoId={},itemId={},count={}",
-                    ctx.playerId(), casino.getCasinoId(), itemId, count, e);
-            return false;
-        }
+    public int invitePurchasedSpecialGuest(SimPlayerContext ctx, int itemId, long count) {
+        VisitorQuestCfg cfg = configCache.getVisitorQuestCfgByItemId(itemId);
+        Map<Integer, Integer> invitedGuests = Map.of(cfg.getId(), (int)count);
+        return generateInvitedGuests(ctx, invitedGuests);
     }
 
     /**
@@ -1514,7 +1525,6 @@ public class SimGuestService implements SimPlayerTickListener, ItemListener, Sim
             res.code = Code.EXCEPTION;
         }
         ctx.send(res);
-        log.error("获取当前场景持有、尚未邀请的特殊游客 res={}", JSONObject.toJSONString(res));
     }
 
     /**
@@ -1534,26 +1544,19 @@ public class SimGuestService implements SimPlayerTickListener, ItemListener, Sim
             SimCasinoData casino = ctx.getCurrentCasino();
             Map<Integer, Long> inviteItems = new LinkedHashMap<>();
             Map<Integer, Integer> invitedGuests = new LinkedHashMap<>();
-            for (int itemId : new LinkedHashSet<>(itemIds)) {
-                VisitorQuestCfg visitorCfg = configCache.getVisitorQuestCfgByItemId(itemId);
-                if (visitorCfg == null) {
-                    log.warn("邀请特殊游客失败，特殊游客未关联游客配置 playerId={},itemId={}", ctx.playerId(), itemId);
+            for (int itemId : itemIds) {
+                ItemCfg itemCfg = GameDataManager.getItemCfg(itemId);
+                long itemCount = casino.getSpecialGuestItemCounts().getOrDefault(itemId, 0L);
+                if (itemCount < 1) {
+                    continue;
+                }
+
+                if (!appendInvitedGuests(ctx.playerId(), itemId, itemCount, itemCfg, invitedGuests)) {
                     res.code = Code.PARAM_ERROR;
                     ctx.send(res);
                     return;
                 }
-                long count = casino.getSpecialGuestItemCounts().getOrDefault(itemId, 0L);
-                if (count > Integer.MAX_VALUE) {
-                    log.warn("邀请特殊游客失败，单种特殊游客数量超限 playerId={},itemId={},count={}",
-                            ctx.playerId(), itemId, count);
-                    res.code = Code.PARAM_ERROR;
-                    ctx.send(res);
-                    return;
-                }
-                if (count > 0) {
-                    inviteItems.put(itemId, count);
-                    invitedGuests.merge(visitorCfg.getId(), (int) count, Math::addExact);
-                }
+                inviteItems.put(itemId, itemCount);
             }
             if (inviteItems.isEmpty()) {
                 log.warn("邀请特殊游客失败，当前场景未持有所选游客 playerId={},casinoId={},itemIds={}",
@@ -1570,24 +1573,57 @@ public class SimGuestService implements SimPlayerTickListener, ItemListener, Sim
                 ctx.send(res);
                 return;
             }
-            log.info("邀请特殊游客成功 playerId={},casinoId={},inviteItems={},invitedGuests={}",
-                    ctx.playerId(), casino.getCasinoId(), inviteItems, invitedGuests);
-            simTaskService.onConditionEvent(ctx, new GuestInviteConditionEvent(invitedGuests.keySet()));
-            ResGenPurchasedGuest generateRes = new ResGenPurchasedGuest(Code.SUCCESS);
-            for (Map.Entry<Integer, Integer> entry : invitedGuests.entrySet()) {
-                if (!appendPurchasedGuests(ctx, entry.getKey(), entry.getValue(), generateRes)) {
-                    break;
-                }
+            res.code = generateInvitedGuests(ctx, invitedGuests);
+            if (res.code == Code.SUCCESS) {
+                log.info("邀请特殊游客成功 playerId={},casinoId={},inviteItems={},invitedGuests={}",
+                        ctx.playerId(), casino.getCasinoId(), inviteItems, invitedGuests);
             }
-            if (generateRes.code == Code.SUCCESS) {
-                allianceEventService.onGuestGenerated(ctx.playerId(), true, generateRes.guests.size());
-            }
-            ctx.send(generateRes);
         } catch (Exception e) {
             log.error("邀请特殊游客异常 playerId={},itemIds={}", ctx.playerId(), itemIds, e);
             res.code = Code.EXCEPTION;
         }
         ctx.send(res);
+    }
+
+    private boolean appendInvitedGuests(long playerId, int itemId, long itemCount, ItemCfg itemCfg,
+                                        Map<Integer, Integer> invitedGuests) {
+        try {
+            boolean appended = false;
+            for (Map.Entry<Integer, Long> entry : itemCfg.getGetItem().entrySet()) {
+                int guestItemId = entry.getKey();
+                VisitorQuestCfg visitorCfg = configCache.getVisitorQuestCfgByItemId(guestItemId);
+                if (visitorCfg == null) {
+                    log.warn("邀请特殊游客失败，特殊游客未关联游客配置 playerId={},itemId={},guestItemId={}",
+                            playerId, itemId, guestItemId);
+                    return false;
+                }
+                int guestCount = Math.toIntExact(Math.multiplyExact(itemCount, entry.getValue()));
+                if (guestCount > 0) {
+                    invitedGuests.merge(visitorCfg.getId(), guestCount, Math::addExact);
+                    appended = true;
+                }
+            }
+            return appended;
+        } catch (ArithmeticException e) {
+            log.warn("邀请特殊游客失败，游客数量超限 playerId={},itemId={},itemCount={}",
+                    playerId, itemId, itemCount);
+            return false;
+        }
+    }
+
+    private int generateInvitedGuests(SimPlayerContext ctx, Map<Integer, Integer> invitedGuests) {
+        ResGenPurchasedGuest generateRes = new ResGenPurchasedGuest(Code.SUCCESS);
+        for (Map.Entry<Integer, Integer> entry : invitedGuests.entrySet()) {
+            if (!appendPurchasedGuests(ctx, entry.getKey(), entry.getValue(), generateRes)) {
+                break;
+            }
+        }
+        if (generateRes.code == Code.SUCCESS) {
+            simTaskService.onConditionEvent(ctx, new GuestInviteConditionEvent(invitedGuests.keySet()));
+            allianceEventService.onGuestGenerated(ctx.playerId(), true, generateRes.guests.size());
+        }
+        ctx.send(generateRes);
+        return generateRes.code;
     }
 
     /**

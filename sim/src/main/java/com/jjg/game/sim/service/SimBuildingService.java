@@ -374,20 +374,6 @@ public class SimBuildingService implements SimPlayerTickListener, SimTaskStateRe
                 return;
             }
 
-            if (currentCfg.getUpgradeCost() == null || currentCfg.getUpgradeCost().isEmpty()) {
-                log.warn("升级建筑失败, 没有配置升级消耗道具 playerId={},buildingId={},level={}", ctx.playerId(), buildingId, data.getLevel());
-                res.code = Code.PARAM_ERROR;
-                ctx.send(res);
-                return;
-            }
-
-            if(currentCfg.getNeedLevel() > ctx.getSimBaseData().getAllLevel()){
-                log.warn("升级建筑失败, 经营等级不足 playerId={},buildingId={},buildingLevel={},needLevel={}", ctx.playerId(), buildingId, data.getLevel(), currentCfg.getNeedLevel());
-                res.code = Code.SIM_CASINO_LEVEL_LOW;
-                ctx.send(res);
-                return;
-            }
-
             //先检查是不是添加进度条
             if (currentCfg.getCostPerLevel() != null && !currentCfg.getCostPerLevel().isEmpty()) {
                 //添加进度条
@@ -408,6 +394,20 @@ public class SimBuildingService implements SimPlayerTickListener, SimTaskStateRe
                     log.info("建筑增加进度条 playerId={},buildingInfo={}", ctx.playerId(), JSON.toJSONString(res.buildingInfo));
                     return;
                 }
+            }
+
+            if (currentCfg.getUpgradeCost() == null || currentCfg.getUpgradeCost().isEmpty()) {
+                log.warn("升级建筑失败, 没有配置升级消耗道具 playerId={},buildingId={},level={}", ctx.playerId(), buildingId, data.getLevel());
+                res.code = Code.PARAM_ERROR;
+                ctx.send(res);
+                return;
+            }
+
+            if (currentCfg.getNeedLevel() > ctx.getSimBaseData().getAllLevel()) {
+                log.warn("升级建筑失败, 经营等级不足 playerId={},buildingId={},buildingLevel={},needLevel={}", ctx.playerId(), buildingId, data.getLevel(), currentCfg.getNeedLevel());
+                res.code = Code.SIM_CASINO_LEVEL_LOW;
+                ctx.send(res);
+                return;
             }
 
             int buildingNextLevel = data.getLevel() + 1;

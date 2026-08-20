@@ -1,12 +1,10 @@
 package com.jjg.game.core.constant;
 
 import com.jjg.game.common.utils.CommonUtil;
+import com.jjg.game.sampledata.GameDataManager;
 
 import java.math.BigDecimal;
-import java.util.ArrayList;
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
+import java.util.*;
 
 /**
  * 游戏常量
@@ -22,12 +20,26 @@ public class GameConstant {
     public static final double TEN_THOUSAND_DOUBLE = 10000d;
     public static final BigDecimal TEN_THOUSAND_BD = BigDecimal.valueOf(TEN_THOUSAND);
 
+    //sim游戏中特殊的道具id
+    public static final Set<Integer> SIM_SPECIAL_ITEMS = new HashSet<>();
+    //sim游戏中特殊的道具类型
+    public static final Set<Integer> SIM_SPECIAL_ITEM_TYPE = new HashSet<>();
+
 
     static {
         for (EGameType value : EGameType.values()) {
             int majorType = CommonUtil.getMajorTypeByGameType(value.getGameTypeId());
             MAJOR_TYPE_ID_SET.computeIfAbsent(majorType, k -> new ArrayList<>()).add(value);
         }
+
+        SIM_SPECIAL_ITEMS.add(GameConstant.Item.ID_POWER);
+        SIM_SPECIAL_ITEMS.add(GameConstant.Item.ID_AWARENESS);
+        SIM_SPECIAL_ITEMS.add(GameConstant.Item.ID_EXPOD);
+        SIM_SPECIAL_ITEMS.add(GameConstant.Item.CASINO_EXP);
+        SIM_SPECIAL_ITEMS.add(GameConstant.Item.ID_SEASON_COIN);
+
+        SIM_SPECIAL_ITEM_TYPE.add(Item.ITEM_TYPE_RESEARCH_POINT);
+        SIM_SPECIAL_ITEM_TYPE.add(Item.ITEM_TYPE_SIM_RECRUIT_CARD);
     }
 
     public class Common {
@@ -51,6 +63,20 @@ public class GameConstant {
         int TYPE_DIAMOND = 98;
         int TYPE_SHELL = 97;
         int TYPE_SEASON_COIN = 96;
+
+        //能量
+        int ID_POWER = 1024001;
+        //知名度
+        int ID_AWARENESS = 1024002;
+        //曝光度
+        int ID_EXPOD = 1024003;
+        //场景经验
+        int CASINO_EXP = 1022505;
+
+        //研究点
+        int ITEM_TYPE_RESEARCH_POINT = 1;
+        //招商卡
+        int ITEM_TYPE_SIM_RECRUIT_CARD = 2;
     }
 
     public interface Marquee {
@@ -187,5 +213,14 @@ public class GameConstant {
         int PRIVACY_PROTOCOL_URL = 3;
         //服务协议链接
         int SERVICE_PROTOCOL_URL = 4;
+    }
+
+    /**
+     * 是不是sim需要特殊处理的道具
+     * @param itemId
+     * @return
+     */
+    public static boolean suportSpecialItem(int itemId) {
+        return SIM_SPECIAL_ITEMS.contains(itemId) || GameDataManager.getMedalListCfg(itemId) != null;
     }
 }

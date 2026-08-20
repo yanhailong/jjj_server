@@ -19,6 +19,8 @@ public class PropCfg extends BaseCfgBean {
   /** 配置表工作薄名 */
   public static final String SHEET_NAME = "prop";
 
+  /** 位置排序 */
+  protected int SortOrder;
   /** 游戏id */
   protected int gameType;
   /** 属性图标 */
@@ -29,6 +31,11 @@ public class PropCfg extends BaseCfgBean {
   protected Map<Integer,Integer> skillId;
   /** 类型 */
   protected int type;
+
+  /** 返回位置排序 */
+  public int getSortOrder() {
+    return SortOrder;
+  }
 
   /** 返回游戏id */
   public int getGameType() {

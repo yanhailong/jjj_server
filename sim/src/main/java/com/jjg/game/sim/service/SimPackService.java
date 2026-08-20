@@ -6,10 +6,12 @@ import com.jjg.game.common.rpc.ClusterRpcReference;
 import com.jjg.game.common.rpc.GameRpcContext;
 import com.jjg.game.common.rpc.RpcReqParameterBuilder;
 import com.jjg.game.core.constant.AddType;
+import com.jjg.game.core.constant.GameConstant;
 import com.jjg.game.core.data.CommonResult;
 import com.jjg.game.core.data.Item;
 import com.jjg.game.core.listener.SpecialItemListener;
 import com.jjg.game.core.logger.CoreLogger;
+import com.jjg.game.sampledata.bean.ItemCfg;
 import com.jjg.game.sim.bridge.ToSimBridge;
 import com.jjg.game.sampledata.GameDataManager;
 import com.jjg.game.season.dao.SeasonPlayerDao;
@@ -74,16 +76,6 @@ public class SimPackService implements SpecialItemListener {
     private SeasonEconomyService seasonEconomyService;
     @Autowired(required = false)
     private List<SimSpecialItemBalanceListener> balanceListeners = List.of();
-
-    @Override
-    public boolean support(int itemId) {
-        return itemId == SimConstant.Item.ID_POWER
-                || itemId == SimConstant.Item.ID_AWARENESS
-                || itemId == SimConstant.Item.ID_EXPOD
-                || itemId == SimConstant.Item.CASINO_EXP
-                || itemId == SimConstant.Item.ID_SEASON_COIN
-                || GameDataManager.getMedalListCfg(itemId) != null;
-    }
 
     @Override
     public long getItemCount(long playerId, int itemId) {
@@ -167,6 +159,12 @@ public class SimPackService implements SpecialItemListener {
             if (count <= 0) {
                 continue;
             }
+
+            ItemCfg itemCfg = GameDataManager.getItemCfg(itemId);
+            if(itemCfg == null){
+                continue;
+            }
+
             if (itemId == SimConstant.Item.ID_POWER) {  //能量
                 SimBaseData base = ctx.getSimBaseData();
                 base.setPower(base.getPower() + (int) count);
@@ -183,6 +181,8 @@ public class SimPackService implements SpecialItemListener {
                 ctx.getSimBaseData().activeMedalId(itemId);
             } else if (itemId == SimConstant.Item.ID_SEASON_COIN) {  //赛季币
                 addSeasonCoin(ctx, count, addType);
+            } else if(itemCfg.getItemType() == GameConstant.Item.ITEM_TYPE_SIM_RECRUIT_CARD){  //招商卡
+                ctx.getCurrentCasino().addSpecialGuest(itemId, count);
             }
         }
         return true;
