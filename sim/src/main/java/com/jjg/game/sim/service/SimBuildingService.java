@@ -13,6 +13,7 @@ import com.jjg.game.core.data.ItemOperationResult;
 import com.jjg.game.core.pb.KVInfo;
 import com.jjg.game.core.service.PlayerPackService;
 import com.jjg.game.core.utils.ItemUtils;
+import com.jjg.game.core.utils.TipUtils;
 import com.jjg.game.sampledata.GameDataManager;
 import com.jjg.game.sampledata.bean.BuildingAreaTableCfg;
 import com.jjg.game.sampledata.bean.BuildingUpgradeTableCfg;
@@ -293,11 +294,19 @@ public class SimBuildingService implements SimPlayerTickListener, SimTaskStateRe
                         res.code = Code.PARAM_ERROR;
                         return res;
                     }
-
                     if (building.getLevel() < en.getValue()) {
+                        BuildingAreaTableCfg tmpCfg = GameDataManager.getBuildingAreaTableCfg(building.getId());
+                        if (tmpCfg == null) {
+                            log.warn("解锁建筑失败, 未找到该建筑配置 playerId={},buildingId={}", ctx.playerId(), building.getId());
+                            res.code = Code.PARAM_ERROR;
+                            return res;
+                        }
+                        Map<Integer, String> param = new LinkedHashMap<>();
+                        param.put(TipUtils.TipContextArgsType.LANGUAGE_ID, String.valueOf(tmpCfg.getBuildingNameId()));
+                        param.put(TipUtils.TipContextArgsType.PARAMETER, String.valueOf(en.getValue()));
+                        TipUtils.sendTip(ctx.playerId(), TipUtils.TipType.TOAST, Code.NEED_BUILD_LEVEL, param);
                         log.warn("解锁建筑失败, 解锁方式未通过 playerId={},buildingId={},level={},unLockBuildingId={},cfgLevel={}", ctx.playerId(), buildingId, building.getLevel(), en.getKey(), en.getValue());
-                        res.code = Code.PARAM_ERROR;
-                        return res;
+                        return null;
                     }
                 }
             }

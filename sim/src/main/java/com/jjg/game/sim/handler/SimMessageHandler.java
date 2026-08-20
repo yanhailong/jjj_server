@@ -343,7 +343,9 @@ public class SimMessageHandler implements GmListener {
     public void reqUnlockBuilding(PlayerController playerController, ReqUnlockBuilding req) {
         execute(playerController, ctx -> {
             ResUnlockBuilding res = buildingService.onUnlockBuilding(ctx, req.id);
-            ctx.send(res);
+            if(res != null) {
+                ctx.send(res);
+            }
         }, ReqUnlockBuilding.class);
     }
 
