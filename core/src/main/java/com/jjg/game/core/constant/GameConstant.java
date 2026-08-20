@@ -38,7 +38,7 @@ public class GameConstant {
         SIM_SPECIAL_ITEMS.add(GameConstant.Item.CASINO_EXP);
         SIM_SPECIAL_ITEMS.add(GameConstant.Item.ID_SEASON_COIN);
 
-        SIM_SPECIAL_ITEM_TYPE.add(Item.ITEM_TYPE_RESEARCH_POINT);
+//        SIM_SPECIAL_ITEM_TYPE.add(Item.ITEM_TYPE_RESEARCH_POINT);
         SIM_SPECIAL_ITEM_TYPE.add(Item.ITEM_TYPE_SIM_RECRUIT_CARD);
     }
 
