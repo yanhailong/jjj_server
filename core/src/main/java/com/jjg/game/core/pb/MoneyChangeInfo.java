@@ -10,7 +10,7 @@ import com.jjg.game.common.proto.ProtobufMessage;
 @ProtobufMessage
 @ProtoDesc("玩家货币变化")
 public class MoneyChangeInfo {
-    @ProtoDesc("货币类型  97.贝币 98.钻石  99.金币")
+    @ProtoDesc("货币类型  96.赛季币 97.贝币 98.钻石  99.金币")
     public int moneyType;
     @ProtoDesc("变化值  正为增加  负为减少")
     public long changeValue;

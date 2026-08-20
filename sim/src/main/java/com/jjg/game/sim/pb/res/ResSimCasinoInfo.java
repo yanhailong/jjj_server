@@ -41,6 +41,8 @@ public class ResSimCasinoInfo extends AbstractResponse {
     public List<KVInfo> upgradeLevelConditions;
     @ProtoDesc("赛季排名")
     public int seasonRank;
+    @ProtoDesc("赛季币")
+    public long seasonCoin;
 
     public ResSimCasinoInfo(int code) {
         super(code);
