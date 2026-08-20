@@ -187,6 +187,12 @@ public interface ToSimBridge extends IGameRpc {
     CommonResult<List<Integer>> triggerGuideEvent(long playerId, int condition, int param);
 
     /**
+     * 非 SIM 节点通知玩家已经进入指定引导场景。
+     * 返回本次从场景等待状态激活的引导组。
+     */
+    CommonResult<List<Integer>> enterGuidePath(long playerId, String pathName);
+
+    /**
      * 多人协作任务结算回写 (slots 房间结束时调用发起者所在 sim 节点):
      * 发起者任务态 -> 待领奖/失败; 协助者奖励经邮件发放。
      *

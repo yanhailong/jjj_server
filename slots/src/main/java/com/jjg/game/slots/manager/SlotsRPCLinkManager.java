@@ -27,6 +27,7 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Component;
 
 import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
 import java.util.concurrent.ThreadLocalRandom;
 
@@ -46,6 +47,31 @@ public class SlotsRPCLinkManager {
     private SimNodeService simNodeService;
     @Autowired
     private PlayerStatService playerStatService;
+
+    /** 通知玩家所属 SIM 节点已进入指定引导场景，并返回本次激活的引导组。 */
+    public CommonResult<List<Integer>> enterGuidePath(PlayerController playerController, String pathName) {
+        long playerId = playerController.playerId();
+        ClusterClient client = simNodeService.getSimClusterClient(playerId, playerController.ipAddress());
+        if (client == null) {
+            log.warn("SLOT通知进入引导场景失败，未找到玩家 sim 节点 playerId={},pathName={}",
+                    playerId, pathName);
+            return new CommonResult<>(Code.NOT_FOUND);
+        }
+        GameRpcContext rpcContext = GameRpcContext.getContext();
+        RpcReqParameterBuilder previousBuilder = rpcContext.getReqParameterBuilder();
+        try {
+            rpcContext.withReqParameterBuilder(RpcReqParameterBuilder.create()
+                    .addClusterClient(client).setTryMillisPerClient(1000));
+            CommonResult<List<Integer>> result = toSimBridge.enterGuidePath(playerId, pathName);
+            return result == null ? new CommonResult<>(Code.EXCEPTION) : result;
+        } catch (Exception e) {
+            log.error("SLOT跨节点通知进入引导场景异常 playerId={},pathName={}",
+                    playerId, pathName, e);
+            return new CommonResult<>(Code.EXCEPTION);
+        } finally {
+            rpcContext.setReqParameterBuilder(previousBuilder);
+        }
+    }
 
     /**
      * 通知sim节点

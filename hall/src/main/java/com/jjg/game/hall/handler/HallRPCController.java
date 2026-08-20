@@ -380,6 +380,24 @@ public class HallRPCController extends CoreRPCController implements GmToHallBrid
 
     @Override
     @RpcCallSetting(processorModKey = "#arg0")
+    public CommonResult<List<Integer>> enterGuidePath(long playerId, String pathName) {
+        if (!com.jjg.game.sim.constant.SimConstant.GuidePath.SLOTS.equals(pathName)) {
+            return new CommonResult<>(Code.PARAM_ERROR);
+        }
+        SimPlayerContext ctx = simPlayerContextRegistry.getContext(playerId);
+        if (ctx == null) {
+            log.warn("进入引导场景处理失败，未找到玩家 sim 数据 playerId={},pathName={}",
+                    playerId, pathName);
+            return new CommonResult<>(Code.NOT_FOUND);
+        }
+        List<Integer> guideGroupIds = simGuideService.triggerDeferredForPath(ctx, pathName, false);
+        log.info("玩家进入引导场景处理完成 playerId={},pathName={},groups={}",
+                playerId, pathName, guideGroupIds);
+        return new CommonResult<>(Code.SUCCESS, guideGroupIds);
+    }
+
+    @Override
+    @RpcCallSetting(processorModKey = "#arg0")
     public ResSeasonMatch seasonMatch(long playerId, int gameType, long stake) {
         SimPlayerContext ctx = this.simPlayerContextRegistry.getContext(playerId);
         if (ctx == null) {
