@@ -16,6 +16,7 @@ import com.jjg.game.common.curator.NodeType;
 import com.jjg.game.common.proto.Pair;
 import com.jjg.game.common.protostuff.MessageUtil;
 import com.jjg.game.common.protostuff.PFMessage;
+import com.jjg.game.common.protostuff.ProtostuffUtil;
 import com.jjg.game.common.timer.TimerCenter;
 import com.jjg.game.common.timer.TimerEvent;
 import com.jjg.game.common.timer.TimerListener;
@@ -401,9 +402,15 @@ public abstract class AbstractSlotsGameManager<T extends SlotsPlayerGameData, L 
                                         }
                                         NotifyGuideTrigger notify = new NotifyGuideTrigger(Code.SUCCESS);
                                         notify.guideGroupIds = result.data;
-                                        playerController.send(notify);
-                                        log.info("玩家进入SLOT游戏后触发新手引导 playerId={},groups={}",
-                                                playerId, result.data);
+                                        // NotifyGuideTrigger 属于 SIM 消息类型。SLOT 节点直接构造协议消息，
+                                        // 避免跨模块响应类未进入 MessageUtil 映射时 send(Object) 静默丢弃。
+                                        PFMessage guideMessage = new PFMessage(
+                                                SimConstant.MsgBean.NOTIFY_GUIDE_TRIGGER,
+                                                ProtostuffUtil.serialize(notify));
+                                        playerController.send(guideMessage);
+                                        log.info("玩家进入SLOT游戏后发送新手引导通知 playerId={},groups={},msgId={},gatePath={}",
+                                                playerId, result.data, guideMessage.cmd,
+                                                playerController.getSession().getGatePath());
                                     }
                                 }.setHandlerParamWithSelf("slots guide after game enter")),
                 SimConstant.GuideTiming.SLOTS_ENTER_TRIGGER_DELAY_MILLIS,
