@@ -95,10 +95,13 @@ public class PrivateMessageDao extends MongoBaseDao<PrivateMessage, Long> {
     }
 
     /**
-     * 标记某会话中发给"我"的消息为已读。
+     * 标记某会话中指定时间前发给"我"的消息为已读。
      */
-    public void markRead(String conversationId, long toId) {
-        Query q = new Query(Criteria.where("conversationId").is(conversationId).and("toId").is(toId).and("read").is(false));
+    public void markRead(String conversationId, long toId, long maxTime) {
+        Query q = new Query(Criteria.where("conversationId").is(conversationId)
+                .and("toId").is(toId)
+                .and("read").is(false)
+                .and("time").lte(maxTime));
         mongoTemplate.updateMulti(q, new Update().set("read", true), PrivateMessage.class);
     }
 

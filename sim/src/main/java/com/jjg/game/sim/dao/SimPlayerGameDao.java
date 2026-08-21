@@ -102,6 +102,26 @@ public class SimPlayerGameDao extends MongoBaseDao<SimBaseData, Long> {
         return data == null ? 0 : data.getAllLevel();
     }
 
+    /**
+     * 特邀游客红点只需要当前场景和广告状态，避免登录红点请求加载完整经营数据。
+     */
+    public SimBaseData findSpecialGuestRedDotData(long playerId) {
+        Query query = Query.query(Criteria.where("_id").is(playerId));
+        query.fields().include("playerId", "currentCasinoId", "specialGuestAdCfgIds",
+                "specialGuestAdRefreshDay", "specialGuestAdCdEndTime");
+        return mongoTemplate.findOne(query, SimBaseData.class);
+    }
+
+    /**
+     * 游客成长红点只需要当前场景 id，避免登录红点请求加载完整经营数据。
+     */
+    public int findCurrentCasinoId(long playerId) {
+        Query query = Query.query(Criteria.where("_id").is(playerId));
+        query.fields().include("currentCasinoId");
+        SimBaseData data = mongoTemplate.findOne(query, SimBaseData.class);
+        return data == null ? 0 : data.getCurrentCasinoId();
+    }
+
     public List<SimBaseData> findVisitBriefs(Collection<Long> playerIds) {
         if (playerIds == null || playerIds.isEmpty()) {
             return Collections.emptyList();

@@ -225,4 +225,7 @@ public interface Code {
 
     //需要[%s]建筑达到lv%s
     int NEED_BUILD_LEVEL = 4010046;
+
+    //达到等级上限，请提升星级后再试
+    int LEVEL_MAX = 4054037;
 }

@@ -1,5 +1,6 @@
 package com.jjg.game.social.service;
 
+import com.jjg.game.core.base.reddot.IRedDotService;
 import com.jjg.game.core.service.PlayerPackService;
 import com.jjg.game.core.constant.AddType;
 import com.jjg.game.core.constant.Code;
@@ -9,6 +10,8 @@ import com.jjg.game.core.data.NoticeTipBuilder;
 import com.jjg.game.core.data.Player;
 import com.jjg.game.core.data.PlayerController;
 import com.jjg.game.core.data.PlayerSessionInfo;
+import com.jjg.game.core.manager.RedDotManager;
+import com.jjg.game.core.pb.reddot.RedDotDetails;
 import com.jjg.game.core.service.CorePlayerService;
 import com.jjg.game.core.utils.TipUtils;
 import com.jjg.game.sim.service.SimConfigCacheService;
@@ -36,7 +39,7 @@ import java.util.*;
  * @date 2026/6/9
  */
 @Component
-public class FriendService {
+public class FriendService implements IRedDotService {
     private static final Logger log = LoggerFactory.getLogger(FriendService.class);
 
     @Autowired
@@ -55,6 +58,8 @@ public class FriendService {
     private PlayerPackService playerPackService;
     @Autowired
     private SimConfigCacheService simConfigCacheService;
+    @Autowired
+    private RedDotManager redDotManager;
 
     // ----------------------- 列表 -----------------------
 
@@ -228,6 +233,7 @@ public class FriendService {
                 log.warn("发起好友申请失败，已经申请过添加该好友， selfId={},targetId={}", selfId, targetId);
                 return res;
             }
+            updateFriendRequestRedDot(targetId);
             friendDao.setDailyRequest(selfId, today, sentToday + 1);
 
             //通知在线目标
@@ -274,6 +280,7 @@ public class FriendService {
             }
             if (!expired.isEmpty()) {
                 friendDao.removeRequests(playerId, expired);
+                updateFriendRequestRedDot(playerId);
             }
             if (validIds.isEmpty()) {
                 return res;
@@ -370,6 +377,7 @@ public class FriendService {
 
                 //一次性写入: 移除全部已处理申请 + 双向建立已同意好友(1 次单文档更新 + 1 次 bulk)
                 friendDao.applyHandleRequest(playerController.playerId(), handledIds, acceptedFriends, now);
+                updateFriendRequestRedDot(playerController.playerId());
 
                 playerController.send(res);
 
@@ -386,6 +394,7 @@ public class FriendService {
             } else {
                 //全部拒绝: 一次性移除全部已处理申请
                 friendDao.removeRequests(playerController.playerId(), handledIds);
+                updateFriendRequestRedDot(playerController.playerId());
                 NoticeTipBuilder builder = NoticeTipBuilder.builder().tipType(TipUtils.TipType.TOAST).languageId(SocialConst.LangIds.REJECT_ADD_FRIEND_APPLY);
                 builder.addArg(0, playerController.getPlayer().getNickName());
                 TipUtils.sendTip(playerController, TipUtils.TipType.TOAST, () -> builder.build());
@@ -660,6 +669,29 @@ public class FriendService {
             res.code = Code.EXCEPTION;
         }
         return res;
+    }
+
+    private void updateFriendRequestRedDot(long playerId) {
+        try {
+            redDotManager.updateRedDot(getModule(), getSubmodule(), playerId, validPendingRequestCount(playerId));
+        } catch (Exception e) {
+            log.error("更新好友申请红点失败 playerId={}", playerId, e);
+        }
+    }
+
+    @Override
+    public RedDotDetails.RedDotModule getModule() {
+        return RedDotDetails.RedDotModule.FRIEND;
+    }
+
+    @Override
+    public List<RedDotDetails> initialize(long playerId, int submodule) {
+        int count = validPendingRequestCount(playerId);
+        return List.of(redDotManager.buildRedDotDetails(getModule(), getSubmodule(), count));
+    }
+
+    private int validPendingRequestCount(long playerId) {
+        return friendDao.pendingRequestCount(playerId, System.currentTimeMillis() - SocialConst.Cfg.REQUEST_VALID_MILLS);
     }
 
     private int today() {

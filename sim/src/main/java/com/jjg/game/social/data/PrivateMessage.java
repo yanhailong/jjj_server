@@ -33,7 +33,7 @@ public class PrivateMessage {
     //创建时间(用于 TTL 索引, 7 天自动过期)
     private Date createTime;
     //接收方是否已读
-    private boolean read;
+    private volatile boolean read;
 
     public PrivateMessage() {
     }

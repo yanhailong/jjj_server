@@ -314,6 +314,15 @@ public class AllianceDao extends MongoBaseDao<AllianceData, Long> {
     }
 
     /**
+     * 联盟红点只读取盟主和入盟申请，避免登录加载成员、任务及求助数据。
+     */
+    public AllianceData findRedDotData(long allianceId) {
+        Query query = byId(allianceId);
+        query.fields().include("leaderId", "applications");
+        return mongoTemplate.findOne(query, AllianceData.class);
+    }
+
+    /**
      * 分页取全部联盟 id (leader 周榜结算遍历用; 联盟数量级远小于玩家, 分页扫描可控)。
      */
     public List<Long> pageIds(long lastId, int limit) {

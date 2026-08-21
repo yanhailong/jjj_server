@@ -59,9 +59,39 @@ public class SimPlayerContext {
     private long lastSpeedupCheckTime;
     //赛季宝石在线收益计时游标 (ms, 内存态; 重登从 0 开始以排除离线时段)
     private long lastGemEarningTime;
+    //雇员卡池红点已检查的有效卡池版本 (内存态; 仅在开放卡池变化时重算)
+    private long employeePoolRedDotVersion = -1;
+    //联盟免费捐献红点已检查的自然日 (内存态)
+    private int allianceDonateRedDotDay;
+    //下一条有效入盟申请的过期时间 (ms; -1 表示尚未初始化)
+    private long allianceApplicationRedDotNextExpireTime = -1;
 
     public PlayerController getPlayerController() {
         return playerController;
+    }
+
+    public long getEmployeePoolRedDotVersion() {
+        return employeePoolRedDotVersion;
+    }
+
+    public void setEmployeePoolRedDotVersion(long employeePoolRedDotVersion) {
+        this.employeePoolRedDotVersion = employeePoolRedDotVersion;
+    }
+
+    public int getAllianceDonateRedDotDay() {
+        return allianceDonateRedDotDay;
+    }
+
+    public void setAllianceDonateRedDotDay(int allianceDonateRedDotDay) {
+        this.allianceDonateRedDotDay = allianceDonateRedDotDay;
+    }
+
+    public long getAllianceApplicationRedDotNextExpireTime() {
+        return allianceApplicationRedDotNextExpireTime;
+    }
+
+    public void setAllianceApplicationRedDotNextExpireTime(long allianceApplicationRedDotNextExpireTime) {
+        this.allianceApplicationRedDotNextExpireTime = allianceApplicationRedDotNextExpireTime;
     }
 
     public void setPlayerController(PlayerController playerController) {

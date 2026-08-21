@@ -43,6 +43,8 @@ public class AllianceDonateService {
     private PlayerPackService playerPackService;
     @Autowired
     private AllianceEventService allianceEventService;
+    @Autowired
+    private AllianceRedDotService allianceRedDotService;
 
     /**
      * 捐献界面信息。
@@ -127,6 +129,7 @@ public class AllianceDonateService {
         res.myContribution = alliancePlayerDao.getOrEmpty(playerId).getContribution();
         res.allianceReputation = Math.max(newReputation, 0);
         res.remainCount = Math.max(0, cfg.getMemberDailyLimit() - newDonateCount);
+        allianceRedDotService.clearFreeDonation(playerId);
         log.info("联盟捐献 playerId={},allianceId={}", playerId, allianceId);
         return res;
     }

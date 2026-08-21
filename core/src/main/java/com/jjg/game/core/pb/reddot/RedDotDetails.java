@@ -103,7 +103,37 @@ public class RedDotDetails {
          * 公告
          */
         @ProtoDesc("vip功能")
-        VIP(8, RedDotType.COMMON, false);
+        VIP(8, RedDotType.COMMON, false),
+        /**
+         * 拜访
+         */
+        @ProtoDesc("拜访")
+        VISIT(9, RedDotType.COMMON, false),
+        /**
+         * 好友
+         */
+        @ProtoDesc("好友")
+        FRIEND(10, RedDotType.COUNT, false),
+        /**
+         * 聊天
+         */
+        @ProtoDesc("聊天")
+        CHAT(11, RedDotType.COUNT, false),
+        /**
+         * 特邀游客
+         */
+        @ProtoDesc("特邀游客")
+        SPECIAL_GUEST(12, RedDotType.COMMON, false),
+        /**
+         * 雇员
+         */
+        @ProtoDesc("雇员")
+        EMPLOYEE(13, RedDotType.COMMON, false),
+        /**
+         * 联盟
+         */
+        @ProtoDesc("联盟")
+        ALLIANCE(14, RedDotType.COMMON, false);
 
         private final int type;
         private final RedDotType redDotType;

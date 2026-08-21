@@ -1,9 +1,13 @@
 package com.jjg.game.social.service;
 
+import com.jjg.game.common.redis.RedisLock;
 import com.jjg.game.common.utils.WheelTimerUtil;
+import com.jjg.game.core.base.reddot.IRedDotService;
 import com.jjg.game.core.constant.Code;
 import com.jjg.game.core.data.Player;
 import com.jjg.game.core.data.PlayerSessionInfo;
+import com.jjg.game.core.manager.RedDotManager;
+import com.jjg.game.core.pb.reddot.RedDotDetails;
 import com.jjg.game.core.service.CorePlayerService;
 import com.jjg.game.social.channel.ChatHistory;
 import com.jjg.game.social.constant.ChatChannelType;
@@ -11,6 +15,7 @@ import com.jjg.game.social.constant.SocialConst;
 import com.jjg.game.social.dao.ConversationEntryDao;
 import com.jjg.game.social.dao.FriendDao;
 import com.jjg.game.social.dao.PrivateMessageDao;
+import com.jjg.game.social.dao.PrivateChatUnreadDao;
 import com.jjg.game.social.data.ChatMessage;
 import com.jjg.game.social.data.ConversationEntry;
 import com.jjg.game.social.data.PrivateMessage;
@@ -35,6 +40,7 @@ import java.util.concurrent.Executors;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicInteger;
+import java.util.function.IntSupplier;
 
 /**
  * 私聊业务: 落库(7天TTL)、实时投递、会话列表、分页历史。
@@ -48,8 +54,9 @@ import java.util.concurrent.atomic.AtomicInteger;
  * @date 2026/6/9
  */
 @Component
-public class PrivateChatService {
+public class PrivateChatService implements IRedDotService {
     private static final Logger log = LoggerFactory.getLogger(PrivateChatService.class);
+    private static final String RED_DOT_LOCK_PREFIX = "privateChatRedDot:";
 
     //会话列表返回的最大会话数
     private static final int CONVERSATION_SCAN_LIMIT = 200;
@@ -66,6 +73,12 @@ public class PrivateChatService {
     private CorePlayerService corePlayerService;
     @Autowired
     private SocialStatusService statusService;
+    @Autowired
+    private RedDotManager redDotManager;
+    @Autowired
+    private PrivateChatUnreadDao unreadDao;
+    @Autowired
+    private RedisLock redisLock;
 
     //写缓冲: 待批量落库的消息
     private final ConcurrentLinkedQueue<PrivateMessage> writeBuffer = new ConcurrentLinkedQueue<>();
@@ -124,12 +137,19 @@ public class PrivateChatService {
         pm.setCreateTime(new Date(msg.getTime()));
         pm.setRead(false);
 
+        boolean stored;
         if (ioExecutor == null || bufferSize.get() >= SocialConst.Cfg.PRIVATE_WRITE_BUFFER_MAX) {
             //未初始化(非 hall 节点兜底) 或 缓冲已满(Mongo 持续不可用): 同步落库, 不再入缓冲
-            storeDirect(pm);
+            stored = storeDirect(pm);
         } else {
             //入写缓冲, 等定时任务批量落库
             enqueue(pm);
+            stored = true;
+        }
+        if (stored) {
+            updatePrivateChatRedDot(msg.getToId(),
+                    () -> unreadDao.add(msg.getToId(), msg.getFromId(), msg.getId(), msg.getTime()),
+                    "新增未读");
         }
 
         //在线对端实时收到
@@ -159,14 +179,21 @@ public class PrivateChatService {
     /**
      * 降级路径: 同步单条落库 + 维护摘要; 失败则放弃该条历史 (实时投递不受影响)。
      */
-    private void storeDirect(PrivateMessage pm) {
+    private boolean storeDirect(PrivateMessage pm) {
         try {
             dao.insertMessage(pm);
-            conversationDao.bulkApply(List.of(pm));
         } catch (Exception e) {
             log.error("私聊写缓冲不可用且同步落库失败, 该条消息不进历史 id={},conversationId={}",
                     pm.getId(), pm.getConversationId(), e);
+            return false;
         }
+        try {
+            conversationDao.bulkApply(List.of(pm));
+        } catch (Exception e) {
+            log.error("私聊消息已同步落库但会话摘要更新失败 id={},conversationId={}",
+                    pm.getId(), pm.getConversationId(), e);
+        }
+        return true;
     }
 
     /**
@@ -245,18 +272,18 @@ public class PrivateChatService {
             }
             return;
         }
+        //先维护摘要再移出缓冲, 避免消息已落库但摘要未更新时打开会话漏扣未读数
+        try {
+            conversationDao.bulkApply(batch);
+        } catch (Exception e) {
+            log.error("会话摘要更新失败 size={}", batch.size(), e);
+        }
         //已落库: 从会话索引清除 (空桶移除, compute 系列保证与写入互斥)
         for (PrivateMessage pm : batch) {
             bufferIndex.computeIfPresent(pm.getConversationId(), (k, m) -> {
                 m.remove(pm.getId());
                 return m.isEmpty() ? null : m;
             });
-        }
-        //增量维护双侧会话摘要; 失败仅记日志: unread 在打开会话时会被清零校正, last* 由后续消息修正
-        try {
-            conversationDao.bulkApply(batch);
-        } catch (Exception e) {
-            log.error("会话摘要更新失败 size={}", batch.size(), e);
         }
     }
 
@@ -274,10 +301,13 @@ public class PrivateChatService {
         List<PrivateMessage> page = dao.page(conversationId, cursorId, clearTime, size);
         //仅打开会话(首页)时标记已读 + 合并写缓冲; 翻历史页时读态在打开时已处理, 不再重复 updateMulti
         if (cursorId == 0) {
-            dao.markRead(conversationId, playerId);
-            //摘要未读同步清零
+            long readTime = System.currentTimeMillis();
+            markBufferedRead(conversationId, playerId, clearTime, readTime);
+            page = mergeBuffer(conversationId, clearTime, page, size);
+            dao.markRead(conversationId, playerId, readTime);
             conversationDao.resetUnread(playerId, targetId);
-            page = mergeBuffer(conversationId, playerId, clearTime, page, size);
+            updatePrivateChatRedDot(playerId,
+                    () -> unreadDao.clearConversation(playerId, targetId, readTime), "读取会话");
         }
 
         Player me = corePlayerService.get(playerId);
@@ -303,7 +333,8 @@ public class PrivateChatService {
      * 合并写缓冲中本会话的消息到 DB 首页结果 (按 id 去重, 倒序, 截断到 size)。
      * 经会话索引只扫本会话桶, 不再全量遍历写缓冲。
      */
-    private List<PrivateMessage> mergeBuffer(String conversationId, long playerId, long clearTime, List<PrivateMessage> page, int size) {
+    private List<PrivateMessage> mergeBuffer(String conversationId, long clearTime,
+                                             List<PrivateMessage> page, int size) {
         Map<Long, PrivateMessage> bucket = bufferIndex.get(conversationId);
         if (bucket == null || bucket.isEmpty()) {
             return page;
@@ -311,10 +342,6 @@ public class PrivateChatService {
         List<PrivateMessage> buffered = new ArrayList<>();
         for (PrivateMessage pm : bucket.values()) {
             if (pm.getTime() > clearTime) {
-                //发给我的同步标记已读(缓冲对象即落库对象)
-                if (pm.getToId() == playerId) {
-                    pm.setRead(true);
-                }
                 buffered.add(pm);
             }
         }
@@ -388,8 +415,69 @@ public class PrivateChatService {
         //顺带清理早于消息保留期的过期清除标记, 防止 conversationClear 无界增长
         long expireBefore = now - TimeUnit.DAYS.toMillis(SocialConst.Cfg.PRIVATE_KEEP_DAYS);
         friendDao.setConversationClear(playerId, targetId, now, expireBefore);
+        String conversationId = PrivateMessage.conversationId(playerId, targetId);
+        markBufferedRead(conversationId, playerId, 0, now);
+        dao.markRead(conversationId, playerId, now);
         //清除点之前的未读不再展示, 摘要未读清零 (之后新消息会重新累计)
         conversationDao.resetUnread(playerId, targetId);
+        updatePrivateChatRedDot(playerId,
+                () -> unreadDao.clearConversation(playerId, targetId, now), "删除会话");
+    }
+
+    private void markBufferedRead(String conversationId, long playerId, long minTime, long maxTime) {
+        Map<Long, PrivateMessage> bucket = bufferIndex.get(conversationId);
+        if (bucket == null || bucket.isEmpty()) {
+            return;
+        }
+        for (PrivateMessage pm : bucket.values()) {
+            if (pm.getToId() == playerId && !pm.isRead()
+                    && pm.getTime() > minTime && pm.getTime() <= maxTime) {
+                pm.setRead(true);
+            }
+        }
+    }
+
+    private void updatePrivateChatRedDot(long playerId, IntSupplier countSupplier, String action) {
+        int changedCount;
+        try {
+            changedCount = countSupplier.getAsInt();
+        } catch (Exception e) {
+            log.error("私聊未读数据更新失败 playerId={},action={}", playerId, action, e);
+            return;
+        }
+
+        String lockKey = RED_DOT_LOCK_PREFIX + playerId;
+        boolean locked = false;
+        try {
+            locked = redisLock.tryLock(lockKey, 1, TimeUnit.SECONDS);
+        } catch (InterruptedException e) {
+            Thread.currentThread().interrupt();
+            log.warn("私聊红点等待串行锁被中断 playerId={},action={}", playerId, action);
+        }
+        if (!locked) {
+            log.warn("私聊未读数据已更新但未获取推送锁 playerId={},action={},count={}",
+                    playerId, action, changedCount);
+            return;
+        }
+        try {
+            int count = unreadDao.count(playerId);
+            redDotManager.updateRedDot(getModule(), getSubmodule(), playerId, count);
+        } catch (Exception e) {
+            log.error("私聊红点刷新失败 playerId={},action={}", playerId, action, e);
+        } finally {
+            redisLock.tryUnlock(lockKey);
+        }
+    }
+
+    @Override
+    public RedDotDetails.RedDotModule getModule() {
+        return RedDotDetails.RedDotModule.CHAT;
+    }
+
+    @Override
+    public List<RedDotDetails> initialize(long playerId, int submodule) {
+        return List.of(redDotManager.buildRedDotDetails(
+                getModule(), getSubmodule(), unreadDao.count(playerId)));
     }
 
     private ChatMessage toChatMessage(PrivateMessage pm, Player from) {

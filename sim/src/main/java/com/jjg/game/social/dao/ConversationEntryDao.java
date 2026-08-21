@@ -8,6 +8,7 @@ import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.data.domain.Sort;
 import org.springframework.data.mongodb.core.BulkOperations;
+import org.springframework.data.mongodb.core.FindAndModifyOptions;
 import org.springframework.data.mongodb.core.MongoTemplate;
 import org.springframework.data.mongodb.core.index.Index;
 import org.springframework.data.mongodb.core.query.Criteria;
@@ -62,10 +63,15 @@ public class ConversationEntryDao extends MongoBaseDao<ConversationEntry, String
 
     /**
      * 清零未读 (打开会话 / 单向删除会话时)。
+     *
+     * @return 清零前的未读数
      */
-    public void resetUnread(long playerId, long targetId) {
+    public int resetUnread(long playerId, long targetId) {
         Query q = new Query(Criteria.where("_id").is(ConversationEntry.id(playerId, targetId)));
-        mongoTemplate.updateFirst(q, new Update().set("unread", 0), ConversationEntry.class);
+        q.fields().include("unread");
+        ConversationEntry entry = mongoTemplate.findAndModify(q, new Update().set("unread", 0),
+                FindAndModifyOptions.options().returnNew(false), ConversationEntry.class);
+        return entry == null ? 0 : entry.getUnread();
     }
 
     /**

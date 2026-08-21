@@ -268,6 +268,16 @@ public interface SimConstant {
         int COST_AD = 0;
         int COST_DIAMOND = 1;
         int COST_CASH = 2;
+
+        int RED_DOT_FREE_REFRESH = 1;
+        int RED_DOT_AD_AVAILABLE = 2;
+        int RED_DOT_INVITE_ITEM = 3;
+    }
+
+    interface Employee {
+        int RED_DOT_RECRUIT_POOL = 1;
+        int RED_DOT_GUEST_STAR_UP = 2;
+        int RED_DOT_EMPLOYEE_GROWTH = 3;
     }
 
     interface GuideCondition {

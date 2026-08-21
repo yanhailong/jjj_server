@@ -11,6 +11,8 @@ import com.jjg.game.core.data.CommonResult;
 import com.jjg.game.core.data.Item;
 import com.jjg.game.core.listener.SpecialItemListener;
 import com.jjg.game.core.logger.CoreLogger;
+import com.jjg.game.core.manager.RedDotManager;
+import com.jjg.game.core.pb.reddot.RedDotDetails;
 import com.jjg.game.sampledata.bean.ItemCfg;
 import com.jjg.game.sim.bridge.ToSimBridge;
 import com.jjg.game.sampledata.GameDataManager;
@@ -66,6 +68,8 @@ public class SimPackService implements SpecialItemListener {
     private SimNodeService simNodeService;
     @Autowired
     private CoreLogger coreLogger;
+    @Autowired
+    private RedDotManager redDotManager;
     @Autowired
     private ClusterSystem clusterSystem;
     @ClusterRpcReference
@@ -153,6 +157,7 @@ public class SimPackService implements SpecialItemListener {
      * 在线入账：改内存态，随 ctx 定时落库
      */
     private boolean addItemsOnline(SimPlayerContext ctx, List<Item> items, AddType addType) {
+        boolean specialGuestItemAdded = false;
         for (Item item : items) {
             int itemId = item.getId();
             long count = item.getItemCount();
@@ -183,7 +188,12 @@ public class SimPackService implements SpecialItemListener {
                 addSeasonCoin(ctx, count, addType);
             } else if(itemCfg.getItemType() == GameConstant.Item.ITEM_TYPE_SIM_RECRUIT_CARD){  //招商卡
                 ctx.getCurrentCasino().addSpecialGuest(itemId, count);
+                specialGuestItemAdded = true;
             }
+        }
+        if (specialGuestItemAdded) {
+            redDotManager.updateRedDotByInitialize(RedDotDetails.RedDotModule.SPECIAL_GUEST,
+                    SimConstant.SpecialGuest.RED_DOT_INVITE_ITEM, ctx.playerId());
         }
         return true;
     }

@@ -36,6 +36,7 @@ import com.jjg.game.sim.manager.SimManager;
 import com.jjg.game.sim.manager.SimPlayerContextRegistry;
 import com.jjg.game.sim.pb.res.ResSimTaskReward;
 import com.jjg.game.sim.service.SimCoopTaskService;
+import com.jjg.game.sim.service.SimEmployeeRedDotService;
 import com.jjg.game.sim.service.SimGuideService;
 import com.jjg.game.sim.service.SimGuestService;
 import com.jjg.game.sim.service.SimPackService;
@@ -88,6 +89,8 @@ public class HallRPCController extends CoreRPCController implements GmToHallBrid
     private SimGuideService simGuideService;
     @Autowired
     private SimGuestService simGuestService;
+    @Autowired
+    private SimEmployeeRedDotService simEmployeeRedDotService;
     @Autowired
     private SimGuideLogger simGuideLogger;
     @Autowired
@@ -535,6 +538,7 @@ public class HallRPCController extends CoreRPCController implements GmToHallBrid
                 return new CommonResult<>(Code.NOT_FOUND, false);
             }
             simGuideService.triggerItemsAdded(ctx, items);
+            simEmployeeRedDotService.onPackItemsChanged(playerId, items, addType);
             return new CommonResult<>(Code.SUCCESS, true);
         } catch (Exception e) {
             log.error("跨节点处理道具入账事件异常 playerId={},items={},addType={}", playerId, items, addType, e);
@@ -550,6 +554,7 @@ public class HallRPCController extends CoreRPCController implements GmToHallBrid
                 return new CommonResult<>(Code.NOT_FOUND, false);
             }
             allianceEventService.onItemsConsumed(playerId, items, addType);
+            simEmployeeRedDotService.onPackItemsChanged(playerId, items, addType);
             return new CommonResult<>(Code.SUCCESS, true);
         } catch (Exception e) {
             log.error("跨节点处理道具消费事件异常 playerId={},items={},addType={}", playerId, items, addType, e);

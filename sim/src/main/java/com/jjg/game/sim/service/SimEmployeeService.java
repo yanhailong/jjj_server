@@ -59,6 +59,8 @@ public class SimEmployeeService implements SimTaskStateReporter {
     @Autowired
     @Lazy
     private SimTaskService simTaskService;
+    @Autowired
+    private SimEmployeeRedDotService employeeRedDotService;
 
     /**
      * 招募雇员 (卡池抽取):
@@ -188,6 +190,9 @@ public class SimEmployeeService implements SimTaskStateReporter {
             allianceEventService.onEmployeePoolDraw(ctx.playerId(), count);
             recruitedProfessions.forEach((professionId, recruited) ->
                     allianceEventService.onEmployeeRecruit(ctx.playerId(), professionId, recruited));
+            employeeRedDotService.updateRedDots(ctx.playerId(),
+                    SimConstant.Employee.RED_DOT_RECRUIT_POOL,
+                    SimConstant.Employee.RED_DOT_EMPLOYEE_GROWTH);
             //主线任务: 招募改变各职业各星级持有量 -> 上报 12212 "拥有 N 个 X 星雇员"
             reportEmployeeCounts(ctx);
             log.info("招募雇员成功 playerId={},count={},newEmployee={},addAllItems={}", ctx.playerId(), count, addEmployee, addAllItems);
@@ -225,7 +230,7 @@ public class SimEmployeeService implements SimTaskStateReporter {
             EmployeeLevelCfg nextCfg = getLevelCfg(employeeId, data.getLevel() + 1);
             if (nextCfg == null) {
                 log.warn("升级雇员失败, 已达配置上限 playerId={},employeeId={},level={}", ctx.playerId(), employeeId, data.getLevel());
-                res.code = Code.PARAM_ERROR;
+                res.code = Code.LEVEL_MAX;
                 ctx.send(res);
                 return;
             }
@@ -243,6 +248,8 @@ public class SimEmployeeService implements SimTaskStateReporter {
 
             data.setLevel(data.getLevel() + 1);
             res.level = data.getLevel();
+            employeeRedDotService.updateRedDots(ctx.playerId(),
+                    SimConstant.Employee.RED_DOT_EMPLOYEE_GROWTH);
             log.info("升级雇员成功 playerId={},employeeId={},newLevel={}", ctx.playerId(), employeeId, data.getLevel());
         } catch (Exception e) {
             log.error("", e);
@@ -290,6 +297,8 @@ public class SimEmployeeService implements SimTaskStateReporter {
             }
             data.setStar(data.getStar() + 1);
             res.star = data.getStar();
+            employeeRedDotService.updateRedDots(ctx.playerId(),
+                    SimConstant.Employee.RED_DOT_EMPLOYEE_GROWTH);
             //主线任务: 升星改变各星级持有量 -> 上报 12212 "拥有 N 个 X 星雇员"
             reportEmployeeCounts(ctx);
             log.info("升星雇员成功 playerId={},employeeId={},newStar={}", ctx.playerId(), employeeId, data.getStar());

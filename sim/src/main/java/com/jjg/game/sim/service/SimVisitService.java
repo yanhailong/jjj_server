@@ -6,14 +6,17 @@ import com.jjg.game.alliance.service.AllianceEventService;
 import com.jjg.game.common.cluster.ClusterSystem;
 import com.jjg.game.common.curator.MarsNode;
 import com.jjg.game.common.curator.NodeManager;
+import com.jjg.game.core.base.reddot.IRedDotService;
 import com.jjg.game.core.constant.AddType;
 import com.jjg.game.core.constant.Code;
 import com.jjg.game.core.data.CommonResult;
 import com.jjg.game.core.data.ItemOperationResult;
 import com.jjg.game.core.data.Player;
 import com.jjg.game.core.dao.CountDao;
+import com.jjg.game.core.manager.RedDotManager;
 import com.jjg.game.core.manager.SnowflakeManager;
 import com.jjg.game.core.pb.KVInfo;
+import com.jjg.game.core.pb.reddot.RedDotDetails;
 import com.jjg.game.core.service.CorePlayerService;
 import com.jjg.game.core.service.PlayerPackService;
 import com.jjg.game.core.service.PlayerSessionService;
@@ -68,7 +71,7 @@ import java.util.concurrent.ThreadLocalRandom;
  * @date 2026/6/30
  */
 @Service
-public class SimVisitService {
+public class SimVisitService implements IRedDotService {
     private static final Logger log = LoggerFactory.getLogger(SimVisitService.class);
     private static final int RANDOM_CANDIDATE_LIMIT = 40;
     private static final long RANDOM_VISIT_MIN_INTERVAL_MILLIS = 1000;
@@ -113,6 +116,8 @@ public class SimVisitService {
     private PlayerSessionService playerSessionService;
     @Autowired
     private AllianceEventService allianceEventService;
+    @Autowired
+    private RedDotManager redDotManager;
 
     public ResVisitCasino visit(SimPlayerContext ctx, long playerId, int casinoId) {
         ResVisitCasino res = new ResVisitCasino(Code.SUCCESS);
@@ -357,8 +362,10 @@ public class SimVisitService {
         //只有房主自己翻看才算已读，访客浏览不清房主的未读数
         if (ownerId == viewerId && profile != null && profile.getUnreadCommentCount() > 0
                 && !profile.getComments().isEmpty()) {
-            visitDao.clearUnreadComments(ownerId, profile.getUnreadCommentCount(),
-                    profile.getComments().get(0).getId());
+            if (visitDao.clearUnreadComments(ownerId, profile.getUnreadCommentCount(),
+                    profile.getComments().get(0).getId())) {
+                updateVisitRedDot(ownerId, false);
+            }
         }
         return res;
     }
@@ -680,12 +687,36 @@ public class SimVisitService {
                 comment.setPopularity(popularity);
                 comment.setCreateTime(now);
             }
-            return visitDao.addInteraction(playerId, popularity, record, comment,
+            SimVisitProfileData profile = visitDao.addInteraction(playerId, popularity, record, comment,
                     configService.getRecordLimit());
+            if (profile != null && comment != null) {
+                updateVisitRedDot(playerId, true);
+            }
+            return profile;
         } catch (Exception e) {
             log.error("保存拜访互动失败 visitorId={},ownerId={},type={}", ctx.playerId(), playerId, type, e);
             return null;
         }
+    }
+
+    private void updateVisitRedDot(long playerId, boolean hasRedDot) {
+        try {
+            redDotManager.updateRedDot(getModule(), getSubmodule(), playerId, hasRedDot ? 1 : 0);
+        } catch (Exception e) {
+            log.error("更新拜访留言红点失败 playerId={},hasRedDot={}", playerId, hasRedDot, e);
+        }
+    }
+
+    @Override
+    public RedDotDetails.RedDotModule getModule() {
+        return RedDotDetails.RedDotModule.VISIT;
+    }
+
+    @Override
+    public List<RedDotDetails> initialize(long playerId, int submodule) {
+        SimVisitProfileData profile = visitDao.findBrief(playerId);
+        int count = profile != null && profile.getUnreadCommentCount() > 0 ? 1 : 0;
+        return List.of(redDotManager.buildRedDotDetails(getModule(), getSubmodule(), count));
     }
 
     private TargetResult findTarget(long visitorId, long playerId, int casinoId) {

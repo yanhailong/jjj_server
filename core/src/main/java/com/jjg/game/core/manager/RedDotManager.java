@@ -18,6 +18,7 @@ import org.springframework.stereotype.Component;
 
 import java.util.ArrayList;
 import java.util.Collections;
+import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
@@ -55,9 +56,15 @@ public class RedDotManager {
      */
     public void registerService(RedDotDetails.RedDotModule module, IRedDotService service) {
         if (module != null && service != null) {
+            registerService(module, service.getSubmodule(), service);
+        }
+    }
+
+    public void registerService(RedDotDetails.RedDotModule module, int submodule, IRedDotService service) {
+        if (module != null && service != null) {
             Map<Integer, IRedDotService> serviceMap = redDotServiceMap.computeIfAbsent(module, key -> new ConcurrentHashMap<>());
-            serviceMap.put(service.getSubmodule(), service);
-            log.debug("注册红点服务: {} -> {}", module, service.getClass().getSimpleName());
+            serviceMap.put(submodule, service);
+            log.debug("注册红点服务: {}-{} -> {}", module, submodule, service.getClass().getSimpleName());
         }
     }
 
@@ -73,6 +80,9 @@ public class RedDotManager {
         List<RedDotDetails> allRedDots = new ArrayList<>();
         if (!dotDaoAll.isEmpty()) {
             for (Map.Entry<RedDotDetails.RedDotModule, Map<Integer, Integer>> entry : dotDaoAll.entrySet()) {
+                if (!entry.getKey().isNeedTrusteeship()) {
+                    continue;
+                }
                 //该模块下的所有子模块
                 for (Map.Entry<Integer, Integer> submoduleInfo : entry.getValue().entrySet()) {
                     allRedDots.add(buildRedDotDetails(entry.getKey(), submoduleInfo.getKey(), submoduleInfo.getValue()));
@@ -83,7 +93,7 @@ public class RedDotManager {
         if (CollectionUtil.isNotEmpty(redDotServiceMap)) {
             for (Map<Integer, IRedDotService> iRedDotServiceMap : redDotServiceMap.values()) {
                 try {
-                    for (IRedDotService redDotService : iRedDotServiceMap.values()) {
+                    for (IRedDotService redDotService : new HashSet<>(iRedDotServiceMap.values())) {
                         allRedDots.addAll(redDotService.initialize(playerId, 0));
                     }
                 } catch (Exception e) {
@@ -219,7 +229,7 @@ public class RedDotManager {
             return list;
         }
         if (submodule == 0) {
-            for (IRedDotService redDotService : serviceMap.values()) {
+            for (IRedDotService redDotService : new HashSet<>(serviceMap.values())) {
                 list.addAll(redDotService.initialize(playerId, submodule));
             }
         } else {

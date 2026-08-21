@@ -431,6 +431,15 @@ public class AlliancePlayerDao extends MongoBaseDao<AlliancePlayerData, Long> {
     }
 
     /**
+     * 联盟红点只读取归属及捐献日计数，避免登录加载完整玩家联盟数据。
+     */
+    public AlliancePlayerData findRedDotData(long playerId) {
+        Query query = byId(playerId);
+        query.fields().include("allianceId", "donateDay", "donateCount");
+        return mongoTemplate.findOne(query, AlliancePlayerData.class);
+    }
+
+    /**
      * 取一批玩家的所在联盟 (对决结算/批量校验用)。
      */
     public Map<Long, Long> multiGetAllianceId(Collection<Long> playerIds) {

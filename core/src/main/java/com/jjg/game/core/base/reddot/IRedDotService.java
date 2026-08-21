@@ -32,4 +32,8 @@ public interface IRedDotService {
     default int getSubmodule() {
         return 0;
     }
+
+    default List<Integer> getSubmodules() {
+        return List.of(getSubmodule());
+    }
 }

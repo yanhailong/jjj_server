@@ -10,12 +10,15 @@ import com.jjg.game.common.utils.TimeHelper;
 import com.jjg.game.common.utils.WeightRandom;
 import com.jjg.game.core.base.condition.numeric.ActionConditionEvent;
 import com.jjg.game.core.base.condition.numeric.GuestInviteConditionEvent;
+import com.jjg.game.core.base.reddot.IRedDotService;
 import com.jjg.game.core.constant.AddType;
 import com.jjg.game.core.constant.Code;
 import com.jjg.game.core.data.*;
 import com.jjg.game.core.listener.ItemListener;
+import com.jjg.game.core.manager.RedDotManager;
 import com.jjg.game.core.pb.KVInfo;
 import com.jjg.game.core.pb.RechargeType;
+import com.jjg.game.core.pb.reddot.RedDotDetails;
 import com.jjg.game.core.service.OrderService;
 import com.jjg.game.core.service.PlayerPackService;
 import com.jjg.game.core.service.SpecialGuestDailyCountService;
@@ -24,6 +27,7 @@ import com.jjg.game.sampledata.GameDataManager;
 import com.jjg.game.sampledata.bean.*;
 import com.jjg.game.sim.constant.SimConstant;
 import com.jjg.game.sim.dao.SimCasinoDao;
+import com.jjg.game.sim.dao.SimPlayerGameDao;
 import com.jjg.game.sim.data.*;
 import com.jjg.game.sim.listener.SimPlayerTickListener;
 import com.jjg.game.sim.listener.SimTaskStateReporter;
@@ -48,13 +52,19 @@ import java.util.function.Consumer;
  * @date 2026/5/26
  */
 @Service
-public class SimGuestService implements SimPlayerTickListener, ItemListener, SimTaskStateReporter {
+public class SimGuestService implements SimPlayerTickListener, ItemListener, SimTaskStateReporter, IRedDotService {
     private static final Logger log = LoggerFactory.getLogger(SimGuestService.class);
+    private static final List<Integer> RED_DOT_SUBMODULES = List.of(
+            SimConstant.SpecialGuest.RED_DOT_FREE_REFRESH,
+            SimConstant.SpecialGuest.RED_DOT_AD_AVAILABLE,
+            SimConstant.SpecialGuest.RED_DOT_INVITE_ITEM);
 
     @Autowired
     private SimConfigCacheService configCache;
     @Autowired
     private SimCasinoDao simCasinoDao;
+    @Autowired
+    private SimPlayerGameDao simPlayerGameDao;
     @Autowired
     private SimRewardService rewardService;
     @Autowired
@@ -75,10 +85,15 @@ public class SimGuestService implements SimPlayerTickListener, ItemListener, Sim
     private SimTaskService simTaskService;
     @Autowired
     private NodeConfig nodeConfig;
+    @Autowired
+    private RedDotManager redDotManager;
+    @Autowired
+    private SimEmployeeRedDotService employeeRedDotService;
 
     @Override
     public void onTick(SimPlayerContext ctx, long now) {
         generateGuestEvent(ctx, now);
+        refreshTimedSpecialGuestRedDots(ctx, now);
     }
 
     @Override
@@ -290,6 +305,7 @@ public class SimGuestService implements SimPlayerTickListener, ItemListener, Sim
         if (res.guests == null) {
             res.guests = new ArrayList<>();
         }
+        boolean guestUnlocked = false;
         for (int i = 0; i < count; i++) {
             GuestData guest = casino.findGuestData(guestId);
             if (guest == null) {
@@ -298,6 +314,7 @@ public class SimGuestService implements SimPlayerTickListener, ItemListener, Sim
                 guest.setStar(1);
                 guest.setLevel(1);
                 casino.addGuest(guest);
+                guestUnlocked = true;
             }
 
             //本次交互次数 (有奖励 + 无奖励)
@@ -334,6 +351,10 @@ public class SimGuestService implements SimPlayerTickListener, ItemListener, Sim
             res.guests.add(SimPbConverter.toGuestInfo(data, visitorQuestCfg));
             //累加经验
             guest.addExp(configCache.getVisitorLevelCfgMap());
+        }
+        if (guestUnlocked) {
+            employeeRedDotService.updateRedDots(ctx.playerId(),
+                    SimConstant.Employee.RED_DOT_GUEST_STAR_UP);
         }
         return true;
     }
@@ -720,7 +741,13 @@ public class SimGuestService implements SimPlayerTickListener, ItemListener, Sim
             log.warn("解锁游客时，当前场景数据不存在 playerId={},currentCasinoId={}", ctx.playerId(), ctx.getSimBaseData().getCurrentCasinoId());
             return Code.NOT_FOUND;
         }
-        return unlockGuest(casino, guestId);
+        boolean unlocked = casino.findGuestData(guestId) == null;
+        int code = unlockGuest(casino, guestId);
+        if (unlocked && code == Code.SUCCESS) {
+            employeeRedDotService.updateRedDots(ctx.playerId(),
+                    SimConstant.Employee.RED_DOT_GUEST_STAR_UP);
+        }
+        return code;
     }
 
     /**
@@ -844,6 +871,8 @@ public class SimGuestService implements SimPlayerTickListener, ItemListener, Sim
 
             res.guestId = guestData.getId();
             res.star = guestData.getStar();
+            employeeRedDotService.updateRedDots(ctx.playerId(),
+                    SimConstant.Employee.RED_DOT_GUEST_STAR_UP);
             //主线任务: 升星改变各星级持有量 -> 上报 12214 "拥有 N 个 X 星游客"
             reportGuestCounts(ctx);
             log.info("升星游客成功 playerId={},guestId={},star={}", ctx.playerId(), guestId, guestData.getStar());
@@ -988,6 +1017,9 @@ public class SimGuestService implements SimPlayerTickListener, ItemListener, Sim
             allianceEventService.onGuestPoolDraw(ctx.playerId(), count);
             allianceEventService.onGuestRecruit(ctx.playerId(),
                     poolCfg.getDrawCost() != null && !poolCfg.getDrawCost().isEmpty(), count);
+            employeeRedDotService.updateRedDots(ctx.playerId(),
+                    SimConstant.Employee.RED_DOT_RECRUIT_POOL,
+                    SimConstant.Employee.RED_DOT_GUEST_STAR_UP);
             //主线任务: 招募改变各星级持有量 -> 上报 12214 "拥有 N 个 X 星游客"
             reportGuestCounts(ctx);
             log.info("招募游客成功 playerId={},count={},newEmployee={},addAllItems={}", ctx.playerId(), count, addGuest, addAllItems);
@@ -1244,6 +1276,7 @@ public class SimGuestService implements SimPlayerTickListener, ItemListener, Sim
             casino.setSpecialGuestPaidCfgIds(selectPaidSpecialGuestCfgIds(
                     paidPoolCfg, new HashSet<>(casino.getSpecialGuestPaidCfgIds())));
             casino.setSpecialGuestRefreshCount(refreshCount + 1);
+            updateSpecialGuestRedDot(ctx.playerId(), SimConstant.SpecialGuest.RED_DOT_FREE_REFRESH);
             fillSpecialGuestListResponse(ctx, res);
             log.info("刷新特殊游客成功 playerId={},oldCfgIds={},newCfgIds={},refreshCount={},costItemId={},costCount={}",
                     ctx.playerId(), oldCfgIds, casino.getSpecialGuestPaidCfgIds(),
@@ -1356,7 +1389,7 @@ public class SimGuestService implements SimPlayerTickListener, ItemListener, Sim
         }
 
         VisitorGenWatchVideoCfg cfg = GameDataManager.getVisitorGenWatchVideoCfg(cfgId);
-        if (cfg == null || cfg.getVisitorID() <= 0 || cfg.getVisitorCount() <= 0) {
+        if (!validAdSpecialGuestCfg(cfg)) {
             log.warn("观看特殊游客广告失败，配置无效 playerId={},cfgId={}", ctx.playerId(), cfgId);
             return new CommonResult<>(Code.PARAM_ERROR);
         }
@@ -1386,6 +1419,7 @@ public class SimGuestService implements SimPlayerTickListener, ItemListener, Sim
         int newDailyCount = specialGuestDailyCountService.addAdCount(ctx.playerId());
         baseData.setSpecialGuestAdCdEndTime(now + (long) cfg.getViewCD() * TimeHelper.ONE_MINUTE_OF_MILLIS);
         int nextCfgId = replaceSpecialGuestAdOffer(baseData, cfgId);
+        updateSpecialGuestRedDot(ctx.playerId(), SimConstant.SpecialGuest.RED_DOT_AD_AVAILABLE);
         baseData.incWatchAdCount();
         allianceEventService.onAdWatch(ctx.playerId());
         log.info("观看特殊游客广告成功 playerId={},cfgId={},nextCfgId={},visitorItemId={},visitorCount={},dailyBuyCount={},cdEndTime={}",
@@ -1495,6 +1529,7 @@ public class SimGuestService implements SimPlayerTickListener, ItemListener, Sim
                 return false;
             }
             simCasinoDao.save(casino);
+            updateSpecialGuestRedDot(playerId, SimConstant.SpecialGuest.RED_DOT_INVITE_ITEM);
             log.info("现金特殊游客写入场景成功 playerId={},casinoId={},itemId={},count={},orderId={}",
                     playerId, casinoId, itemId, count, orderId);
             return true;
@@ -1578,6 +1613,7 @@ public class SimGuestService implements SimPlayerTickListener, ItemListener, Sim
                 ctx.send(res);
                 return;
             }
+            updateSpecialGuestRedDot(ctx.playerId(), SimConstant.SpecialGuest.RED_DOT_INVITE_ITEM);
             res.code = generateInvitedGuests(ctx, invitedGuests);
             if (res.code == Code.SUCCESS) {
                 log.info("邀请特殊游客成功 playerId={},casinoId={},inviteItems={},invitedGuests={}",
@@ -1889,6 +1925,134 @@ public class SimGuestService implements SimPlayerTickListener, ItemListener, Sim
         info.itemId = itemId;
         info.count = count;
         return info;
+    }
+
+    private void refreshTimedSpecialGuestRedDots(SimPlayerContext ctx, long now) {
+        SimBaseData baseData = ctx.getSimBaseData();
+        SimCasinoData casino = ctx.getCurrentCasino();
+        if (baseData == null || casino == null) {
+            return;
+        }
+        int today = TimeHelper.getDayNumerical();
+        if (baseData.getSpecialGuestAdRefreshDay() != today
+                || casino.getSpecialGuestRefreshDay() != today) {
+            if (ensureSpecialGuestOffers(ctx)) {
+                redDotManager.updateRedDotByInitialize(getModule(), RED_DOT_SUBMODULES, ctx.playerId());
+            }
+            return;
+        }
+        if (baseData.getSpecialGuestAdCdEndTime() > 0
+                && now >= baseData.getSpecialGuestAdCdEndTime()) {
+            baseData.setSpecialGuestAdCdEndTime(0);
+            updateSpecialGuestRedDot(ctx.playerId(), SimConstant.SpecialGuest.RED_DOT_AD_AVAILABLE);
+        }
+    }
+
+    private void updateSpecialGuestRedDot(long playerId, int submodule) {
+        redDotManager.updateRedDotByInitialize(getModule(), submodule, playerId);
+    }
+
+    public void updateSpecialGuestRedDots(long playerId) {
+        redDotManager.updateRedDotByInitialize(getModule(), RED_DOT_SUBMODULES, playerId);
+    }
+
+    @Override
+    public RedDotDetails.RedDotModule getModule() {
+        return RedDotDetails.RedDotModule.SPECIAL_GUEST;
+    }
+
+    @Override
+    public List<Integer> getSubmodules() {
+        return RED_DOT_SUBMODULES;
+    }
+
+    @Override
+    public List<RedDotDetails> initialize(long playerId, int submodule) {
+        SimPlayerContext ctx = simPlayerContextRegistry.getContext(playerId);
+        SimBaseData baseData;
+        SimCasinoData casino;
+        if (ctx != null) {
+            baseData = ctx.getSimBaseData();
+            casino = ctx.getCurrentCasino();
+        } else {
+            baseData = simPlayerGameDao.findSpecialGuestRedDotData(playerId);
+            casino = baseData == null ? null
+                    : simCasinoDao.findSpecialGuestRedDotData(playerId, baseData.getCurrentCasinoId());
+        }
+
+        List<Integer> submodules = submodule == 0 ? RED_DOT_SUBMODULES : List.of(submodule);
+        List<RedDotDetails> details = new ArrayList<>(submodules.size());
+        long now = System.currentTimeMillis();
+        int today = TimeHelper.getDayNumerical();
+        for (int currentSubmodule : submodules) {
+            if (!RED_DOT_SUBMODULES.contains(currentSubmodule)) {
+                continue;
+            }
+            details.add(redDotManager.buildRedDotDetails(getModule(), currentSubmodule,
+                    getSpecialGuestRedDotCount(playerId, baseData, casino, currentSubmodule, today, now)));
+        }
+        return details;
+    }
+
+    private int getSpecialGuestRedDotCount(long playerId, SimBaseData baseData, SimCasinoData casino,
+                                           int submodule, int today, long now) {
+        return switch (submodule) {
+            case SimConstant.SpecialGuest.RED_DOT_FREE_REFRESH ->
+                    hasFreeSpecialGuestRefresh(casino, today) ? 1 : 0;
+            case SimConstant.SpecialGuest.RED_DOT_AD_AVAILABLE ->
+                    hasAvailableSpecialGuestAd(playerId, baseData, casino, today, now) ? 1 : 0;
+            case SimConstant.SpecialGuest.RED_DOT_INVITE_ITEM ->
+                    hasSpecialGuestInviteItem(casino) ? 1 : 0;
+            default -> 0;
+        };
+    }
+
+    private boolean hasFreeSpecialGuestRefresh(SimCasinoData casino, int today) {
+        VisitorTargetListCfg poolCfg = getSpecialGuestPoolCfg(casino, SimConstant.SpecialGuest.POOL_PAID);
+        int refreshCount = casino != null && casino.getSpecialGuestRefreshDay() == today
+                ? casino.getSpecialGuestRefreshCount() : 0;
+        if (poolCfg == null || !poolCfg.getManualRefresh() || refreshCount != 0) {
+            return false;
+        }
+        ItemInfo cost = getSpecialGuestRefreshCost(poolCfg, refreshCount);
+        return cost != null && cost.count == 0;
+    }
+
+    private boolean hasAvailableSpecialGuestAd(long playerId, SimBaseData baseData, SimCasinoData casino,
+                                                int today, long now) {
+        if (baseData == null) {
+            return false;
+        }
+        VisitorTargetListCfg poolCfg = getSpecialGuestPoolCfg(casino, SimConstant.SpecialGuest.POOL_AD);
+        if (poolCfg == null || poolCfg.getDisplayCount() <= 0
+                || poolCfg.getDailyViewLimit() > 0
+                && specialGuestDailyCountService.getAdCount(playerId) >= poolCfg.getDailyViewLimit()) {
+            return false;
+        }
+        long cdEndTime = baseData.getSpecialGuestAdRefreshDay() == today
+                ? baseData.getSpecialGuestAdCdEndTime() : 0;
+        if (now < cdEndTime) {
+            return false;
+        }
+
+        List<Integer> cfgIds = baseData.getSpecialGuestAdCfgIds();
+        boolean refreshOffers = cfgIds == null || cfgIds.size() != poolCfg.getDisplayCount()
+                || baseData.getSpecialGuestAdRefreshDay() != today && poolCfg.getDailyRefresh();
+        if (refreshOffers) {
+            return GameDataManager.getVisitorGenWatchVideoCfgList().stream()
+                    .anyMatch(this::validAdSpecialGuestCfg);
+        }
+        return cfgIds.stream()
+                .map(GameDataManager::getVisitorGenWatchVideoCfg)
+                .anyMatch(this::validAdSpecialGuestCfg);
+    }
+
+    private boolean validAdSpecialGuestCfg(VisitorGenWatchVideoCfg cfg) {
+        return cfg != null && cfg.getVisitorID() > 0 && cfg.getVisitorCount() > 0;
+    }
+
+    private boolean hasSpecialGuestInviteItem(SimCasinoData casino) {
+        return casino != null && casino.getSpecialGuestItemCounts().values().stream().anyMatch(count -> count > 0);
     }
 
     @Override

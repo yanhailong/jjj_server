@@ -45,7 +45,9 @@ public class RedDotServiceRegistrar {
                 if (service != null) {
                     RedDotDetails.RedDotModule serviceModule = service.getModule();
                     if (serviceModule != null && !serviceModule.isNeedTrusteeship()) {
-                        redDotManager.registerService(serviceModule, service);
+                        for (Integer submodule : service.getSubmodules()) {
+                            redDotManager.registerService(serviceModule, submodule, service);
+                        }
                         log.debug("成功注册红点服务: {} -> {}", serviceModule, name);
                     } else {
                         log.warn("红点服务 {} 的模块为托管", name);

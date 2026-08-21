@@ -176,11 +176,22 @@ public class FriendDao extends MongoBaseDao<FriendData, Long> {
      * 待处理申请数 (一次聚合只回传计数, 不拉文档)。供发起申请时校验对方待处理上限。
      */
     public int pendingRequestCount(long playerId) {
+        return pendingRequestCount(playerId, Long.MIN_VALUE);
+    }
+
+    /**
+     * 指定时间之后的待处理申请数 (一次聚合只回传计数, 不拉文档)。
+     */
+    public int pendingRequestCount(long playerId, long minRequestTime) {
+        Document requests = new Document("$objectToArray",
+                new Document("$ifNull", Arrays.asList("$pendingRequests", new Document())));
+        Document validRequests = new Document("$filter", new Document("input", requests)
+                .append("as", "request")
+                .append("cond", new Document("$gte", Arrays.asList("$$request.v", minRequestTime))));
         Aggregation agg = Aggregation.newAggregation(
                 Aggregation.match(Criteria.where("playerId").is(playerId)),
                 context -> new Document("$project", new Document("count",
-                        new Document("$size", new Document("$objectToArray",
-                                new Document("$ifNull", Arrays.asList("$pendingRequests", new Document())))))));
+                        new Document("$size", validRequests))));
         AggregationResults<Document> results = mongoTemplate.aggregate(agg, FriendData.class, Document.class);
         Document doc = results.getUniqueMappedResult();
         if (doc == null) {

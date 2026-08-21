@@ -835,6 +835,30 @@ public class PlayerPackService implements IPlayerRegister {
     }
 
     /**
+     * 检查多组道具需求中是否至少有一组满足。同一次检查只加载一次背包数据。
+     */
+    public boolean checkHasAnyItems(Player player, Collection<Map<Integer, Long>> itemMaps) {
+        if (player == null || itemMaps == null || itemMaps.isEmpty()) {
+            return false;
+        }
+        long playerId = player.getId();
+        try {
+            PlayerPack playerPack = getFromAllDB(playerId);
+            for (Map<Integer, Long> itemMap : itemMaps) {
+                if (itemMap == null) {
+                    continue;
+                }
+                if (checkHasItems(player, checkItemParam(itemMap), playerPack) == Code.SUCCESS) {
+                    return true;
+                }
+            }
+        } catch (Exception e) {
+            log.error("批量检查道具异常 playerId={}", playerId, e);
+        }
+        return false;
+    }
+
+    /**
      * 检查是否拥有道具
      *
      * @param player   玩家
@@ -851,6 +875,16 @@ public class PlayerPackService implements IPlayerRegister {
         long playerId = player.getId();
         try {
             PlayerPack playerPack = getFromAllDB(playerId);
+            return checkHasItems(player, itemList, playerPack);
+        } catch (Exception e) {
+            log.error("检查道具异常 playerId={}", playerId, e);
+        }
+        return Code.FAIL;
+    }
+
+    private int checkHasItems(Player player, List<Item> itemList, PlayerPack playerPack) {
+        long playerId = player.getId();
+        try {
             for (Item item : itemList) {
                 if (item == null) {
                     continue;

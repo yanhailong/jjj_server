@@ -2,12 +2,15 @@ package com.jjg.game.sim.service;
 
 import com.jjg.game.common.utils.TimeHelper;
 import com.jjg.game.core.base.condition.numeric.*;
+import com.jjg.game.core.base.reddot.IRedDotService;
 import com.jjg.game.core.constant.AddType;
 import com.jjg.game.core.constant.Code;
 import com.jjg.game.core.constant.TaskConstant;
 import com.jjg.game.core.dao.CountDao;
 import com.jjg.game.core.data.*;
 import com.jjg.game.core.logger.TaskLogger;
+import com.jjg.game.core.manager.RedDotManager;
+import com.jjg.game.core.pb.reddot.RedDotDetails;
 import com.jjg.game.core.service.CorePlayerService;
 import com.jjg.game.core.service.GameFunctionService;
 import com.jjg.game.core.service.PlayerPackService;
@@ -28,6 +31,7 @@ import com.jjg.game.sim.data.SpinStatInfo;
 import com.jjg.game.sim.listener.SimTaskStateReporter;
 import com.jjg.game.sim.logger.SimAchievementTaskLogger;
 import com.jjg.game.sim.logger.SimMainTaskLogger;
+import com.jjg.game.sim.manager.SimPlayerContextRegistry;
 import com.jjg.game.sim.pb.res.NotifySimTaskUpdate;
 import com.jjg.game.sim.pb.res.ResSetDisplayedMedals;
 import com.jjg.game.sim.pb.res.ResSimTaskList;
@@ -54,7 +58,7 @@ import java.util.*;
  * @date 2026/6/25
  */
 @Service
-public class SimTaskService {
+public class SimTaskService implements IRedDotService {
     private static final Logger log = LoggerFactory.getLogger(SimTaskService.class);
 
     //计数 prefix: 主线每个节点一个, 成就每组一个 (featureId = 条件type + prefix)
@@ -72,6 +76,10 @@ public class SimTaskService {
     private SimTaskConfigService taskConfig;
     @Autowired
     private SimTaskDao simTaskDao;
+    @Autowired
+    private SimPlayerContextRegistry contextRegistry;
+    @Autowired
+    private RedDotManager redDotManager;
     @Autowired
     private PlayerPackService playerPackService;
     @Autowired
@@ -128,11 +136,11 @@ public class SimTaskService {
      *
      * @param notify 是否推送变更; 开界面时列表响应本身就带最新状态, 无需再推一次
      */
-    private void settleState(SimPlayerContext ctx, boolean notify) {
+    private boolean settleState(SimPlayerContext ctx, boolean notify) {
         Player player = resolvePlayer(ctx);
         SimTaskData data = ctx.getSimTaskData();
         if (player == null || data == null) {
-            return;
+            return false;
         }
         List<Task> changed = new ArrayList<>();
         boolean activeNodesChanged;
@@ -154,6 +162,7 @@ public class SimTaskService {
         if (notify) {
             notifyChanged(ctx, changed);
         }
+        return !changed.isEmpty();
     }
 
     private boolean activeNodesChanged(SimTaskData data, TaskDetail mainBefore,
@@ -285,6 +294,7 @@ public class SimTaskService {
             data.getAchievements().put(targetCfg.getGroup(), target);
         }
         ctx.setLastSaveTime(0);
+        updateTaskRedDot(ctx);
         log.info("GM向前跳转sim任务 playerId={},currentTaskId={},targetTaskId={},taskType={},group={}",
                 ctx.playerId(), current.getConfigId(), taskId, targetCfg.getTaskType(), targetCfg.getGroup());
         return new CommonResult<>(Code.SUCCESS,
@@ -464,7 +474,11 @@ public class SimTaskService {
     }
 
     private void notifyChanged(SimPlayerContext ctx, List<Task> changed) {
-        if (ctx == null || ctx.getPlayerController() == null || changed.isEmpty()) {
+        if (ctx == null || changed.isEmpty()) {
+            return;
+        }
+        updateTaskRedDot(ctx);
+        if (ctx.getPlayerController() == null) {
             return;
         }
         NotifySimTaskUpdate notify = new NotifySimTaskUpdate(Code.SUCCESS);
@@ -770,6 +784,7 @@ public class SimTaskService {
         res.rewards = ItemUtils.buildItemInfosByItem(rewardItems);
         //领奖后强制下个 tick 尽快落库(走 autosave 规范路径), 收窄崩溃重复领取窗口
         ctx.setLastSaveTime(0);
+        updateTaskRedDot(ctx);
         //成就任务末节点奖励含勋章道具, 领取后可能新激活勋章 -> 刷新全服勋章榜分值
         if (cfg.getTaskType() == TaskConstant.TaskType.ACHIEVEMENT) {
             simMedalService.refreshRankScore(ctx);
@@ -901,7 +916,9 @@ public class SimTaskService {
         //开界面时顺带补齐(配置热更新增成就组/主线续接) + 状态补报与轮询结算
         //本次响应就带上最新状态, 无需再推送 NotifySimTaskUpdate
         ensureActive(player.getId(), data);
-        settleState(ctx, false);
+        if (settleState(ctx, false)) {
+            updateTaskRedDot(ctx);
+        }
 
         TaskDetail main = data.getMainTask();
         if (main != null) {
@@ -972,6 +989,61 @@ public class SimTaskService {
         res.medalIds = new ArrayList<>(displayed);
         log.info("玩家[{}]设置经营信息展示勋章 {}", ctx.playerId(), displayed);
         return res;
+    }
+
+    // =====================================================================
+    // 红点
+    // =====================================================================
+
+    @Override
+    public RedDotDetails.RedDotModule getModule() {
+        return RedDotDetails.RedDotModule.TASK;
+    }
+
+    @Override
+    public List<Integer> getSubmodules() {
+        return List.of(TaskConstant.TaskType.MAIN_LINE, TaskConstant.TaskType.ACHIEVEMENT);
+    }
+
+    @Override
+    public List<RedDotDetails> initialize(long playerId, int submodule) {
+        SimPlayerContext ctx = contextRegistry.getContext(playerId);
+        Map<Integer, Integer> counts = ctx != null && ctx.getSimTaskData() != null
+                ? claimableCounts(ctx.getSimTaskData())
+                : simTaskDao.findClaimableCounts(playerId);
+        return buildRedDotDetails(counts, submodule);
+    }
+
+    private void updateTaskRedDot(SimPlayerContext ctx) {
+        try {
+            redDotManager.updateRedDot(
+                    buildRedDotDetails(claimableCounts(ctx.getSimTaskData()), TaskConstant.TimeConstants.ALL_SUBMODULES),
+                    ctx.playerId());
+        } catch (Exception e) {
+            log.error("更新任务红点失败 playerId={}", ctx.playerId(), e);
+        }
+    }
+
+    private List<RedDotDetails> buildRedDotDetails(Map<Integer, Integer> counts, int submodule) {
+        List<RedDotDetails> details = new ArrayList<>(2);
+        for (Integer taskType : getSubmodules()) {
+            if (submodule == TaskConstant.TimeConstants.ALL_SUBMODULES || submodule == taskType) {
+                details.add(redDotManager.buildRedDotDetails(
+                        getModule(), taskType, counts.getOrDefault(taskType, 0)));
+            }
+        }
+        return details;
+    }
+
+    private Map<Integer, Integer> claimableCounts(SimTaskData data) {
+        int mainCount = data.getMainTask() != null
+                && data.getMainTask().getStatus() == TaskConstant.TaskStatus.STATUS_COMPLETED ? 1 : 0;
+        int achievementCount = (int) data.getAchievements().values().stream()
+                .filter(task -> task.getStatus() == TaskConstant.TaskStatus.STATUS_COMPLETED)
+                .count();
+        return Map.of(
+                TaskConstant.TaskType.MAIN_LINE, mainCount,
+                TaskConstant.TaskType.ACHIEVEMENT, achievementCount);
     }
 
     /**

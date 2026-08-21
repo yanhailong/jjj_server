@@ -56,16 +56,17 @@ public class SimVisitDao extends MongoBaseDao<SimVisitProfileData, Long> {
                 .getModifiedCount() > 0;
     }
 
-    public void clearUnreadComments(long playerId, int readCount, String latestCommentId) {
+    public boolean clearUnreadComments(long playerId, int readCount, String latestCommentId) {
         if (readCount <= 0 || latestCommentId == null) {
-            return;
+            return false;
         }
         //CAS 同时校验未读数和最新留言，避免并发读取误清刚到达的新留言。
         Query query = Query.query(Criteria.where("_id").is(playerId)
                 .and("unreadCommentCount").is(readCount)
                 .and("comments.0.id").is(latestCommentId));
-        mongoTemplate.updateFirst(query,
-                new Update().set("unreadCommentCount", 0), SimVisitProfileData.class);
+        return mongoTemplate.updateFirst(query,
+                new Update().set("unreadCommentCount", 0), SimVisitProfileData.class)
+                .getModifiedCount() > 0;
     }
 
     public List<SimVisitProfileData> findAllByPlayerIds(Collection<Long> playerIds) {

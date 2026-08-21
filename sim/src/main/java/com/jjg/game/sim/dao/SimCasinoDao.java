@@ -59,6 +59,42 @@ public class SimCasinoDao extends MongoBaseDao<SimCasinoData, String> {
     }
 
     /**
+     * 特邀游客红点只读取刷新次数和待邀请道具，避免登录红点请求加载完整场景数据。
+     */
+    public SimCasinoData findSpecialGuestRedDotData(long playerId, int casinoId) {
+        Query query = casinoId > 0
+                ? Query.query(Criteria.where("_id").is(SimCasinoData.buildKey(playerId, casinoId)))
+                : Query.query(Criteria.where("playerId").is(playerId)).limit(1);
+        query.fields().include("playerId", "casinoId", "specialGuestRefreshDay",
+                "specialGuestRefreshCount", "specialGuestItemCounts");
+        SimCasinoData data = mongoTemplate.findOne(query, SimCasinoData.class);
+        if (data != null || casinoId <= 0) {
+            return data;
+        }
+        query = Query.query(Criteria.where("playerId").is(playerId)).limit(1);
+        query.fields().include("playerId", "casinoId", "specialGuestRefreshDay",
+                "specialGuestRefreshCount", "specialGuestItemCounts");
+        return mongoTemplate.findOne(query, SimCasinoData.class);
+    }
+
+    /**
+     * 游客升星红点只读取当前场景的游客数据，避免加载建筑等无关字段。
+     */
+    public SimCasinoData findGuestGrowthRedDotData(long playerId, int casinoId) {
+        Query query = casinoId > 0
+                ? Query.query(Criteria.where("_id").is(SimCasinoData.buildKey(playerId, casinoId)))
+                : Query.query(Criteria.where("playerId").is(playerId)).limit(1);
+        query.fields().include("playerId", "casinoId", "guestMap");
+        SimCasinoData data = mongoTemplate.findOne(query, SimCasinoData.class);
+        if (data != null || casinoId <= 0) {
+            return data;
+        }
+        query = Query.query(Criteria.where("playerId").is(playerId)).limit(1);
+        query.fields().include("playerId", "casinoId", "guestMap");
+        return mongoTemplate.findOne(query, SimCasinoData.class);
+    }
+
+    /**
      * 玩家已拥有的场景 id 列表 (只取 casinoId 字段, 用于下发拥有列表)
      */
     public List<Integer> findCasinoIdsByPlayerId(long playerId) {

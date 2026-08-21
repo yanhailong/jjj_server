@@ -29,6 +29,15 @@ public class SimEmployeeDao extends MongoBaseDao<SimEmployeeData, String> {
         return mongoTemplate.find(query, SimEmployeeData.class);
     }
 
+    /**
+     * 雇员成长红点只读取等级和星级，避免登录红点请求加载无关字段。
+     */
+    public List<SimEmployeeData> findGrowthRedDotData(long playerId) {
+        Query query = new Query(Criteria.where("playerId").is(playerId));
+        query.fields().include("playerId", "employeeId", "level", "star");
+        return mongoTemplate.find(query, SimEmployeeData.class);
+    }
+
     public void saveAll(Collection<SimEmployeeData> simEmployeeDataList) {
         if (simEmployeeDataList == null || simEmployeeDataList.isEmpty()) {
             return;

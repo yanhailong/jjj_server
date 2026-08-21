@@ -15,6 +15,13 @@ import com.jjg.game.common.constant.MessageConst;
  */
 public interface AllianceConst {
 
+    interface RedDot {
+        //每日首次免费捐献
+        int FREE_DONATE = 1;
+        //待处理入盟申请数量
+        int APPLICATION = 2;
+    }
+
     /**
      * 客户端 <-> 服务端 消息号 (messageType = ALLIANCE)
      */

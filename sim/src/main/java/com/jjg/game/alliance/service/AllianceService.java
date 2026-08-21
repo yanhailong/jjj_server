@@ -78,6 +78,8 @@ public class AllianceService {
     private AllianceIdDao allianceIdDao;
     @Autowired
     private SimPlayerContextRegistry simPlayerContextRegistry;
+    @Autowired
+    private AllianceRedDotService allianceRedDotService;
 
     // =====================================================================
     // 信息查询
@@ -99,6 +101,7 @@ public class AllianceService {
             //联盟已解散但玩家文档未被批量清理到 (并发窗口): 自愈
             alliancePlayerDao.clearAlliance(playerId, aid);
             cacheService.invalidatePlayer(playerId);
+            allianceRedDotService.clearAll(playerId);
             return res;
         }
         res.myAllianceId = aid;
@@ -234,6 +237,7 @@ public class AllianceService {
         if (!expired.isEmpty()) {
             allianceDao.removeApplications(alliance.getAllianceId(), expired);
             cacheService.publishInvalidate(alliance.getAllianceId());
+            allianceRedDotService.refreshApplicationsForAlliance(alliance.getAllianceId());
         }
 
         Map<Long, Player> playerMap = corePlayerService.multiGetPlayerMap(validIds);
@@ -351,6 +355,7 @@ public class AllianceService {
         cacheService.invalidatePlayer(playerId);
         //建盟成功同样撤掉之前散落在其它联盟的申请
         clearPlayerApplications(playerId, allianceId);
+        allianceRedDotService.refreshAll(playerId);
         res.alliance = AlliancePbConverter.toBrief(alliance, configService);
         log.info("创建联盟成功 playerId={},allianceId={},name={}", playerId, allianceId, name);
         return res;
@@ -409,10 +414,12 @@ public class AllianceService {
             res.code = code;
             if (code == Code.SUCCESS) {
                 res.joinAllianceId = allianceId;
+                allianceRedDotService.refreshApplicationsForAlliance(allianceId);
             }
             return res;
         }
         //需审核: 提交申请
+        boolean applicationRemoved = false;
         if (alliance.getApplications().size() >= AllianceConst.Cfg.APPLICATION_LIMIT) {
             //申请列表满: 挤掉最早的一条 (宽松上限, 防无界膨胀)
             long earliest = 0;
@@ -425,16 +432,21 @@ public class AllianceService {
             }
             if (earliest > 0) {
                 allianceDao.removeApplications(allianceId, List.of(earliest));
+                applicationRemoved = true;
             }
         }
         //先记玩家侧"申请过"反向索引再写联盟侧申请 (索引残留无害, 漏记会漏删)
         alliancePlayerDao.addAppliedAlliances(player.getId(), List.of(allianceId));
         if (!allianceDao.addApplication(allianceId, player.getId(),
                 new AllianceApplication(System.currentTimeMillis(), myCasinoLevel))) {
+            if (applicationRemoved) {
+                allianceRedDotService.refreshApplicationsForAlliance(allianceId);
+            }
             res.code = Code.REPEAT_OP;
             return res;
         }
         cacheService.publishInvalidate(allianceId);
+        allianceRedDotService.refreshApplicationsForAlliance(allianceId);
         //通知盟主有新申请
         assetService.notifyPlayer(alliance.getLeaderId(), AllianceConst.NotifyType.NEW_APPLICATION,
                 allianceId, String.valueOf(player.getId()));
@@ -471,6 +483,7 @@ public class AllianceService {
             }
             if (directJoin(player, data) == Code.SUCCESS) {
                 res.joinAllianceId = data.getAllianceId();
+                allianceRedDotService.refreshApplicationsForAlliance(data.getAllianceId());
                 return res;
             }
         }
@@ -493,6 +506,7 @@ public class AllianceService {
             }
             if (allianceDao.addApplication(data.getAllianceId(), player.getId(), new AllianceApplication(now, myCasinoLevel))) {
                 cacheService.publishInvalidate(data.getAllianceId());
+                allianceRedDotService.refreshApplicationsForAlliance(data.getAllianceId());
                 assetService.notifyPlayer(data.getLeaderId(), AllianceConst.NotifyType.NEW_APPLICATION,
                         data.getAllianceId(), String.valueOf(player.getId()));
                 applyList.add(data.getAllianceId());
@@ -527,6 +541,7 @@ public class AllianceService {
         }
         cacheService.invalidatePlayer(player.getId());
         cacheService.publishInvalidate(allianceId);
+        allianceRedDotService.refreshAll(player.getId());
         //入盟成功: 撤掉散落在其它联盟的申请, 其它盟主不再看到已入他盟玩家的无效申请
         clearPlayerApplications(player.getId(), allianceId);
         log.info("加入联盟成功 playerId={},allianceId={}", player.getId(), allianceId);
@@ -546,6 +561,7 @@ public class AllianceService {
             }
             allianceDao.removeApplications(aid, List.of(playerId));
             cacheService.publishInvalidate(aid);
+            allianceRedDotService.refreshApplicationsForAlliance(aid);
         }
     }
 
@@ -624,6 +640,7 @@ public class AllianceService {
             allianceDao.removeApplications(allianceId, toRemove);
         }
         cacheService.publishInvalidate(allianceId);
+        allianceRedDotService.refreshApplicationsForAlliance(allianceId);
         return res;
     }
 
@@ -686,6 +703,7 @@ public class AllianceService {
         cacheService.invalidatePlayer(playerId);
         cacheService.publishInvalidate(allianceId);
         rankService.removeFromContribRank(allianceId, playerId);
+        allianceRedDotService.clearAll(playerId);
     }
 
     /**
@@ -717,6 +735,8 @@ public class AllianceService {
         }
         cacheService.publishInvalidate(alliance.getAllianceId());
         assetService.notifyPlayer(targetId, AllianceConst.NotifyType.BECOME_LEADER, alliance.getAllianceId(), "");
+        allianceRedDotService.refreshApplications(playerId);
+        allianceRedDotService.refreshApplicationsForAlliance(alliance.getAllianceId());
         log.info("转让盟主 from={},to={},allianceId={}", playerId, targetId, alliance.getAllianceId());
         return res;
     }
@@ -763,6 +783,7 @@ public class AllianceService {
         rankService.removeAllianceFromRanks(allianceId);
         //联盟聊天缓存清理 (social 预留的接口)
         allianceChatChannel.clearCache(allianceId);
+        memberIds.forEach(allianceRedDotService::clearAll);
         log.info("解散联盟 allianceId={},leaderId={},members={}", allianceId, playerId, memberIds.size());
         return res;
     }
