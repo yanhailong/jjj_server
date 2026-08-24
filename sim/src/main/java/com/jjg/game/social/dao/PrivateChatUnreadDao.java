@@ -4,6 +4,7 @@ import com.jjg.game.common.utils.TimeHelper;
 import com.jjg.game.social.constant.SocialConst;
 import org.redisson.api.RScript;
 import org.redisson.api.RedissonClient;
+import org.redisson.client.codec.StringCodec;
 import org.springframework.stereotype.Repository;
 
 import java.util.List;
@@ -79,7 +80,7 @@ public class PrivateChatUnreadDao {
     private final RScript script;
 
     public PrivateChatUnreadDao(RedissonClient redissonClient) {
-        this.script = redissonClient.getScript();
+        this.script = redissonClient.getScript(StringCodec.INSTANCE);
     }
 
     public int add(long playerId, long targetId, long messageId, long messageTime) {

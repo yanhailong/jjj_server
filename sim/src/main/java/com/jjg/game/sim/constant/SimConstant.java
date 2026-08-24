@@ -260,6 +260,9 @@ public interface SimConstant {
         //获取开启的卡池
         int REQ_OPEN_POOL_LIST = BASE_MSG_PREFIX | 0x82;
         int RES_OPEN_POOL_LIST = BASE_MSG_PREFIX | 0x83;
+
+        //通知建筑解锁的提示
+        int NOTIFY_BUILDING_TIPS = BASE_MSG_PREFIX | 0x84;
     }
 
     interface SpecialGuest {

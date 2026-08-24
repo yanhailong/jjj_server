@@ -11,6 +11,7 @@ import com.jjg.game.core.constant.GameConstant;
 import com.jjg.game.core.constant.TaskConstant;
 import com.jjg.game.core.data.Item;
 import com.jjg.game.core.listener.ConfigExcelChangeListener;
+import com.jjg.game.core.utils.ItemUtils;
 import com.jjg.game.sampledata.GameDataManager;
 import com.jjg.game.sampledata.bean.*;
 import com.jjg.game.sim.constant.SimConstant;
@@ -741,7 +742,7 @@ public class SimConfigCacheService implements ConfigExcelChangeListener {
             if (!cfg.getOpen()) {
                 continue;
             }
-            if(cfg.getType() != poolType) {
+            if (cfg.getType() != poolType) {
                 continue;
             }
 
@@ -754,6 +755,7 @@ public class SimConfigCacheService implements ConfigExcelChangeListener {
             re.id = cfg.getId();
             re.endTime = endTimestamp;
             re.langId = cfg.getLanguageID();
+            re.items = ItemUtils.buildItemInfo(cfg.getDrawCost());
             poolInfos.add(re);
         }
         return poolInfos;

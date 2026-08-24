@@ -13,18 +13,22 @@ import com.jjg.game.core.data.ItemOperationResult;
 import com.jjg.game.core.pb.KVInfo;
 import com.jjg.game.core.service.PlayerPackService;
 import com.jjg.game.core.utils.ItemUtils;
-import com.jjg.game.core.utils.TipUtils;
 import com.jjg.game.sampledata.GameDataManager;
 import com.jjg.game.sampledata.bean.BuildingAreaTableCfg;
 import com.jjg.game.sampledata.bean.BuildingUpgradeTableCfg;
 import com.jjg.game.sampledata.bean.CasinoStatsSheetCfg;
-import com.jjg.game.sim.constant.*;
+import com.jjg.game.sim.constant.BuildingOutputType;
+import com.jjg.game.sim.constant.BuildingType;
+import com.jjg.game.sim.constant.SimConstant;
+import com.jjg.game.sim.constant.SimStatKey;
 import com.jjg.game.sim.data.*;
 import com.jjg.game.sim.listener.SimPlayerTickListener;
 import com.jjg.game.sim.listener.SimTaskStateReporter;
 import com.jjg.game.sim.pb.SimPbConverter;
 import com.jjg.game.sim.pb.res.*;
+import com.jjg.game.sim.pb.struct.BuildingTips;
 import com.jjg.game.sim.pb.struct.OfflineReward;
+import com.jjg.game.sim.tools.SimTool;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -275,47 +279,81 @@ public class SimBuildingService implements SimPlayerTickListener, SimTaskStateRe
                 return res;
             }
 
-            if (cfg.getCasinoLevel() > 0 && ctx.getSimBaseData().getAllLevel() < cfg.getCasinoLevel()) {
-                log.warn("解锁建筑失败, 场景等级不足 playerId={},buildingId={},casinoId={},cfgCasinoLevel={},ctxAllLevel={}", ctx.playerId(), buildingId, casino.getCasinoId(), cfg.getCasinoLevel(), ctx.getSimBaseData().getAllLevel());
-                res.code = Code.LEVEL_NOT_ENOUGH;
-                return res;
-            }
-
             if (casino.findBuilding(buildingId) != null) {
                 log.warn("解锁建筑失败, 已解锁 playerId={},buildingId={}", ctx.playerId(), buildingId);
                 res.code = Code.PARAM_ERROR;
                 return res;
             }
+
+            List<BuildingTips> tips = new ArrayList<>();
+            //条件1
+            if (cfg.getCasinoLevel() > 0 && ctx.getSimBaseData().getAllLevel() < cfg.getCasinoLevel()) {
+                log.warn("解锁建筑失败, 场景等级不足 playerId={},buildingId={},casinoId={},cfgCasinoLevel={},ctxAllLevel={}", ctx.playerId(), buildingId, casino.getCasinoId(), cfg.getCasinoLevel(), ctx.getSimBaseData().getAllLevel());
+
+                int languageId = getBuildingUnlockLangId(cfg.getLanguageID(), 0);
+                if (languageId < 1) {
+                    res.code = Code.LEVEL_NOT_ENOUGH;
+                    return res;
+                }
+                tips.add(SimTool.buildTips(languageId, String.valueOf(cfg.getCasinoLevel())));
+            }
+
+            //条件2
             if (cfg.getUnlockMethod() != null) {
+                int languageId = getBuildingUnlockLangId(cfg.getLanguageID(), 1);
+
                 for (Map.Entry<Integer, Integer> en : cfg.getUnlockMethod().entrySet()) {
                     BuildingData building = casino.findBuilding(en.getKey());
                     if (building == null) {
-                        log.warn("解锁建筑失败, 解锁方式未通过 playerId={},buildingId={},unLockBuildingId={}", ctx.playerId(), buildingId, en.getKey());
-                        res.code = Code.PARAM_ERROR;
-                        return res;
-                    }
-                    if (building.getLevel() < en.getValue()) {
-                        BuildingAreaTableCfg tmpCfg = GameDataManager.getBuildingAreaTableCfg(building.getId());
-                        if (tmpCfg == null) {
-                            log.warn("解锁建筑失败, 未找到该建筑配置 playerId={},buildingId={}", ctx.playerId(), building.getId());
+                        if (languageId < 1) {
+                            log.warn("解锁建筑失败, 解锁方式未通过,建筑未解锁 playerId={},buildingId={},unLockBuildingId={}", ctx.playerId(), buildingId, en.getKey());
                             res.code = Code.PARAM_ERROR;
                             return res;
                         }
-                        Map<Integer, String> param = new LinkedHashMap<>();
-                        param.put(TipUtils.TipContextArgsType.LANGUAGE_ID, String.valueOf(tmpCfg.getBuildingNameId()));
-                        param.put(TipUtils.TipContextArgsType.PARAMETER, String.valueOf(en.getValue()));
-                        TipUtils.sendTip(ctx.playerId(), TipUtils.TipType.TOAST, Code.NEED_BUILD_LEVEL, param);
-                        log.warn("解锁建筑失败, 解锁方式未通过 playerId={},buildingId={},level={},unLockBuildingId={},cfgLevel={}", ctx.playerId(), buildingId, building.getLevel(), en.getKey(), en.getValue());
-                        return null;
+                        tips.add(SimTool.buildTips(languageId, String.valueOf(en.getValue())));
+                        continue;
+                    }
+                    if (building.getLevel() < en.getValue()) {
+                        if (languageId < 1) {
+                            log.warn("解锁建筑失败, 解锁方式未通过,等级不足 playerId={},buildingId={},level={},unLockBuildingId={},cfgLevel={}", ctx.playerId(), buildingId, building.getLevel(), en.getKey(), en.getValue());
+                            res.code = Code.PARAM_ERROR;
+                            return res;
+                        }
+                        tips.add(SimTool.buildTips(languageId, String.valueOf(en.getValue())));
                     }
                 }
             }
-            //资源足够?
-            boolean remove = playerPackService.removeItems(ctx.getPlayer(), cfg.getUnlockCost(), AddType.SIM_BUILDING_UPGRADE, null).success();
-            if (!remove) {
-                log.warn("解锁建筑失败, 资源不足 playerId={},buildingId={},cost={}", ctx.playerId(), buildingId, cfg.getUnlockCost());
-                res.code = Code.NOT_ENOUGH;
-                return res;
+
+            //条件3
+            int costLanguageId = getBuildingUnlockLangId(cfg.getLanguageID(), 2);
+            if (tips.isEmpty()) {
+                //资源足够?
+                boolean remove = playerPackService.removeItems(ctx.getPlayer(), cfg.getUnlockCost(), AddType.SIM_BUILDING_UPGRADE, null).success();
+                if (!remove) {
+                    if (costLanguageId < 1) {
+                        log.warn("解锁建筑失败, 资源不足 playerId={},buildingId={},cost={}", ctx.playerId(), buildingId, cfg.getUnlockCost());
+                        res.code = Code.NOT_ENOUGH;
+                        return res;
+                    }
+                    tips.add(SimTool.buildTips(costLanguageId, String.valueOf(cfg.getUnlockCost())));
+                }
+            } else {
+                boolean has = playerPackService.checkHasItems(ctx.getPlayer(), cfg.getUnlockCost());
+                if (!has) {
+                    if (costLanguageId < 1) {
+                        log.warn("解锁建筑失败, 资源不足 playerId={},buildingId={},cost={}", ctx.playerId(), buildingId, cfg.getUnlockCost());
+                        res.code = Code.NOT_ENOUGH;
+                        return res;
+                    }
+                    tips.add(SimTool.buildTips(costLanguageId, cfg.getUnlockCost()));
+                }
+            }
+
+            if (!tips.isEmpty()) {
+                NotifyBuildingTips notify = new NotifyBuildingTips();
+                notify.tips = tips;
+                ctx.send(notify);
+                return null;
             }
 
             BuildingData data = new BuildingData();
@@ -1248,5 +1286,16 @@ public class SimBuildingService implements SimPlayerTickListener, SimTaskStateRe
             map.put(outputType, output);
         }
         return map;
+    }
+
+    private int getBuildingUnlockLangId(List<Integer> list, int index) {
+        if (list == null || list.isEmpty()) {
+            return 0;
+        }
+
+        if (index >= list.size()) {
+            return 0;
+        }
+        return list.get(index);
     }
 }
