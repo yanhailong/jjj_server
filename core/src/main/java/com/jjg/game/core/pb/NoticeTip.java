@@ -39,43 +39,6 @@ public class NoticeTip extends AbstractNotice {
     @ProtoDesc("参数")
     private List<TipArgs> tipArgs;
 
-    /**
-     * 提示参数
-     */
-    @ProtobufMessage
-    @ProtoDesc("提示参数")
-    public static class TipArgs {
-        /**
-         * 参数类型 1=多语言id 2=多语言所需的替换参数
-         * <p>
-         * 类型常量定义{@link TipUtils.TipContextArgsType}
-         */
-        @ProtoDesc("参数类型 1=多语言id 2=多语言所需的替换参数")
-        private int type;
-
-        /**
-         * 参数
-         */
-        @ProtoDesc("参数")
-        private String arg;
-
-        public int getType() {
-            return type;
-        }
-
-        public void setType(int type) {
-            this.type = type;
-        }
-
-        public String getArg() {
-            return arg;
-        }
-
-        public void setArg(String arg) {
-            this.arg = arg;
-        }
-    }
-
     public int getTipType() {
         return tipType;
     }

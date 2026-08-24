@@ -1,6 +1,7 @@
 package com.jjg.game.core.data;
 
 import com.jjg.game.core.pb.NoticeTip;
+import com.jjg.game.core.pb.TipArgs;
 import com.jjg.game.core.utils.TipUtils;
 
 import java.util.ArrayList;
@@ -28,7 +29,7 @@ public class NoticeTipBuilder {
     /**
      * 参数
      */
-    private final List<NoticeTip.TipArgs> tipArgs;
+    private final List<TipArgs> tipArgs;
 
     public NoticeTipBuilder() {
         this.tipArgs = new ArrayList<>();
@@ -63,7 +64,7 @@ public class NoticeTipBuilder {
      * @return 构建器实例
      */
     public NoticeTipBuilder addLanguageIdArg(long languageId) {
-        NoticeTip.TipArgs arg = new NoticeTip.TipArgs();
+        TipArgs arg = new TipArgs();
         arg.setType(TipUtils.TipContextArgsType.LANGUAGE_ID);
         arg.setArg(String.valueOf(languageId));
         this.tipArgs.add(arg);
@@ -78,7 +79,7 @@ public class NoticeTipBuilder {
      * @return 构建器实例
      */
     public NoticeTipBuilder addArg(int type, String arg) {
-        NoticeTip.TipArgs tipArg = new NoticeTip.TipArgs();
+        TipArgs tipArg = new TipArgs();
         tipArg.setType(type);
         tipArg.setArg(arg);
         this.tipArgs.add(tipArg);

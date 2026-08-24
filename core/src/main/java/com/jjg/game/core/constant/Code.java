@@ -228,4 +228,8 @@ public interface Code {
 
     //达到等级上限，请提升星级后再试
     int LEVEL_MAX = 4054037;
+    //达到等级上限，请提升星级后再试
+    int CASINO_LEVEL_LIMIT = 4010047;
+    //该建筑解锁需要消耗金币%s
+    int UNLOCK_BUILD_USE_GOLD = 4010048;
 }

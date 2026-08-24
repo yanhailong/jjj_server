@@ -382,8 +382,8 @@ public class SimBuildingService implements SimPlayerTickListener, SimTaskStateRe
                     List<Integer> list = currentCfg.getCostPerLevel().get(data.getProgress());
                     boolean remove = playerPackService.removeItem(ctx.getPlayer(), list.get(0), list.get(1), AddType.SIM_BUILDING_UPGRADE).success();
                     if (!remove) {
-                        log.warn("建筑添加进度条失败, 未找到获取配置表 playerId={},buildingId={},level={}", ctx.playerId(), buildingId, data.getLevel());
-                        res.code = Code.PARAM_ERROR;
+                        log.warn("建筑添加进度条失败, 扣除资源失败 playerId={},buildingId={},level={}，itemId={},count={}", ctx.playerId(), buildingId, data.getLevel(), list.get(0), list.get(1));
+                        res.code = Code.NOT_ENOUGH_ITEM;
                         ctx.send(res);
                         return;
                     }
