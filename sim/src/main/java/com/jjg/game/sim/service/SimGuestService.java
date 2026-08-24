@@ -375,23 +375,17 @@ public class SimGuestService implements SimPlayerTickListener, ItemListener, Sim
 
         if (uid == null || uid.isEmpty()) {
             log.warn("领取购买游客奖励失败，uid参数错误 playerId={},uid={}", ctx.playerId(), uid);
-            res.code = Code.NOT_FOUND;
-            ctx.send(res);
             return;
         }
 
         SimCasinoData casino = ctx.getCurrentCasino();
         if (casino == null) {
             log.warn("领取购买游客奖励失败，当前场景数据不存在 playerId={},uid={}", ctx.playerId(), uid);
-            res.code = Code.NOT_FOUND;
-            ctx.send(res);
             return;
         }
         PurchasedGuestData data = casino.findPurchasedGuest(uid);
         if (data == null) {
             log.warn("领取购买游客奖励失败，未找到对应购买游客 playerId={},uid={}", ctx.playerId(), uid);
-            res.code = Code.NOT_FOUND;
-            ctx.send(res);
             return;
         }
 
@@ -399,8 +393,6 @@ public class SimGuestService implements SimPlayerTickListener, ItemListener, Sim
         if (destinations == null || index < 0 || destinations.isEmpty()) {
             casino.removePurchasedGuest(uid);
             log.warn("领取购买游客奖励失败，destinations为空 playerId={},uid={},index={}", ctx.playerId(), uid, index);
-            res.code = Code.NOT_FOUND;
-            ctx.send(res);
             return;
         }
 
@@ -408,8 +400,6 @@ public class SimGuestService implements SimPlayerTickListener, ItemListener, Sim
         if (dest == null) {
             casino.removePurchasedGuest(uid);
             log.warn("领取购买游客奖励失败，该目的地未找到 playerId={},uid={},index={}", ctx.playerId(), uid, index);
-            res.code = Code.NOT_FOUND;
-            ctx.send(res);
             return;
         }
 

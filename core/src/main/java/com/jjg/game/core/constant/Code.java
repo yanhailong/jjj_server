@@ -232,4 +232,7 @@ public interface Code {
     int CASINO_LEVEL_LIMIT = 4010047;
     //该建筑解锁需要消耗金币%s
     int UNLOCK_BUILD_USE_GOLD = 4010048;
+
+    //建筑等级不足
+    int BUILDING_LEVEL_LIMIT = 4020609;
 }

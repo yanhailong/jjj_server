@@ -192,7 +192,7 @@ public class SimSkillService extends AbstractSkillService implements ConfigExcel
             if (building.getLevel() < newLevelCfg.getBuildingLevel()) {
                 log.warn("升级技能失败，建筑等级不足 playerId={},propId={},gameType={},buildingId={},buildingLevel={},requiredBuildingLevel={}",
                         skillData.getPlayerId(), skillPropId, gameType, buildingAreaTableCfg.getId(), building.getLevel(), newLevelCfg.getBuildingLevel());
-                res.code = Code.LEVEL_NOT_ENOUGH;
+                res.code = Code.BUILDING_LEVEL_LIMIT;
                 ctx.send(res);
                 return;
             }

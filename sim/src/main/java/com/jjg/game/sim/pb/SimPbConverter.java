@@ -35,7 +35,7 @@ public final class SimPbConverter {
      */
     public static GuestInfo toGuestInfo(PurchasedGuestData data, VisitorQuestCfg visitorQuestCfg) {
         GuestInfo info = new GuestInfo();
-        info.id = visitorQuestCfg.getResource() > 0 ? visitorQuestCfg.getResource() : data.getGuestId();
+        info.id = data.getGuestId();
         info.uid = data.getUid();
         if (data.getDestinations() != null && !data.getDestinations().isEmpty()) {
             info.destinations = data.getDestinations().values().stream().toList();
