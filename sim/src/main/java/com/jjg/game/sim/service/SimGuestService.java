@@ -396,9 +396,9 @@ public class SimGuestService implements SimPlayerTickListener, ItemListener, Sim
         }
 
         Map<Integer, DestinationInfo> destinations = data.getDestinations();
-        if (destinations == null || index < 0 || index >= destinations.size()) {
+        if (destinations == null || index < 0 || destinations.isEmpty()) {
             casino.removePurchasedGuest(uid);
-            log.warn("领取购买游客奖励失败，目的地序号越界 playerId={},uid={},index={}", ctx.playerId(), uid, index);
+            log.warn("领取购买游客奖励失败，destinations为空 playerId={},uid={},index={}", ctx.playerId(), uid, index);
             res.code = Code.NOT_FOUND;
             ctx.send(res);
             return;
