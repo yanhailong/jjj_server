@@ -8,6 +8,7 @@ import com.jjg.game.core.base.gameevent.EGameEventType;
 import com.jjg.game.core.base.gameevent.GameEventManager;
 import com.jjg.game.core.base.gameevent.PlayerEvent;
 import com.jjg.game.core.constant.Code;
+import com.jjg.game.core.dao.TogetherPlayReconnectDao;
 import com.jjg.game.core.pb.KVInfo;
 import com.jjg.game.core.service.PlayerStatService;
 import com.jjg.game.sampledata.GameDataManager;
@@ -80,6 +81,8 @@ public class SimCasinoService implements SimTaskStateReporter {
     private GameEventManager gameEventManager;
     @Autowired
     private SimEmployeeRedDotService employeeRedDotService;
+    @Autowired
+    private TogetherPlayReconnectDao togetherPlayReconnectDao;
 
 
     /**
@@ -204,6 +207,11 @@ public class SimCasinoService implements SimTaskStateReporter {
             res.dailyShareLimit = quota.dailyShareLimit();
             res.coopTaskInfo = simCoopTaskService.getBoundRoomInfo(ctx.playerId());
 
+            //必须是res.coopTaskInfo为空，因为res.coopTaskInfo会拉入到任务房间
+            if (res.coopTaskInfo == null) {
+                res.togetherPlayGameType = getTogetherPlayReconnectGameType(ctx.playerId());
+            }
+
             //获取下一等级的配置
             CasinoStatsSheetCfg nextLevelCfg = configCacheService.getCasinoStatsSheetCfg(casinoData.getCasinoId(), casinoData.getCasinoLevel() + 1);
             res.upgradeLevelConditions = toUpgradeLevelConditions(nextLevelCfg, ctx);
@@ -212,6 +220,15 @@ public class SimCasinoService implements SimTaskStateReporter {
             res.code = Code.EXCEPTION;
         }
         ctx.send(res);
+    }
+
+    private int getTogetherPlayReconnectGameType(long playerId) {
+        try {
+            return togetherPlayReconnectDao.getGameType(playerId);
+        } catch (Exception e) {
+            log.warn("查询好友同玩断线恢复标记失败 playerId={}", playerId, e);
+            return 0;
+        }
     }
 
 

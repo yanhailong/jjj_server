@@ -7,11 +7,13 @@ import com.jjg.game.core.constant.Code;
 import com.jjg.game.core.data.PlayerController;
 import com.jjg.game.core.pb.KVInfo;
 import com.jjg.game.slots.constant.SlotsConst;
+import com.jjg.game.slots.data.SlotsPlayerGameData;
 import com.jjg.game.slots.manager.AbstractSlotsGameManager;
 import com.jjg.game.slots.manager.CoopRoomManager;
 import com.jjg.game.slots.manager.SlotsFactoryManager;
 import com.jjg.game.slots.manager.SlotsRoomManager;
 import com.jjg.game.slots.pb.*;
+import com.jjg.game.slots.service.TogetherPlayService;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -31,6 +33,8 @@ public class SlotsCommonMessageHandler {
     private SlotsFactoryManager slotsFactoryManager;
     @Autowired
     private CoopRoomManager coopRoomManager;
+    @Autowired
+    private TogetherPlayService togetherPlayService;
 
     @Command(SlotsConst.SlotsCommon.REQ_SLOTS_ROOM_POOL)
     public void reqSlotsRoomPool(PlayerController playerController, ReqSlotsRoomPool req) {
@@ -146,5 +150,49 @@ public class SlotsCommonMessageHandler {
             ResCoopGift res = new ResCoopGift(Code.EXCEPTION);
             playerController.send(res);
         }
+    }
+
+    @Command(SlotsConst.SlotsCommon.REQ_TOGETHER_PLAY_PLAYER_LIST)
+    public void reqTogetherPlayPlayerList(PlayerController playerController, ReqTogetherPlayPlayerList req) {
+        try {
+            SlotsPlayerGameData gameData = getPlayerGameData(playerController);
+            playerController.send(togetherPlayService.playerList(
+                    gameData, req.listType, req.pageIndex, req.pageSize));
+        } catch (Exception e) {
+            log.error("获取好友同玩玩家列表异常 playerId={},listType={},pageIndex={}",
+                    playerController.playerId(), req.listType, req.pageIndex, e);
+            playerController.send(new ResTogetherPlayPlayerList(Code.EXCEPTION));
+        }
+    }
+
+    @Command(SlotsConst.SlotsCommon.REQ_TOGETHER_PLAY_INVITE)
+    public void reqTogetherPlayInvite(PlayerController playerController, ReqTogetherPlayInvite req) {
+        try {
+            SlotsPlayerGameData gameData = getPlayerGameData(playerController);
+            togetherPlayService.invite(playerController, gameData, req.targetPlayerId)
+                    .whenComplete((res, throwable) -> {
+                        if (throwable == null) {
+                            playerController.send(res);
+                            return;
+                        }
+                        log.error("异步发送好友同玩邀请异常 playerId={},targetPlayerId={}",
+                                playerController.playerId(), req.targetPlayerId, throwable);
+                        ResTogetherPlayInvite errorRes = new ResTogetherPlayInvite(Code.EXCEPTION);
+                        errorRes.targetPlayerId = req.targetPlayerId;
+                        playerController.send(errorRes);
+                    });
+        } catch (Exception e) {
+            log.error("发送好友同玩邀请异常 playerId={},targetPlayerId={}",
+                    playerController.playerId(), req.targetPlayerId, e);
+            ResTogetherPlayInvite res = new ResTogetherPlayInvite(Code.EXCEPTION);
+            res.targetPlayerId = req.targetPlayerId;
+            playerController.send(res);
+        }
+    }
+
+    private SlotsPlayerGameData getPlayerGameData(PlayerController playerController) {
+        AbstractSlotsGameManager<?, ?, ?> gameManager = slotsFactoryManager.getGameManager(
+                playerController.getPlayer().getGameType(), playerController.getPlayer().getRoomCfgId());
+        return gameManager == null ? null : gameManager.getPlayerGameData(playerController);
     }
 }

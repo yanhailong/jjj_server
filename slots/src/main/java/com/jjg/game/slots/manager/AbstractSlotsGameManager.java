@@ -61,6 +61,7 @@ import com.jjg.game.slots.pb.NoticeSlotsLibChange;
 import com.jjg.game.slots.pb.NotifySlotsStatus;
 import com.jjg.game.slots.service.SlotsPlayerService;
 import com.jjg.game.slots.service.SlotsSkillService;
+import com.jjg.game.slots.service.TogetherPlayService;
 import io.netty.util.Timeout;
 import org.apache.commons.lang3.StringUtils;
 import org.slf4j.Logger;
@@ -129,6 +130,8 @@ public abstract class AbstractSlotsGameManager<T extends SlotsPlayerGameData, L 
     protected SimVisitQuotaService simVisitQuotaService;
     @Autowired
     protected SeasonFreeGameService seasonFreeGameService;
+    @Autowired
+    protected TogetherPlayService togetherPlayService;
 
     protected AtomicBoolean open = new AtomicBoolean(false);
 
@@ -497,6 +500,7 @@ public abstract class AbstractSlotsGameManager<T extends SlotsPlayerGameData, L 
         }
         //公共: 旋转成功后通知 sim 联动 (扣能量/加经验/赌场升级/道具掉落), winTimes 取各游戏写入的 allWinTimes
         if (gameRunInfo != null && gameRunInfo.success()) {
+            togetherPlayService.onSpin(playerGameData,gameRunInfo.getAllWinGold());
             boolean freeModeAfter = isFreeMode(playerGameData);
             SpinStatInfo statInfo = buildSpinStatInfo(
                     playerGameData, gameRunInfo, freeMode, !freeMode && freeModeAfter);
@@ -1108,6 +1112,7 @@ public abstract class AbstractSlotsGameManager<T extends SlotsPlayerGameData, L 
         checkPlayerStatusTimeout = null;
         this.gameDataMap.forEach((k, v) -> {
             try {
+                togetherPlayService.onShutdown(v);
                 if (v.getOfflineEventMap() != null && !v.getOfflineEventMap().isEmpty()) {
                     for (Map.Entry<Integer, OffLineEventData> en : v.getOfflineEventMap().entrySet()) {
                         //检查该事件是否已经执行
@@ -1314,6 +1319,7 @@ public abstract class AbstractSlotsGameManager<T extends SlotsPlayerGameData, L 
         long now = System.currentTimeMillis();
         playerGameData.setOfflineTime(now);
         playerGameData.setOnline(false);
+        togetherPlayService.onExit(playerGameData, false);
         if (playerGameData.getOfflineEventMap() != null && !playerGameData.getOfflineEventMap().isEmpty()) {
             for (Map.Entry<Integer, OffLineEventData> en : playerGameData.getOfflineEventMap().entrySet()) {
                 if (en.getValue().isAction()) {
@@ -1379,6 +1385,7 @@ public abstract class AbstractSlotsGameManager<T extends SlotsPlayerGameData, L 
 
         T playerGameData = getPlayerGameData(playerController);
         if (playerGameData != null && playerGameData.getEnterType() == enterGameType.getValue() && Objects.equals(playerGameData.getTargetValue(), enterTargetValue)) {
+            boolean wasOnline = playerGameData.isOnline();
             playerGameData.setCreateTime(TimeHelper.nowInt());
             playerGameData.setOnline(true);
             playerGameData.setOfflineTime(0);
@@ -1394,6 +1401,9 @@ public abstract class AbstractSlotsGameManager<T extends SlotsPlayerGameData, L 
             }
             playerGameData.setSimClient(simClusterClient);
             playerGameData.setEnterType(enterGameType.getValue());
+            if (!wasOnline) {
+                togetherPlayService.onEnter(playerGameData);
+            }
             return playerGameData;
         }
 
@@ -1435,6 +1445,7 @@ public abstract class AbstractSlotsGameManager<T extends SlotsPlayerGameData, L 
                     playerId, this.gameType, System.currentTimeMillis()));
         }
         playerGameData.setSimClient(simClusterClient);
+        togetherPlayService.onEnter(playerGameData);
 
         //保存到缓存中
         this.gameDataMap.put(playerId, playerGameData);
@@ -2166,6 +2177,7 @@ public abstract class AbstractSlotsGameManager<T extends SlotsPlayerGameData, L 
             long now = System.currentTimeMillis();
             playerGameData.setOfflineTime(now);
             playerGameData.setOnline(false);
+            togetherPlayService.onExit(playerGameData, true);
             //修改执行离线任务的时间
             if (playerGameData.getOfflineEventMap() != null && !playerGameData.getOfflineEventMap().isEmpty()) {
                 for (Map.Entry<Integer, OffLineEventData> en : playerGameData.getOfflineEventMap().entrySet()) {
@@ -2173,6 +2185,9 @@ public abstract class AbstractSlotsGameManager<T extends SlotsPlayerGameData, L 
                     data.setActionMills(now + data.getActionMills() + data.getDelayMills());
                 }
             }
+            //先持久化离线时间与好友同玩数据，再开放5分钟恢复标记，避免Slots读取到旧数据
+            offlineSaveGameData(playerGameData);
+            togetherPlayService.markReconnect(playerGameData);
             //playerAllSlotsData 只要退出就要落库
             playerAllSlotsDataDao.saveToRedis(playerGameData.getPlayerAllSlotsData());
         }

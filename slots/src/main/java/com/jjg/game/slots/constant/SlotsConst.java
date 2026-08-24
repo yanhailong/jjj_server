@@ -259,5 +259,12 @@ public class SlotsConst {
         public static final int NOTIFY_COOP_ROOM_RESULT = BASE_MSG_PREFIX | 0x12;
         //互动道具动效广播
         public static final int NOTIFY_COOP_GIFT = BASE_MSG_PREFIX | 0x13;
+
+        //好友同玩玩家列表
+        public static final int REQ_TOGETHER_PLAY_PLAYER_LIST = BASE_MSG_PREFIX | 0x14;
+        public static final int RES_TOGETHER_PLAY_PLAYER_LIST = BASE_MSG_PREFIX | 0x15;
+        //好友同玩邀请
+        public static final int REQ_TOGETHER_PLAY_INVITE = BASE_MSG_PREFIX | 0x16;
+        public static final int RES_TOGETHER_PLAY_INVITE = BASE_MSG_PREFIX | 0x17;
     }
 }

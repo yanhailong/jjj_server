@@ -263,6 +263,9 @@ public interface SimConstant {
 
         //通知建筑解锁的提示
         int NOTIFY_BUILDING_TIPS = BASE_MSG_PREFIX | 0x84;
+
+        //好友同玩邀请通知
+        int NOTIFY_TOGETHER_PLAY_INVITE = BASE_MSG_PREFIX | 0x85;
     }
 
     interface SpecialGuest {

@@ -35,6 +35,7 @@ import com.jjg.game.sim.logger.SimGuideLogger;
 import com.jjg.game.sim.manager.SimManager;
 import com.jjg.game.sim.manager.SimPlayerContextRegistry;
 import com.jjg.game.sim.pb.res.ResSimTaskReward;
+import com.jjg.game.sim.pb.res.NotifyTogetherPlayInvite;
 import com.jjg.game.sim.service.SimCoopTaskService;
 import com.jjg.game.sim.service.SimEmployeeRedDotService;
 import com.jjg.game.sim.service.SimGuideService;
@@ -44,6 +45,8 @@ import com.jjg.game.sim.service.SimSkillService;
 import com.jjg.game.sim.service.SimTaskService;
 import com.jjg.game.social.bridge.ToSocialBridge;
 import com.jjg.game.social.service.ChatService;
+import com.jjg.game.social.service.SocialSender;
+import com.jjg.game.social.service.SocialStatusService;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Component;
 
@@ -60,6 +63,8 @@ import java.util.Set;
 @Component
 public class HallRPCController extends CoreRPCController implements GmToHallBridge, ToSimBridge, ToAllianceBridge,
         ToSocialBridge {
+
+    private static final long TOGETHER_PLAY_INVITE_VALID_MILLIS = 30_000L;
 
     @Autowired
     private AccountDao accountDao;
@@ -99,6 +104,10 @@ public class HallRPCController extends CoreRPCController implements GmToHallBrid
     private TaskOperationLogger taskOperationLogger;
     @Autowired
     private ChatService chatService;
+    @Autowired
+    private SocialSender socialSender;
+    @Autowired
+    private SocialStatusService socialStatusService;
 
     @Override
     public int playerBindPhone(long playerId, String phone, int type, boolean reward) {
@@ -618,5 +627,23 @@ public class HallRPCController extends CoreRPCController implements GmToHallBrid
     @RpcCallSetting(processorModKey = "#arg0")
     public int sendCoopInvite(long senderId, int channelCode, long targetId, String content) {
         return chatService.sendChatFrom(senderId, channelCode, targetId, content);
+    }
+
+    @Override
+    @RpcCallSetting(processorModKey = "#arg1")
+    public int sendTogetherPlayInvite(long inviterId, long targetPlayerId, String inviterNick,
+                                      int inviterHeadImg, int inviterHeadFrame, int gameType, int wareId) {
+        if (socialStatusService.statusOf(targetPlayerId) != SocialStatusService.ONLINE) {
+            return Code.NOT_FOUND;
+        }
+        NotifyTogetherPlayInvite notify = new NotifyTogetherPlayInvite(Code.SUCCESS);
+        notify.inviterId = inviterId;
+        notify.inviterNick = inviterNick;
+        notify.inviterHeadImg = inviterHeadImg;
+        notify.inviterHeadFrame = inviterHeadFrame;
+        notify.gameType = gameType;
+        notify.wareId = wareId;
+        notify.expireTime = System.currentTimeMillis() + TOGETHER_PLAY_INVITE_VALID_MILLIS;
+        return socialSender.sendTo(targetPlayerId, notify) ? Code.SUCCESS : Code.NOT_FOUND;
     }
 }

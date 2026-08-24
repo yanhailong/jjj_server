@@ -104,6 +104,9 @@ public class SlotsPlayerGameData {
     //不同的进入方式可能有一些额外的参数
     protected String targetValue;
 
+    //好友同玩信息
+    protected TogetherPlayData togetherPlayData;
+
     public long getPlayerId() {
         if (playerId == 0) {
             return playerController == null ? 0 : playerController.playerId();
@@ -548,5 +551,13 @@ public class SlotsPlayerGameData {
 
     public void setTargetValue(String targetValue) {
         this.targetValue = targetValue;
+    }
+
+    public TogetherPlayData getTogetherPlayData() {
+        return togetherPlayData;
+    }
+
+    public void setTogetherPlayData(TogetherPlayData togetherPlayData) {
+        this.togetherPlayData = togetherPlayData;
     }
 }

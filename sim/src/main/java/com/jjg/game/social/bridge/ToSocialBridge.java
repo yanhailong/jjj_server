@@ -54,4 +54,12 @@ public interface ToSocialBridge extends IGameRpc {
      * @return Code
      */
     int sendCoopInvite(long senderId, int channelCode, long targetId, String content);
+
+    /**
+     * 由游戏节点请求 Hall 向在线且不在游戏中的好友发送同玩邀请。
+     *
+     * @return Code
+     */
+    int sendTogetherPlayInvite(long inviterId, long targetPlayerId, String inviterNick,
+                               int inviterHeadImg, int inviterHeadFrame, int gameType, int wareId);
 }

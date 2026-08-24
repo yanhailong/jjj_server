@@ -39,6 +39,8 @@ public class ResSimCasinoInfo extends AbstractResponse {
     public CoopTaskInfo coopTaskInfo;
     @ProtoDesc("升级需要的条件")
     public List<KVInfo> upgradeLevelConditions;
+    @ProtoDesc("好友同玩断线恢复游戏类型，0表示不恢复")
+    public int togetherPlayGameType;
 
     public ResSimCasinoInfo(int code) {
         super(code);
