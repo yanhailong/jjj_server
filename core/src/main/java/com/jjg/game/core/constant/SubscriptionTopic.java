@@ -11,6 +11,11 @@ public enum SubscriptionTopic {
      */
     TOPIC_LUCKY_TREASURE_UPDATE("subscription:luckyTreasureUpdate"),
 
+    /**
+     * 聊天界面实时消息
+     */
+    TOPIC_CHAT("subscription:chat"),
+
     ;
 
     private final String topic;

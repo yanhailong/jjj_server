@@ -216,6 +216,9 @@ public interface SimConstant {
         //触发新手引导组
         int NOTIFY_GUIDE_TRIGGER = BASE_MSG_PREFIX | 0x6D;
 
+        //多人任务-人员数量变更通知
+        int NOTIFY_COOP_TASK_MEMBERS = BASE_MSG_PREFIX | 0x6E;
+
         //通知建筑产出
         int NOTIFY_BUILDING_OUTPUT = BASE_MSG_PREFIX | 0x6F;
 

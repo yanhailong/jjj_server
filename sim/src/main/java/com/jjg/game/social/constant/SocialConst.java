@@ -178,7 +178,7 @@ public interface SocialConst {
     }
 
     /**
-     * Redis key (全服共享的频道常驻缓存)。
+     * Redis key/channel。
      */
     interface RedisKey {
         //世界频道有界列表 (LPUSH 最新, 末尾最旧)
@@ -187,6 +187,8 @@ public interface SocialConst {
         String SYSTEM_CHANNEL = "social:chat:system";
         //联盟频道前缀 (拼接 allianceId): social:chat:alliance:{id}
         String ALLIANCE_CHANNEL_PREFIX = "social:chat:alliance:";
+        //聊天订阅消息跨节点分发频道
+        String CHAT_SUBSCRIPTION_CHANNEL = "social:chat:subscription";
     }
 
     interface FriendOnlineStatus{

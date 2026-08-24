@@ -6,7 +6,7 @@ import com.jjg.game.social.constant.SocialConst;
 import com.jjg.game.social.data.ChatMessage;
 import com.jjg.game.social.pb.SocialPbConverter;
 import com.jjg.game.social.pb.res.NotifyChat;
-import com.jjg.game.social.service.SocialSender;
+import com.jjg.game.social.service.ChatSubscriptionService;
 import com.jjg.game.social.service.SystemMessageService;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Component;
@@ -27,7 +27,7 @@ public class SystemChatChannel implements ChatChannel {
     @Autowired
     private ChannelMessageCache cache;
     @Autowired
-    private SocialSender sender;
+    private ChatSubscriptionService chatSubscriptionService;
     @Autowired
     private SystemMessageService systemMessageService;
 
@@ -47,7 +47,7 @@ public class SystemChatChannel implements ChatChannel {
         cache.push(SocialConst.RedisKey.SYSTEM_CHANNEL, msg, SocialConst.Cfg.SYSTEM_CACHE_SIZE);
         NotifyChat notify = new NotifyChat(Code.SUCCESS);
         notify.msg = SocialPbConverter.toChatMsgInfo(msg);
-        sender.broadcastAll(notify);
+        chatSubscriptionService.publish(notify);
     }
 
     @Override

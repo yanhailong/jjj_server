@@ -6,7 +6,7 @@ import com.jjg.game.social.constant.SocialConst;
 import com.jjg.game.social.data.ChatMessage;
 import com.jjg.game.social.pb.SocialPbConverter;
 import com.jjg.game.social.pb.res.NotifyChat;
-import com.jjg.game.social.service.SocialSender;
+import com.jjg.game.social.service.ChatSubscriptionService;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -18,8 +18,8 @@ import java.util.concurrent.atomic.AtomicLong;
 /**
  * 世界频道 (全服)。
  * <p>
- * 投递: 写 Redis 有界缓存 + broadcast2Gates 全服下发。
- * 黑名单过滤: 全服广播无法按收件人裁剪, 由客户端依据本地黑名单隐藏被拉黑者的消息
+ * 投递: 写 Redis 有界缓存 + 向已订阅聊天的在线玩家下发。
+ * 黑名单过滤: 订阅广播不按收件人裁剪, 由客户端依据本地黑名单隐藏被拉黑者的消息
  * (私聊的黑名单拦截在服务端强制执行)。
  * <p>
  * 全局限流: 每条世界消息的下行成本 = 全服在线数, 故除按玩家限频外还有节点级
@@ -34,7 +34,7 @@ public class WorldChatChannel implements ChatChannel {
     @Autowired
     private ChannelMessageCache cache;
     @Autowired
-    private SocialSender sender;
+    private ChatSubscriptionService chatSubscriptionService;
 
     //节点级固定 1 秒窗口计数 (近似限流, 窗口切换瞬间可能略放行超额, 可接受)
     private final AtomicLong windowStartMs = new AtomicLong();
@@ -77,7 +77,7 @@ public class WorldChatChannel implements ChatChannel {
         cache.push(SocialConst.RedisKey.WORLD_CHANNEL, msg, SocialConst.Cfg.WORLD_CACHE_SIZE);
         NotifyChat notify = new NotifyChat(Code.SUCCESS);
         notify.msg = SocialPbConverter.toChatMsgInfo(msg);
-        sender.broadcastAll(notify);
+        chatSubscriptionService.publish(notify);
     }
 
     @Override

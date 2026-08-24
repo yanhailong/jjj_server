@@ -4,12 +4,14 @@ import cn.hutool.core.collection.ConcurrentHashSet;
 import com.jjg.game.common.cluster.ClusterSystem;
 import com.jjg.game.common.listener.SessionCloseListener;
 import com.jjg.game.common.pb.AbstractMessage;
+import com.jjg.game.common.protostuff.PFMessage;
 import com.jjg.game.common.protostuff.PFSession;
 import com.jjg.game.core.constant.SubscriptionTopic;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Component;
 
+import java.util.Set;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.function.Function;
 
@@ -76,6 +78,24 @@ public class SubscriptionManager implements SessionCloseListener {
      * 推送消息到订阅该主题的玩家集合
      */
     public void publish(SubscriptionTopic topic, AbstractMessage msg) {
+        publish(topic, null, msg);
+    }
+
+    /**
+     * 推送已序列化消息到订阅该主题的玩家集合。
+     */
+    public void publish(SubscriptionTopic topic, PFMessage msg) {
+        publish(topic, null, msg);
+    }
+
+    /**
+     * 推送已序列化消息到指定范围内订阅该主题的玩家。
+     */
+    public void publish(SubscriptionTopic topic, Set<Long> targetPlayerIds, PFMessage msg) {
+        publish(topic, targetPlayerIds, (Object) msg);
+    }
+
+    private void publish(SubscriptionTopic topic, Set<Long> targetPlayerIds, Object msg) {
         if (msg == null) {
             return;
         }
@@ -84,6 +104,9 @@ public class SubscriptionManager implements SessionCloseListener {
             return;
         }
         playerIdSet.forEach(playerId -> {
+            if (targetPlayerIds != null && !targetPlayerIds.contains(playerId)) {
+                return;
+            }
             try {
                 PFSession playerSession = clusterSystem.getSession(playerId);
                 if (playerSession != null) {

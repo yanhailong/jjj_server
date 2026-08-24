@@ -68,7 +68,7 @@ public class PrivateChatService implements IRedDotService {
     @Autowired
     private FriendDao friendDao;
     @Autowired
-    private SocialSender sender;
+    private ChatSubscriptionService chatSubscriptionService;
     @Autowired
     private CorePlayerService corePlayerService;
     @Autowired
@@ -152,13 +152,10 @@ public class PrivateChatService implements IRedDotService {
                     "新增未读");
         }
 
-        //在线对端实时收到
+        //已订阅聊天的在线对端实时收到
         NotifyChat notify = new NotifyChat(Code.SUCCESS);
         notify.msg = SocialPbConverter.toChatMsgInfo(msg);
-        boolean send = sender.sendTo(msg.getToId(), notify);
-        if (!send) {
-            log.warn("发送私聊信息失败 playerId={},toId={}", msg.getFromId(), msg.getToId());
-        }
+        chatSubscriptionService.publish(List.of(msg.getToId()), notify);
     }
 
     /**

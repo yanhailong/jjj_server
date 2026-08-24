@@ -1,5 +1,6 @@
 package com.jjg.game.social.service;
 
+import com.jjg.game.social.constant.SocialConst;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.context.annotation.Bean;
@@ -16,7 +17,8 @@ public class SocialRedisListenerConfig {
 
     @Bean
     public RedisMessageListenerContainer socialRedisMessageListenerContainer(RedisConnectionFactory connectionFactory,
-                                                                            SocialRelationCache relationCache) {
+                                                                            SocialRelationCache relationCache,
+                                                                            ChatSubscriptionService chatSubscriptionService) {
         RedisMessageListenerContainer container = new RedisMessageListenerContainer();
         container.setConnectionFactory(connectionFactory);
         container.addMessageListener((message, pattern) -> {
@@ -27,6 +29,9 @@ public class SocialRedisListenerConfig {
                 log.warn("忽略非法黑名单缓存失效消息 body={}", body);
             }
         }, new ChannelTopic(SocialRelationCache.BLACKLIST_INVALIDATE_CHANNEL));
+        container.addMessageListener((message, pattern) ->
+                        chatSubscriptionService.receive(new String(message.getBody(), StandardCharsets.UTF_8)),
+                new ChannelTopic(SocialConst.RedisKey.CHAT_SUBSCRIPTION_CHANNEL));
         return container;
     }
 }

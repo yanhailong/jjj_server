@@ -25,6 +25,8 @@ import com.jjg.game.sim.constant.CoopTaskConst;
 import com.jjg.game.sim.dao.CoopRoomRecordDao;
 import com.jjg.game.sim.data.CoopRoomRecord;
 import com.jjg.game.sim.data.CoopTaskRule;
+import com.jjg.game.sim.pb.res.NotifyCoopTaskMembers;
+import com.jjg.game.sim.pb.struct.SimCoopMemberInfo;
 import com.jjg.game.sim.service.CoopTaskConfigService;
 import com.jjg.game.sim.service.SimNodeService;
 import com.jjg.game.slots.constant.SlotsConst;
@@ -47,6 +49,7 @@ import com.jjg.game.social.constant.ChatChannelType;
 import com.jjg.game.social.data.ChatMessage;
 import com.jjg.game.social.pb.SocialPbConverter;
 import com.jjg.game.social.pb.res.NotifyChat;
+import com.jjg.game.social.service.ChatSubscriptionService;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -92,6 +95,8 @@ public class CoopRoomManager implements RoomChatProvider {
     private MarsCurator marsCurator;
     @Autowired
     private PlayerPackService playerPackService;
+    @Autowired
+    private ChatSubscriptionService chatSubscriptionService;
 
     //本节点协作房间 roomId -> room
     private final Map<Long, CoopRoom> rooms = new ConcurrentHashMap<>();
@@ -173,6 +178,7 @@ public class CoopRoomManager implements RoomChatProvider {
             //仅新成员加入才覆写路由记录(memberIds 变更); 断线重连成员数/状态不变, 跳过 Redis 写
             if (newMember) {
                 updateRecord(room);
+                notifyMemberCount(room);
             }
 
             res.code = Code.SUCCESS;
@@ -247,6 +253,7 @@ public class CoopRoomManager implements RoomChatProvider {
                     releasePlayerRoom(targetId, room.getRoomId());
                     notifyRemoved(room, target);
                     updateRecord(room);
+                    notifyMemberCount(room);
                     broadcastUpdate(room, 0);
                     log.info("协作房间踢人 roomId={},ownerId={},targetId={}", room.getRoomId(), playerId, targetId);
                 }
@@ -338,6 +345,9 @@ public class CoopRoomManager implements RoomChatProvider {
             updateRecord(room);
             broadcastUpdate(room, 0);
         }
+        if (member != null && status != CoopTaskConst.RoomStatus.FINISHED) {
+            notifyMemberCount(room);
+        }
         log.info("玩家退出协作房间 playerId={},roomId={},status={}", playerId, room.getRoomId(), status);
         return Code.SUCCESS;
     }
@@ -348,6 +358,7 @@ public class CoopRoomManager implements RoomChatProvider {
     private void dissolve(CoopRoom room) {
         detachMembers(room);
         removeRoom(room);
+        notifyMemberCount(room);
         log.info("协作房间解散 roomId={},taskId={}", room.getRoomId(), room.getTaskId());
     }
 
@@ -677,6 +688,7 @@ public class CoopRoomManager implements RoomChatProvider {
         }
         room.setSettlementHelperIds(helperIds);
         updateRecord(room);
+        notifyMemberCount(room);
         queueSettlement(room);
 
         NotifyCoopRoomResult notify = new NotifyCoopRoomResult(Code.SUCCESS);
@@ -847,7 +859,7 @@ public class CoopRoomManager implements RoomChatProvider {
         }
         NotifyChat notify = new NotifyChat(Code.SUCCESS);
         notify.msg = SocialPbConverter.toChatMsgInfo(message);
-        broadcast(room, notify);
+        chatSubscriptionService.publish(room.getMembers().keySet(), notify);
     }
 
     /**
@@ -1102,6 +1114,18 @@ public class CoopRoomManager implements RoomChatProvider {
             }
         }
         room.getMembers().clear();
+    }
+
+    private void notifyMemberCount(CoopRoom room) {
+        SimCoopMemberInfo member = new SimCoopMemberInfo();
+        member.playerId = room.getOwnerId();
+        member.taskId = room.getTaskId();
+        member.memberCount = room.getStatus() == CoopTaskConst.RoomStatus.FINISHED
+                ? 0 : room.getMembers().size();
+        NotifyCoopTaskMembers notify = new NotifyCoopTaskMembers(Code.SUCCESS);
+        notify.roomId = room.getRoomId();
+        notify.member = member;
+        chatSubscriptionService.publish(notify);
     }
 
     private void discardRoomRecord(CoopRoomRecord record) {
