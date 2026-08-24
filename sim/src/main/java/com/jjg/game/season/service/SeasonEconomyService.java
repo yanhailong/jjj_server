@@ -34,7 +34,8 @@ public class SeasonEconomyService {
         this.socialSender = socialSender;
     }
 
-    public void addEarnedCoin(SimPlayerContext ctx, long amount) {
+    /** 赛季匹配获胜入账：增加余额和累计获得量，并推进段位。 */
+    public void addMatchWinCoin(SimPlayerContext ctx, long amount) {
         if (amount <= 0) {
             return;
         }
@@ -66,12 +67,8 @@ public class SeasonEconomyService {
         return data.getSeasonCoin();
     }
 
-    /**
-     * 从赛季进入的 slots 中奖加币: 仅增加可用余额, 不计入 totalEarnedCoin/段位
-     * (段位由 PK 匹配驱动; 排行榜按 seasonCoin 余额排序, 中奖自然体现)。
-     * amount<=0 只读当前余额; 返回加后余额。
-     */
-    public long addSlotsWinCoin(SeasonPlayerData data, long amount) {
+    /** 仅增加可用余额，不计入 totalEarnedCoin/段位；amount<=0 时只读当前余额。 */
+    public long addBalance(SeasonPlayerData data, long amount) {
         if (amount > 0) {
             data.setSeasonCoin(Math.addExact(data.getSeasonCoin(), amount));
         }

@@ -522,7 +522,7 @@ public class SeasonGemService implements SimPlayerTickListener {
         }
         ctx.setLastGemEarningTime(now);
         if (reward > 0) {
-            economyService.addEarnedCoin(ctx, reward);
+            economyService.addBalance(data, reward);
         }
     }
 

@@ -867,7 +867,7 @@ public class SimManager {
             if (done != null) {
                 return new CommonResult<>(Code.SUCCESS, done);
             }
-            long balance = economyService.addSlotsWinCoin(ctx.getSeasonPlayerData(), amount);
+            long balance = economyService.addBalance(ctx.getSeasonPlayerData(), amount);
             ctx.recordSeasonTxn(transactionId, balance);
             bestEffortSave(ctx.getSeasonPlayerData());
             return new CommonResult<>(Code.SUCCESS, balance);

@@ -256,7 +256,11 @@ public class SimCasinoData extends AbstractData {
         if (this.purchasedGuestMap == null || this.purchasedGuestMap.isEmpty()) {
             return null;
         }
-        return this.purchasedGuestMap.remove(uid);
+        PurchasedGuestData remove = this.purchasedGuestMap.remove(uid);
+        if(this.purchasedGuestMap.isEmpty()){
+            this.purchasedGuestMap = null;
+        }
+        return remove;
     }
 
     public int getSpecialGuestRefreshDay() {

@@ -366,7 +366,7 @@ public class SeasonMatchService {
                 actualChange = SeasonPolicy.applyRatio(rawChange,
                         SeasonPolicy.ratioFor(data.getDailyWinAmount() - cfg.getDailyWinLimit(), cfg.getProfitRatio()));
             }
-            economyService.addEarnedCoin(ctx, actualChange);
+            economyService.addMatchWinCoin(ctx, actualChange);
             data.setDailyWinAmount(data.getDailyWinAmount() + actualChange);
         } else if (rawChange < 0) {
             actualChange = -Math.min(-rawChange, data.getSeasonCoin());

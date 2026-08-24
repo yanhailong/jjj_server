@@ -303,7 +303,7 @@ public class SeasonTrialService {
         int currencyId = configService.currencyItemId();
         Long coin = currencyId == 0 ? null : packItems.remove(currencyId);
         if (coin != null && coin > 0) {
-            economyService.addEarnedCoin(ctx, coin);
+            economyService.addBalance(ctx.getSeasonPlayerData(), coin);
         }
         if (!packItems.isEmpty()) {
             var result = playerPackService.addItems(ctx.playerId(), packItems, AddType.TASKAWARD,

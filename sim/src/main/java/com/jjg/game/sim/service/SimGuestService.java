@@ -426,16 +426,14 @@ public class SimGuestService implements SimPlayerTickListener, ItemListener, Sim
                 ctx.getSimBaseData().addBusinessIncome(destGold);
                 allianceEventService.onBusinessIncome(ctx.playerId(), rewardsMap);
             }
-            dest.claimed = true;
         }
+        dest.claimed = true;
         res.rewards = dest.rewards;
 
-        //全部目的地领取完毕则移除
-        boolean match = destinations.entrySet().stream().allMatch(en -> en.getValue().claimed);
-        if (match) {
+        destinations.remove(index);
+        if(destinations.isEmpty()){
             casino.removePurchasedGuest(uid);
         }
-
         log.info("领取购买游客奖励成功 playerId={},guestId={},uid={},index={}", ctx.playerId(), data.getGuestId(), uid, index);
         ctx.send(res);
     }

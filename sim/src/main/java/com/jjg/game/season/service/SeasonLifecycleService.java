@@ -248,7 +248,7 @@ public class SeasonLifecycleService implements SimPlayerTickListener {
                     delta = SeasonPolicy.applyRatio(delta, SeasonPolicy.ratioFor(
                             data.getDailyWinAmount() - cfg.getDailyWinLimit(), cfg.getProfitRatio()));
                 }
-                economyService.addEarnedCoin(ctx, delta);
+                economyService.addMatchWinCoin(ctx, delta);
                 data.setDailyWinAmount(Math.addExact(data.getDailyWinAmount(), delta));
                 if (settlement.getRecord() != null) {
                     settlement.getRecord().setCoinChange(delta);

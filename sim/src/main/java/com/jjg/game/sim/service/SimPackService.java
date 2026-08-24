@@ -150,13 +150,13 @@ public class SimPackService implements SpecialItemListener {
      */
     public boolean addItemsHere(long playerId, List<Item> items, AddType addType) {
         SimPlayerContext ctx = simPlayerContextRegistry.getContext(playerId);
-        return ctx != null ? addItemsOnline(ctx, items, addType) : addItemsOffline(playerId, items, addType);
+        return ctx != null ? addItemsOnline(ctx, items) : addItemsOffline(playerId, items);
     }
 
     /**
      * 在线入账：改内存态，随 ctx 定时落库
      */
-    private boolean addItemsOnline(SimPlayerContext ctx, List<Item> items, AddType addType) {
+    private boolean addItemsOnline(SimPlayerContext ctx, List<Item> items) {
         boolean specialGuestItemAdded = false;
         for (Item item : items) {
             int itemId = item.getId();
@@ -185,7 +185,7 @@ public class SimPackService implements SpecialItemListener {
             } else if (GameDataManager.getMedalListCfg(itemId) != null) {  //勋章
                 ctx.getSimBaseData().activeMedalId(itemId);
             } else if (itemId == SimConstant.Item.ID_SEASON_COIN) {  //赛季币
-                addSeasonCoin(ctx, count, addType);
+                addSeasonCoin(ctx, count);
             } else if(itemCfg.getItemType() == GameConstant.Item.ITEM_TYPE_SIM_RECRUIT_CARD){  //招商卡
                 ctx.getCurrentCasino().addSpecialGuest(itemId, count);
                 specialGuestItemAdded = true;
@@ -198,22 +198,13 @@ public class SimPackService implements SpecialItemListener {
         return true;
     }
 
-    /**
-     * 在线赛季币入账：正常发放计入累计获得量并推进段位；回滚只回补余额。
-     * <p>
-     * 扣除走 {@link SeasonEconomyService#spend} 只减余额、不减 totalEarnedCoin，
-     * 回滚若也走 addEarnedCoin 会让累计量净增，虚推段位甚至白发段位奖励。
-     */
-    private void addSeasonCoin(SimPlayerContext ctx, long count, AddType addType) {
+    /** 在线赛季币入账：仅增加可用余额，累计获得量只由赛季匹配获胜推进。 */
+    private void addSeasonCoin(SimPlayerContext ctx, long count) {
         if (ctx.getSeasonPlayerData() == null) {
             log.warn("赛季币入账失败, 无SeasonPlayerData playerId={},count={}", ctx.playerId(), count);
             return;
         }
-        if (addType == AddType.FAIL_ROLLBACK) {
-            seasonEconomyService.addSlotsWinCoin(ctx.getSeasonPlayerData(), count);
-            return;
-        }
-        seasonEconomyService.addEarnedCoin(ctx, count);
+        seasonEconomyService.addBalance(ctx.getSeasonPlayerData(), count);
     }
 
     /**
@@ -222,7 +213,7 @@ public class SimPackService implements SpecialItemListener {
      * 先把要写的载体全部取到，任一缺失就整体失败且不落任何一笔 —— 否则调用方重试会重复入账。
      * 注: 若玩家此刻正在其它节点在线, 该节点的内存快照落库可能覆盖此处直写。
      */
-    private boolean addItemsOffline(long playerId, List<Item> items, AddType addType) {
+    private boolean addItemsOffline(long playerId, List<Item> items) {
         int powerAdd = 0;
         int awarenessAdd = 0;
         long seasonCoinAdd = 0;
@@ -282,10 +273,6 @@ public class SimPackService implements SpecialItemListener {
         }
         if (seasonData != null) {
             seasonData.setSeasonCoin(Math.addExact(seasonData.getSeasonCoin(), seasonCoinAdd));
-            //回滚不补累计获得量: 扣除时也没减过, 补了会虚推段位(离线无会话, 段位待下次上线由发放路径推进)
-            if (addType != AddType.FAIL_ROLLBACK) {
-                seasonData.setTotalEarnedCoin(Math.addExact(seasonData.getTotalEarnedCoin(), seasonCoinAdd));
-            }
             seasonPlayerDao.save(seasonData);
         }
         return true;
