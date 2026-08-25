@@ -43,8 +43,7 @@ public class AdsRewardController extends BaseActivityController {
     public AbstractResponse joinActivity(Player player, ActivityData activityData, int detailId, int times) {
         ResAdsRewardWatch res = new ResAdsRewardWatch(Code.SUCCESS);
         Map<Integer, VideoRewardCfg> cfgMap = getDetailCfgBean(activityData);
-        if (times != 1 || activityData == null || CollectionUtil.isEmpty(activityData.getValue())
-                || !activityData.getValue().contains(detailId)) {
+        if (times != 1 || activityData == null || CollectionUtil.isEmpty(activityData.getValue())) {
             res.code = Code.PARAM_ERROR;
             return res;
         }
@@ -54,40 +53,25 @@ public class AdsRewardController extends BaseActivityController {
         }
 
         long playerId = player.getId();
-        String lockKey = playerActivityDao.getLockKey(playerId, activityData.getId());
-        boolean locked = false;
+        int day = TimeHelper.getDayNumerical();
+        int dailyLimit = getDailyLimit(cfgMap);
+        int watchCount = getWatchCount(playerId, activityData, day);
+        if (watchCount >= dailyLimit) {
+            res.code = Code.TODAY_CLIAM_LIMIT;
+            res.activityInfo = buildActivityInfo(playerId, activityData, cfgMap, day, watchCount);
+            return res;
+        }
+
         try {
-            locked = redisLock.tryLockWithDefaultTime(lockKey);
-            if (!locked) {
-                res.code = Code.FAIL;
-                return res;
-            }
-
-            int day = TimeHelper.getDayNumerical();
-            int dailyLimit = getDailyLimit(cfgMap);
-            int watchCount = getWatchCount(playerId, activityData, day);
-            if (watchCount >= dailyLimit) {
-                res.code = Code.TODAY_CLIAM_LIMIT;
-                res.activityInfo = buildActivityInfo(playerId, activityData, cfgMap, day, watchCount);
-                return res;
-            }
-
             watchCount = countDao.incrementWithoutExpireRefresh(
                     getCountFeature(activityData, day), String.valueOf(playerId), BigDecimal.ONE, DATA_EXPIRE_SECONDS).intValue();
             res.activityInfo = buildActivityInfo(playerId, activityData, cfgMap, day, watchCount);
-            log.info("视频福利观看计数成功 playerId:{} activityId:{} detailId:{} watchCount:{} dailyLimit:{}",
-                    playerId, activityData.getId(), detailId, watchCount, dailyLimit);
-        } catch (InterruptedException e) {
-            Thread.currentThread().interrupt();
-            res.code = Code.FAIL;
+            log.info("视频福利观看计数成功 playerId:{} activityId:{} watchCount:{} dailyLimit:{}",
+                    playerId, activityData.getId(), watchCount, dailyLimit);
         } catch (Exception e) {
             res.code = Code.EXCEPTION;
-            log.error("视频福利观看计数异常 playerId:{} activityId:{} detailId:{}",
-                    playerId, activityData.getId(), detailId, e);
-        } finally {
-            if (locked) {
-                redisLock.tryUnlock(lockKey);
-            }
+            log.error("视频福利观看计数异常 playerId:{} activityId:{}",
+                    playerId, activityData.getId(), e);
         }
         return res;
     }
