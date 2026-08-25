@@ -19,6 +19,7 @@ public class PlayerVo {
     private String mobile;
     private SafeVo safeVo;
     private int level;
+    private int buildingLevel;
     private int gameType;
     private int roomCfgId;
     private String guestAccount;
@@ -133,6 +134,14 @@ public class PlayerVo {
 
     public void setLevel(int level) {
         this.level = level;
+    }
+
+    public int getBuildingLevel() {
+        return buildingLevel;
+    }
+
+    public void setBuildingLevel(int buildingLevel) {
+        this.buildingLevel = buildingLevel;
     }
 
     public int getGameType() {

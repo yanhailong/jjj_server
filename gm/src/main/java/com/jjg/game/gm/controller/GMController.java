@@ -44,6 +44,8 @@ import com.jjg.game.gm.vo.*;
 import com.jjg.game.sampledata.GameDataManager;
 import com.jjg.game.sampledata.bean.ItemCfg;
 import com.jjg.game.sampledata.bean.LoginConfigCfg;
+import com.jjg.game.sim.dao.SimPlayerGameDao;
+import com.jjg.game.sim.data.SimBaseData;
 import org.apache.commons.lang3.StringUtils;
 import org.springframework.beans.BeanUtils;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -117,6 +119,8 @@ public class GMController extends AbstractController {
     private RedeemCodeDao redeemCodeDao;
     @Autowired
     private GlobalConfigDao globalConfigDao;
+    @Autowired
+    private SimPlayerGameDao simPlayerGameDao;
     @ClusterRpcReference()
     private GmToRechargeBridge gmToRechargeBridge;
     @ClusterRpcReference
@@ -341,6 +345,10 @@ public class GMController extends AbstractController {
             vo.setIsOffline(playerSessionService.hasSession(p.getId()) ? 0 : 1);
             vo.setMobile(account.getThirdAccount(LoginType.PHONE));
             vo.setLevel(p.getLevel());
+            int buildingLevel = simPlayerGameDao.findById(p.getId())
+                    .map(SimBaseData::getAllLevel)
+                    .orElse(0);
+            vo.setBuildingLevel(buildingLevel);
             vo.setGameType(p.getGameType());
             vo.setRoomCfgId(p.getRoomCfgId());
             vo.setGuestAccount(account.getThirdAccount(LoginType.GUEST));
