@@ -593,7 +593,7 @@ public class SimVisitService implements IRedDotService {
     }
 
     private VisitCasinoInfo buildCasinoInfo(Player player, SimCasinoData casino,
-                                            SimVisitProfi leData profile, int todayPopularity) {
+                                            SimVisitProfileData profile, int todayPopularity) {
         VisitCasinoInfo info = new VisitCasinoInfo();
         info.playerId = player.getId();
         info.playerName = player.getNickName();
