@@ -335,5 +335,8 @@ public interface ActivityConstant {
 
         int NOTIFY_BIND_SUBORDINATES_CHANGE = BASE_MSG_PREFIX | 0x86;
 
+        //集合礼包
+        int RES_BUNDLE_GIFT_PACK = BASE_MSG_PREFIX | 0x87;
+
     }
 }

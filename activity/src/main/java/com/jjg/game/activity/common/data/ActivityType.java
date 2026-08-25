@@ -1,5 +1,6 @@
 package com.jjg.game.activity.common.data;
 
+import com.jjg.game.activity.bundleGiftPack.BundleGiftPackController;
 import com.jjg.game.activity.cashcow.controller.CashCowController;
 import com.jjg.game.activity.common.controller.BaseActivityController;
 import com.jjg.game.activity.continuousRecharge.ContinuousRechargeController;
@@ -47,6 +48,9 @@ public enum ActivityType {
     //每日充值
     DAILY_RECHARGE(12, DailyRechargeController.class, false, false,
             ActivityTargetType.NONE.getTargetKey(), false, false, false),
+    //集合礼包
+    BUNDLE_GIFT_PACK(14, BundleGiftPackController.class, false, false,
+            ActivityTargetType.NONE.getTargetKey(), false, false, false),
     //成长基金
     GROWTH_FUND(15, GrowthFundController.class, true, false,
             ActivityTargetType.LEVEL.getTargetKey(), false, false, false),
@@ -55,7 +59,8 @@ public enum ActivityType {
             ActivityTargetType.NONE.getTargetKey(), true, false, true),
     //大轮盘
     GRAND_ROULETTE(22, GrandRouletteController.class, true, false,
-            ActivityTargetType.getTagetKey(ActivityTargetType.RECHARGE, ActivityTargetType.EFFECTIVE_BET), true, false, true);;
+            ActivityTargetType.getTagetKey(ActivityTargetType.RECHARGE, ActivityTargetType.EFFECTIVE_BET), true, false, true),
+    ;
     //活动类型
     private final int type;
     //活动控制器的class

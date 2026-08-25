@@ -39,6 +39,8 @@ public class CasinoStatsSheetCfg extends BaseCfgBean {
   protected int UpgradeCost;
   /** 升级产出能量 */
   protected int UpgradeOutput;
+  /** 游客每日交互时长上限（min） */
+  protected int VisitorDailyLimit;
   /** 游客生成数量 */
   protected int VisitorSpawnCount;
   /** 等级 */
@@ -92,6 +94,11 @@ public class CasinoStatsSheetCfg extends BaseCfgBean {
   /** 返回升级产出能量 */
   public int getUpgradeOutput() {
     return UpgradeOutput;
+  }
+
+  /** 返回游客每日交互时长上限（min） */
+  public int getVisitorDailyLimit() {
+    return VisitorDailyLimit;
   }
 
   /** 返回游客生成数量 */

@@ -55,6 +55,10 @@ public enum RechargeType {
      * 购买游客
      */
     BUY_GUEST(11),
+    /**
+     * 集合礼包
+     */
+    BUNDLE_GIFT_PACK(12),
     ;
     private final int type;
 

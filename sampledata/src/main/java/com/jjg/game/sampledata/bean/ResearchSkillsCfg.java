@@ -27,10 +27,16 @@ public class ResearchSkillsCfg extends BaseCfgBean {
   protected int BuildingLevel;
   /** 战力值 */
   protected int CombatPower;
+  /** 提成人数上限 */
+  protected int CommissionUsers;
   /** 每级所需研究点 */
   protected Map<Integer,Integer> ResearchPoints;
+  /** 技能类型 */
+  protected int SkillTypeId;
   /** 快速旋转 */
   protected int TurboSpin;
+  /** 中奖提成比例 */
+  protected int WinCommission;
   /** 金额解锁 */
   protected List<Long> bet;
   /** 游戏id */
@@ -66,14 +72,29 @@ public class ResearchSkillsCfg extends BaseCfgBean {
     return CombatPower;
   }
 
+  /** 返回提成人数上限 */
+  public int getCommissionUsers() {
+    return CommissionUsers;
+  }
+
   /** 返回每级所需研究点 */
   public Map<Integer,Integer> getResearchPoints() {
     return ResearchPoints;
   }
 
+  /** 返回技能类型 */
+  public int getSkillTypeId() {
+    return SkillTypeId;
+  }
+
   /** 返回快速旋转 */
   public int getTurboSpin() {
     return TurboSpin;
+  }
+
+  /** 返回中奖提成比例 */
+  public int getWinCommission() {
+    return WinCommission;
   }
 
   /** 返回金额解锁 */

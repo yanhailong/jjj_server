@@ -144,6 +144,7 @@ public class GameDataManager {
     containerMap.put(BuildingFunctionCfg.class, new BuildingFunctionCfgContainer());
     containerMap.put(BuildingGainCfg.class, new BuildingGainCfgContainer());
     containerMap.put(BuildingUpgradeTableCfg.class, new BuildingUpgradeTableCfgContainer());
+    containerMap.put(BundleGiftPackCfg.class, new BundleGiftPackCfgContainer());
     containerMap.put(CashcowCfg.class, new CashcowCfgContainer());
     containerMap.put(CasinoListCfg.class, new CasinoListCfgContainer());
     containerMap.put(CasinoStatsSheetCfg.class, new CasinoStatsSheetCfgContainer());
@@ -235,6 +236,7 @@ public class GameDataManager {
     containerMap.put(SeasonTierCfg.class, new SeasonTierCfgContainer());
     containerMap.put(SeasondropDetailedCfg.class, new SeasondropDetailedCfgContainer());
     containerMap.put(SharePromoteCfg.class, new SharePromoteCfgContainer());
+    containerMap.put(ShopRechargeListCfg.class, new ShopRechargeListCfgContainer());
     containerMap.put(SouthernMoneyCfg.class, new SouthernMoneyCfgContainer());
     containerMap.put(SpecialAuxiliaryCfg.class, new SpecialAuxiliaryCfgContainer());
     containerMap.put(SpecialGirdCfg.class, new SpecialGirdCfgContainer());
@@ -970,6 +972,18 @@ public class GameDataManager {
 
   public static List<BuildingUpgradeTableCfg> getBuildingUpgradeTableCfgList() {
     return getInstance().getCfgContainer(BuildingUpgradeTableCfg.class).getCfgBeanList();
+  }
+
+  public static BundleGiftPackCfg getBundleGiftPackCfg(int key) {
+    return getInstance().getCfgContainer(BundleGiftPackCfg.class).getCfgBeanMap().get(key);
+  }
+
+  public static Map<Integer, BundleGiftPackCfg> getBundleGiftPackCfgMap() {
+    return getInstance().getCfgContainer(BundleGiftPackCfg.class).getCfgBeanMap();
+  }
+
+  public static List<BundleGiftPackCfg> getBundleGiftPackCfgList() {
+    return getInstance().getCfgContainer(BundleGiftPackCfg.class).getCfgBeanList();
   }
 
   public static CashcowCfg getCashcowCfg(int key) {
@@ -2062,6 +2076,18 @@ public class GameDataManager {
 
   public static List<SharePromoteCfg> getSharePromoteCfgList() {
     return getInstance().getCfgContainer(SharePromoteCfg.class).getCfgBeanList();
+  }
+
+  public static ShopRechargeListCfg getShopRechargeListCfg(int key) {
+    return getInstance().getCfgContainer(ShopRechargeListCfg.class).getCfgBeanMap().get(key);
+  }
+
+  public static Map<Integer, ShopRechargeListCfg> getShopRechargeListCfgMap() {
+    return getInstance().getCfgContainer(ShopRechargeListCfg.class).getCfgBeanMap();
+  }
+
+  public static List<ShopRechargeListCfg> getShopRechargeListCfgList() {
+    return getInstance().getCfgContainer(ShopRechargeListCfg.class).getCfgBeanList();
   }
 
   public static SouthernMoneyCfg getSouthernMoneyCfg(int key) {
