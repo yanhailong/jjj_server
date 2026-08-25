@@ -15,4 +15,6 @@ public class BundleGiftPackDetailInfo extends BaseActivityDetailInfo {
     public String buyPrice;
     @ProtoDesc("集合礼包渠道商品id")
     public String channelProductId;
+    @ProtoDesc("结束时间")
+    public long endTime;
 }

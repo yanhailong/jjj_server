@@ -140,8 +140,10 @@ public enum AddType {
     ACTIVITY_WELFARE_DAILY_REWARD(628),
     //累计福利本月累计奖励
     ACTIVITY_WELFARE_MONTHLY_REWARD(629),
-    //阶段充值
+    //集合礼包
     ACTIVITY_BUNDLE_GIFT_PACK(630),
+    //视频福利累计奖励
+    ACTIVITY_ADS_REWARD(631),
 
 
     //好友房申请庄家扣除准备金

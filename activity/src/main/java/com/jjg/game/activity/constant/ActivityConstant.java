@@ -338,5 +338,9 @@ public interface ActivityConstant {
         //集合礼包
         int RES_BUNDLE_GIFT_PACK = BASE_MSG_PREFIX | 0x87;
 
+        //广告福利
+        int RES_ADS_REWARD_INFO = BASE_MSG_PREFIX | 0x88;
+        int RES_ADS_REWARD_WATCH = BASE_MSG_PREFIX | 0x89;
+        int RES_ADS_REWARD_CLAIM = BASE_MSG_PREFIX | 0x8A;
     }
 }

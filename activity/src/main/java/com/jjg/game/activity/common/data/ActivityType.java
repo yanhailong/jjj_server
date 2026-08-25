@@ -1,5 +1,6 @@
 package com.jjg.game.activity.common.data;
 
+import com.jjg.game.activity.adsReward.AdsRewardController;
 import com.jjg.game.activity.bundleGiftPack.BundleGiftPackController;
 import com.jjg.game.activity.cashcow.controller.CashCowController;
 import com.jjg.game.activity.common.controller.BaseActivityController;
@@ -60,6 +61,9 @@ public enum ActivityType {
     //大轮盘
     GRAND_ROULETTE(22, GrandRouletteController.class, true, false,
             ActivityTargetType.getTagetKey(ActivityTargetType.RECHARGE, ActivityTargetType.EFFECTIVE_BET), true, false, true),
+    //广告福利
+    ADS_REWARD(25, AdsRewardController.class, false, false,
+            ActivityTargetType.NONE.getTargetKey(), true, false, true),
     ;
     //活动类型
     private final int type;

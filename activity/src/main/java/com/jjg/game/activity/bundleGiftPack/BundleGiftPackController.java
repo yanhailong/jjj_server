@@ -82,6 +82,7 @@ public class BundleGiftPackController extends BaseActivityController implements 
 
         BundleGiftPackDetailInfo detailInfo = new BundleGiftPackDetailInfo();
         detailInfo.activityId = activityData.getId();
+        detailInfo.endTime = activityData.getTimeEnd();
         detailInfo.packInfoList = new ArrayList<>(cfgMap.size());
 
         int purchasedCount = 0;
