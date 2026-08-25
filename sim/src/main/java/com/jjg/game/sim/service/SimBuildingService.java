@@ -966,10 +966,6 @@ public class SimBuildingService implements SimPlayerTickListener, SimTaskStateRe
         List<KVInfo> list = new ArrayList<>(base.size());
         for (Map.Entry<BuildingOutputType, Long> en : base.entrySet()) {
             int bonus = bonusesMap.getOrDefault(en.getKey().bonusGroup(), 0);
-            long extra = en.getValue() * bonus / SimConstant.Common.EMPLOYEE_BONUS_DIVISOR;
-            if (extra <= 0) {
-                continue;
-            }
             list.add(new KVInfo(en.getKey().getCode(), bonus));
         }
         return list;

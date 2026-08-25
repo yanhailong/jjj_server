@@ -235,4 +235,6 @@ public interface Code {
 
     //建筑等级不足
     int BUILDING_LEVEL_LIMIT = 4020609;
+    //操作失败，已达当日上限
+    int DAILY_LIMIT = 4057168;
 }
