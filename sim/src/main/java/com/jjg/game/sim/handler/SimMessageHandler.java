@@ -334,6 +334,14 @@ public class SimMessageHandler implements GmListener {
         }, ReqSimCasinoInfo.class);
     }
 
+    /**
+     * 获取当前场景升级条件
+     */
+    @Command(SimConstant.MsgBean.REQ_CASINO_UPGRADE_CONDITION)
+    public void reqCasinoUpgradeCondition(PlayerController playerController, ReqCasinoUpgradeCondition req) {
+        execute(playerController, casinoService::onCasinoUpgradeCondition, ReqCasinoUpgradeCondition.class);
+    }
+
     //--------------------------建筑相关 begin--------------------------
 
     /**

@@ -1,8 +1,6 @@
 package com.jjg.game.core.manager;
 
 import cn.hutool.core.collection.CollectionUtil;
-import com.alibaba.fastjson.JSON;
-import com.alibaba.fastjson.JSONObject;
 import com.jjg.game.common.cluster.ClusterSystem;
 import com.jjg.game.common.protostuff.PFSession;
 import com.jjg.game.core.base.reddot.IRedDotService;
@@ -16,11 +14,7 @@ import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Component;
 
-import java.util.ArrayList;
-import java.util.Collections;
-import java.util.HashSet;
-import java.util.List;
-import java.util.Map;
+import java.util.*;
 import java.util.concurrent.ConcurrentHashMap;
 
 /**
@@ -259,7 +253,7 @@ public class RedDotManager {
                 return;
             }
             session.send(notifyRedDot);
-            log.debug("玩家刷新红点 playerId = {},details = {}", playerId, JSONObject.toJSONString(list));
+//            log.debug("玩家刷新红点 playerId = {},details = {}", playerId, JSONObject.toJSONString(list));
         } else {
             clusterSystem.broadcastToOnlinePlayer(notifyRedDot);
         }
@@ -356,7 +350,7 @@ public class RedDotManager {
         notifyRedDot.setRedDotList(result);
         //回复红点数据
         playerController.send(notifyRedDot);
-        log.debug("推送玩家红点数据 module = {}，notify = {}", module, JSON.toJSONString(notifyRedDot));
+//        log.debug("推送玩家红点数据 module = {}，notify = {}", module, JSON.toJSONString(notifyRedDot));
     }
 }
 

@@ -310,7 +310,8 @@ public class SimBuildingService implements SimPlayerTickListener, SimTaskStateRe
                             res.code = Code.PARAM_ERROR;
                             return res;
                         }
-                        tips.add(SimTool.buildTips(languageId, String.valueOf(en.getValue())));
+                        BuildingAreaTableCfg tmpCfg = GameDataManager.getBuildingAreaTableCfg(en.getKey());
+                        tips.add(SimTool.buildTips(languageId, tmpCfg.getBuildingNameId(), String.valueOf(en.getValue())));
                         continue;
                     }
                     if (building.getLevel() < en.getValue()) {
@@ -319,7 +320,8 @@ public class SimBuildingService implements SimPlayerTickListener, SimTaskStateRe
                             res.code = Code.PARAM_ERROR;
                             return res;
                         }
-                        tips.add(SimTool.buildTips(languageId, String.valueOf(en.getValue())));
+                        BuildingAreaTableCfg tmpCfg = GameDataManager.getBuildingAreaTableCfg(en.getKey());
+                        tips.add(SimTool.buildTips(languageId, tmpCfg.getBuildingNameId(), String.valueOf(en.getValue())));
                     }
                 }
             }
@@ -335,7 +337,13 @@ public class SimBuildingService implements SimPlayerTickListener, SimTaskStateRe
                         res.code = Code.NOT_ENOUGH;
                         return res;
                     }
-                    tips.add(SimTool.buildTips(costLanguageId, String.valueOf(cfg.getUnlockCost())));
+                    Long l = cfg.getUnlockCost().get(ItemUtils.getGoldItemId());
+                    if (l == null) {
+                        log.warn("解锁建筑失败, 解析金币时获取错误 playerId={},buildingId={},cost={}", ctx.playerId(), buildingId, cfg.getUnlockCost());
+                        res.code = Code.NOT_ENOUGH;
+                        return res;
+                    }
+                    tips.add(SimTool.buildTips(costLanguageId, String.valueOf(l)));
                 }
             } else {
                 boolean has = playerPackService.checkHasItems(ctx.getPlayer(), cfg.getUnlockCost());
@@ -345,7 +353,13 @@ public class SimBuildingService implements SimPlayerTickListener, SimTaskStateRe
                         res.code = Code.NOT_ENOUGH;
                         return res;
                     }
-                    tips.add(SimTool.buildTips(costLanguageId, cfg.getUnlockCost()));
+                    Long l = cfg.getUnlockCost().get(ItemUtils.getGoldItemId());
+                    if (l == null) {
+                        log.warn("解锁建筑失败, 解析金币时获取错误1 playerId={},buildingId={},cost={}", ctx.playerId(), buildingId, cfg.getUnlockCost());
+                        res.code = Code.NOT_ENOUGH;
+                        return res;
+                    }
+                    tips.add(SimTool.buildTips(costLanguageId, String.valueOf(l)));
                 }
             }
 
@@ -379,6 +393,22 @@ public class SimBuildingService implements SimPlayerTickListener, SimTaskStateRe
     /**
      * 升级建筑 (启动 CD)
      */
+    public boolean canUpgradeBuilding(SimPlayerContext ctx, int buildingId) {
+        long now = System.currentTimeMillis();
+        SimCasinoData casino = ctx.getCurrentCasino();
+        if (casino == null) {
+            return false;
+        }
+        BuildingData data = casino.findBuilding(buildingId);
+        if (data == null || data.isUpgrading(now)) {
+            return false;
+        }
+        BuildingUpgradeTableCfg currentCfg = configCache.getBuildingUpgradeCfg(buildingId, data.getLevel());
+        return currentCfg != null
+                && checkBuildingUpgrade(ctx, data, currentCfg) == BuildingUpgradeCheck.CAN_UPGRADE
+                && playerPackService.checkHasItems(ctx.getPlayer(), currentCfg.getUpgradeCost());
+    }
+
     public void onUpgradeBuilding(SimPlayerContext ctx, int buildingId) {
         ResUpgradeBuilding res = new ResUpgradeBuilding(Code.SUCCESS);
         try {
@@ -396,7 +426,7 @@ public class SimBuildingService implements SimPlayerTickListener, SimTaskStateRe
                 ctx.send(res);
                 return;
             }
-            if (data.getCdEndTime() > now) {
+            if (data.isUpgrading(now)) {
                 log.warn("升级建筑失败, 升级中 playerId={},buildingId={},cdEndTime={}", ctx.playerId(), buildingId, data.getCdEndTime());
                 res.code = Code.PARAM_ERROR;
                 ctx.send(res);
@@ -412,47 +442,34 @@ public class SimBuildingService implements SimPlayerTickListener, SimTaskStateRe
                 return;
             }
 
-            //先检查是不是添加进度条
-            if (currentCfg.getCostPerLevel() != null && !currentCfg.getCostPerLevel().isEmpty()) {
+            BuildingUpgradeCheck check = checkBuildingUpgrade(ctx, data, currentCfg);
+            if (check == BuildingUpgradeCheck.ADD_PROGRESS) {
                 //添加进度条
-                if (data.getProgress() < currentCfg.getCostPerLevel().size()) {
-
-                    List<Integer> list = currentCfg.getCostPerLevel().get(data.getProgress());
-                    boolean remove = playerPackService.removeItem(ctx.getPlayer(), list.get(0), list.get(1), AddType.SIM_BUILDING_UPGRADE).success();
-                    if (!remove) {
-                        log.warn("建筑添加进度条失败, 扣除资源失败 playerId={},buildingId={},level={}，itemId={},count={}", ctx.playerId(), buildingId, data.getLevel(), list.get(0), list.get(1));
-                        res.code = Code.NOT_ENOUGH_ITEM;
-                        ctx.send(res);
-                        return;
-                    }
-
-                    data.setProgress(data.getProgress() + 1);
-                    res.buildingInfo = SimPbConverter.toBuildingInfo(data, now);
+                List<Integer> list = currentCfg.getCostPerLevel().get(data.getProgress());
+                boolean remove = playerPackService.removeItem(ctx.getPlayer(), list.get(0), list.get(1), AddType.SIM_BUILDING_UPGRADE).success();
+                if (!remove) {
+                    log.warn("建筑添加进度条失败, 扣除资源失败 playerId={},buildingId={},level={}，itemId={},count={}", ctx.playerId(), buildingId, data.getLevel(), list.get(0), list.get(1));
+                    res.code = Code.NOT_ENOUGH_ITEM;
                     ctx.send(res);
-                    log.info("建筑增加进度条 playerId={},buildingInfo={}", ctx.playerId(), JSON.toJSONString(res.buildingInfo));
                     return;
                 }
+
+                data.setProgress(data.getProgress() + 1);
+                res.buildingInfo = SimPbConverter.toBuildingInfo(data, now);
+                ctx.send(res);
+                log.info("建筑增加进度条 playerId={},buildingInfo={}", ctx.playerId(), JSON.toJSONString(res.buildingInfo));
+                return;
             }
 
-            if (currentCfg.getUpgradeCost() == null || currentCfg.getUpgradeCost().isEmpty()) {
+            if (check == BuildingUpgradeCheck.UPGRADE_COST_NOT_CONFIGURED) {
                 log.warn("升级建筑失败, 没有配置升级消耗道具 playerId={},buildingId={},level={}", ctx.playerId(), buildingId, data.getLevel());
-                res.code = Code.PARAM_ERROR;
-                ctx.send(res);
-                return;
-            }
-
-            if (currentCfg.getNeedLevel() > ctx.getSimBaseData().getAllLevel()) {
+            } else if (check == BuildingUpgradeCheck.CASINO_LEVEL_LOW) {
                 log.warn("升级建筑失败, 经营等级不足 playerId={},buildingId={},buildingLevel={},needLevel={}", ctx.playerId(), buildingId, data.getLevel(), currentCfg.getNeedLevel());
-                res.code = Code.SIM_CASINO_LEVEL_LOW;
-                ctx.send(res);
-                return;
-            }
-
-            int buildingNextLevel = data.getLevel() + 1;
-            BuildingUpgradeTableCfg next = configCache.getBuildingUpgradeCfg(buildingId, buildingNextLevel);
-            if (next == null) {
+            } else if (check == BuildingUpgradeCheck.MAX_LEVEL) {
                 log.warn("升级建筑失败, 已达上限 playerId={},buildingId={},level={}", ctx.playerId(), buildingId, data.getLevel());
-                res.code = Code.PARAM_ERROR;
+            }
+            if (check != BuildingUpgradeCheck.CAN_UPGRADE) {
+                res.code = check.code;
                 ctx.send(res);
                 return;
             }
@@ -474,6 +491,38 @@ public class SimBuildingService implements SimPlayerTickListener, SimTaskStateRe
             res.code = Code.EXCEPTION;
         }
         ctx.send(res);
+    }
+
+    private BuildingUpgradeCheck checkBuildingUpgrade(SimPlayerContext ctx, BuildingData data,
+                                                      BuildingUpgradeTableCfg currentCfg) {
+        if (currentCfg.getCostPerLevel() != null && !currentCfg.getCostPerLevel().isEmpty()
+                && data.getProgress() < currentCfg.getCostPerLevel().size()) {
+            return BuildingUpgradeCheck.ADD_PROGRESS;
+        }
+        if (currentCfg.getUpgradeCost() == null || currentCfg.getUpgradeCost().isEmpty()) {
+            return BuildingUpgradeCheck.UPGRADE_COST_NOT_CONFIGURED;
+        }
+        if (currentCfg.getNeedLevel() > ctx.getSimBaseData().getAllLevel()) {
+            return BuildingUpgradeCheck.CASINO_LEVEL_LOW;
+        }
+        if (configCache.getBuildingUpgradeCfg(data.getId(), data.getLevel() + 1) == null) {
+            return BuildingUpgradeCheck.MAX_LEVEL;
+        }
+        return BuildingUpgradeCheck.CAN_UPGRADE;
+    }
+
+    private enum BuildingUpgradeCheck {
+        CAN_UPGRADE(Code.SUCCESS),
+        ADD_PROGRESS(Code.PARAM_ERROR),
+        UPGRADE_COST_NOT_CONFIGURED(Code.PARAM_ERROR),
+        CASINO_LEVEL_LOW(Code.SIM_CASINO_LEVEL_LOW),
+        MAX_LEVEL(Code.PARAM_ERROR);
+
+        private final int code;
+
+        BuildingUpgradeCheck(int code) {
+            this.code = code;
+        }
     }
 
     /**
@@ -921,7 +970,7 @@ public class SimBuildingService implements SimPlayerTickListener, SimTaskStateRe
             if (extra <= 0) {
                 continue;
             }
-            list.add(new KVInfo(en.getKey().getCode(), (int) extra));
+            list.add(new KVInfo(en.getKey().getCode(), bonus));
         }
         return list;
     }

@@ -9,7 +9,6 @@ import com.jjg.game.core.base.gameevent.GameEventManager;
 import com.jjg.game.core.base.gameevent.PlayerEvent;
 import com.jjg.game.core.constant.Code;
 import com.jjg.game.core.dao.TogetherPlayReconnectDao;
-import com.jjg.game.core.pb.KVInfo;
 import com.jjg.game.core.service.PlayerStatService;
 import com.jjg.game.sampledata.GameDataManager;
 import com.jjg.game.sampledata.bean.*;
@@ -21,9 +20,11 @@ import com.jjg.game.sim.data.*;
 import com.jjg.game.sim.listener.SimTaskStateReporter;
 import com.jjg.game.sim.pb.SimPbConverter;
 import com.jjg.game.sim.pb.res.NotifyCasinoUpgrade;
+import com.jjg.game.sim.pb.res.ResCasinoUpgradeCondition;
 import com.jjg.game.sim.pb.res.ResSimCasinoInfo;
 import com.jjg.game.sim.pb.res.ResSwitchCasino;
 import com.jjg.game.sim.pb.res.ResUnlockCasino;
+import com.jjg.game.sim.pb.struct.CasinoUpgradeCondition;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -222,6 +223,25 @@ public class SimCasinoService implements SimTaskStateReporter {
         ctx.send(res);
     }
 
+    public void onCasinoUpgradeCondition(SimPlayerContext ctx) {
+        ResCasinoUpgradeCondition res = new ResCasinoUpgradeCondition(Code.SUCCESS);
+        try {
+            SimCasinoData casino = ctx.getCurrentCasino();
+            if (casino == null) {
+                log.warn("获取场景升级条件失败, 当前场景为空 playerId={}", ctx.playerId());
+                res.code = Code.NOT_FOUND;
+            } else {
+                CasinoStatsSheetCfg nextLevelCfg = configCacheService.getCasinoStatsSheetCfg(
+                        casino.getCasinoId(), casino.getCasinoLevel() + 1);
+                res.conditions = toUpgradeLevelConditions(nextLevelCfg, ctx);
+            }
+        } catch (Exception e) {
+            log.error("", e);
+            res.code = Code.EXCEPTION;
+        }
+        ctx.send(res);
+    }
+
     private int getTogetherPlayReconnectGameType(long playerId) {
         try {
             return togetherPlayReconnectDao.getGameType(playerId);
@@ -399,19 +419,30 @@ public class SimCasinoService implements SimTaskStateReporter {
         ctx.send(notify);
     }
 
-    private List<KVInfo> toUpgradeLevelConditions(CasinoStatsSheetCfg nextLevelCfg, SimPlayerContext ctx) {
+    private List<CasinoUpgradeCondition> toUpgradeLevelConditions(CasinoStatsSheetCfg nextLevelCfg, SimPlayerContext ctx) {
         if (nextLevelCfg == null || nextLevelCfg.getLevelUpCondition() == null
                 || nextLevelCfg.getLevelUpCondition().isEmpty()) {
             return null;
         }
-        List<KVInfo> conditions = new ArrayList<>(nextLevelCfg.getLevelUpCondition().size());
+        List<CasinoUpgradeCondition> conditions = new ArrayList<>(nextLevelCfg.getLevelUpCondition().size());
         for (Map.Entry<Integer, Integer> condition : nextLevelCfg.getLevelUpCondition().entrySet()) {
             int buildingId = condition.getKey();
             int needLevel = condition.getValue();
             BuildingData building = ctx.getCurrentCasino().findBuilding(buildingId);
-            if (building == null || building.getLevel() < needLevel) {
-                conditions.add(new KVInfo(buildingId, needLevel));
+
+            CasinoUpgradeCondition buc = new CasinoUpgradeCondition();
+            buc.buildingId = buildingId;
+            if (building == null) {
+                buc.unlock = false;
+                buc.level = needLevel;
+            } else if (building.getLevel() < needLevel) {
+                buc.unlock = true;
+                buc.level = needLevel;
+                buc.canUpgrade = simBuildingService.canUpgradeBuilding(ctx, buildingId);
+            } else {
+                continue;
             }
+            conditions.add(buc);
         }
         return conditions;
     }

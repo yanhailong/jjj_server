@@ -269,6 +269,10 @@ public interface SimConstant {
 
         //好友同玩邀请通知
         int NOTIFY_TOGETHER_PLAY_INVITE = BASE_MSG_PREFIX | 0x85;
+
+        //获取场景升级条件
+        int REQ_CASINO_UPGRADE_CONDITION = BASE_MSG_PREFIX | 0x86;
+        int RES_CASINO_UPGRADE_CONDITION = BASE_MSG_PREFIX | 0x87;
     }
 
     interface SpecialGuest {
@@ -292,7 +296,9 @@ public interface SimConstant {
     interface GuideCondition {
         // 当前 Guide.xlsx 约定：1=创建新号、2=领取任务奖励、3=场景累计等级、4=玩家等级、5=道具不足、6=获得道具、7=功能解锁、8=引导组完成、10=客户端事件。
         int NEW_PLAYER = 1;
-        /** 领取模拟经营任务奖励，参数为任务ID。 */
+        /**
+         * 领取模拟经营任务奖励，参数为任务ID。
+         */
         int TASK_REWARD = 2;
         int SCENE_TOTAL_LEVEL = 3;
         int PLAYER_LEVEL = 4;
@@ -300,23 +306,35 @@ public interface SimConstant {
         int ITEM_GAINED = 6;
         int FUNCTION_UNLOCKED = 7;
         int GUIDE_GROUP_FINISHED = 8;
-        /** 客户端进入指定功能节点时主动上报的引导事件。 */
+        /**
+         * 客户端进入指定功能节点时主动上报的引导事件。
+         */
         int CLIENT_EVENT = 10;
 
     }
 
     interface GuideTiming {
-        /** 完成上一引导组后，延迟通知条件8触发的新引导组，给客户端留出结束表现时间。 */
+        /**
+         * 完成上一引导组后，延迟通知条件8触发的新引导组，给客户端留出结束表现时间。
+         */
         long GROUP_FINISH_NOTIFY_DELAY_MILLIS = 300L;
-        /** 进入 SLOT 节点后稍作延迟再触发场景引导，保证游戏进场响应优先到达客户端。 */
+        /**
+         * 进入 SLOT 节点后稍作延迟再触发场景引导，保证游戏进场响应优先到达客户端。
+         */
         long SLOTS_ENTER_TRIGGER_DELAY_MILLIS = 300L;
     }
 
-    /** Guide.xlsx 的 PathName 约定。 */
+    /**
+     * Guide.xlsx 的 PathName 约定。
+     */
     interface GuidePath {
-        /** 模拟经营大厅界面。 */
+        /**
+         * 模拟经营大厅界面。
+         */
         String SIM_HALL = "1";
-        /** SLOT 游戏界面。 */
+        /**
+         * SLOT 游戏界面。
+         */
         String SLOTS = "2";
     }
 

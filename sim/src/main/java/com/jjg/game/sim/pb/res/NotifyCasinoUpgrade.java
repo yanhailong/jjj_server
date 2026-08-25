@@ -4,8 +4,8 @@ import com.jjg.game.common.constant.MessageConst;
 import com.jjg.game.common.pb.AbstractNotice;
 import com.jjg.game.common.proto.ProtoDesc;
 import com.jjg.game.common.proto.ProtobufMessage;
-import com.jjg.game.core.pb.KVInfo;
 import com.jjg.game.sim.constant.SimConstant;
+import com.jjg.game.sim.pb.struct.CasinoUpgradeCondition;
 
 import java.util.List;
 
@@ -19,5 +19,5 @@ public class NotifyCasinoUpgrade extends AbstractNotice {
     @ProtoDesc("升级消耗的经验")
     public int upgradeCost;
     @ProtoDesc("升级需要的条件")
-    public List<KVInfo> upgradeLevelConditions;
+    public List<CasinoUpgradeCondition> upgradeLevelConditions;
 }
