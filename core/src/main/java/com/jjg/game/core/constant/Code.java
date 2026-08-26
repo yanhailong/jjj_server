@@ -237,4 +237,8 @@ public interface Code {
     int BUILDING_LEVEL_LIMIT = 4020609;
     //操作失败，已达当日上限
     int DAILY_LIMIT = 4057168;
+    //房间已解散
+    int ROOM_DISMISS = 4058264;
+    //房间已开始
+    int ROOM_BEGIN = 4058265;
 }

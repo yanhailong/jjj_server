@@ -160,7 +160,7 @@ public class SimCoopRoomRouteService {
         CoopRoomRecord record = roomRecordDao.get(roomId);
         if (record == null) {
             log.info("加入协作房间失败,房间不存在或已解散 playerId={},roomId={}", playerId, roomId);
-            res.code = Code.NOT_FOUND;
+            res.code = Code.ROOM_DISMISS;
             return res;
         }
         res.gameType = record.getGameType();
@@ -169,12 +169,13 @@ public class SimCoopRoomRouteService {
         if (!member && record.getStatus() != CoopTaskConst.RoomStatus.WAITING) {
             log.info("加入协作房间失败,游戏已开始 playerId={},roomId={},status={}",
                     playerId, roomId, record.getStatus());
+            res.code = Code.ROOM_BEGIN;
             return res;
         }
         if (!member && record.getMemberIds().size() >= record.getMaxMembers()) {
             log.info("加入协作房间失败,房间已满员 playerId={},roomId={},members={},max={}",
                     playerId, roomId, record.getMemberIds().size(), record.getMaxMembers());
-            res.code = Code.PEOPLE_FULL;
+            res.code = Code.ROOM_FULL;
             return res;
         }
         //需求: 被邀请玩家未解锁此游戏时提示"游戏未解锁"

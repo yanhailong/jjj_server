@@ -817,7 +817,7 @@ public class SimTaskService implements IRedDotService {
             simMedalService.refreshRankScore(ctx);
             simMedalService.refreshMedalBonusCache(ctx);
         }
-        guideService.trigger(ctx, com.jjg.game.sim.constant.SimConstant.GuideCondition.TASK_REWARD, taskId, true);
+        guideService.trigger(ctx, com.jjg.game.sim.constant.SimConstant.GuideCondition.TASK_REWARD, taskId, cfg.getTaskType() != TaskConstant.TaskType.MAIN_LINE);
         log.info("玩家[{}]领取 sim 任务[{}]奖励成功", playerId, taskId);
         return res;
     }
