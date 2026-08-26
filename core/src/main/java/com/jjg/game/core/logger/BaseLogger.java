@@ -9,9 +9,11 @@ import com.jjg.game.common.pb.ItemInfo;
 import com.jjg.game.common.utils.RandomUtils;
 import com.jjg.game.common.utils.TimeHelper;
 import com.jjg.game.core.constant.AddType;
+import com.jjg.game.core.constant.GameConstant;
 import com.jjg.game.core.data.*;
 import com.jjg.game.core.pb.RechargeType;
 import com.jjg.game.core.utils.ItemUtils;
+import com.jjg.game.core.utils.RedisUtils;
 import com.jjg.game.core.utils.RobotUtil;
 import org.apache.commons.lang3.StringUtils;
 import org.slf4j.Logger;
@@ -433,13 +435,13 @@ public class BaseLogger {
             //道具表  logType  1.获得   2.消耗
             json.put("logType", 1);
 
-            JSONArray beforeJsonArray = ItemUtils.itemMapToJsonArray(beforeMap);
+            JSONArray beforeJsonArray = itemMapToRealJsonArray(beforeMap);
             json.put("before", beforeJsonArray);
 
-            JSONArray jsonArray = ItemUtils.itemMapToJsonArray(map);
+            JSONArray jsonArray = itemMapToRealJsonArray(map);
             json.put("items", jsonArray);
 
-            JSONArray afterJsonArray = ItemUtils.itemMapToJsonArray(afterMap);
+            JSONArray afterJsonArray = itemMapToRealJsonArray(afterMap);
             json.put("after", afterJsonArray);
 
             json.put("addType", addType.getValue());
@@ -450,6 +452,25 @@ public class BaseLogger {
         }
     }
 
+    /**
+     * 将配置中放大 100 倍的特殊道具数量还原为真实值。
+     */
+    private JSONArray itemMapToRealJsonArray(Map<Integer, Long> map) {
+        if (map == null || map.isEmpty()) {
+            return null;
+        }
+
+        JSONArray jsonArray = new JSONArray();
+        map.forEach((itemId, value) -> {
+            JSONObject itemJson = new JSONObject();
+            itemJson.put("itemId", itemId);
+            itemJson.put("count", GameConstant.SIM_SCALED_ITEMS.contains(itemId)
+                    ? RedisUtils.fromLong(value)
+                    : value);
+            jsonArray.add(itemJson);
+        });
+        return jsonArray;
+    }
 
     public void order(Player player, Order order, String channelProductId, String regionCode) {
         if (RobotUtil.isRobot(player.getId())) {

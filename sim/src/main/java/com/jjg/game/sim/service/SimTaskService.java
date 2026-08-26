@@ -765,7 +765,7 @@ public class SimTaskService implements IRedDotService {
             return res;
         }
         //发奖 (主线/成就奖励均为玩家背包道具; type2/3 当前无积分奖励)
-        List<Item> rewardItems = null;
+         List<Item> rewardItems = null;
         if (cfg.getGetItem() != null && !cfg.getGetItem().isEmpty()) {
             CommonResult<ItemOperationResult> addResult = playerPackService.addItems(
                     ctx.playerId(), cfg.getGetItem(), AddType.TASKAWARD, "taskId=" + taskId, cfg.getTaskType() != TaskConstant.TaskType.MAIN_LINE);
