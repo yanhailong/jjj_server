@@ -31,8 +31,6 @@ public class ResearchSkillsCfg extends BaseCfgBean {
   protected int CommissionUsers;
   /** 每级所需研究点 */
   protected Map<Integer,Integer> ResearchPoints;
-  /** 技能类型 */
-  protected int SkillTypeId;
   /** 快速旋转 */
   protected int TurboSpin;
   /** 中奖提成比例 */
@@ -80,11 +78,6 @@ public class ResearchSkillsCfg extends BaseCfgBean {
   /** 返回每级所需研究点 */
   public Map<Integer,Integer> getResearchPoints() {
     return ResearchPoints;
-  }
-
-  /** 返回技能类型 */
-  public int getSkillTypeId() {
-    return SkillTypeId;
   }
 
   /** 返回快速旋转 */

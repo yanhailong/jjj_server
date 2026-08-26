@@ -19,8 +19,12 @@ public class PropCfg extends BaseCfgBean {
   /** 配置表工作薄名 */
   public static final String SHEET_NAME = "prop";
 
+  /** 技能类型 */
+  protected int SkillTypeId;
   /** 位置排序 */
   protected int SortOrder;
+  /** 技能等级对建筑加成万分比 */
+  protected int UpgradeOutput;
   /** 游戏id */
   protected int gameType;
   /** 属性图标 */
@@ -32,9 +36,19 @@ public class PropCfg extends BaseCfgBean {
   /** 类型 */
   protected int type;
 
+  /** 返回技能类型 */
+  public int getSkillTypeId() {
+    return SkillTypeId;
+  }
+
   /** 返回位置排序 */
   public int getSortOrder() {
     return SortOrder;
+  }
+
+  /** 返回技能等级对建筑加成万分比 */
+  public int getUpgradeOutput() {
+    return UpgradeOutput;
   }
 
   /** 返回游戏id */

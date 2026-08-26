@@ -45,6 +45,8 @@ public class BuildingUpgradeTableCfg extends BaseCfgBean {
   protected long UpgradeOutput;
   /** 升级奖励 */
   protected Map<Integer,Long> UpgradeReward;
+  /** 建筑等级解锁下注金额 */
+  protected Map<Integer,Long> bet;
   /** 等级 */
   protected int level;
   /** 多语言 */
@@ -113,6 +115,11 @@ public class BuildingUpgradeTableCfg extends BaseCfgBean {
   /** 返回升级奖励 */
   public Map<Integer,Long> getUpgradeReward() {
     return UpgradeReward;
+  }
+
+  /** 返回建筑等级解锁下注金额 */
+  public Map<Integer,Long> getBet() {
+    return bet;
   }
 
   /** 返回等级 */
