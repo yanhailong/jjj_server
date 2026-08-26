@@ -351,6 +351,14 @@ public class SimSkillService extends AbstractSkillService implements ConfigExcel
         return total;
     }
 
+    public CommonResult<Map<Integer, Integer>> skillLevelUp(SimPlayerContext ctx, int gameType, int skillPropId, int level) {
+        ResearchSkillsCfg cfg = getResearchSkillsCfg(gameType, skillPropId, level);
+        if (cfg == null) {
+            return new CommonResult<>(Code.NOT_FOUND);
+        }
+        return skillLevelUp(ctx, gameType, cfg.getId());
+    }
+
     public CommonResult<Map<Integer, Integer>> skillLevelUp(SimPlayerContext ctx, int gameType, int skillId) {
         CommonResult<Map<Integer, Integer>> result = new CommonResult<>(Code.SUCCESS);
         try {
