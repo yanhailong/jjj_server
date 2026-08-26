@@ -656,7 +656,6 @@ public class FriendService implements IRedDotService {
                 }
             }
             if (total <= 0) {
-                res.code = Code.NOT_FOUND;
                 return res;
             }
             //发放道具 (领取者即调用方本人, addItemsByPlayerId 自动按在线/离线入账)

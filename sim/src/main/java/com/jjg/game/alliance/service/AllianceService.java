@@ -878,9 +878,11 @@ public class AllianceService {
             return Code.ILLEGAL_NAME;
         }
         if (notice != null && notice.length() > AllianceConst.Cfg.NOTICE_MAX_LEN) {
+            log.warn("联盟公告校验失败,长度超过限制 len={},cfgLen={}", notice.length(), AllianceConst.Cfg.NOTICE_MAX_LEN);
             return Code.PARAM_ERROR;
         }
         if (joinMinCasinoLevel < AllianceConst.Cfg.JOIN_LEVEL_MIN || joinMinCasinoLevel > AllianceConst.Cfg.JOIN_LEVEL_MAX) {
+            log.warn("加入联盟时，等级错误 joinLevel={},min={},max={}", joinMinCasinoLevel, AllianceConst.Cfg.JOIN_LEVEL_MIN, AllianceConst.Cfg.JOIN_LEVEL_MAX);
             return Code.PARAM_ERROR;
         }
         return Code.SUCCESS;
