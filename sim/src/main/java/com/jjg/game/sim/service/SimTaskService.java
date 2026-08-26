@@ -768,7 +768,7 @@ public class SimTaskService implements IRedDotService {
         List<Item> rewardItems = null;
         if (cfg.getGetItem() != null && !cfg.getGetItem().isEmpty()) {
             CommonResult<ItemOperationResult> addResult = playerPackService.addItems(
-                    ctx.playerId(), cfg.getGetItem(), AddType.TASKAWARD, "taskId=" + taskId, true);
+                    ctx.playerId(), cfg.getGetItem(), AddType.TASKAWARD, "taskId=" + taskId, cfg.getTaskType() != TaskConstant.TaskType.MAIN_LINE);
             if (addResult == null || !addResult.success()) {
                 res.code = addResult == null ? Code.EXCEPTION : addResult.code;
                 log.error("领取 sim 任务奖励失败,发奖失败 playerId={},taskId={},result={}",
@@ -817,7 +817,7 @@ public class SimTaskService implements IRedDotService {
             simMedalService.refreshRankScore(ctx);
             simMedalService.refreshMedalBonusCache(ctx);
         }
-        guideService.trigger(ctx, com.jjg.game.sim.constant.SimConstant.GuideCondition.TASK_REWARD, taskId, cfg.getTaskType() != TaskConstant.TaskType.MAIN_LINE);
+        guideService.trigger(ctx, com.jjg.game.sim.constant.SimConstant.GuideCondition.TASK_REWARD, taskId, true);
         log.info("玩家[{}]领取 sim 任务[{}]奖励成功", playerId, taskId);
         return res;
     }
