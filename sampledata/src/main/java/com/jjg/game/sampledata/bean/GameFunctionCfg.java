@@ -38,7 +38,7 @@ public class GameFunctionCfg extends BaseCfgBean {
   /** 可看见的解锁条件 */
   protected String showCondition;
   /** 提示文本ID */
-  protected int tips;
+  protected List<Integer> tips;
 
   /** 返回游戏中左侧列表按钮 */
   public int getButList() {
@@ -86,7 +86,7 @@ public class GameFunctionCfg extends BaseCfgBean {
   }
 
   /** 返回提示文本ID */
-  public int getTips() {
+  public List<Integer> getTips() {
     return tips;
   }
 

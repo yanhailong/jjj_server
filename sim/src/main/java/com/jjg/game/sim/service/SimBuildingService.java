@@ -370,17 +370,7 @@ public class SimBuildingService implements SimPlayerTickListener, SimTaskStateRe
                 return null;
             }
 
-            BuildingData data = new BuildingData();
-            data.setId(buildingId);
-            data.setLevel(INITIAL_LEVEL);
-            casino.putBuilding(data);
-            if (cfg.getUnlockGameId() > 0) {
-                simCasinoService.updateCasinoUnlock(ctx, casino.getCasinoId(), Set.of(cfg.getUnlockGameId()));
-            }
-            simCasinoService.addCasinoExp(ctx, 0);
-            allianceEventService.onBuildingLevel(ctx.playerId(), buildingId, data.getLevel());
-            //主线任务: 新建筑改变各等级持有量 -> 上报 12208 "拥有 N 个 ≥X 级建筑"
-            reportBuildingCounts(ctx);
+            unlockAndUpdateBuildData(ctx, buildingId, cfg);
             log.info("解锁建筑成功 playerId={},buildingId={}", ctx.playerId(), buildingId);
         } catch (Exception e) {
             log.error("", e);
@@ -1342,5 +1332,34 @@ public class SimBuildingService implements SimPlayerTickListener, SimTaskStateRe
             return 0;
         }
         return list.get(index);
+    }
+
+    public void gmUnlockAllBuilds(SimPlayerContext ctx) {
+        for (BuildingAreaTableCfg cfg : GameDataManager.getBuildingAreaTableCfgList()) {
+            BuildingData building = ctx.getCurrentCasino().findBuilding(cfg.getId());
+            if(building != null){
+                continue;
+            }
+            unlockAndUpdateBuildData(ctx,cfg.getId(),cfg);
+
+            ResUnlockBuilding res = new ResUnlockBuilding(Code.SUCCESS);
+            res.id = cfg.getId();
+            ctx.send(res);
+            log.info("gm 无视条件解锁建筑 playerId={},buildId={}",ctx.playerId(),cfg.getId());
+        }
+    }
+
+    public void unlockAndUpdateBuildData(SimPlayerContext ctx, int buildingId, BuildingAreaTableCfg cfg) {
+        BuildingData data = new BuildingData();
+        data.setId(buildingId);
+        data.setLevel(INITIAL_LEVEL);
+        ctx.getCurrentCasino().putBuilding(data);
+        if (cfg.getUnlockGameId() > 0) {
+            simCasinoService.updateCasinoUnlock(ctx, ctx.getCurrentCasino().getCasinoId(), Set.of(cfg.getUnlockGameId()));
+        }
+        simCasinoService.addCasinoExp(ctx, 0);
+        allianceEventService.onBuildingLevel(ctx.playerId(), buildingId, data.getLevel());
+        //主线任务: 新建筑改变各等级持有量 -> 上报 12208 "拥有 N 个 ≥X 级建筑"
+        reportBuildingCounts(ctx);
     }
 }

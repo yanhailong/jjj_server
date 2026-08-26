@@ -351,7 +351,7 @@ public class SimMessageHandler implements GmListener {
     public void reqUnlockBuilding(PlayerController playerController, ReqUnlockBuilding req) {
         execute(playerController, ctx -> {
             ResUnlockBuilding res = buildingService.onUnlockBuilding(ctx, req.id);
-            if(res != null) {
+            if (res != null) {
                 ctx.send(res);
             }
         }, ReqUnlockBuilding.class);
@@ -1174,6 +1174,9 @@ public class SimMessageHandler implements GmListener {
                 int exp = Integer.parseInt(gmOrders[1]);
                 SimPlayerContext ctx = this.simPlayerContextRegistry.getContext(playerController.playerId());
                 casinoService.addCasinoExp(ctx, exp);
+            } else if ("unlockAllBuild".equalsIgnoreCase(gmOrders[0])) {
+                SimPlayerContext ctx = this.simPlayerContextRegistry.getContext(playerController.playerId());
+                buildingService.gmUnlockAllBuilds(ctx);
             } else {
                 res.code = Code.NOT_FOUND;
             }

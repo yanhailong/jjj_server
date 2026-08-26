@@ -19,19 +19,19 @@ public class VideoRewardCfg extends BaseCfgBean {
   /** 配置表工作薄名 */
   public static final String SHEET_NAME = "VideoReward";
 
-  /** 档位次数 */
-  protected int Count;
-  /** 奖励 */
-  protected Map<Integer,Integer> Reward;
+  /** 礼包内容 */
+  protected Map<Integer,Long> Rewards;
+  /** 观看次数 */
+  protected int VideoCount;
 
-  /** 返回档位次数 */
-  public int getCount() {
-    return Count;
+  /** 返回礼包内容 */
+  public Map<Integer,Long> getRewards() {
+    return Rewards;
   }
 
-  /** 返回奖励 */
-  public Map<Integer,Integer> getReward() {
-    return Reward;
+  /** 返回观看次数 */
+  public int getVideoCount() {
+    return VideoCount;
   }
 
   @Override

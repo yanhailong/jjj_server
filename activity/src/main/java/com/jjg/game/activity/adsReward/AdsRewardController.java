@@ -91,20 +91,11 @@ public class AdsRewardController extends BaseActivityController {
             return res;
         }
 
-        Map<Integer, Long> rewards = toRewards(cfg);
         long playerId = player.getId();
-        String lockKey = playerActivityDao.getLockKey(playerId, activityData.getId());
-        boolean locked = false;
         try {
-            locked = redisLock.tryLockWithDefaultTime(lockKey);
-            if (!locked) {
-                res.code = Code.FAIL;
-                return res;
-            }
-
             int day = TimeHelper.getDayNumerical();
             int watchCount = getWatchCount(playerId, activityData, day);
-            if (watchCount < cfg.getCount()) {
+            if (watchCount < cfg.getVideoCount()) {
                 res.code = Code.ERROR_REQ;
                 return res;
             }
@@ -117,7 +108,7 @@ public class AdsRewardController extends BaseActivityController {
             }
 
             CommonResult<ItemOperationResult> added = playerPackService.addItems(
-                    playerId, rewards, AddType.ACTIVITY_ADS_REWARD);
+                    playerId, cfg.getRewards(), AddType.ACTIVITY_ADS_REWARD);
             if (!added.success()) {
                 res.code = added.code;
                 return res;
@@ -128,21 +119,14 @@ public class AdsRewardController extends BaseActivityController {
             claimedData.put(detailId, data);
             playerActivityDao.savePlayerActivityData(playerId, activityData.getType(), activityData.getId(), claimedData);
 
-            res.infoList = ItemUtils.buildItemInfo(rewards);
+            res.infoList = ItemUtils.buildItemInfo(cfg.getRewards());
             res.activityInfo = buildActivityInfo(activityData, cfgMap, claimedData, day, watchCount);
             log.info("视频福利领取成功 playerId:{} activityId:{} detailId:{} watchCount:{} rewards:{}",
-                    playerId, activityData.getId(), detailId, watchCount, rewards);
-        } catch (InterruptedException e) {
-            Thread.currentThread().interrupt();
-            res.code = Code.FAIL;
+                    playerId, activityData.getId(), detailId, watchCount, cfg.getRewards());
         } catch (Exception e) {
             res.code = Code.EXCEPTION;
             log.error("视频福利领取异常 playerId:{} activityId:{} detailId:{}",
                     playerId, activityData.getId(), detailId, e);
-        } finally {
-            if (locked) {
-                redisLock.tryUnlock(lockKey);
-            }
         }
         return res;
     }
@@ -200,7 +184,7 @@ public class AdsRewardController extends BaseActivityController {
         int watchCount = getWatchCount(playerId, activityData, day);
         Map<Integer, PlayerActivityData> claimedData = getTodayClaimedData(playerId, activityData, day);
         for (VideoRewardCfg cfg : cfgMap.values()) {
-            if (watchCount >= cfg.getCount() && !isClaimed(claimedData.get(cfg.getId()), day)) {
+            if (watchCount >= cfg.getVideoCount() && !isClaimed(claimedData.get(cfg.getId()), day)) {
                 return true;
             }
         }
@@ -273,11 +257,11 @@ public class AdsRewardController extends BaseActivityController {
         AdsRewardDetailInfo info = new AdsRewardDetailInfo();
         info.activityId = activityData.getId();
         info.detailId = cfg.getId();
-        info.requiredCount = cfg.getCount();
-        info.rewardItems = ItemUtils.buildItemInfo(toRewards(cfg));
+        info.requiredCount = cfg.getVideoCount();
+        info.rewardItems = ItemUtils.buildItemInfo(cfg.getRewards());
         if (isClaimed(data, day)) {
             info.claimStatus = ActivityConstant.ClaimStatus.CLAIMED;
-        } else if (watchCount >= cfg.getCount()) {
+        } else if (watchCount >= cfg.getVideoCount()) {
             info.claimStatus = ActivityConstant.ClaimStatus.CAN_CLAIM;
         }
         return info;
@@ -309,7 +293,7 @@ public class AdsRewardController extends BaseActivityController {
     private int getDailyLimit(Map<Integer, VideoRewardCfg> cfgMap) {
         int max = 0;
         for (VideoRewardCfg cfg : cfgMap.values()) {
-            max = Math.max(max, cfg.getCount());
+            max = Math.max(max, cfg.getVideoCount());
         }
         return max;
     }
@@ -320,30 +304,24 @@ public class AdsRewardController extends BaseActivityController {
             return false;
         }
         for (VideoRewardCfg cfg : cfgMap.values()) {
-            if (cfg.getCount() <= 0 || !validRewards(cfg.getReward())) {
+            if (cfg.getVideoCount() <= 0 || !validRewards(cfg.getRewards())) {
                 return false;
             }
         }
         return true;
     }
 
-    private boolean validRewards(Map<Integer, Integer> rewards) {
+    private boolean validRewards(Map<Integer, Long> rewards) {
         if (CollectionUtil.isEmpty(rewards)) {
             return false;
         }
-        for (Map.Entry<Integer, Integer> reward : rewards.entrySet()) {
+        for (Map.Entry<Integer, Long> reward : rewards.entrySet()) {
             if (reward.getKey() == null || reward.getKey() <= 0
                     || reward.getValue() == null || reward.getValue() <= 0) {
                 return false;
             }
         }
         return true;
-    }
-
-    private Map<Integer, Long> toRewards(VideoRewardCfg cfg) {
-        Map<Integer, Long> rewards = new LinkedHashMap<>(cfg.getReward().size());
-        cfg.getReward().forEach((itemId, count) -> rewards.put(itemId, count.longValue()));
-        return rewards;
     }
 
     private boolean isClaimed(PlayerActivityData data, int day) {
