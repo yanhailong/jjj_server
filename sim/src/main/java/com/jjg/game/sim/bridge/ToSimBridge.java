@@ -60,7 +60,7 @@ public interface ToSimBridge extends IGameRpc {
      * @param winTimes
      * @param changeNode
      * @param statInfo   本次旋转统计明细 (用于经营信息 SPINE游戏面板; 可为 null)
-     * @return
+     * @return 掉落结算及本次 sim 任务进度/状态变化，由 slots 节点统一通知客户端
      */
     CommonResult<SlotsSpinResult> onSlotsSpin(long playerId, int gameType, int winTimes, boolean changeNode,
                                               SpinStatInfo statInfo, VisitTrialSpinPermit trialPermit, int enterType);

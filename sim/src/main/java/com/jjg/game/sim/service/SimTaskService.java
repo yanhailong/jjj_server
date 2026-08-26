@@ -150,7 +150,7 @@ public class SimTaskService implements IRedDotService {
             for (SimTaskStateReporter reporter : stateReporters) {
                 try {
                     reporter.reportTaskState(ctx,
-                            event -> tryAdvanceConditionEvent(ctx, event, changed, false));
+                            event -> tryAdvanceConditionEvent(ctx, event, changed, false, false));
                 } catch (Exception e) {
                     log.error("sim 任务状态补报失败 reporter={},playerId={}",
                             reporter.getClass().getSimpleName(), ctx.playerId(), e);
@@ -404,9 +404,7 @@ public class SimTaskService implements IRedDotService {
     // 进度 (旋转事件驱动)
     // =====================================================================
 
-    /**
-     * slots 旋转联动: 推进主线与各成就组的当前节点。仅在节点完成/续接时推送通知, 纯进度静默(客户端开界面拉取)。
-     */
+    /** 本节点直接触发的旋转事件沿用完成/续接才推送、纯进度静默的行为。 */
     public void onSpin(SimPlayerContext ctx, int gameType, SpinStatInfo statInfo) {
         try {
             SimTaskData data = ctx.getSimTaskData();
@@ -430,15 +428,28 @@ public class SimTaskService implements IRedDotService {
      */
     public void onConditionEvent(SimPlayerContext ctx, ConditionEvent event) {
         List<Task> changed = new ArrayList<>();
-        if (tryAdvanceConditionEvent(ctx, event, changed, true)) {
+        if (tryAdvanceConditionEvent(ctx, event, changed, true, false)) {
             notifyChanged(ctx, changed);
         }
     }
 
+    /**
+     * 跨节点事件入口: 返回本次进度/状态变化，由当前持有客户端会话的调用节点负责通知。
+     * 本方法不直接发送消息或更新任务红点，避免使用 sim 登录时保留的旧节点会话。
+     */
+    public List<Task> collectConditionEventUpdates(SimPlayerContext ctx, ConditionEvent event) {
+        List<Task> changed = new ArrayList<>();
+        if (!tryAdvanceConditionEvent(ctx, event, changed, true, true) || changed.isEmpty()) {
+            return List.of();
+        }
+        return List.copyOf(changed);
+    }
+
     private boolean tryAdvanceConditionEvent(SimPlayerContext ctx, ConditionEvent event,
-                                             List<Task> changed, boolean pollState) {
+                                             List<Task> changed, boolean pollState,
+                                             boolean includeProgressChanges) {
         try {
-            advanceConditionEvent(ctx, event, changed, pollState);
+            advanceConditionEvent(ctx, event, changed, pollState, includeProgressChanges);
             return true;
         } catch (Exception e) {
             log.error("sim 任务条件事件异常 playerId={},event={}",
@@ -448,7 +459,8 @@ public class SimTaskService implements IRedDotService {
     }
 
     private void advanceConditionEvent(SimPlayerContext ctx, ConditionEvent event,
-                                       List<Task> changed, boolean pollState) {
+                                       List<Task> changed, boolean pollState,
+                                       boolean includeProgressChanges) {
         if (ctx == null) {
             return;
         }
@@ -460,11 +472,12 @@ public class SimTaskService implements IRedDotService {
                     ctx.playerId(), data == null, player == null, event == null);
             return;
         }
-        evaluateOnEvent(ctx, player, data, ctx.getSimBaseData(), data.getMainTask(), event, changed);
+        evaluateOnEvent(ctx, player, data, ctx.getSimBaseData(), data.getMainTask(), event, changed,
+                includeProgressChanges);
         //成就组在事件推进中可能续接(替换同 group 节点), 用 keySet 快照遍历
         for (Integer group : new ArrayList<>(data.getAchievements().keySet())) {
             evaluateOnEvent(ctx, player, data, ctx.getSimBaseData(),
-                    data.getAchievements().get(group), event, changed);
+                    data.getAchievements().get(group), event, changed, includeProgressChanges);
         }
         //状态型条件(玩家等级)没有对应的事实事件: 玩家在 slots 节点下注升级, sim 侧收不到升级事件,
         //借任意一次 sim 事件顺带结算, 玩家不必重开任务界面
@@ -495,7 +508,8 @@ public class SimTaskService implements IRedDotService {
      */
     private void evaluateOnEvent(SimPlayerContext ctx, Player player, SimTaskData data,
                                  SimBaseData baseData, TaskDetail node,
-                                 ConditionEvent event, List<Task> changed) {
+                                 ConditionEvent event, List<Task> changed,
+                                 boolean includeProgressChanges) {
         if (node == null) {
             return;
         }
@@ -513,22 +527,28 @@ public class SimTaskService implements IRedDotService {
             return;
         }
         if (def.condition().spec().id() == TaskConstant.ConditionType.PLAYER_BET_ALL) {
-            evaluateEffectiveBet(ctx, player, data, baseData, node, cfg, event, changed);
+            evaluateEffectiveBet(ctx, player, data, baseData, node, cfg, event, changed,
+                    includeProgressChanges);
             return;
         }
         if (TASK_DETAIL_PROGRESS_CONDITIONS.contains(def.condition().spec().id())) {
-            evaluateTaskDetailProgress(ctx, player, data, baseData, node, cfg, def.condition(), event, changed);
+            evaluateTaskDetailProgress(ctx, player, data, baseData, node, cfg, def.condition(), event, changed,
+                    includeProgressChanges);
             return;
         }
         if (playerStatService.supports(def.condition())) {
-            boolean relevant = def.condition().evaluate(event).matched()
+            ConditionUpdate update = def.condition().evaluate(event);
+            boolean relevant = update.matched()
                     || (def.condition().spec().id() == PlayerStatService.FREE_MODE
                     && event instanceof GameConditionEvent);
             if (!relevant) {
                 return;
             }
-            if (playerStatService.progress(ctx, def.condition()) >= def.condition().target()) {
+            long progress = playerStatService.progress(ctx, def.condition());
+            if (progress >= def.condition().target()) {
                 onComplete(ctx, player, data, baseData, node, cfg, changed);
+            } else if (includeProgressChanges && update.matched() && update.value() > 0) {
+                changed.add(assemble(ctx, player, node, cfg, progress));
             }
             return;
         }
@@ -555,13 +575,16 @@ public class SimTaskService implements IRedDotService {
         }
         if (progress >= def.condition().target()) {
             onComplete(ctx, player, data, baseData, node, cfg, changed);
+        } else if (includeProgressChanges) {
+            changed.add(assemble(ctx, player, node, cfg, progress));
         }
     }
 
     /** 12001 沿用旧任务条件的任务内进度，只累计当前已接取节点收到的有效下注事件。 */
     private void evaluateEffectiveBet(SimPlayerContext ctx, Player player, SimTaskData data,
                                       SimBaseData baseData, TaskDetail node, TaskCfg cfg,
-                                      ConditionEvent event, List<Task> changed) {
+                                      ConditionEvent event, List<Task> changed,
+                                      boolean includeProgressChanges) {
         if (!(event instanceof GameConditionEvent gameEvent) || gameEvent.bet() <= 0) {
             return;
         }
@@ -574,6 +597,8 @@ public class SimTaskService implements IRedDotService {
         ctx.setLastSaveTime(0);
         if (node.getFinishConditionIds().contains(TaskConstant.ConditionType.PLAYER_BET_ALL)) {
             onComplete(ctx, player, data, baseData, node, cfg, changed);
+        } else if (includeProgressChanges) {
+            changed.add(assemble(ctx, player, node, cfg));
         }
     }
 
@@ -581,7 +606,7 @@ public class SimTaskService implements IRedDotService {
     private void evaluateTaskDetailProgress(SimPlayerContext ctx, Player player, SimTaskData data,
                                             SimBaseData baseData, TaskDetail node, TaskCfg cfg,
                                             PreparedCondition condition, ConditionEvent event,
-                                            List<Task> changed) {
+                                            List<Task> changed, boolean includeProgressChanges) {
         ConditionUpdate update = condition.evaluate(event);
         if (!update.matched() || update.value() <= 0) {
             return;
@@ -597,6 +622,8 @@ public class SimTaskService implements IRedDotService {
         if (progress >= condition.target()) {
             node.getFinishConditionIds().add(conditionId);
             onComplete(ctx, player, data, baseData, node, cfg, changed);
+        } else if (includeProgressChanges) {
+            changed.add(assemble(ctx, player, node, cfg));
         }
     }
 
@@ -836,7 +863,7 @@ public class SimTaskService implements IRedDotService {
                 try {
                     reporter.reportTaskState(ctx, event -> {
                         try {
-                            evaluateOnEvent(ctx, player, data, baseData, activatedNode, event, changed);
+                            evaluateOnEvent(ctx, player, data, baseData, activatedNode, event, changed, false);
                         } catch (Exception e) {
                             log.error("sim 新接取任务状态补报失败 reporter={},playerId={},taskId={}",
                                     reporter.getClass().getSimpleName(), ctx.playerId(), activatedNode.getConfigId(), e);
@@ -1077,6 +1104,12 @@ public class SimTaskService implements IRedDotService {
      * 进行中节点回读实时进度，完成节点返回完成时保存的进度快照。
      */
     private Task assemble(SimPlayerContext ctx, Player player, TaskDetail node, TaskCfg cfg) {
+        return assemble(ctx, player, node, cfg, null);
+    }
+
+    /** 复用事件推进时已取得的进度，避免跨节点通知为组装协议再读一次 Redis。 */
+    private Task assemble(SimPlayerContext ctx, Player player, TaskDetail node, TaskCfg cfg,
+                          Long progressOverride) {
         Task task = new Task();
         task.setConfigId(cfg.getId());
         task.setStatus(node.getStatus());
@@ -1088,7 +1121,7 @@ public class SimTaskService implements IRedDotService {
         SimTaskConfigService.TaskConditionDef def = taskConfig.conditionOf(cfg.getId());
         c.setConfigParam(def == null ? cond.getLast() : def.condition().target());
         c.setProgress(node.getStatus() == TaskConstant.TaskStatus.STATUS_IN_PROGRESS
-                ? currentProgress(ctx, player, node, cfg)
+                ? (progressOverride == null ? currentProgress(ctx, player, node, cfg) : progressOverride)
                 : completedProgress(node));
         c.setFinish(node.getStatus() != TaskConstant.TaskStatus.STATUS_IN_PROGRESS);
         task.getConditions().add(c);

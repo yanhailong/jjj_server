@@ -5,6 +5,7 @@ import com.jjg.game.alliance.service.AllianceCacheService;
 import com.jjg.game.alliance.service.AllianceEventService;
 import com.jjg.game.common.concurrent.BaseHandler;
 import com.jjg.game.common.concurrent.PlayerExecutorGroupDisruptor;
+import com.jjg.game.common.protostuff.PFSession;
 import com.jjg.game.common.rpc.RpcCallSetting;
 import com.jjg.game.core.base.condition.numeric.ActionConditionEvent;
 import com.jjg.game.core.base.condition.numeric.ConditionEvent;
@@ -19,7 +20,9 @@ import com.jjg.game.core.data.*;
 import com.jjg.game.core.handler.CoreRPCController;
 import com.jjg.game.core.logger.TaskOperationLogger;
 import com.jjg.game.core.rpc.GmToHallBridge;
+import com.jjg.game.core.service.PlayerSessionService;
 import com.jjg.game.core.task.manager.TaskManager;
+import com.jjg.game.core.task.pb.Task;
 import com.jjg.game.hall.service.HallPlayerService;
 import com.jjg.game.hall.service.HallService;
 import com.jjg.game.sampledata.GameDataManager;
@@ -34,6 +37,7 @@ import com.jjg.game.sim.data.*;
 import com.jjg.game.sim.logger.SimGuideLogger;
 import com.jjg.game.sim.manager.SimManager;
 import com.jjg.game.sim.manager.SimPlayerContextRegistry;
+import com.jjg.game.sim.pb.res.NotifySimTaskUpdate;
 import com.jjg.game.sim.pb.res.ResSimTaskReward;
 import com.jjg.game.sim.pb.res.NotifyTogetherPlayInvite;
 import com.jjg.game.sim.service.SimCoopTaskService;
@@ -102,6 +106,8 @@ public class HallRPCController extends CoreRPCController implements GmToHallBrid
     private TaskManager taskManager;
     @Autowired
     private TaskOperationLogger taskOperationLogger;
+    @Autowired
+    private PlayerSessionService playerSessionService;
     @Autowired
     private ChatService chatService;
     @Autowired
@@ -359,9 +365,24 @@ public class HallRPCController extends CoreRPCController implements GmToHallBrid
                                     playerId, event);
                             return;
                         }
-                        simTaskService.onConditionEvent(ctx, event);
+                        notifyRemoteSimTaskUpdates(playerId,
+                                simTaskService.collectConditionEventUpdates(ctx, event));
                     }
                 }.setHandlerParamWithSelf(handlerParam));
+    }
+
+    private void notifyRemoteSimTaskUpdates(long playerId, List<Task> taskUpdates) {
+        if (taskUpdates == null || taskUpdates.isEmpty()) {
+            return;
+        }
+        PFSession session = playerSessionService.getSession(playerId);
+        if (session == null) {
+            log.warn("跨节点 sim 任务变化通知失败，未找到玩家会话 playerId={}", playerId);
+            return;
+        }
+        NotifySimTaskUpdate notify = new NotifySimTaskUpdate(Code.SUCCESS);
+        notify.tasks = taskUpdates;
+        session.send(notify);
     }
 
     @Override
@@ -559,11 +580,13 @@ public class HallRPCController extends CoreRPCController implements GmToHallBrid
     @RpcCallSetting(processorModKey = "#arg0")
     public CommonResult<Boolean> onPackItemsConsumed(long playerId, Map<Integer, Long> items, AddType addType) {
         try {
-            if (simPlayerContextRegistry.getContext(playerId) == null) {
+            SimPlayerContext ctx = simPlayerContextRegistry.getContext(playerId);
+            if (ctx == null) {
                 return new CommonResult<>(Code.NOT_FOUND, false);
             }
-            allianceEventService.onItemsConsumed(playerId, items, addType);
+            List<Task> taskUpdates = allianceEventService.collectItemConsumeTaskUpdates(ctx, items);
             simEmployeeRedDotService.onPackItemsChanged(playerId, items, addType);
+            notifyRemoteSimTaskUpdates(playerId, taskUpdates);
             return new CommonResult<>(Code.SUCCESS, true);
         } catch (Exception e) {
             log.error("跨节点处理道具消费事件异常 playerId={},items={},addType={}", playerId, items, addType, e);

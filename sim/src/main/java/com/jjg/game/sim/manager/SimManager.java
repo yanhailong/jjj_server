@@ -731,8 +731,14 @@ public class SimManager {
             //联盟联动: 消耗体力/中奖倍数 -> 任务进度 + 对决积分掉落 (内部吞异常, 不影响主流程)
             allianceEventService.onSpin(playerId, actualSpinCostPower, conditionEvent);
 
-            //主线/成就任务联动: 旋转次数 + 累积投注 (内部吞异常, 不影响主流程)
-            simTaskService.onConditionEvent(ctx, conditionEvent);
+            //主线/成就任务联动: 变化随现有 RPC 结果返回，由持有会话的 slots 节点通知客户端
+            var taskUpdates = simTaskService.collectConditionEventUpdates(ctx, conditionEvent);
+            if (!taskUpdates.isEmpty()) {
+                if (result.data == null) {
+                    result.data = new SlotsSpinResult();
+                }
+                result.data.setTaskUpdates(taskUpdates);
+            }
             //赛季联动: 宝石掉落/试炼窗口/对局结算 (内部吞异常, 不影响主流程)
             if (!visitTrial) {
                 Map<Integer, Long> gemGains = seasonService.onSpin(ctx, gameType, statInfo,

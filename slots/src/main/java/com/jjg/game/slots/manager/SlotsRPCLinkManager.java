@@ -18,6 +18,7 @@ import com.jjg.game.sim.data.SlotsEntrySessionData;
 import com.jjg.game.sim.data.SlotsSpinResult;
 import com.jjg.game.sim.data.SpinStatInfo;
 import com.jjg.game.sim.data.VisitTrialSpinPermit;
+import com.jjg.game.sim.pb.res.NotifySimTaskUpdate;
 import com.jjg.game.sim.service.SimNodeService;
 import com.jjg.game.slots.data.SlotsPlayerGameData;
 import com.jjg.game.slots.pb.NotifySimDropItem;
@@ -427,8 +428,19 @@ public class SlotsRPCLinkManager {
     }
 
     private void handleSpinResult(PlayerController playerController, long playerId, int gameType, int winTimes, CommonResult<SlotsSpinResult> result) {
-        if (result == null || !result.success()) {
-            log.warn("sim道具掉落失败 playerId={},gameType={},winTimes={},code={}", playerId, gameType, winTimes, result == null ? null : result.code);
+        if (result == null) {
+            log.warn("sim道具掉落失败 playerId={},gameType={},winTimes={},code=null", playerId, gameType, winTimes);
+            return;
+        }
+        if (result.data != null && result.data.getTaskUpdates() != null
+                && !result.data.getTaskUpdates().isEmpty()) {
+            NotifySimTaskUpdate taskNotify = new NotifySimTaskUpdate(Code.SUCCESS);
+            taskNotify.tasks = result.data.getTaskUpdates();
+            playerController.send(taskNotify);
+        }
+        if (!result.success() || result.data == null) {
+            log.warn("sim道具掉落失败 playerId={},gameType={},winTimes={},code={}",
+                    playerId, gameType, winTimes, result.code);
             return;
         }
 

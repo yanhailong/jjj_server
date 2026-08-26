@@ -1,6 +1,9 @@
 package com.jjg.game.sim.data;
 
+import com.jjg.game.core.task.pb.Task;
+
 import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
 
 /**
@@ -13,6 +16,8 @@ public class SlotsSpinResult {
     private int researchPoints;
     //今日剩余试玩次数
     private int remainingTrials;
+    //本次跨节点旋转产生的 sim 主线/成就任务变化，由 slots 节点通知客户端
+    private List<Task> taskUpdates;
 
     public Map<Integer, Long> getItemsMap() {
         return itemsMap;
@@ -57,5 +62,13 @@ public class SlotsSpinResult {
 
     public void setRemainingTrials(int remainingTrials) {
         this.remainingTrials = remainingTrials;
+    }
+
+    public List<Task> getTaskUpdates() {
+        return taskUpdates;
+    }
+
+    public void setTaskUpdates(List<Task> taskUpdates) {
+        this.taskUpdates = taskUpdates;
     }
 }

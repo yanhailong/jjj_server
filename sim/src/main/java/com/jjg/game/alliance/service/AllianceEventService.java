@@ -7,6 +7,7 @@ import com.jjg.game.core.base.condition.numeric.RechargeConditionEvent;
 import com.jjg.game.core.constant.AddType;
 import com.jjg.game.core.listener.ItemConsumeListener;
 import com.jjg.game.core.service.PlayerStatService;
+import com.jjg.game.core.task.pb.Task;
 import com.jjg.game.core.utils.ItemUtils;
 import com.jjg.game.sim.data.SimPlayerContext;
 import com.jjg.game.sim.manager.SimPlayerContextRegistry;
@@ -19,6 +20,8 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.context.annotation.Lazy;
 import org.springframework.stereotype.Service;
 
+import java.util.ArrayList;
+import java.util.List;
 import java.util.Map;
 
 /**
@@ -122,6 +125,21 @@ public class AllianceEventService implements ItemConsumeListener {
             return;
         }
         simPackService.forwardPackItemsConsumed(playerId, items, addType);
+    }
+
+    /** 跨节点消费事件只返回任务变化，由 RPC 边界负责通知当前客户端会话。 */
+    public List<Task> collectItemConsumeTaskUpdates(SimPlayerContext ctx, Map<Integer, Long> items) {
+        if (ctx == null || items == null || items.isEmpty()) {
+            return List.of();
+        }
+        List<Task> updates = new ArrayList<>();
+        items.forEach((itemId, count) -> {
+            if (count != null && count > 0) {
+                updates.addAll(simTaskService.collectConditionEventUpdates(
+                        ctx, SimConditionEventFactory.itemConsume(itemId, count)));
+            }
+        });
+        return updates.isEmpty() ? List.of() : List.copyOf(updates);
     }
 
     public void onBuildingUpgrade(long playerId, int buildingId, int level) {
