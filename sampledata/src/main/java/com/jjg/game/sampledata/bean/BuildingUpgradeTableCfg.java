@@ -26,7 +26,7 @@ public class BuildingUpgradeTableCfg extends BaseCfgBean {
   /** 最大交互数量 */
   protected int MaxInteractionCount;
   /** 最大等待数量 */
-  protected int MaxWaiting;
+  protected List<Integer> MaxWaiting;
   /** 经营等级 */
   protected int NeedLevel;
   /** 解锁装饰 */
@@ -68,7 +68,7 @@ public class BuildingUpgradeTableCfg extends BaseCfgBean {
   }
 
   /** 返回最大等待数量 */
-  public int getMaxWaiting() {
+  public List<Integer> getMaxWaiting() {
     return MaxWaiting;
   }
 

@@ -144,6 +144,7 @@ public class GameDataManager {
     containerMap.put(BuildingFunctionCfg.class, new BuildingFunctionCfgContainer());
     containerMap.put(BuildingGainCfg.class, new BuildingGainCfgContainer());
     containerMap.put(BuildingUpgradeTableCfg.class, new BuildingUpgradeTableCfgContainer());
+    containerMap.put(BuildingWaitPosCfg.class, new BuildingWaitPosCfgContainer());
     containerMap.put(BundleGiftPackCfg.class, new BundleGiftPackCfgContainer());
     containerMap.put(CashcowCfg.class, new CashcowCfgContainer());
     containerMap.put(CasinoListCfg.class, new CasinoListCfgContainer());
@@ -972,6 +973,18 @@ public class GameDataManager {
 
   public static List<BuildingUpgradeTableCfg> getBuildingUpgradeTableCfgList() {
     return getInstance().getCfgContainer(BuildingUpgradeTableCfg.class).getCfgBeanList();
+  }
+
+  public static BuildingWaitPosCfg getBuildingWaitPosCfg(int key) {
+    return getInstance().getCfgContainer(BuildingWaitPosCfg.class).getCfgBeanMap().get(key);
+  }
+
+  public static Map<Integer, BuildingWaitPosCfg> getBuildingWaitPosCfgMap() {
+    return getInstance().getCfgContainer(BuildingWaitPosCfg.class).getCfgBeanMap();
+  }
+
+  public static List<BuildingWaitPosCfg> getBuildingWaitPosCfgList() {
+    return getInstance().getCfgContainer(BuildingWaitPosCfg.class).getCfgBeanList();
   }
 
   public static BundleGiftPackCfg getBundleGiftPackCfg(int key) {
