@@ -221,6 +221,8 @@ public enum AddType {
     SLOTS_JACKPOT_REWARD(1204),
     //火车奖励
     SLOTS_TRAIN(1205),
+    //好友同玩中奖提成
+    SLOTS_TOGETHER_PLAY_COMMISSION(1206),
 
 
     //积分大奖阶梯奖励

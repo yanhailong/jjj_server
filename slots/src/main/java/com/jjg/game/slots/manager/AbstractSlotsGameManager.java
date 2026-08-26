@@ -45,6 +45,7 @@ import com.jjg.game.season.service.SeasonFreeGameService;
 import com.jjg.game.sim.constant.SimConstant;
 import com.jjg.game.sim.data.EnterGameType;
 import com.jjg.game.sim.data.SimSkillsData;
+import com.jjg.game.sim.data.SkillDetailData;
 import com.jjg.game.sim.data.SimVisitTrialSession;
 import com.jjg.game.sim.data.SlotsEntrySessionData;
 import com.jjg.game.sim.data.SpinStatInfo;
@@ -1374,7 +1375,13 @@ public abstract class AbstractSlotsGameManager<T extends SlotsPlayerGameData, L 
             // sim 不可达时，普通入口仅回退已落库的研发技能；羁绊和赛季效果不使用非权威数据。
             if (!seasonEntry) {
                 SimSkillsData skillsData = slotsSkillService.getSkillDataByGameType(skillOwnerId, this.gameType);
-                sessionData.setResearchSkills(skillsData == null ? null : skillsData.getSkillsMap());
+                if (skillsData != null && skillsData.getSkillsMap() != null) {
+                    Map<Integer, Integer> researchSkills = new HashMap<>();
+                    for (Map.Entry<Integer, SkillDetailData> en : skillsData.getSkillsMap().entrySet()) {
+                        researchSkills.put(en.getKey(), en.getValue().getLevel());
+                    }
+                    sessionData.setResearchSkills(researchSkills);
+                }
             }
             log.warn("获取 slots 进场快照失败，使用降级快照 playerId={},skillOwnerId={},gameType={},seasonEntry={},code={}",
                     playerController.playerId(), skillOwnerId, this.gameType, seasonEntry,
@@ -1467,6 +1474,7 @@ public abstract class AbstractSlotsGameManager<T extends SlotsPlayerGameData, L 
         seasonData.setSeasonFreeExhaustedDailyKey(exhaustedDailyKey);
         playerGameData.setSkillsMap(seasonEntry ? null : entryData.getResearchSkills());
         playerGameData.setVisitorBondsEffect(entryData.getVisitorBondsEffect());
+        playerGameData.setTogetherPlaySkillEffect(entryData.getTogetherPlaySkillEffect());
         playerGameData.setSeasonSlotsSessionData(seasonData);
         playerGameData.setTmpUnlockedStakeSet(null);
     }

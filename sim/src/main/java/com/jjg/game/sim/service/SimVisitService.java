@@ -640,8 +640,8 @@ public class SimVisitService implements IRedDotService {
 
             if (data != null && data.getSkillsMap() != null) {
                 pb.skills = new ArrayList<>();
-                for (Map.Entry<Integer, Integer> en : data.getSkillsMap().entrySet()) {
-                    pb.skills.add(new KVInfo(en.getKey(), en.getValue()));
+                for (Map.Entry<Integer, SkillDetailData> en : data.getSkillsMap().entrySet()) {
+                    pb.skills.add(new KVInfo(en.getKey(), en.getValue().getLevel()));
                 }
             }
             return pb;

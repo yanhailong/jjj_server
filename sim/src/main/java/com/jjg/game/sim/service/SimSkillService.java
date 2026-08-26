@@ -3,12 +3,11 @@ package com.jjg.game.sim.service;
 import com.alibaba.fastjson.JSON;
 import com.jjg.game.alliance.service.AllianceEventService;
 import com.jjg.game.common.pb.ItemInfo;
-import com.jjg.game.core.service.PlayerPackService;
 import com.jjg.game.core.constant.AddType;
 import com.jjg.game.core.constant.Code;
 import com.jjg.game.core.data.CommonResult;
 import com.jjg.game.core.data.PlayerPack;
-import com.jjg.game.core.listener.ConfigExcelChangeListener;
+import com.jjg.game.core.service.PlayerPackService;
 import com.jjg.game.sampledata.GameDataManager;
 import com.jjg.game.sampledata.bean.BuildingAreaTableCfg;
 import com.jjg.game.sampledata.bean.ItemCfg;
@@ -18,6 +17,8 @@ import com.jjg.game.sim.dao.SimSkillsDao;
 import com.jjg.game.sim.data.BuildingData;
 import com.jjg.game.sim.data.SimPlayerContext;
 import com.jjg.game.sim.data.SimSkillsData;
+import com.jjg.game.sim.data.SkillDetailData;
+import com.jjg.game.sim.data.TogetherPlaySkillEffectData;
 import com.jjg.game.sim.pb.SimPbConverter;
 import com.jjg.game.sim.pb.res.ResSimGetSkills;
 import com.jjg.game.sim.pb.res.ResSimUpgradeSkill;
@@ -33,7 +34,7 @@ import java.util.*;
  * @date 2026/5/22
  */
 @Service
-public class SimSkillService extends AbstractSkillService implements ConfigExcelChangeListener {
+public class SimSkillService extends AbstractSkillService {
 
     @Autowired
     private SimSkillsDao simSkillsDao;
@@ -44,12 +45,21 @@ public class SimSkillService extends AbstractSkillService implements ConfigExcel
     @Autowired
     private PlayerPackService playerPackService;
 
+    //每个技能的最大等级
+    private Map<Integer, Integer> maxLevelMap = new HashMap<>();
+
     /**
      * 登录加载技能 (player 全量)。须在加载场景数据之前调用: initUnlock 依据已入内存的技能等级决定是否补解锁。
      */
     public void loadSkillsData(SimPlayerContext ctx) {
         for (SimSkillsData data : simSkillsDao.findByPlayerId(ctx.playerId())) {
             ctx.getSkillsDataMap().putIfAbsent(data.getGameType(), data);
+        }
+        for (PropCfg cfg : GameDataManager.getPropCfgList()) {
+            if (skillGameType(cfg) == GLOBAL_GAME_TYPE
+                    && (cfg.getSkillId() == null || cfg.getSkillId().isEmpty())) {
+                unlockInitialSkill(ctx, cfg, GLOBAL_GAME_TYPE);
+            }
         }
     }
 
@@ -62,33 +72,34 @@ public class SimSkillService extends AbstractSkillService implements ConfigExcel
     public void initUnlock(SimPlayerContext ctx, int casinoId) {
         //获取casinoId配置的可研发游戏
         Set<Integer> researchGames = simConfigCacheService.getResearchGamesByRegionId(casinoId);
-        if (researchGames.isEmpty()) {
-            return;
-        }
 
-        Map<Integer, SimSkillsData> skillsMap = ctx.getSkillsDataMap();
         for (PropCfg cfg : GameDataManager.getPropCfgList()) {
             if (cfg.getSkillId() != null && !cfg.getSkillId().isEmpty()) {
                 continue;
             }
-            if (!researchGames.contains(cfg.getGameType())) {
+            int gameType = skillGameType(cfg);
+            if (gameType == GLOBAL_GAME_TYPE || !researchGames.contains(gameType)) {
                 continue;
             }
-
-            SimSkillsData data = skillsMap.get(cfg.getGameType());
-            if (data != null) {
-                Integer beforeLevel = data.findSkilLevelByPropId(cfg.getId());
-                if (beforeLevel != null) {
-                    continue;
-                }
-            } else {
-                data = new SimSkillsData();
-                data.setPlayerId(ctx.playerId());
-                data.setGameType(cfg.getGameType());
-                skillsMap.put(cfg.getGameType(), data);
-            }
-            data.changeSkillLevel(cfg.getId(), 0);
+            unlockInitialSkill(ctx, cfg, gameType);
         }
+    }
+
+    private void unlockInitialSkill(SimPlayerContext ctx, PropCfg cfg, int gameType) {
+        Map<Integer, SimSkillsData> skillsMap = ctx.getSkillsDataMap();
+        SimSkillsData data = skillsMap.get(gameType);
+        if (data != null) {
+            SkillDetailData skillDetailData = data.findSkilLevelByPropId(cfg.getId());
+            if (skillDetailData != null) {
+                return;
+            }
+        } else {
+            data = new SimSkillsData();
+            data.setPlayerId(ctx.playerId());
+            data.setGameType(gameType);
+            skillsMap.put(gameType, data);
+        }
+        data.changeSkillLevel(cfg.getId(), 0);
     }
 
     /**
@@ -97,18 +108,16 @@ public class SimSkillService extends AbstractSkillService implements ConfigExcel
     public void onLoadSlotsSkills(SimPlayerContext ctx, int gameType) {
         ResSimGetSkills res = new ResSimGetSkills(Code.SUCCESS);
         try {
-            //加载技能数据
-            SimSkillsData data = ctx.getSkillData(gameType);
-            if (data == null) {
-                data = simSkillsDao.findByGameType(ctx.playerId(), gameType);
-                if (data != null) {
-                    ctx.getSkillsDataMap().put(data.getGameType(), data);
-                }
-            }
-
+            res.skills = new ArrayList<>();
+            SimSkillsData data = loadSkillData(ctx, gameType);
             if (data != null) {
-                res.skills = new ArrayList<>();
                 res.skills.add(SimPbConverter.toGameSkills(data));
+            }
+            if (gameType != GLOBAL_GAME_TYPE) {
+                SimSkillsData globalData = loadSkillData(ctx, GLOBAL_GAME_TYPE);
+                if (globalData != null) {
+                    res.skills.add(SimPbConverter.toGameSkills(globalData));
+                }
             }
             res.researchPoints = getResearchPoints(ctx.playerId(), gameType);
             log.info("玩家加载技能 playerId={},res={}", ctx.playerId(), JSON.toJSONString(res));
@@ -117,6 +126,17 @@ public class SimSkillService extends AbstractSkillService implements ConfigExcel
             res.code = Code.EXCEPTION;
         }
         ctx.send(res);
+    }
+
+    private SimSkillsData loadSkillData(SimPlayerContext ctx, int gameType) {
+        SimSkillsData data = ctx.getSkillData(gameType);
+        if (data == null) {
+            data = simSkillsDao.findByGameType(ctx.playerId(), gameType);
+            if (data != null) {
+                ctx.getSkillsDataMap().put(data.getGameType(), data);
+            }
+        }
+        return data;
     }
 
     /**
@@ -139,6 +159,13 @@ public class SimSkillService extends AbstractSkillService implements ConfigExcel
                 ctx.send(res);
                 return;
             }
+            if (skillGameType(propCfg) != gameType) {
+                log.warn("升级技能失败，技能类型与请求不匹配 playerId={},propId={},gameType={}",
+                        skillData.getPlayerId(), skillPropId, gameType);
+                res.code = Code.PARAM_ERROR;
+                ctx.send(res);
+                return;
+            }
 
             Map<Integer, Map<Integer, ResearchSkillsCfg>> cfgMap = this.skillsCfgMap.get(skillData.getGameType());
             if (cfgMap == null || cfgMap.isEmpty()) {
@@ -156,8 +183,8 @@ public class SimSkillService extends AbstractSkillService implements ConfigExcel
                 return;
             }
 
-            Integer beforeLevel = skillData.findSkilLevelByPropId(skillPropId);
-            if (beforeLevel == null) {
+            SkillDetailData skillDetailData = skillData.findSkilLevelByPropId(skillPropId);
+            if (skillDetailData == null) {
                 log.warn("升级技能失败，该技能还未解锁 playerId={},propId={}", skillData.getPlayerId(), skillPropId);
                 res.code = Code.PARAM_ERROR;
                 ctx.send(res);
@@ -165,7 +192,7 @@ public class SimSkillService extends AbstractSkillService implements ConfigExcel
             }
 
             //新等级的配置
-            ResearchSkillsCfg newLevelCfg = levelMap.get(beforeLevel + 1);
+            ResearchSkillsCfg newLevelCfg = levelMap.get(skillDetailData.getLevel() + 1);
             if (newLevelCfg == null) {
                 log.warn("升级技能失败，该技能已达到上限 playerId={},propId={}", skillData.getPlayerId(), skillPropId);
                 res.code = Code.NOT_FOUND;
@@ -173,62 +200,57 @@ public class SimSkillService extends AbstractSkillService implements ConfigExcel
                 return;
             }
 
-            BuildingAreaTableCfg buildingAreaTableCfg = simConfigCacheService.getBuildingAreaTableCfgByGameType(gameType);
-            if (buildingAreaTableCfg == null) {
-                log.warn("升级技能失败，根据游戏未找到配置 playerId={},propId={},gameType={}", skillData.getPlayerId(), skillPropId, gameType);
-                res.code = Code.PARAM_ERROR;
-                ctx.send(res);
-                return;
-            }
-
-            BuildingData building = ctx.getCurrentCasino().findBuilding(buildingAreaTableCfg.getId());
-            if (building == null) {
-                log.warn("升级技能失败，未找到对应的建筑信息 playerId={},propId={},gameType={},buildingId={}", skillData.getPlayerId(), skillPropId, gameType, buildingAreaTableCfg.getId());
-                res.code = Code.PARAM_ERROR;
-                ctx.send(res);
-                return;
-            }
-
-            if (building.getLevel() < newLevelCfg.getBuildingLevel()) {
-                log.warn("升级技能失败，建筑等级不足 playerId={},propId={},gameType={},buildingId={},buildingLevel={},requiredBuildingLevel={}",
-                        skillData.getPlayerId(), skillPropId, gameType, buildingAreaTableCfg.getId(), building.getLevel(), newLevelCfg.getBuildingLevel());
-                res.code = Code.BUILDING_LEVEL_LIMIT;
-                ctx.send(res);
-                return;
-            }
-
-            //检查新等级所需要的研究点
-            if (newLevelCfg.getResearchPoints() == null || newLevelCfg.getResearchPoints().isEmpty()) {
-                skillData.changeSkillLevel(skillPropId, newLevelCfg.getGrade());
-                //联盟任务: 技能研究次数 (param=游戏类型, 供 0=任意/指定游戏 过滤)
-                allianceEventService.onGameResearch(ctx.playerId(), gameType);
-                log.warn("该技能等级升级无需研究点，升级技能成功 playerId={},propId={},newLevelCfgId={}", skillData.getPlayerId(), skillPropId, newLevelCfg.getId());
-                res.code = Code.SUCCESS;
-                ctx.send(res);
-                return;
-            }
-
-            //扣除研究点 (研究点已按 itemId 存于背包, 先校验再扣除, 不足整体失败)
-            Map<Integer, Long> costMap = new HashMap<>();
-            for (Map.Entry<Integer, Integer> en : newLevelCfg.getResearchPoints().entrySet()) {
-                if (en.getKey() == null || !canUseResearchPoint(skillData.getGameType(), en.getKey())) {
-                    log.warn("升级技能失败，研究点道具与游戏不匹配 playerId={},gameType={},propId={},itemId={}",
-                            skillData.getPlayerId(), skillData.getGameType(), skillPropId, en.getKey());
+            if (gameType != GLOBAL_GAME_TYPE) {
+                BuildingAreaTableCfg buildingAreaTableCfg = simConfigCacheService.getBuildingAreaTableCfgByGameType(gameType);
+                if (buildingAreaTableCfg == null) {
+                    log.warn("升级技能失败，根据游戏未找到配置 playerId={},propId={},gameType={}", skillData.getPlayerId(), skillPropId, gameType);
                     res.code = Code.PARAM_ERROR;
                     ctx.send(res);
                     return;
                 }
-                if (en.getValue() != null && en.getValue() > 0) {
-                    costMap.put(en.getKey(), en.getValue().longValue());
+
+                BuildingData building = ctx.getCurrentCasino().findBuilding(buildingAreaTableCfg.getId());
+                if (building == null) {
+                    log.warn("升级技能失败，未找到对应的建筑信息 playerId={},propId={},gameType={},buildingId={}", skillData.getPlayerId(), skillPropId, gameType, buildingAreaTableCfg.getId());
+                    res.code = Code.PARAM_ERROR;
+                    ctx.send(res);
+                    return;
+                }
+
+                if (building.getLevel() < newLevelCfg.getBuildingLevel()) {
+                    log.warn("升级技能失败，建筑等级不足 playerId={},propId={},gameType={},buildingId={},buildingLevel={},requiredBuildingLevel={}",
+                            skillData.getPlayerId(), skillPropId, gameType, buildingAreaTableCfg.getId(), building.getLevel(), newLevelCfg.getBuildingLevel());
+                    res.code = Code.BUILDING_LEVEL_LIMIT;
+                    ctx.send(res);
+                    return;
                 }
             }
-            if (!playerPackService.removeItems(ctx.getPlayer(), costMap, AddType.SIM_SKILL_UPGRADE, "skillUpgrade:" + skillPropId).success()) {
-                log.warn("升级技能失败，研究点不足 playerId={},propId={},newLevelCfgId={}", skillData.getPlayerId(), skillPropId, newLevelCfg.getId());
-                res.code = Code.NOT_ENOUGH;
-                ctx.send(res);
-                return;
+
+            //检查新等级所需要的研究点
+            if (newLevelCfg.getResearchPoints() != null && !newLevelCfg.getResearchPoints().isEmpty()) {
+                //扣除研究点 (研究点已按 itemId 存于背包, 先校验再扣除, 不足整体失败)
+                Map<Integer, Long> costMap = new HashMap<>();
+                for (Map.Entry<Integer, Integer> en : newLevelCfg.getResearchPoints().entrySet()) {
+                    if (en.getKey() == null || !canUseResearchPoint(skillData.getGameType(), en.getKey())) {
+                        log.warn("升级技能失败，研究点道具与游戏不匹配 playerId={},gameType={},propId={},itemId={}",
+                                skillData.getPlayerId(), skillData.getGameType(), skillPropId, en.getKey());
+                        res.code = Code.PARAM_ERROR;
+                        ctx.send(res);
+                        return;
+                    }
+                    if (en.getValue() != null && en.getValue() > 0) {
+                        costMap.put(en.getKey(), en.getValue().longValue());
+                    }
+                }
+                if (!playerPackService.removeItems(ctx.getPlayer(), costMap, AddType.SIM_SKILL_UPGRADE, "skillUpgrade:" + skillPropId).success()) {
+                    log.warn("升级技能失败，研究点不足 playerId={},propId={},newLevelCfgId={}", skillData.getPlayerId(), skillPropId, newLevelCfg.getId());
+                    res.code = Code.NOT_ENOUGH;
+                    ctx.send(res);
+                    return;
+                }
             }
             skillData.changeSkillLevel(skillPropId, newLevelCfg.getGrade());
+            refreshBuildOutput(skillData, skillPropId);
             //联盟任务: 技能研究次数 (param=游戏类型, 供 0=任意/指定游戏 过滤)
             allianceEventService.onGameResearch(ctx.playerId(), gameType);
 
@@ -244,8 +266,8 @@ public class SimSkillService extends AbstractSkillService implements ConfigExcel
                 res.newUnlockSkills = new ArrayList<>();
                 for (PropCfg cfg : propCfgList) {
                     //检查该技能是否解锁
-                    Integer level = skillData.findSkilLevelByPropId(cfg.getId());
-                    if (level != null) {
+                    SkillDetailData tmpSkillDetailData = skillData.findSkilLevelByPropId(cfg.getId());
+                    if (tmpSkillDetailData != null) {
                         continue;
                     }
                     if (cfg.getSkillId() == null || cfg.getSkillId().isEmpty()) {
@@ -253,8 +275,8 @@ public class SimSkillService extends AbstractSkillService implements ConfigExcel
                         res.newUnlockSkills.add(cfg.getId());
                     } else {
                         for (Map.Entry<Integer, Integer> en : cfg.getSkillId().entrySet()) {
-                            Integer tmpLevel = skillData.findSkilLevelByPropId(en.getKey());
-                            if (tmpLevel == null || tmpLevel < en.getValue()) {
+                            tmpSkillDetailData = skillData.findSkilLevelByPropId(en.getKey());
+                            if (tmpSkillDetailData == null || tmpSkillDetailData.getLevel() < en.getValue()) {
                                 continue;
                             }
                             skillData.changeSkillLevel(cfg.getId(), 0);
@@ -305,7 +327,8 @@ public class SimSkillService extends AbstractSkillService implements ConfigExcel
         }
 
         //专属研究点
-        ItemCfg exclusiveItemCfg = simConfigCacheService.getResearchPointItemCfg(gameType);
+        ItemCfg exclusiveItemCfg = gameType == GLOBAL_GAME_TYPE
+                ? null : simConfigCacheService.getResearchPointItemCfg(gameType);
         if (exclusiveItemCfg != null) {
             ItemInfo exclusiveItemInfo = new ItemInfo();
             exclusiveItemInfo.itemId = exclusiveItemCfg.getId();
@@ -337,13 +360,16 @@ public class SimSkillService extends AbstractSkillService implements ConfigExcel
      * @return
      */
     public int oneGameCombatPower(SimSkillsData skillsData) {
-        Map<Integer, Integer> skillsMap = skillsData.getSkillsMap();
+        if (skillsData.getGameType() == GLOBAL_GAME_TYPE) {
+            return 0;
+        }
+        Map<Integer, SkillDetailData> skillsMap = skillsData.getSkillsMap();
         if (skillsMap == null || skillsMap.isEmpty()) {
             return 0;
         }
         int total = 0;
-        for (Map.Entry<Integer, Integer> en : skillsMap.entrySet()) {
-            ResearchSkillsCfg cfg = getResearchSkillsCfg(skillsData.getGameType(), en.getKey(), en.getValue());
+        for (Map.Entry<Integer, SkillDetailData> en : skillsMap.entrySet()) {
+            ResearchSkillsCfg cfg = getResearchSkillsCfg(skillsData.getGameType(), en.getKey(), en.getValue().getLevel());
             if (cfg != null) {
                 total += cfg.getCombatPower();
             }
@@ -378,12 +404,97 @@ public class SimSkillService extends AbstractSkillService implements ConfigExcel
             result.code = addSkill(data, skillId);
             if (result.code == Code.SUCCESS) {
                 ctx.addSkillData(data);
-                result.data = data.getSkillsMap();
+
+                result.data = new HashMap<>();
+                for (Map.Entry<Integer, SkillDetailData> en : data.getSkillsMap().entrySet()) {
+                    result.data.put(en.getKey(), en.getValue().getLevel());
+                }
             }
         } catch (Exception e) {
             log.error("", e);
             result.code = Code.EXCEPTION;
         }
         return result;
+    }
+
+    @Override
+    public int addSkill(SimSkillsData simSkillsData, int skillId) {
+        ResearchSkillsCfg cfg = GameDataManager.getResearchSkillsCfg(skillId);
+        PropCfg propCfg = cfg == null ? null : GameDataManager.getPropCfg(cfg.getAttr());
+        if (propCfg == null || skillGameType(propCfg) != simSkillsData.getGameType()) {
+            log.warn("添加技能失败，技能类型与数据不匹配 playerId={},gameType={},skillId={}",
+                    simSkillsData.getPlayerId(), simSkillsData.getGameType(), skillId);
+            return Code.PARAM_ERROR;
+        }
+        int code = super.addSkill(simSkillsData, skillId);
+        if (code == Code.SUCCESS) {
+            refreshBuildOutput(simSkillsData, cfg.getAttr());
+        }
+        return code;
+    }
+
+    /**
+     * 添加建筑产出
+     *
+     * @param skillPropId
+     */
+    private void refreshBuildOutput(SimSkillsData skillData, int skillPropId) {
+        SkillDetailData skillDetailData = skillData.getSkillsMap().get(skillPropId);
+        if (skillDetailData == null) {
+            return;
+        }
+
+        Integer maxLevel = this.maxLevelMap.get(skillPropId);
+        PropCfg propCfg = GameDataManager.getPropCfg(skillPropId);
+        int output = maxLevel != null && skillDetailData.getLevel() >= maxLevel && propCfg != null
+                ? propCfg.getUpgradeOutput() : 0;
+        skillDetailData.setAddOutPut(output);
+    }
+
+    public TogetherPlaySkillEffectData togetherPlaySkillEffect(SimSkillsData skillData) {
+        TogetherPlaySkillEffectData effect = new TogetherPlaySkillEffectData();
+        if (skillData == null || skillData.getGameType() != GLOBAL_GAME_TYPE
+                || skillData.getSkillsMap() == null) {
+            return effect;
+        }
+        int commissionUsers = 0;
+        int winCommission = 0;
+        for (Map.Entry<Integer, SkillDetailData> en : skillData.getSkillsMap().entrySet()) {
+            SkillDetailData detail = en.getValue();
+            if (detail == null) {
+                continue;
+            }
+            ResearchSkillsCfg cfg = getResearchSkillsCfg(
+                    GLOBAL_GAME_TYPE, en.getKey(), detail.getLevel());
+            if (cfg != null) {
+                commissionUsers += cfg.getCommissionUsers();
+                winCommission += cfg.getWinCommission();
+            }
+        }
+        effect.setCommissionUsers(commissionUsers);
+        effect.setWinCommission(winCommission);
+        return effect;
+    }
+
+    @Override
+    protected void loadResearchSkillConfig() {
+        Map<Integer, Map<Integer, Map<Integer, ResearchSkillsCfg>>> tmp = new HashMap<>();
+
+        Map<Integer, Integer> tmpMaxLevelMap = new HashMap<>();
+        for (ResearchSkillsCfg cfg : GameDataManager.getResearchSkillsCfgList()) {
+            PropCfg propCfg = GameDataManager.getPropCfg(cfg.getAttr());
+            int gameType = propCfg == null ? cfg.getGameType() : skillGameType(propCfg);
+            tmp.computeIfAbsent(gameType, k -> new HashMap<>())
+                    .computeIfAbsent(cfg.getAttr(), k -> new HashMap<>())
+                    .put(cfg.getGrade(), cfg);
+
+            Integer before = tmpMaxLevelMap.get(cfg.getAttr());
+            if (before == null || before < cfg.getGrade()) {
+                tmpMaxLevelMap.put(cfg.getAttr(), cfg.getGrade());
+            }
+
+        }
+        this.skillsCfgMap = tmp;
+        this.maxLevelMap = tmpMaxLevelMap;
     }
 }

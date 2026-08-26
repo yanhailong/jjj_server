@@ -46,6 +46,7 @@ import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.Comparator;
+import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
@@ -793,7 +794,17 @@ public class SimManager {
             } else {
                 SimSkillsData skillsData = ctx == null
                         ? skillService.getSkillDataByGameType(skillOwnerId, gameType) : ctx.getSkillData(gameType);
-                sessionData.setResearchSkills(skillsData == null ? null : skillsData.getSkillsMap());
+                Map<Integer, SkillDetailData> skillDetails = skillsData == null ? null : skillsData.getSkillsMap();
+                if (skillDetails != null) {
+                    Map<Integer, Integer> researchSkills = new HashMap<>(skillDetails.size());
+                    for (Map.Entry<Integer, SkillDetailData> en : skillDetails.entrySet()) {
+                        researchSkills.put(en.getKey(), en.getValue().getLevel());
+                    }
+                    sessionData.setResearchSkills(researchSkills);
+                }
+                SimSkillsData globalSkills = ctx == null
+                        ? skillService.getSkillDataByGameType(skillOwnerId, 0) : ctx.getSkillData(0);
+                sessionData.setTogetherPlaySkillEffect(skillService.togetherPlaySkillEffect(globalSkills));
             }
             SimCasinoData currentCasino = ctx == null ? null : ctx.getCurrentCasino();
             int skillCasinoId = casinoId;

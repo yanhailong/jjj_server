@@ -22,6 +22,10 @@ public class ResTogetherPlayPlayerList extends AbstractResponse {
     public int nextPageIndex = -1;
     @ProtoDesc("玩家列表")
     public List<TogetherPlayPlayerInfo> playerInfos;
+    @ProtoDesc("全局技能提供的提成人数上限")
+    public int commissionUsers;
+    @ProtoDesc("当前实际享受提成的人数")
+    public int currentCommissionUsers;
 
     public ResTogetherPlayPlayerList(int code) {
         super(code);

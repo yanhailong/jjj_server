@@ -11,7 +11,7 @@ import java.util.*;
  * @date 2026/5/22
  */
 @Document
-public class SimSkillsData extends AbstractData{
+public class SimSkillsData extends AbstractData {
     //playerId:gameType 联合主键
     @Id
     private String id;
@@ -20,8 +20,8 @@ public class SimSkillsData extends AbstractData{
     private long playerId;
     //游戏类型
     private int gameType;
-    //技能 propId -> level
-    private Map<Integer, Integer> skillsMap;
+    //技能 propId -> detail
+    private Map<Integer, SkillDetailData> skillsMap;
 
     public long getPlayerId() {
         return playerId;
@@ -39,11 +39,11 @@ public class SimSkillsData extends AbstractData{
         this.gameType = gameType;
     }
 
-    public Map<Integer, Integer> getSkillsMap() {
+    public Map<Integer, SkillDetailData> getSkillsMap() {
         return skillsMap;
     }
 
-    public void setSkillsMap(Map<Integer, Integer> skillsMap) {
+    public void setSkillsMap(Map<Integer, SkillDetailData> skillsMap) {
         this.skillsMap = skillsMap;
     }
 
@@ -51,9 +51,9 @@ public class SimSkillsData extends AbstractData{
      * 获取该技能等级
      *
      * @param propId
-     * @return  null表示未解锁
+     * @return null表示未解锁
      */
-    public Integer findSkilLevelByPropId(int propId) {
+    public SkillDetailData findSkilLevelByPropId(int propId) {
         if (this.skillsMap == null) {
             return null;
         }
@@ -64,7 +64,14 @@ public class SimSkillsData extends AbstractData{
         if (this.skillsMap == null) {
             this.skillsMap = new HashMap<>();
         }
-        this.skillsMap.put(propId, skillLevel);
+
+        SkillDetailData skillDetailData = this.skillsMap.get(propId);
+        if(skillDetailData == null) {
+            skillDetailData = new SkillDetailData();
+            skillDetailData.setPropId(propId);
+        }
+        skillDetailData.setLevel(skillLevel);
+        this.skillsMap.put(propId, skillDetailData);
     }
 
     public String getId() {

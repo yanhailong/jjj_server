@@ -21,6 +21,9 @@ import java.util.Set;
  * @date 2026/5/25
  */
 public abstract class AbstractSkillService implements ConfigExcelChangeListener {
+    protected static final int GLOBAL_GAME_TYPE = 0;
+    protected static final int GLOBAL_SKILL_TYPE = 1;
+
     protected final Logger log = LoggerFactory.getLogger(getClass());
 
     @Autowired
@@ -40,7 +43,7 @@ public abstract class AbstractSkillService implements ConfigExcelChangeListener 
     protected void loadPropConfig() {
         Map<Integer, Set<Integer>> tmp = new HashMap<>();
         for (PropCfg cfg : GameDataManager.getPropCfgList()) {
-            tmp.computeIfAbsent(cfg.getGameType(), k -> new HashSet<>()).add(cfg.getId());
+            tmp.computeIfAbsent(skillGameType(cfg), k -> new HashSet<>()).add(cfg.getId());
         }
         this.skillPropIdsMap = tmp;
     }
@@ -48,11 +51,17 @@ public abstract class AbstractSkillService implements ConfigExcelChangeListener 
     protected void loadResearchSkillConfig() {
         Map<Integer, Map<Integer, Map<Integer, ResearchSkillsCfg>>> tmp = new HashMap<>();
         for (ResearchSkillsCfg cfg : GameDataManager.getResearchSkillsCfgList()) {
-            tmp.computeIfAbsent(cfg.getGameType(), k -> new HashMap<>())
+            PropCfg propCfg = GameDataManager.getPropCfg(cfg.getAttr());
+            int gameType = propCfg == null ? cfg.getGameType() : skillGameType(propCfg);
+            tmp.computeIfAbsent(gameType, k -> new HashMap<>())
                     .computeIfAbsent(cfg.getAttr(), k -> new HashMap<>())
                     .put(cfg.getGrade(), cfg);
         }
         this.skillsCfgMap = tmp;
+    }
+
+    protected int skillGameType(PropCfg cfg) {
+        return cfg.getType() == GLOBAL_SKILL_TYPE ? GLOBAL_GAME_TYPE : cfg.getGameType();
     }
 
     public SimSkillsData getSkillDataByGameType(long playerId, int gameType) {

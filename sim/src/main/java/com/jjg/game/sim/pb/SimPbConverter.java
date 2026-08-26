@@ -78,11 +78,12 @@ public final class SimPbConverter {
 
         if (data.getSkillsMap() != null && !data.getSkillsMap().isEmpty()) {
             gs.skillInfos = new ArrayList<>();
-            for (Map.Entry<Integer, Integer> en : data.getSkillsMap().entrySet()) {
-                KVInfo kv = new KVInfo();
-                kv.key = en.getKey();
-                kv.value = en.getValue();
-                gs.skillInfos.add(kv);
+            for (Map.Entry<Integer, SkillDetailData> en : data.getSkillsMap().entrySet()) {
+                SkillInfo info = new SkillInfo();
+                info.propId = en.getKey();
+                info.level = en.getValue().getLevel();
+                info.addOutPut = en.getValue().getAddOutPut();
+                gs.skillInfos.add(info);
             }
         }
         return gs;

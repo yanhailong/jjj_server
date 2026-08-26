@@ -6,6 +6,7 @@ import com.jjg.game.core.data.PlayerController;
 import com.jjg.game.core.data.RoomType;
 import com.jjg.game.season.data.SeasonSlotsSessionData;
 import com.jjg.game.sim.data.SlotsSkillEffectData;
+import com.jjg.game.sim.data.TogetherPlaySkillEffectData;
 import com.jjg.game.slots.controller.SlotsRoomController;
 import org.springframework.data.annotation.Id;
 import org.springframework.data.annotation.Transient;
@@ -86,6 +87,9 @@ public class SlotsPlayerGameData {
     //当前场景匹配本游戏的 VisitorBonds 技能快照
     @Transient
     protected transient SlotsSkillEffectData visitorBondsEffect;
+    //好友同玩全局技能快照，不参与 slots 专属技能计算
+    @Transient
+    protected transient TogetherPlaySkillEffectData togetherPlaySkillEffect;
     //当前入口额外解锁的下注额，仅用于校验基础房间配置以外的下注
     @Transient
     protected transient Set<Long> tmpUnlockedStakeSet;
@@ -435,6 +439,18 @@ public class SlotsPlayerGameData {
     public void setVisitorBondsEffect(SlotsSkillEffectData visitorBondsEffect) {
         this.visitorBondsEffect = visitorBondsEffect == null
                 ? new SlotsSkillEffectData() : visitorBondsEffect;
+    }
+
+    public TogetherPlaySkillEffectData getTogetherPlaySkillEffect() {
+        if (togetherPlaySkillEffect == null) {
+            togetherPlaySkillEffect = new TogetherPlaySkillEffectData();
+        }
+        return togetherPlaySkillEffect;
+    }
+
+    public void setTogetherPlaySkillEffect(TogetherPlaySkillEffectData togetherPlaySkillEffect) {
+        this.togetherPlaySkillEffect = togetherPlaySkillEffect == null
+                ? new TogetherPlaySkillEffectData() : togetherPlaySkillEffect;
     }
 
     public Set<Long> getTmpUnlockedStakeSet() {

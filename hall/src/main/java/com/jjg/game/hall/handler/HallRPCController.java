@@ -284,7 +284,10 @@ public class HallRPCController extends CoreRPCController implements GmToHallBrid
             log.warn("添加技能失败，该技能 playerId={}", playerId);
             return new CommonResult<>(Code.NOT_FOUND);
         }
-        data.changeSkillLevel(cfg.getAttr(), cfg.getGrade());
+        int code = simSkillService.addSkill(data, skillId);
+        if (code != Code.SUCCESS) {
+            return new CommonResult<>(code);
+        }
 
         log.info("添加技能成功 playerId={},gameType={},skillId={},propId={},grade={}",
                 playerId, gameType, skillId, cfg.getAttr(), cfg.getGrade());

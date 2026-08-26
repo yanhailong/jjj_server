@@ -13,6 +13,8 @@ public class SlotsEntrySessionData {
     private Map<Integer, Integer> researchSkills;
     /** 技能归属玩家指定场景中匹配游戏的游客羁绊效果。 */
     private SlotsSkillEffectData visitorBondsEffect;
+    /** 玩家自己的好友同玩全局技能效果。 */
+    private TogetherPlaySkillEffectData togetherPlaySkillEffect;
     /** 赛季入口的赛季运行态及宝石效果。 */
     private SeasonSlotsSessionData seasonData;
 
@@ -34,6 +36,18 @@ public class SlotsEntrySessionData {
     public void setVisitorBondsEffect(SlotsSkillEffectData visitorBondsEffect) {
         this.visitorBondsEffect = visitorBondsEffect == null
                 ? new SlotsSkillEffectData() : visitorBondsEffect;
+    }
+
+    public TogetherPlaySkillEffectData getTogetherPlaySkillEffect() {
+        if (togetherPlaySkillEffect == null) {
+            togetherPlaySkillEffect = new TogetherPlaySkillEffectData();
+        }
+        return togetherPlaySkillEffect;
+    }
+
+    public void setTogetherPlaySkillEffect(TogetherPlaySkillEffectData togetherPlaySkillEffect) {
+        this.togetherPlaySkillEffect = togetherPlaySkillEffect == null
+                ? new TogetherPlaySkillEffectData() : togetherPlaySkillEffect;
     }
 
     public SeasonSlotsSessionData getSeasonData() {

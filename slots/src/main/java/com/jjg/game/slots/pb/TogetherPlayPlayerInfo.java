@@ -16,4 +16,8 @@ public class TogetherPlayPlayerInfo {
     public int headFrame;
     @ProtoDesc("本次进入净输赢金币")
     public long winGold;
+    @ProtoDesc("该玩家本次为我贡献的提成金币")
+    public long commissionGold;
+    @ProtoDesc("该玩家当前是否在我的提成名额内")
+    public boolean commissionEnabled;
 }

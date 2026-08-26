@@ -13,7 +13,6 @@ import com.jjg.game.core.service.GameFunctionService;
 import com.jjg.game.core.service.MailService;
 import com.jjg.game.core.service.PlayerPackService;
 import com.jjg.game.sampledata.GameDataManager;
-import com.jjg.game.sampledata.bean.ResearchSkillsCfg;
 import com.jjg.game.sampledata.bean.TaskCfg;
 import com.jjg.game.sim.constant.CoopTaskConst;
 import com.jjg.game.sim.dao.CoopRoomRecordDao;
@@ -631,20 +630,14 @@ public class SimCoopTaskService {
 
         res.combatPowers = new ArrayList<>();
         for (SimSkillsData skillsData : skillsDataList) {
-            Map<Integer, Integer> skillsMap = skillsData.getSkillsMap();
-            if (skillsMap == null || skillsMap.isEmpty()) {
+            if (skillsData.getGameType() == 0 || skillsData.getSkillsMap() == null
+                    || skillsData.getSkillsMap().isEmpty()) {
                 continue;
             }
 
             KVInfo kvInfo = new KVInfo();
             kvInfo.key = skillsData.getGameType();
-
-            for (Map.Entry<Integer, Integer> en2 : skillsMap.entrySet()) {
-                ResearchSkillsCfg cfg = simSkillService.getResearchSkillsCfg(skillsData.getGameType(), en2.getKey(), en2.getValue());
-                if (cfg != null) {
-                    kvInfo.value += cfg.getCombatPower();
-                }
-            }
+            kvInfo.value = simSkillService.oneGameCombatPower(skillsData);
             res.combatPowers.add(kvInfo);
         }
         return res;

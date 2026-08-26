@@ -8,6 +8,7 @@ import com.jjg.game.common.utils.TimeHelper;
 import com.jjg.game.core.base.condition.numeric.ActionConditionEvent;
 import com.jjg.game.core.constant.AddType;
 import com.jjg.game.core.constant.Code;
+import com.jjg.game.core.constant.GameConstant;
 import com.jjg.game.core.data.CommonResult;
 import com.jjg.game.core.data.ItemOperationResult;
 import com.jjg.game.core.pb.KVInfo;
@@ -737,7 +738,7 @@ public class SimBuildingService implements SimPlayerTickListener, SimTaskStateRe
     }
 
     /**
-     * 计算单个建筑每分钟实际产出 (含普通雇员 + 主管加成); 非每分钟产出类型返回空。
+     * 计算单个建筑每分钟实际产出 (含普通雇员 + 主管 + 技能加成); 非每分钟产出类型返回空。
      *
      * @param bonusesMap 已汇总的普通雇员加成 (按类型)
      */
@@ -757,7 +758,39 @@ public class SimBuildingService implements SimPlayerTickListener, SimTaskStateRe
         if (base.isEmpty()) {
             return Collections.emptyMap();
         }
-        return applyBuildingBonus(ctx, base, areaCfg.getEmployeeProfile(), bonusesMap);
+        Map<BuildingOutputType, Long> actual = applyBuildingBonus(ctx, base, areaCfg.getEmployeeProfile(), bonusesMap);
+        long skillBonus = skillOutputBonus(ctx, areaCfg.getUnlockGameId());
+        if (skillBonus == 0) {
+            return actual;
+        }
+        for (Map.Entry<BuildingOutputType, Long> en : base.entrySet()) {
+            if (en.getKey() != BuildingOutputType.CASINO_LEVEL_EXP) {
+                actual.merge(en.getKey(), en.getValue() * skillBonus / GameConstant.TEN_THOUSAND, Long::sum);
+            }
+        }
+        return actual;
+    }
+
+    private long skillOutputBonus(SimPlayerContext ctx, int gameType) {
+        long bonus = skillOutputBonus(ctx.getSkillData(0));
+        if (gameType > 0) {
+            bonus += skillOutputBonus(ctx.getSkillData(gameType));
+        }
+        return bonus;
+    }
+
+    private long skillOutputBonus(SimSkillsData skillsData) {
+        Map<Integer, SkillDetailData> skillsMap = skillsData == null ? null : skillsData.getSkillsMap();
+        if (skillsMap == null || skillsMap.isEmpty()) {
+            return 0;
+        }
+        long bonus = 0;
+        for (SkillDetailData detail : skillsMap.values()) {
+            if (detail != null) {
+                bonus += detail.getAddOutPut();
+            }
+        }
+        return bonus;
     }
 
     /**
