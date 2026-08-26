@@ -240,14 +240,14 @@ public class SimVisitService implements IRedDotService {
         int sourceRemaining = quotaService.consume(SimVisitConstant.QuotaType.LIKE,
                 ctx.playerId(), 1, configService.getDailyLikeLimit());
         if (sourceRemaining < 0) {
-            return actionFailure(Code.FORBID);
+            return actionFailure(Code.DAILY_LIMIT);
         }
         int points = configService.getLikePopularity();
         int ownerRemaining = quotaService.consume(SimVisitConstant.QuotaType.POPULARITY,
                 playerId, points, configService.getDailyPopularityLimit());
         if (ownerRemaining < 0) {
             quotaService.rollback(SimVisitConstant.QuotaType.LIKE, ctx.playerId(), 1);
-            return actionFailure(Code.FORBID);
+            return actionFailure(Code.DAILY_LIMIT);
         }
         SimVisitProfileData profile = persistInteraction(ctx, playerId, casinoId,
                 SimVisitConstant.RecordType.LIKE, 0, 0, points, 0, null);
@@ -312,7 +312,7 @@ public class SimVisitService implements IRedDotService {
         int ownerRemaining = quotaService.consume(SimVisitConstant.QuotaType.POPULARITY,
                 playerId, popularity, configService.getDailyPopularityLimit());
         if (ownerRemaining < 0) {
-            return actionFailure(Code.FORBID);
+            return actionFailure(Code.DAILY_LIMIT);
         }
         CommonResult<ItemOperationResult> deduct = playerPackService.removeItems(buyer, gift.getCost(),
                 AddType.SIM_VISIT_GIFT, "giftId=" + giftId);
