@@ -29,6 +29,8 @@ public class BuildingUpgradeTableCfg extends BaseCfgBean {
   protected List<Integer> MaxWaiting;
   /** 经营等级 */
   protected int NeedLevel;
+  /** 技能等级限制 */
+  protected int SkillLevel;
   /** 解锁装饰 */
   protected List<Integer> UnlockDecorationId;
   /** 解锁设备 */
@@ -75,6 +77,11 @@ public class BuildingUpgradeTableCfg extends BaseCfgBean {
   /** 返回经营等级 */
   public int getNeedLevel() {
     return NeedLevel;
+  }
+
+  /** 返回技能等级限制 */
+  public int getSkillLevel() {
+    return SkillLevel;
   }
 
   /** 返回解锁装饰 */

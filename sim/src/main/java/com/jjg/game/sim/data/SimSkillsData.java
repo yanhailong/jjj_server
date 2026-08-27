@@ -66,7 +66,7 @@ public class SimSkillsData extends AbstractData {
         }
 
         SkillDetailData skillDetailData = this.skillsMap.get(propId);
-        if(skillDetailData == null) {
+        if (skillDetailData == null) {
             skillDetailData = new SkillDetailData();
             skillDetailData.setPropId(propId);
         }
@@ -91,5 +91,13 @@ public class SimSkillsData extends AbstractData {
 
     public static String buildKey(long playerId, int gameType) {
         return playerId + ":" + gameType;
+    }
+
+    public int allLevel() {
+        int alllevel = 0;
+        for (Map.Entry<Integer, SkillDetailData> en : this.skillsMap.entrySet()) {
+            alllevel += en.getValue().getLevel();
+        }
+        return alllevel;
     }
 }

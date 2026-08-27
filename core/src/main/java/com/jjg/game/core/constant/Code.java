@@ -241,4 +241,6 @@ public interface Code {
     int ROOM_DISMISS = 4058264;
     //房间已开始
     int ROOM_BEGIN = 4058265;
+    //请提升当前游戏技能等级后再升级
+    int SKILL_LEVEL_NOT_ENOUGHT = 4012009;
 }

@@ -448,16 +448,10 @@ public class SimBuildingService implements SimPlayerTickListener, SimTaskStateRe
                 return;
             }
 
-            if (check == BuildingUpgradeCheck.UPGRADE_COST_NOT_CONFIGURED) {
-                log.warn("升级建筑失败, 没有配置升级消耗道具 playerId={},buildingId={},level={}", ctx.playerId(), buildingId, data.getLevel());
-            } else if (check == BuildingUpgradeCheck.CASINO_LEVEL_LOW) {
-                log.warn("升级建筑失败, 经营等级不足 playerId={},buildingId={},buildingLevel={},needLevel={}", ctx.playerId(), buildingId, data.getLevel(), currentCfg.getNeedLevel());
-            } else if (check == BuildingUpgradeCheck.MAX_LEVEL) {
-                log.warn("升级建筑失败, 已达上限 playerId={},buildingId={},level={}", ctx.playerId(), buildingId, data.getLevel());
-            }
             if (check != BuildingUpgradeCheck.CAN_UPGRADE) {
                 res.code = check.code;
                 ctx.send(res);
+                log.warn("升级建筑失败, 检查升级条件未通过 playerId={},buildingId={},level={},check={}", ctx.playerId(), buildingId, data.getLevel(), check);
                 return;
             }
 
@@ -493,11 +487,23 @@ public class SimBuildingService implements SimPlayerTickListener, SimTaskStateRe
         if (configCache.getBuildingUpgradeCfg(data.getId(), data.getLevel() + 1) == null) {
             return BuildingUpgradeCheck.MAX_LEVEL;
         }
+
+        BuildingAreaTableCfg buildingAreaTableCfg = GameDataManager.getBuildingAreaTableCfg(data.getId());
+        if (buildingAreaTableCfg != null && buildingAreaTableCfg.getUnlockGameId() > 0) {
+            BuildingUpgradeTableCfg nextCfg = configCache.getBuildingUpgradeCfg(data.getId(), data.getLevel() + 1);
+            if (nextCfg != null) {
+                //检查技能等级
+                SimSkillsData skillData = ctx.getSkillData(buildingAreaTableCfg.getUnlockGameId());
+                if (skillData == null || skillData.allLevel() < nextCfg.getSkillLevel()) {
+                    return BuildingUpgradeCheck.SKILL_LEVEL_LOW;
+                }
+            }
+        }
         return BuildingUpgradeCheck.CAN_UPGRADE;
     }
 
     private enum BuildingUpgradeCheck {
-        CAN_UPGRADE(Code.SUCCESS), ADD_PROGRESS(Code.PARAM_ERROR), UPGRADE_COST_NOT_CONFIGURED(Code.PARAM_ERROR), CASINO_LEVEL_LOW(Code.SIM_CASINO_LEVEL_LOW), MAX_LEVEL(Code.PARAM_ERROR);
+        CAN_UPGRADE(Code.SUCCESS), ADD_PROGRESS(Code.PARAM_ERROR), UPGRADE_COST_NOT_CONFIGURED(Code.PARAM_ERROR), CASINO_LEVEL_LOW(Code.SIM_CASINO_LEVEL_LOW), MAX_LEVEL(Code.PARAM_ERROR), SKILL_LEVEL_LOW(Code.SKILL_LEVEL_NOT_ENOUGHT);
 
         private final int code;
 
