@@ -504,7 +504,7 @@ public class SimBuildingService implements SimPlayerTickListener, SimTaskStateRe
                 //检查技能等级
                 SimSkillsData skillData = ctx.getSkillData(buildingAreaTableCfg.getUnlockGameId());
                 if (skillData == null || skillData.allLevel() < nextCfg.getSkillLevel()) {
-                    return new Pair<>(BuildingUpgradeCheck.MAX_LEVEL, nextCfg.getSkillLevel());
+                    return new Pair<>(BuildingUpgradeCheck.SKILL_LEVEL_LOW, nextCfg.getSkillLevel());
                 }
             }
         }
