@@ -48,14 +48,13 @@ public abstract class AbstractSkillService implements ConfigExcelChangeListener 
         this.skillPropIdsMap = tmp;
     }
 
-    protected void loadResearchSkillConfig() {
+    public void loadResearchSkillConfig() {
         Map<Integer, Map<Integer, Map<Integer, ResearchSkillsCfg>>> tmp = new HashMap<>();
         for (ResearchSkillsCfg cfg : GameDataManager.getResearchSkillsCfgList()) {
-            PropCfg propCfg = GameDataManager.getPropCfg(cfg.getAttr());
-            int gameType = propCfg == null ? cfg.getGameType() : skillGameType(propCfg);
-            tmp.computeIfAbsent(gameType, k -> new HashMap<>())
-                    .computeIfAbsent(cfg.getAttr(), k -> new HashMap<>())
-                    .put(cfg.getGrade(), cfg);
+            Map<Integer, Map<Integer, ResearchSkillsCfg>> tmpMap1 = tmp.computeIfAbsent(cfg.getGameType(), k -> new HashMap<>());
+            Map<Integer, ResearchSkillsCfg> tmpMap2 = tmpMap1.computeIfAbsent(cfg.getAttr(), k -> new HashMap<>());
+
+            tmpMap2.put(cfg.getGrade(),cfg);
         }
         this.skillsCfgMap = tmp;
     }

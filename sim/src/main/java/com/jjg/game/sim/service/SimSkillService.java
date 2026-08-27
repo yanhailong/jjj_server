@@ -420,12 +420,6 @@ public class SimSkillService extends AbstractSkillService {
     @Override
     public int addSkill(SimSkillsData simSkillsData, int skillId) {
         ResearchSkillsCfg cfg = GameDataManager.getResearchSkillsCfg(skillId);
-        PropCfg propCfg = cfg == null ? null : GameDataManager.getPropCfg(cfg.getAttr());
-        if (propCfg == null || skillGameType(propCfg) != simSkillsData.getGameType()) {
-            log.warn("添加技能失败，技能类型与数据不匹配 playerId={},gameType={},skillId={}",
-                    simSkillsData.getPlayerId(), simSkillsData.getGameType(), skillId);
-            return Code.PARAM_ERROR;
-        }
         int code = super.addSkill(simSkillsData, skillId);
         if (code == Code.SUCCESS) {
             refreshBuildOutput(simSkillsData, cfg.getAttr());
@@ -477,16 +471,15 @@ public class SimSkillService extends AbstractSkillService {
     }
 
     @Override
-    protected void loadResearchSkillConfig() {
+    public void loadResearchSkillConfig() {
         Map<Integer, Map<Integer, Map<Integer, ResearchSkillsCfg>>> tmp = new HashMap<>();
 
         Map<Integer, Integer> tmpMaxLevelMap = new HashMap<>();
         for (ResearchSkillsCfg cfg : GameDataManager.getResearchSkillsCfgList()) {
-            PropCfg propCfg = GameDataManager.getPropCfg(cfg.getAttr());
-            int gameType = propCfg == null ? cfg.getGameType() : skillGameType(propCfg);
-            tmp.computeIfAbsent(gameType, k -> new HashMap<>())
-                    .computeIfAbsent(cfg.getAttr(), k -> new HashMap<>())
-                    .put(cfg.getGrade(), cfg);
+            Map<Integer, Map<Integer, ResearchSkillsCfg>> tmpMap1 = tmp.computeIfAbsent(cfg.getGameType(), k -> new HashMap<>());
+            Map<Integer, ResearchSkillsCfg> tmpMap2 = tmpMap1.computeIfAbsent(cfg.getAttr(), k -> new HashMap<>());
+
+            tmpMap2.put(cfg.getGrade(),cfg);
 
             Integer before = tmpMaxLevelMap.get(cfg.getAttr());
             if (before == null || before < cfg.getGrade()) {

@@ -768,7 +768,7 @@ public class SimTaskService implements IRedDotService {
          List<Item> rewardItems = null;
         if (cfg.getGetItem() != null && !cfg.getGetItem().isEmpty()) {
             CommonResult<ItemOperationResult> addResult = playerPackService.addItems(
-                    ctx.playerId(), cfg.getGetItem(), AddType.TASKAWARD, "taskId=" + taskId, cfg.getTaskType() != TaskConstant.TaskType.MAIN_LINE);
+                    ctx.playerId(), cfg.getGetItem(), AddType.TASKAWARD, "taskId=" + taskId, true);
             if (addResult == null || !addResult.success()) {
                 res.code = addResult == null ? Code.EXCEPTION : addResult.code;
                 log.error("领取 sim 任务奖励失败,发奖失败 playerId={},taskId={},result={}",
