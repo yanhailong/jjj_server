@@ -279,18 +279,9 @@ public class BundleGiftPackController extends BaseActivityController implements 
         }
 
         long playerId = player.getId();
-        String lockKey = playerActivityDao.getLockKey(playerId, activityData.getId());
-        boolean locked = false;
         Map<Integer, Long> rewards;
         CommonResult<ItemOperationResult> added;
         try {
-            locked = redisLock.tryLockWithDefaultTime(lockKey);
-            if (!locked) {
-                log.error("集合礼包购买获取锁失败 playerId:{} activityId:{}", playerId, activityData.getId());
-                res.code = Code.FAIL;
-                return res;
-            }
-
             Map<Integer, PlayerActivityData> playerData = playerActivityDao.getPlayerActivityData(
                     playerId, activityData.getType(), activityData.getId());
             List<Integer> purchasedIds;
@@ -338,10 +329,6 @@ public class BundleGiftPackController extends BaseActivityController implements 
                     playerId, activityData.getId(), giftId, e);
             res.code = Code.FAIL;
             return res;
-        } finally {
-            if (locked) {
-                redisLock.tryUnlock(lockKey);
-            }
         }
 
         activityLogger.sendActivityGift(player, activityData, added.data, rewards, shopCfg.getPrice(), giftId);

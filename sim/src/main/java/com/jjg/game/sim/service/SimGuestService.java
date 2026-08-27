@@ -42,6 +42,8 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.context.annotation.Lazy;
 import org.springframework.stereotype.Service;
 
+import java.math.BigDecimal;
+import java.math.RoundingMode;
 import java.util.*;
 import java.util.function.Consumer;
 
@@ -609,7 +611,7 @@ public class SimGuestService implements SimPlayerTickListener, ItemListener, Sim
             if (cfg == null) {
                 continue;
             }
-            int weight = effectiveRefreshWeight(cfg);
+            int weight = effectiveRefreshWeight(casino, cfg);
             if (weight > 0) {
                 random.add(g, weight);
             }
@@ -620,12 +622,31 @@ public class SimGuestService implements SimPlayerTickListener, ItemListener, Sim
     /**
      * 计算游客的有效刷新权重 (考虑知名度修正)
      */
-    private int effectiveRefreshWeight(VisitorQuestCfg cfg) {
+    private int effectiveRefreshWeight(SimCasinoData casino, VisitorQuestCfg cfg) {
         int base = cfg.getBaseWeight();
         if (cfg.getAwareness() <= 0) {
             return base;
         }
-        return (cfg.getAwareness() + 1) * base;
+
+        //获取运营部的等级
+        BuildingData buildingData = casino.findBuilding(SimConstant.Building.ID_OPERATIONS_DEPART);
+        if (buildingData == null) {
+            return base;
+        }
+
+        BuildingUpgradeTableCfg buildingUpgradeCfg = configCache.getBuildingUpgradeCfg(buildingData.getId(), buildingData.getLevel());
+        if (buildingUpgradeCfg == null || buildingUpgradeCfg.getUpgradeOutput() < 1) {
+            return base;
+        }
+
+        GlobalConfigCfg globalConfigCfg = GameDataManager.getGlobalConfigCfg(SimConstant.Global.GUEST_AWARENESS_MAX);
+        if (globalConfigCfg == null || globalConfigCfg.getIntValue() < 1) {
+            return base;
+        }
+
+        BigDecimal value1 = BigDecimal.valueOf(buildingUpgradeCfg.getUpgradeOutput()).divide(BigDecimal.valueOf(globalConfigCfg.getIntValue()), 4, RoundingMode.HALF_EVEN);
+        BigDecimal value2 = value1.multiply(BigDecimal.valueOf(cfg.getAwareness()));
+        return value2.intValue() + base;
     }
 
     /**

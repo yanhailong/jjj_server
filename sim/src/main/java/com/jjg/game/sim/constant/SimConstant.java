@@ -423,6 +423,8 @@ public interface SimConstant {
         int ID_RETURN_COIN_MAX = 284;
         //完成这些新手引导才能生成游客
         int GEN_GUEST_GUIDE = 300;
+        //游客（品质刷新）：知名度预期上限值
+        int GUEST_AWARENESS_MAX = 301;
     }
 
     /**

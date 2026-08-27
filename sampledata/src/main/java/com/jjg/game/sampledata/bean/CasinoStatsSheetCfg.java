@@ -23,6 +23,8 @@ public class CasinoStatsSheetCfg extends BaseCfgBean {
   protected int BaseVisitInterval;
   /** 消耗效率（百分比） */
   protected int DrainRate;
+  /** 预估建筑达成等级 */
+  protected Map<Integer,Integer> ExpectedBuildingLevel;
   /** 曝光要求 */
   protected int ExposureRequirements;
   /** 升级前置条件 */
@@ -54,6 +56,11 @@ public class CasinoStatsSheetCfg extends BaseCfgBean {
   /** 返回消耗效率（百分比） */
   public int getDrainRate() {
     return DrainRate;
+  }
+
+  /** 返回预估建筑达成等级 */
+  public Map<Integer,Integer> getExpectedBuildingLevel() {
+    return ExpectedBuildingLevel;
   }
 
   /** 返回曝光要求 */
