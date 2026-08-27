@@ -4,6 +4,7 @@ import com.alibaba.fastjson.JSON;
 import com.jjg.game.alliance.service.AllianceEventService;
 import com.jjg.game.alliance.service.AllianceHelpService;
 import com.jjg.game.common.pb.ItemInfo;
+import com.jjg.game.common.proto.Pair;
 import com.jjg.game.common.utils.TimeHelper;
 import com.jjg.game.core.base.condition.numeric.ActionConditionEvent;
 import com.jjg.game.core.constant.AddType;
@@ -11,9 +12,11 @@ import com.jjg.game.core.constant.Code;
 import com.jjg.game.core.constant.GameConstant;
 import com.jjg.game.core.data.CommonResult;
 import com.jjg.game.core.data.ItemOperationResult;
+import com.jjg.game.core.data.NoticeTipBuilder;
 import com.jjg.game.core.pb.KVInfo;
 import com.jjg.game.core.service.PlayerPackService;
 import com.jjg.game.core.utils.ItemUtils;
+import com.jjg.game.core.utils.TipUtils;
 import com.jjg.game.sampledata.GameDataManager;
 import com.jjg.game.sampledata.bean.BuildingAreaTableCfg;
 import com.jjg.game.sampledata.bean.BuildingUpgradeTableCfg;
@@ -393,7 +396,7 @@ public class SimBuildingService implements SimPlayerTickListener, SimTaskStateRe
             return false;
         }
         BuildingUpgradeTableCfg currentCfg = configCache.getBuildingUpgradeCfg(buildingId, data.getLevel());
-        return currentCfg != null && checkBuildingUpgrade(ctx, data, currentCfg) == BuildingUpgradeCheck.CAN_UPGRADE && playerPackService.checkHasItems(ctx.getPlayer(), currentCfg.getUpgradeCost());
+        return currentCfg != null && checkBuildingUpgrade(ctx, data, currentCfg).getFirst() == BuildingUpgradeCheck.CAN_UPGRADE && playerPackService.checkHasItems(ctx.getPlayer(), currentCfg.getUpgradeCost());
     }
 
     public void onUpgradeBuilding(SimPlayerContext ctx, int buildingId) {
@@ -429,8 +432,8 @@ public class SimBuildingService implements SimPlayerTickListener, SimTaskStateRe
                 return;
             }
 
-            BuildingUpgradeCheck check = checkBuildingUpgrade(ctx, data, currentCfg);
-            if (check == BuildingUpgradeCheck.ADD_PROGRESS) {
+            Pair<BuildingUpgradeCheck, Integer> check = checkBuildingUpgrade(ctx, data, currentCfg);
+            if (check.getFirst() == BuildingUpgradeCheck.ADD_PROGRESS) {
                 //添加进度条
                 List<Integer> list = currentCfg.getCostPerLevel().get(data.getProgress());
                 boolean remove = playerPackService.removeItem(ctx.getPlayer(), list.get(0), list.get(1), AddType.SIM_BUILDING_UPGRADE).success();
@@ -448,9 +451,15 @@ public class SimBuildingService implements SimPlayerTickListener, SimTaskStateRe
                 return;
             }
 
-            if (check != BuildingUpgradeCheck.CAN_UPGRADE) {
-                res.code = check.code;
-                ctx.send(res);
+            if (check.getFirst() != BuildingUpgradeCheck.CAN_UPGRADE) {
+                if (check.getFirst() == BuildingUpgradeCheck.SKILL_LEVEL_LOW) {
+                    NoticeTipBuilder builder = NoticeTipBuilder.builder().tipType(TipUtils.TipType.TOAST).languageId(check.getFirst().code);
+                    builder.addArg(2, check.getSecond() + "");
+                    TipUtils.sendTip(ctx.getPlayerController(), TipUtils.TipType.TOAST, () -> builder.build());
+                } else {
+                    res.code = check.getFirst().code;
+                    ctx.send(res);
+                }
                 log.warn("升级建筑失败, 检查升级条件未通过 playerId={},buildingId={},level={},check={}", ctx.playerId(), buildingId, data.getLevel(), check);
                 return;
             }
@@ -474,18 +483,18 @@ public class SimBuildingService implements SimPlayerTickListener, SimTaskStateRe
         ctx.send(res);
     }
 
-    private BuildingUpgradeCheck checkBuildingUpgrade(SimPlayerContext ctx, BuildingData data, BuildingUpgradeTableCfg currentCfg) {
+    private Pair<BuildingUpgradeCheck, Integer> checkBuildingUpgrade(SimPlayerContext ctx, BuildingData data, BuildingUpgradeTableCfg currentCfg) {
         if (currentCfg.getCostPerLevel() != null && !currentCfg.getCostPerLevel().isEmpty() && data.getProgress() < currentCfg.getCostPerLevel().size()) {
-            return BuildingUpgradeCheck.ADD_PROGRESS;
+            return new Pair<>(BuildingUpgradeCheck.ADD_PROGRESS, 0);
         }
         if (currentCfg.getUpgradeCost() == null || currentCfg.getUpgradeCost().isEmpty()) {
-            return BuildingUpgradeCheck.UPGRADE_COST_NOT_CONFIGURED;
+            return new Pair<>(BuildingUpgradeCheck.UPGRADE_COST_NOT_CONFIGURED, 0);
         }
         if (currentCfg.getNeedLevel() > ctx.getSimBaseData().getAllLevel()) {
-            return BuildingUpgradeCheck.CASINO_LEVEL_LOW;
+            return new Pair<>(BuildingUpgradeCheck.CASINO_LEVEL_LOW, 0);
         }
         if (configCache.getBuildingUpgradeCfg(data.getId(), data.getLevel() + 1) == null) {
-            return BuildingUpgradeCheck.MAX_LEVEL;
+            return new Pair<>(BuildingUpgradeCheck.MAX_LEVEL, 0);
         }
 
         BuildingAreaTableCfg buildingAreaTableCfg = GameDataManager.getBuildingAreaTableCfg(data.getId());
@@ -495,17 +504,23 @@ public class SimBuildingService implements SimPlayerTickListener, SimTaskStateRe
                 //检查技能等级
                 SimSkillsData skillData = ctx.getSkillData(buildingAreaTableCfg.getUnlockGameId());
                 if (skillData == null || skillData.allLevel() < nextCfg.getSkillLevel()) {
-                    return BuildingUpgradeCheck.SKILL_LEVEL_LOW;
+                    return new Pair<>(BuildingUpgradeCheck.MAX_LEVEL, nextCfg.getSkillLevel());
                 }
             }
         }
-        return BuildingUpgradeCheck.CAN_UPGRADE;
+        return new Pair<>(BuildingUpgradeCheck.CAN_UPGRADE, 0);
     }
 
     private enum BuildingUpgradeCheck {
-        CAN_UPGRADE(Code.SUCCESS), ADD_PROGRESS(Code.PARAM_ERROR), UPGRADE_COST_NOT_CONFIGURED(Code.PARAM_ERROR), CASINO_LEVEL_LOW(Code.SIM_CASINO_LEVEL_LOW), MAX_LEVEL(Code.PARAM_ERROR), SKILL_LEVEL_LOW(Code.SKILL_LEVEL_NOT_ENOUGHT);
+        CAN_UPGRADE(Code.SUCCESS),
+        ADD_PROGRESS(Code.PARAM_ERROR),
+        UPGRADE_COST_NOT_CONFIGURED(Code.PARAM_ERROR),
+        CASINO_LEVEL_LOW(Code.SIM_CASINO_LEVEL_LOW),
+        MAX_LEVEL(Code.PARAM_ERROR),
+        SKILL_LEVEL_LOW(Code.SKILL_LEVEL_NOT_ENOUGHT),
+        ;
 
-        private final int code;
+        private int code;
 
         BuildingUpgradeCheck(int code) {
             this.code = code;
