@@ -17,4 +17,6 @@ public class BundleGiftPackInfo {
     public String channelProductId;
     @ProtoDesc("购买金额")
     public String buyPrice;
+    @ProtoDesc("领取状态 1不可领取 2可领取 3已领取 4已购买")
+    public int claimStatus = 1;
 }
