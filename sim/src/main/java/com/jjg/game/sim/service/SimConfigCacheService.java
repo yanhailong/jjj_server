@@ -628,6 +628,10 @@ public class SimConfigCacheService implements ConfigExcelChangeListener {
                 continue;
             }
 
+            if (cfg.getPosition() == null || !cfg.getPosition().contains(5) || !cfg.getPosition().contains(3)) {
+                continue;
+            }
+
             //满足simAllLevel条件的
             try {
                 ConditionNode node = conditionParser.parse(cfg.getCondition());
@@ -1100,7 +1104,7 @@ public class SimConfigCacheService implements ConfigExcelChangeListener {
         }
 
         Map<Integer, List<BuildingAreaTableCfg>> tmpMap = this.casinoLevelBuildingAreaTableCfgs.get(regionId);
-        if(tmpMap == null || tmpMap.isEmpty()) {
+        if (tmpMap == null || tmpMap.isEmpty()) {
             return Collections.emptyList();
         }
         return tmpMap.get(level);
