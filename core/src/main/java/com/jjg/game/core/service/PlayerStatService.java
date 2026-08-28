@@ -2,6 +2,7 @@ package com.jjg.game.core.service;
 
 import com.jjg.game.common.utils.TimeHelper;
 import com.jjg.game.core.base.condition.numeric.PreparedCondition;
+import com.jjg.game.core.constant.GameConstant;
 import com.jjg.game.core.dao.CountDao;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -39,6 +40,8 @@ public class PlayerStatService {
     public static final int EMPLOYEE_POOL_DRAW = 12271;
     public static final int SLOT_BET = 12272;
     public static final int BUILDING_UNLOCK = 12273;
+    public static final int SLOT_WIN = 12274;
+    public static final int WEALTH_GOD_MODE = 12275;
 
     public static final int GOLD_ITEM_ID = 1990000;
     public static final int DIAMOND_ITEM_ID = 1980000;
@@ -51,14 +54,15 @@ public class PlayerStatService {
 
     public static boolean supports(int conditionId) {
         return conditionId == BUILDING_LEVEL
-                || conditionId >= SLOT_ITEM && conditionId <= BUILDING_UNLOCK && conditionId != 12258;
+                || conditionId >= SLOT_ITEM && conditionId <= WEALTH_GOD_MODE && conditionId != 12258;
     }
 
     public static boolean recorded(int conditionId) {
         return switch (conditionId) {
             case SLOT_ITEM, BIG_SHOW, JACKPOT, FREE_MODE, BUILDING_UPGRADE, AD_WATCH,
                     GUEST_RECRUIT, BUSINESS_INCOME, GAME_UNLOCK, VISIT, LOGIN_DAYS,
-                    CURRENCY_CONSUME, GUEST_POOL_DRAW, EMPLOYEE_POOL_DRAW, SLOT_BET -> true;
+                    CURRENCY_CONSUME, GUEST_POOL_DRAW, EMPLOYEE_POOL_DRAW, SLOT_BET,
+                    SLOT_WIN, WEALTH_GOD_MODE -> true;
             default -> false;
         };
     }
@@ -155,6 +159,20 @@ public class PlayerStatService {
         }
     }
 
+    public void recordSlotWin(long playerId, int gameType, int itemId, long win) {
+        if (win <= 0 || (itemId != GOLD_ITEM_ID && itemId != GameConstant.Item.ID_SEASON_COIN)) {
+            return;
+        }
+        incrementDimensionsPlayer(SLOT_WIN, gameType, itemId, playerId, win);
+        if (gameType != 0) {
+            incrementDimensionsPlayer(SLOT_WIN, 0, itemId, playerId, win);
+        }
+    }
+
+    public void recordWealthGodMode(long playerId) {
+        incrementPlayer(WEALTH_GOD_MODE, playerId, 1);
+    }
+
     public void recordVisit(long playerId) {
         incrementPlayer(VISIT, playerId, 1);
     }
@@ -201,6 +219,9 @@ public class PlayerStatService {
             case GUEST_POOL_DRAW -> getPlayer(GUEST_POOL_DRAW, playerId);
             case EMPLOYEE_POOL_DRAW -> getPlayer(EMPLOYEE_POOL_DRAW, playerId);
             case SLOT_BET -> getDimensionPlayer(SLOT_BET, condition.spec().intParameter(0), playerId);
+            case SLOT_WIN -> getDimensionsPlayer(SLOT_WIN, condition.spec().intParameter(0),
+                    condition.spec().intParameter(1), playerId);
+            case WEALTH_GOD_MODE -> getPlayer(WEALTH_GOD_MODE, playerId);
             default -> 0;
         };
     }
@@ -211,6 +232,12 @@ public class PlayerStatService {
 
     private void incrementDimensionPlayer(int statId, int dimension, long playerId, long count) {
         increment(feature(statId, dimension), playerId, String.valueOf(playerId), count);
+    }
+
+    private void incrementDimensionsPlayer(int statId, int firstDimension, int secondDimension,
+                                           long playerId, long count) {
+        increment(feature(statId, firstDimension, secondDimension), playerId,
+                String.valueOf(playerId), count);
     }
 
     private void incrementPlayerItem(int statId, long playerId, int itemId, long count) {
@@ -237,6 +264,11 @@ public class PlayerStatService {
 
     private long getDimensionPlayer(int statId, int dimension, long playerId) {
         return get(feature(statId, dimension), String.valueOf(playerId));
+    }
+
+    private long getDimensionsPlayer(int statId, int firstDimension, int secondDimension,
+                                     long playerId) {
+        return get(feature(statId, firstDimension, secondDimension), String.valueOf(playerId));
     }
 
     private long getPlayerItem(int statId, long playerId, int itemId) {

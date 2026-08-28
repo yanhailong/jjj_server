@@ -10,6 +10,8 @@ public interface WealthGodConstant {
     interface SpecialMode {
         //普通旋转
         int TYPE_NORMAL = 1;
+        //财神到
+        int WEALTH_COM = 3;
     }
 
     interface MsgBean {

@@ -1,5 +1,7 @@
 package com.jjg.game.core.base.condition.numeric;
 
+import com.jjg.game.common.constant.CoreConst;
+
 import java.util.ArrayList;
 import java.util.List;
 import java.util.function.BiPredicate;
@@ -14,6 +16,8 @@ import java.util.function.ToLongBiFunction;
  */
 final class DefaultConditionRules {
     private static final int FIXED_TARGET_ONE = -1;
+    //Slots 节点上报的 WealthGodConstant.SpecialMode.WEALTH_COM 模式事实值。
+    private static final int WEALTH_GOD_COM_MODE = 3;
 
     private DefaultConditionRules() {
     }
@@ -154,7 +158,7 @@ final class DefaultConditionRules {
                 (s, e) -> e.matchesGame(s.parameter(0)) && e.winItemId() == s.parameter(1),
                 (s, e) -> Math.max(0, e.win()), nonNegativeParameters()));
 
-        //12251-12273 与上面的接取型条件判定口径一致，进度由玩家统计提供而非任务计数器。
+        //12251-12275 与上面的接取型条件判定口径一致，进度由玩家统计提供而非任务计数器。
         rules.add(game(12251, 3, 3, 2, ProgressMode.ADD,
                 (s, e) -> e.matchesGame(s.parameter(0)), (s, e) -> e.itemGain(s.intParameter(1))));
         rules.add(game(12252, 2, 2, 1, ProgressMode.ADD,
@@ -203,6 +207,13 @@ final class DefaultConditionRules {
         rules.add(action(12273, 2, 2, FIXED_TARGET_ONE, ProgressMode.SET,
                 ActionConditionEvent.Type.BUILDING_LEVEL,
                 (s, e) -> e.subjectId() == s.parameter(1), (s, e) -> 1));
+        rules.add(game(12274, 3, 3, 2, ProgressMode.ADD,
+                (s, e) -> e.matchesGame(s.parameter(0)) && e.winItemId() == s.parameter(1),
+                (s, e) -> Math.max(0, e.win())));
+        rules.add(game(12275, 1, 1, 0, ProgressMode.ADD,
+                (s, e) -> e.gameType() == CoreConst.GameType.WEALTH_GOD
+                        && e.containsMode(WEALTH_GOD_COM_MODE),
+                (s, e) -> 1));
     }
 
     private static void addAllianceRules(List<ConditionRule<?>> rules) {

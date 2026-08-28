@@ -23,6 +23,8 @@ public class TaskCfg extends BaseCfgBean {
   protected int AbandonCooldown;
   /** 是否允许放弃 */
   protected boolean AllowAbandon;
+  /** 勋章ID */
+  protected int BadgeID;
   /** 持续时间（分） */
   protected int Duration;
   /** 解锁功能ID */
@@ -64,6 +66,11 @@ public class TaskCfg extends BaseCfgBean {
   /** 返回是否允许放弃 */
   public boolean getAllowAbandon() {
     return AllowAbandon;
+  }
+
+  /** 返回勋章ID */
+  public int getBadgeID() {
+    return BadgeID;
   }
 
   /** 返回持续时间（分） */

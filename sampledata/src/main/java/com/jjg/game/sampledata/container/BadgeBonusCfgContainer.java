@@ -4,17 +4,17 @@ import java.util.ArrayList;
 import java.util.List;
 
 import javax.annotation.processing.Generated;
-import com.jjg.game.sampledata.bean.AttributeValueCfg;
+import com.jjg.game.sampledata.bean.BadgeBonusCfg;
 
 /**
- * AttributeValue.xlsx配置管理容器
+ * BadgeBonus.xlsx配置管理容器
  *
- * @excelName AttributeValue.xlsx
- * @sheetName AttributeValue
+ * @excelName BadgeBonus.xlsx
+ * @sheetName BadgeBonus
  * @author auto_generator
  */
 @Generated("com.eouna.configtool.generator.template.java.JavaTemplateGenerator")
-public class AttributeValueCfgContainer extends BaseCfgContainer<AttributeValueCfg> {
+public class BadgeBonusCfgContainer extends BaseCfgContainer<BadgeBonusCfg> {
 
   @Override
   public boolean hasRelatedTable() {
@@ -27,23 +27,23 @@ public class AttributeValueCfgContainer extends BaseCfgContainer<AttributeValueC
   }
 
   @Override
-  public AttributeValueCfgContainer getNewContainer(){
-    return new AttributeValueCfgContainer();
+  public BadgeBonusCfgContainer getNewContainer(){
+    return new BadgeBonusCfgContainer();
   }
 
-  public AttributeValueCfgContainer() {
+  public BadgeBonusCfgContainer() {
     super();
   }
 
   @Override
   public List<String> getExcelNameList() {
     List<String> excelNameList = new ArrayList<>();
-    excelNameList.add("AttributeValue.xlsx");
+    excelNameList.add("BadgeBonus.xlsx");
     return excelNameList;
   }
 
   @Override
-  protected AttributeValueCfg createNewBean() {
-    return new AttributeValueCfg();
+  protected BadgeBonusCfg createNewBean() {
+    return new BadgeBonusCfg();
   }
 }

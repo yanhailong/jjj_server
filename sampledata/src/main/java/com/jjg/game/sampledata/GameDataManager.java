@@ -125,9 +125,9 @@ public class GameDataManager {
     containerMap.put(AlbumCfg.class, new AlbumCfgContainer());
     containerMap.put(AllianceLevelCfg.class, new AllianceLevelCfgContainer());
     containerMap.put(AllianceShopCfg.class, new AllianceShopCfgContainer());
-    containerMap.put(AttributeValueCfg.class, new AttributeValueCfgContainer());
     containerMap.put(AuxiliaryAwardCfg.class, new AuxiliaryAwardCfgContainer());
     containerMap.put(AvatarCfg.class, new AvatarCfgContainer());
+    containerMap.put(BadgeBonusCfg.class, new BadgeBonusCfgContainer());
     containerMap.put(BaseElementCfg.class, new BaseElementCfgContainer());
     containerMap.put(BaseElementRewardCfg.class, new BaseElementRewardCfgContainer());
     containerMap.put(BaseInitCfg.class, new BaseInitCfgContainer());
@@ -747,18 +747,6 @@ public class GameDataManager {
     return getInstance().getCfgContainer(AllianceShopCfg.class).getCfgBeanList();
   }
 
-  public static AttributeValueCfg getAttributeValueCfg(int key) {
-    return getInstance().getCfgContainer(AttributeValueCfg.class).getCfgBeanMap().get(key);
-  }
-
-  public static Map<Integer, AttributeValueCfg> getAttributeValueCfgMap() {
-    return getInstance().getCfgContainer(AttributeValueCfg.class).getCfgBeanMap();
-  }
-
-  public static List<AttributeValueCfg> getAttributeValueCfgList() {
-    return getInstance().getCfgContainer(AttributeValueCfg.class).getCfgBeanList();
-  }
-
   public static AuxiliaryAwardCfg getAuxiliaryAwardCfg(int key) {
     return getInstance().getCfgContainer(AuxiliaryAwardCfg.class).getCfgBeanMap().get(key);
   }
@@ -781,6 +769,18 @@ public class GameDataManager {
 
   public static List<AvatarCfg> getAvatarCfgList() {
     return getInstance().getCfgContainer(AvatarCfg.class).getCfgBeanList();
+  }
+
+  public static BadgeBonusCfg getBadgeBonusCfg(int key) {
+    return getInstance().getCfgContainer(BadgeBonusCfg.class).getCfgBeanMap().get(key);
+  }
+
+  public static Map<Integer, BadgeBonusCfg> getBadgeBonusCfgMap() {
+    return getInstance().getCfgContainer(BadgeBonusCfg.class).getCfgBeanMap();
+  }
+
+  public static List<BadgeBonusCfg> getBadgeBonusCfgList() {
+    return getInstance().getCfgContainer(BadgeBonusCfg.class).getCfgBeanList();
   }
 
   public static BaseElementCfg getBaseElementCfg(int key) {

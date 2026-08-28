@@ -27,6 +27,8 @@ public class BuildingAreaTableCfg extends BaseCfgBean {
   protected int EmployeeProfile;
   /** 交互时间(MS) */
   protected int InteractTime;
+  /** 跳转ID */
+  protected int JumpId;
   /** 等级上限 */
   protected int MaxLevel;
   /** 场景ID */
@@ -64,6 +66,11 @@ public class BuildingAreaTableCfg extends BaseCfgBean {
   /** 返回交互时间(MS) */
   public int getInteractTime() {
     return InteractTime;
+  }
+
+  /** 返回跳转ID */
+  public int getJumpId() {
+    return JumpId;
   }
 
   /** 返回等级上限 */
