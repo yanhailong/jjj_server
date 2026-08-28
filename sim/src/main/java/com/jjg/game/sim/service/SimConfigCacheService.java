@@ -4,9 +4,13 @@ import com.jjg.game.alliance.data.AllianceRefreshTaskConfig;
 import com.jjg.game.alliance.data.DonateCfg;
 import com.jjg.game.common.utils.TimeHelper;
 import com.jjg.game.common.utils.WeightRandom;
+import com.jjg.game.core.base.condition.ConditionNode;
+import com.jjg.game.core.base.condition.ConditionParser;
+import com.jjg.game.core.base.condition.conditionnode.AtomicNode;
 import com.jjg.game.core.base.condition.numeric.ConditionRuleRegistry;
 import com.jjg.game.core.base.condition.numeric.ConditionSpec;
 import com.jjg.game.core.base.condition.numeric.PreparedCondition;
+import com.jjg.game.core.base.gameevent.EGameEventType;
 import com.jjg.game.core.constant.GameConstant;
 import com.jjg.game.core.constant.TaskConstant;
 import com.jjg.game.core.data.Item;
@@ -16,6 +20,7 @@ import com.jjg.game.sampledata.GameDataManager;
 import com.jjg.game.sampledata.bean.*;
 import com.jjg.game.sim.constant.SimConstant;
 import com.jjg.game.sim.data.BuildingUnlockEquipmentData;
+import com.jjg.game.sim.pb.struct.BuildLevelMaxInfo;
 import com.jjg.game.sim.pb.struct.RecruitPoolInfo;
 import com.jjg.game.social.data.SendGiftConfig;
 import org.apache.commons.lang3.StringUtils;
@@ -79,6 +84,8 @@ public class SimConfigCacheService implements ConfigExcelChangeListener {
 
     //建筑等级配置 buildingId -> level -> cfg
     private Map<Integer, Map<Integer, BuildingUpgradeTableCfg>> buildingUpgradeCfgMap;
+    //RegionID -> level -> List.BuildLevelMaxInfo
+    private Map<Integer, Map<Integer, List<BuildLevelMaxInfo>>> buildingLevelMaxInfoMap;
     //建筑等级解锁设备的信息
     private Map<Integer, BuildingUnlockEquipmentData> buildingUnlockEquipmentDataMap;
 
@@ -86,6 +93,8 @@ public class SimConfigCacheService implements ConfigExcelChangeListener {
     private Map<Integer, List<Integer>> buildingDeviceMap;
     //gameType -> BuildingAreaTableCfg
     private Map<Integer, BuildingAreaTableCfg> gameBuildingAreaTableCfg;
+    //RegionID -> casinoLevel -> List.BuildingAreaTableCfg  ，每个场景等级解锁的建筑
+    private Map<Integer, Map<Integer, List<BuildingAreaTableCfg>>> casinoLevelBuildingAreaTableCfgs;
 
     //技能配置
     private Map<Integer, List<PropCfg>> propCfgMap;
@@ -116,15 +125,21 @@ public class SimConfigCacheService implements ConfigExcelChangeListener {
     private Map<Integer, List<SeasonSimulationDataCfg>> seasonSimulationDataCfgMap;
 
     private final ConditionRuleRegistry conditionRules;
+    private final ConditionParser conditionParser;
 
     //赛季结算赛季币返还: [0]返还比例(百分比), [1]返还上限
     private int[] seasonReturnMaxArr = new int[2];
 
     private Set<Integer> genGuestGuideSet = null;
 
+    //每个等级解锁的功能
+    private Map<Integer, List<Integer>> allLevelUnlockFunctionMap = null;
+
     @Autowired
-    public SimConfigCacheService(ConditionRuleRegistry conditionRules) {
+    public SimConfigCacheService(ConditionRuleRegistry conditionRules,
+                                 ConditionParser conditionParser) {
         this.conditionRules = conditionRules;
+        this.conditionParser = conditionParser;
     }
 
     public void init() {
@@ -337,8 +352,9 @@ public class SimConfigCacheService implements ConfigExcelChangeListener {
     /**
      * 加载建筑等级配置
      */
-    private void loadBuildingUpgradeConfig() {
+    public void loadBuildingUpgradeConfig() {
         Map<Integer, Map<Integer, BuildingUpgradeTableCfg>> tmp = new HashMap<>();
+        Map<Integer, Map<Integer, List<BuildLevelMaxInfo>>> tmpBuildingLevelMaxInfoMap = new HashMap<>();
         Map<Integer, BuildingUnlockEquipmentData> tmpBuildingUnlockEquipmentDataMap = new HashMap<>();
         for (BuildingUpgradeTableCfg cfg : GameDataManager.getBuildingUpgradeTableCfgList()) {
             tmp.computeIfAbsent(cfg.getBuildingID(), k -> new HashMap<>()).put(cfg.getLevel(), cfg);
@@ -364,18 +380,56 @@ public class SimConfigCacheService implements ConfigExcelChangeListener {
             }
 
         }
+
+        for (Map.Entry<Integer, Map<Integer, BuildingUpgradeTableCfg>> en : tmp.entrySet()) {
+            int buildingId = en.getKey();
+            BuildingAreaTableCfg areaCfg = GameDataManager.getBuildingAreaTableCfg(buildingId);
+            if (areaCfg == null) {
+                continue;
+            }
+
+            Map<Integer, Integer> needLevelMaxMap = new TreeMap<>();
+            for (BuildingUpgradeTableCfg cfg : en.getValue().values()) {
+                needLevelMaxMap.merge(cfg.getNeedLevel(), cfg.getLevel(), Math::max);
+            }
+
+            int oldMax = 1;
+            for (Map.Entry<Integer, Integer> levelEn : needLevelMaxMap.entrySet()) {
+                int newMax = levelEn.getValue();
+                if (newMax <= oldMax) {
+                    continue;
+                }
+
+                BuildLevelMaxInfo info = new BuildLevelMaxInfo();
+                info.buildingId = buildingId;
+                info.oldMax = oldMax;
+                info.newMax = newMax;
+                tmpBuildingLevelMaxInfoMap.computeIfAbsent(areaCfg.getRegionID(), k -> new HashMap<>())
+                        .computeIfAbsent(levelEn.getKey(), k -> new ArrayList<>()).add(info);
+                oldMax = newMax;
+            }
+        }
         this.buildingUpgradeCfgMap = tmp;
+        this.buildingLevelMaxInfoMap = tmpBuildingLevelMaxInfoMap;
         this.buildingUnlockEquipmentDataMap = tmpBuildingUnlockEquipmentDataMap;
     }
 
     private void loadBuildingAreaTableConfig() {
         Map<Integer, BuildingAreaTableCfg> tmpGameBuildingAreaTableCfg = new HashMap<>();
+        Map<Integer, Map<Integer, List<BuildingAreaTableCfg>>> tmpCasinoLevelBuildingAreaTableCfgs = new HashMap<>();
         for (BuildingAreaTableCfg cfg : GameDataManager.getBuildingAreaTableCfgList()) {
             if (cfg.getUnlockGameId() > 0) {
                 tmpGameBuildingAreaTableCfg.put(cfg.getUnlockGameId(), cfg);
             }
+
+            if (cfg.getCasinoLevel() > 1) {
+                Map<Integer, List<BuildingAreaTableCfg>> levelMap = tmpCasinoLevelBuildingAreaTableCfgs.computeIfAbsent(cfg.getRegionID(), k -> new HashMap<>());
+                List<BuildingAreaTableCfg> tmpList = levelMap.computeIfAbsent(cfg.getCasinoLevel(), k -> new ArrayList<>());
+                tmpList.add(cfg);
+            }
         }
         this.gameBuildingAreaTableCfg = tmpGameBuildingAreaTableCfg;
+        this.casinoLevelBuildingAreaTableCfgs = tmpCasinoLevelBuildingAreaTableCfgs;
     }
 
     /**
@@ -567,6 +621,46 @@ public class SimConfigCacheService implements ConfigExcelChangeListener {
         this.seasonSimulationDataCfgMap = tmpSeasonSimulationDataCfgMap;
     }
 
+    public void loadGameFunction() {
+        Map<Integer, List<Integer>> tmpAllLevelUnlockFunctionMap = new HashMap<>();
+        for (GameFunctionCfg cfg : GameDataManager.getGameFunctionCfgList()) {
+            if (!cfg.getIsOpen() || StringUtils.isBlank(cfg.getCondition())) {
+                continue;
+            }
+
+            //满足simAllLevel条件的
+            try {
+                ConditionNode node = conditionParser.parse(cfg.getCondition());
+
+                // 这里只接收完整条件为 simAllLevel(n) 的配置
+                if (!(node instanceof AtomicNode<?> atomicNode)) {
+                    continue;
+                }
+
+                if (!EGameEventType.SIM_ALL_LEVEL.getConfigType()
+                        .equals(atomicNode.getHandler().type())) {
+                    continue;
+                }
+
+                if (!(atomicNode.getConfig() instanceof PreparedCondition preparedCondition)) {
+                    continue;
+                }
+
+                int unlockLevel = Math.toIntExact(preparedCondition.target());
+                if (unlockLevel < 2) {
+                    continue;
+                }
+
+                tmpAllLevelUnlockFunctionMap.computeIfAbsent(unlockLevel, k -> new ArrayList<>())
+                        .add(cfg.getId());
+            } catch (IllegalArgumentException | IndexOutOfBoundsException | ArithmeticException e) {
+                log.warn("功能解锁条件配置非法，不加入总等级缓存 functionId={},condition={},error={}",
+                        cfg.getId(), cfg.getCondition(), e.getMessage());
+            }
+        }
+        this.allLevelUnlockFunctionMap = tmpAllLevelUnlockFunctionMap;
+    }
+
     @Override
     public void initSampleCallbackCollector() {
         addInitSampleFileObserveWithCallBack(CasinoStatsSheetCfg.EXCEL_NAME, this::loadCasinoStatsSheetCfg);
@@ -584,9 +678,9 @@ public class SimConfigCacheService implements ConfigExcelChangeListener {
         addInitSampleFileObserveWithCallBack(EmployeeProfileCfg.EXCEL_NAME, this::loadEmployeeProfileConfig);
         addInitSampleFileObserveWithCallBack(EmployeePoolCfg.EXCEL_NAME, this::loadEmployeePoolConfig);
 
+        addInitSampleFileObserveWithCallBack(BuildingAreaTableCfg.EXCEL_NAME, this::loadBuildingAreaTableConfig);
         addInitSampleFileObserveWithCallBack(BuildingUpgradeTableCfg.EXCEL_NAME, this::loadBuildingUpgradeConfig);
         addInitSampleFileObserveWithCallBack(BuildingEquipmentTableCfg.EXCEL_NAME, this::loadBuildingDeviceConfig);
-        addInitSampleFileObserveWithCallBack(BuildingAreaTableCfg.EXCEL_NAME, this::loadBuildingAreaTableConfig);
 
 
         addInitSampleFileObserveWithCallBack(GlobalConfigCfg.EXCEL_NAME, this::loadGlobalConfig);
@@ -598,6 +692,8 @@ public class SimConfigCacheService implements ConfigExcelChangeListener {
 
         addInitSampleFileObserveWithCallBack(ItemCfg.EXCEL_NAME, this::loadItemConfig);
         addInitSampleFileObserveWithCallBack(SeasonSimulationDataCfg.EXCEL_NAME, this::loadSeasonSimulationDataConfig);
+
+        addInitSampleFileObserveWithCallBack(GameFunctionCfg.EXCEL_NAME, this::loadGameFunction);
     }
 
     // ---------------------------------------------------------------------
@@ -649,6 +745,39 @@ public class SimConfigCacheService implements ConfigExcelChangeListener {
             }
         }
         return max;
+    }
+
+    /**
+     * 获取场景累计等级区间内建筑等级上限的变化
+     */
+    public List<BuildLevelMaxInfo> getBuildingLevelMaxInfos(int regionId, int oldAllLevel, int newAllLevel) {
+        if (this.buildingLevelMaxInfoMap == null || oldAllLevel >= newAllLevel) {
+            return Collections.emptyList();
+        }
+
+        Map<Integer, List<BuildLevelMaxInfo>> levelMap = this.buildingLevelMaxInfoMap.get(regionId);
+        if (levelMap == null || levelMap.isEmpty()) {
+            return Collections.emptyList();
+        }
+
+        Map<Integer, BuildLevelMaxInfo> tmp = new LinkedHashMap<>();
+        for (int level = oldAllLevel + 1; level <= newAllLevel; level++) {
+            List<BuildLevelMaxInfo> list = levelMap.get(level);
+            if (list == null || list.isEmpty()) {
+                continue;
+            }
+            for (BuildLevelMaxInfo info : list) {
+                BuildLevelMaxInfo result = tmp.get(info.buildingId);
+                if (result == null) {
+                    result = new BuildLevelMaxInfo();
+                    result.buildingId = info.buildingId;
+                    result.oldMax = info.oldMax;
+                    tmp.put(info.buildingId, result);
+                }
+                result.newMax = info.newMax;
+            }
+        }
+        return new ArrayList<>(tmp.values());
     }
 
     /**
@@ -956,5 +1085,24 @@ public class SimConfigCacheService implements ConfigExcelChangeListener {
             return null;
         }
         return this.buildingUnlockEquipmentDataMap.get(buildId);
+    }
+
+    public List<Integer> getAllLevelUnlockFunctions(int allLevel) {
+        if (this.allLevelUnlockFunctionMap == null || this.allLevelUnlockFunctionMap.isEmpty()) {
+            return Collections.emptyList();
+        }
+        return this.allLevelUnlockFunctionMap.get(allLevel);
+    }
+
+    public List<BuildingAreaTableCfg> getCasinoLevelBuildingAreaTableCfgs(int regionId, int level) {
+        if (this.casinoLevelBuildingAreaTableCfgs == null || this.casinoLevelBuildingAreaTableCfgs.isEmpty()) {
+            return Collections.emptyList();
+        }
+
+        Map<Integer, List<BuildingAreaTableCfg>> tmpMap = this.casinoLevelBuildingAreaTableCfgs.get(regionId);
+        if(tmpMap == null || tmpMap.isEmpty()) {
+            return Collections.emptyList();
+        }
+        return tmpMap.get(level);
     }
 }

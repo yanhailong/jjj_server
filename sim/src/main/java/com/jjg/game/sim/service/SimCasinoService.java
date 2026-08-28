@@ -376,13 +376,13 @@ public class SimCasinoService implements SimTaskStateReporter {
             casino.setCasinoLevel(nextCfg.getLevel());
         }
         casino.setExp((int) Math.min(exp, Integer.MAX_VALUE));
-        notifyCasinoUpgrade(ctx, casino, currentCfg, nextCfg);
-
         int addedLevels = casino.getCasinoLevel() - oldLevel;
         if (addedLevels <= 0) {
             return;
         }
+        int oldAllLevel = ctx.getSimBaseData().getAllLevel();
         addAllLevel(ctx, addedLevels);
+        notifyCasinoUpgrade(ctx, casino, currentCfg, nextCfg, oldAllLevel, ctx.getSimBaseData().getAllLevel());
         simGuideService.triggerSceneTotalLevelReached(ctx, ctx.getSimBaseData().getAllLevel(), true);
         simTaskService.onConditionEvent(ctx,
                 SimConditionEventFactory.sceneLevel(casino.getCasinoId(), casino.getCasinoLevel()));
@@ -410,12 +410,28 @@ public class SimCasinoService implements SimTaskStateReporter {
     }
 
     private void notifyCasinoUpgrade(SimPlayerContext ctx, SimCasinoData casino,
-                                     CasinoStatsSheetCfg currentCfg, CasinoStatsSheetCfg nextCfg) {
+                                     CasinoStatsSheetCfg currentCfg, CasinoStatsSheetCfg nextCfg, int oldAllLevel, int newAllLevel) {
         NotifyCasinoUpgrade notify = new NotifyCasinoUpgrade();
         notify.level = casino.getCasinoLevel();
         notify.exp = casino.getExp();
         notify.upgradeCost = currentCfg == null ? 0 : currentCfg.getUpgradeCost();
         notify.upgradeLevelConditions = toUpgradeLevelConditions(nextCfg, ctx);
+
+        //新解锁的建筑
+        List<BuildingAreaTableCfg> cfgs = configCacheService.getCasinoLevelBuildingAreaTableCfgs(casino.getCasinoId(), casino.getCasinoLevel());
+        if (cfgs != null && !cfgs.isEmpty()) {
+            notify.newBuilds = new ArrayList<>();
+            for (BuildingAreaTableCfg c : cfgs) {
+                notify.newBuilds.add(c.getId());
+            }
+        }
+
+        //新解锁的功能
+        notify.newFunctions = configCacheService.getAllLevelUnlockFunctions(ctx.getSimBaseData().getAllLevel());
+
+        //建筑等级上限提升
+        notify.buildLevelMaxInfos = configCacheService.getBuildingLevelMaxInfos(
+                casino.getCasinoId(), oldAllLevel, newAllLevel);
         ctx.send(notify);
     }
 

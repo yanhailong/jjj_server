@@ -16,6 +16,10 @@ public class AtomicNode<C> implements ConditionNode {
         this.config = config;
     }
 
+    public C getConfig() {
+        return config;
+    }
+
     @Override
     public MatchResultData match(ConditionContext ctx) {
         return handler.match(ctx, config);
