@@ -72,6 +72,8 @@ public class SimMessageHandler implements GmListener {
     @Autowired
     private SimStatsService statsService;
     @Autowired
+    private SimOperationDashboardService operationDashboardService;
+    @Autowired
     private SimConfigCacheService configCacheService;
     @Autowired
     private SimTaskService taskService;
@@ -643,6 +645,22 @@ public class SimMessageHandler implements GmListener {
         execute(playerController, ctx -> {
             statsService.onOperationData(ctx);
         }, ReqOperationData.class);
+    }
+
+    /**
+     * 新版细分运营数据看板完整数据。
+     */
+    @Command(SimConstant.MsgBean.REQ_OPERATION_DASHBOARD)
+    public void reqOperationDashboard(PlayerController playerController, ReqOperationDashboard req) {
+        execute(playerController, operationDashboardService::onDashboard, ReqOperationDashboard.class);
+    }
+
+    /**
+     * 新版细分运营数据看板实时容纳人数。
+     */
+    @Command(SimConstant.MsgBean.REQ_OPERATION_CAPACITY)
+    public void reqOperationCapacity(PlayerController playerController, ReqOperationCapacity req) {
+        execute(playerController, operationDashboardService::onCapacity, ReqOperationCapacity.class);
     }
 
     /**

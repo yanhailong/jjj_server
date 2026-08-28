@@ -792,6 +792,44 @@ public class SimBuildingService implements SimPlayerTickListener, SimTaskStateRe
         return actual;
     }
 
+    /**
+     * 计算细分运营看板中单栋建筑的实际属性。
+     * 游戏区和休息区返回每分钟产出（含雇员、主管、技能加成），管理区返回当前部门属性。
+     */
+    public Map<BuildingOutputType, Long> computeDashboardBuildingValues(SimPlayerContext ctx, BuildingData building) {
+        if (ctx == null || building == null) {
+            return Collections.emptyMap();
+        }
+        BuildingAreaTableCfg areaCfg = GameDataManager.getBuildingAreaTableCfg(building.getId());
+        if (areaCfg == null) {
+            return Collections.emptyMap();
+        }
+        Map<BuildingOutputType, Long> base = getBaseOutput(building.getId(), building.getLevel());
+        if (base.isEmpty()) {
+            return Collections.emptyMap();
+        }
+        Map<BuildingOutputType, Integer> bonusesMap = new HashMap<>();
+        employeeService.computeTypeBonusFixed(ctx, bonusesMap);
+        Map<BuildingOutputType, Long> actual = applyBuildingBonus(
+                ctx, base, areaCfg.getEmployeeProfile(), bonusesMap);
+
+        BuildingType buildingType = BuildingType.fromCode(areaCfg.getType());
+        if (buildingType != BuildingType.GAME && buildingType != BuildingType.REST) {
+            return actual;
+        }
+        long skillBonus = skillOutputBonus(ctx, areaCfg.getUnlockGameId());
+        if (skillBonus == 0) {
+            return actual;
+        }
+        for (Map.Entry<BuildingOutputType, Long> entry : base.entrySet()) {
+            if (entry.getKey() != BuildingOutputType.CASINO_LEVEL_EXP) {
+                actual.merge(entry.getKey(),
+                        entry.getValue() * skillBonus / GameConstant.TEN_THOUSAND, Long::sum);
+            }
+        }
+        return actual;
+    }
+
     private long skillOutputBonus(SimPlayerContext ctx, int gameType) {
         long bonus = skillOutputBonus(ctx.getSkillData(0));
         if (gameType > 0) {

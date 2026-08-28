@@ -349,6 +349,7 @@ public class SimGuestService implements SimPlayerTickListener, ItemListener, Sim
             casino.addPurchasedGuest(data);
             //经营信息: 招商生成一名高级游客即累计一次, 与该游客的目的地数量无关
             ctx.getSimBaseData().addReceptionCount(1);
+            recordDashboardJourney(casino, destinations, System.currentTimeMillis());
 
             res.guests.add(SimPbConverter.toGuestInfo(data, visitorQuestCfg));
             //累加经验
@@ -549,8 +550,25 @@ public class SimGuestService implements SimPlayerTickListener, ItemListener, Sim
         guest.addExp(configCache.getVisitorLevelCfgMap());
 
         ctx.getCurrentCasino().setLastGenerateTime(now);
-        ctx.getCurrentCasino().recordGenerate(now, SimConstant.Common.CAPACITY_WINDOW_MS);
+        recordDashboardJourney(ctx.getCurrentCasino(), destinations, now);
         return SimPbConverter.toGuestInfo(guest, destinations, visitorQuestCfg);
+    }
+
+    /**
+     * 记录细分运营看板使用的固定窗口游客数和各建筑交互数。
+     */
+    private void recordDashboardJourney(SimCasinoData casino, List<DestinationInfo> destinations, long now) {
+        if (casino == null || destinations == null || destinations.isEmpty()) {
+            return;
+        }
+        casino.recordGenerate(now, SimConstant.Common.CAPACITY_WINDOW_MS);
+        List<Integer> buildingIds = new ArrayList<>(destinations.size());
+        for (DestinationInfo destination : destinations) {
+            if (destination != null && destination.buildingId > 0) {
+                buildingIds.add(destination.buildingId);
+            }
+        }
+        casino.recordBuildingInteractions(now, SimConstant.Common.CAPACITY_WINDOW_MS, buildingIds);
     }
 
     /**
@@ -622,7 +640,7 @@ public class SimGuestService implements SimPlayerTickListener, ItemListener, Sim
     /**
      * 计算游客的有效刷新权重 (考虑知名度修正)
      */
-    private int effectiveRefreshWeight(SimCasinoData casino, VisitorQuestCfg cfg) {
+    public int effectiveRefreshWeight(SimCasinoData casino, VisitorQuestCfg cfg) {
         int base = cfg.getBaseWeight();
         if (cfg.getAwareness() <= 0) {
             return base;

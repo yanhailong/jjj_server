@@ -60,6 +60,9 @@ public class SimCasinoData extends AbstractData {
     //近期生成游客时间戳队列 (用于"10 分钟内生成人数"计算) — 运行时, 不持久化
     @Transient
     private transient Deque<Long> recentGenerateTimes;
+    //近期按建筑规划的交互时间戳（用于细分看板实时人数和满意度）— 运行时, 不持久化
+    @Transient
+    private transient Map<Integer, Deque<Long>> recentBuildingInteractionTimes;
 
     public String getId() {
         return id;
@@ -385,6 +388,75 @@ public class SimCasinoData extends AbstractData {
             }
         }
         return this.recentGenerateTimes.size();
+    }
+
+    /**
+     * 记录本次游客行程中的建筑交互。服务器在生成游客时已确定完整行程，
+     * 因此看板与游客生成使用同一份服务数据，不依赖客户端回报。
+     */
+    public void recordBuildingInteractions(long now, long windowMs, Collection<Integer> buildingIds) {
+        if (buildingIds == null || buildingIds.isEmpty()) {
+            return;
+        }
+        if (this.recentBuildingInteractionTimes == null) {
+            this.recentBuildingInteractionTimes = new HashMap<>();
+        }
+        for (Integer buildingId : buildingIds) {
+            if (buildingId == null || buildingId <= 0) {
+                continue;
+            }
+            Deque<Long> times = this.recentBuildingInteractionTimes.computeIfAbsent(
+                    buildingId, ignored -> new ArrayDeque<>());
+            times.addLast(now);
+            removeExpired(times, now - windowMs);
+        }
+    }
+
+    /**
+     * 统计固定窗口内全部建筑交互次数。
+     */
+    public int countInteractionsInWindow(long now, long windowMs) {
+        if (this.recentBuildingInteractionTimes == null || this.recentBuildingInteractionTimes.isEmpty()) {
+            return 0;
+        }
+        int total = 0;
+        long cutoff = now - windowMs;
+        Iterator<Map.Entry<Integer, Deque<Long>>> iterator = this.recentBuildingInteractionTimes.entrySet().iterator();
+        while (iterator.hasNext()) {
+            Map.Entry<Integer, Deque<Long>> entry = iterator.next();
+            removeExpired(entry.getValue(), cutoff);
+            if (entry.getValue().isEmpty()) {
+                iterator.remove();
+            } else {
+                total += entry.getValue().size();
+            }
+        }
+        return total;
+    }
+
+    /**
+     * 统计固定窗口内指定建筑的交互次数。
+     */
+    public int countBuildingInteractionsInWindow(int buildingId, long now, long windowMs) {
+        if (this.recentBuildingInteractionTimes == null) {
+            return 0;
+        }
+        Deque<Long> times = this.recentBuildingInteractionTimes.get(buildingId);
+        if (times == null) {
+            return 0;
+        }
+        removeExpired(times, now - windowMs);
+        if (times.isEmpty()) {
+            this.recentBuildingInteractionTimes.remove(buildingId);
+            return 0;
+        }
+        return times.size();
+    }
+
+    private static void removeExpired(Deque<Long> times, long cutoff) {
+        while (times != null && !times.isEmpty() && times.peekFirst() < cutoff) {
+            times.removeFirst();
+        }
     }
 
     public int manageEmploy(int professionId) {

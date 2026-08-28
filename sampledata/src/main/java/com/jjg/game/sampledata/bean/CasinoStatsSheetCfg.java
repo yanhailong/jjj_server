@@ -27,6 +27,8 @@ public class CasinoStatsSheetCfg extends BaseCfgBean {
   protected Map<Integer,Integer> ExpectedBuildingLevel;
   /** 曝光要求 */
   protected int ExposureRequirements;
+  /** 预估交互次数/人 */
+  protected int InteractCount;
   /** 升级前置条件 */
   protected Map<Integer,Integer> LevelUpCondition;
   /** 延长游客生成间隔的倍数上限 */
@@ -66,6 +68,11 @@ public class CasinoStatsSheetCfg extends BaseCfgBean {
   /** 返回曝光要求 */
   public int getExposureRequirements() {
     return ExposureRequirements;
+  }
+
+  /** 返回预估交互次数/人 */
+  public int getInteractCount() {
+    return InteractCount;
   }
 
   /** 返回升级前置条件 */

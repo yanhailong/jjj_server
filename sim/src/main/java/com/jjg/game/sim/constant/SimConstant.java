@@ -273,6 +273,14 @@ public interface SimConstant {
         //获取场景升级条件
         int REQ_CASINO_UPGRADE_CONDITION = BASE_MSG_PREFIX | 0x86;
         int RES_CASINO_UPGRADE_CONDITION = BASE_MSG_PREFIX | 0x87;
+
+        //细分运营数据看板（与旧版运营总数据接口隔离）
+        int REQ_OPERATION_DASHBOARD = BASE_MSG_PREFIX | 0x88;
+        int RES_OPERATION_DASHBOARD = BASE_MSG_PREFIX | 0x89;
+
+        //细分运营数据看板-实时容纳人数（供客户端每秒刷新）
+        int REQ_OPERATION_CAPACITY = BASE_MSG_PREFIX | 0x8A;
+        int RES_OPERATION_CAPACITY = BASE_MSG_PREFIX | 0x8B;
     }
 
     interface SpecialGuest {
@@ -345,6 +353,9 @@ public interface SimConstant {
         int DEFAULT_CASINO_STATS_ID = 1001;
         //"场景满员"判定窗口 (ms) — 10 分钟
         long CAPACITY_WINDOW_MS = 10 * 60 * 1000L;
+
+        //看板百分比统一使用万分比，10000 表示 100.00%
+        int DASHBOARD_RATE_BASE = 10_000;
 
         //服务能力加成系数基数 (VisitorStarCfg.Additioncoefficient, 100 表示 +0%)
         int SERVICE_CAPACITY_COEFFICIENT_BASE = 100;
