@@ -127,7 +127,6 @@ public class GameDataManager {
     containerMap.put(AllianceShopCfg.class, new AllianceShopCfgContainer());
     containerMap.put(AuxiliaryAwardCfg.class, new AuxiliaryAwardCfgContainer());
     containerMap.put(AvatarCfg.class, new AvatarCfgContainer());
-    containerMap.put(BadgeBonusCfg.class, new BadgeBonusCfgContainer());
     containerMap.put(BaseElementCfg.class, new BaseElementCfgContainer());
     containerMap.put(BaseElementRewardCfg.class, new BaseElementRewardCfgContainer());
     containerMap.put(BaseInitCfg.class, new BaseInitCfgContainer());
@@ -769,18 +768,6 @@ public class GameDataManager {
 
   public static List<AvatarCfg> getAvatarCfgList() {
     return getInstance().getCfgContainer(AvatarCfg.class).getCfgBeanList();
-  }
-
-  public static BadgeBonusCfg getBadgeBonusCfg(int key) {
-    return getInstance().getCfgContainer(BadgeBonusCfg.class).getCfgBeanMap().get(key);
-  }
-
-  public static Map<Integer, BadgeBonusCfg> getBadgeBonusCfgMap() {
-    return getInstance().getCfgContainer(BadgeBonusCfg.class).getCfgBeanMap();
-  }
-
-  public static List<BadgeBonusCfg> getBadgeBonusCfgList() {
-    return getInstance().getCfgContainer(BadgeBonusCfg.class).getCfgBeanList();
   }
 
   public static BaseElementCfg getBaseElementCfg(int key) {

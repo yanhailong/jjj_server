@@ -31,6 +31,8 @@ public class GameFunctionCfg extends BaseCfgBean {
   protected int functionType;
   /** 开启状态 */
   protected boolean isOpen;
+  /** 多语言ID */
+  protected int nameid;
   /** 显示位置 */
   protected List<Integer> position;
   /** 显示顺序 */
@@ -68,6 +70,11 @@ public class GameFunctionCfg extends BaseCfgBean {
   /** 返回开启状态 */
   public boolean getIsOpen() {
     return isOpen;
+  }
+
+  /** 返回多语言ID */
+  public int getNameid() {
+    return nameid;
   }
 
   /** 返回显示位置 */

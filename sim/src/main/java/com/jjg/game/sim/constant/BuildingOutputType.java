@@ -30,7 +30,10 @@ public enum BuildingOutputType {
     //管理属性(它是一个集合体，包括了SERVICE，AWARENESS，EXPOSURE)
     MANAGE_ARRT(11),
     //场景等级经验
-    CASINO_LEVEL_EXP(12);
+    CASINO_LEVEL_EXP(12),
+    //看广告增加金币收益
+    WATCH_ADS_ADD_GOLD(13),
+    ;
 
     private final int code;
 
