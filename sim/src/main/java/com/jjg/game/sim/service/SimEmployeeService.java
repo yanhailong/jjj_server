@@ -68,7 +68,7 @@ public class SimEmployeeService implements SimTaskStateReporter {
      *
      * @param ctx
      * @param poolId 卡池id
-     * @param count 招募次数 (1/10)
+     * @param count  招募次数 (1/10)
      */
     public void onRecruitEmployee(SimPlayerContext ctx, int poolId, int count) {
         ResRecruitEmployee res = new ResRecruitEmployee(Code.SUCCESS);
@@ -227,24 +227,23 @@ public class SimEmployeeService implements SimTaskStateReporter {
                 ctx.send(res);
                 return;
             }
-            EmployeeLevelCfg nextCfg = getLevelCfg(employeeId, data.getLevel() + 1);
-            if (nextCfg == null) {
-                log.warn("升级雇员失败, 已达配置上限 playerId={},employeeId={},level={}", ctx.playerId(), employeeId, data.getLevel());
+            EmployeeLevelCfg currentCfg = getLevelCfg(employeeId, data.getLevel());
+            if (currentCfg == null) {
+                log.warn("升级雇员失败, 获取等级配置失败 playerId={},employeeId={},level={}", ctx.playerId(), employeeId, data.getLevel());
                 res.code = Code.LEVEL_MAX;
                 ctx.send(res);
                 return;
             }
 
-            if (nextCfg.getUpgradeCost() != null && !nextCfg.getUpgradeCost().isEmpty()) {
-                boolean removeItems = playerPackService.removeItems(ctx.getPlayer(), nextCfg.getUpgradeCost(), AddType.SIM_EMPLOYEE_LEVEL_UP, null).success();
+            if (currentCfg.getUpgradeCost() != null && !currentCfg.getUpgradeCost().isEmpty()) {
+                boolean removeItems = playerPackService.removeItems(ctx.getPlayer(), currentCfg.getUpgradeCost(), AddType.SIM_EMPLOYEE_LEVEL_UP, null).success();
                 if (!removeItems) {
-                    log.warn("升级雇员失败, 扣除道具失败 playerId={},employeeId={},level={},cost={}", ctx.playerId(), employeeId, data.getLevel(), nextCfg.getUpgradeCost());
-                    res.code = Code.PARAM_ERROR;
+                    log.warn("升级雇员失败, 扣除道具失败 playerId={},employeeId={},level={},cost={}", ctx.playerId(), employeeId, data.getLevel(), currentCfg.getUpgradeCost());
+                    res.code = Code.NOT_ENOUGH_ITEM;
                     ctx.send(res);
                     return;
                 }
             }
-
 
             data.setLevel(data.getLevel() + 1);
             res.level = data.getLevel();

@@ -1262,6 +1262,12 @@ public class HallMessageHandler implements GmListener, ChooseWareListener, Choos
                 hallService.newGameExpectDao.clearPlayerData();
             } else if ("enterSim".equalsIgnoreCase(gmOrders[0])) {
                 onChooseSim(playerController, null);
+            } else if ("useItem".equalsIgnoreCase(gmOrders[0])) {
+                ReqUseItem req = new ReqUseItem();
+                req.itemId = Integer.parseInt(gmOrders[1]);
+                req.useItemCount = 1;
+                req.selectItemId = Integer.parseInt(gmOrders[2]);
+                reqUseItem(playerController, req);
             } else {
                 res.code = Code.NOT_FOUND;
             }
