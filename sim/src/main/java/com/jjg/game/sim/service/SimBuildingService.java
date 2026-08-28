@@ -13,6 +13,7 @@ import com.jjg.game.core.constant.GameConstant;
 import com.jjg.game.core.data.CommonResult;
 import com.jjg.game.core.data.ItemOperationResult;
 import com.jjg.game.core.data.NoticeTipBuilder;
+import com.jjg.game.core.logger.CoreLogger;
 import com.jjg.game.core.pb.KVInfo;
 import com.jjg.game.core.service.PlayerPackService;
 import com.jjg.game.core.utils.ItemUtils;
@@ -64,6 +65,8 @@ public class SimBuildingService implements SimPlayerTickListener, SimTaskStateRe
     private SimEmployeeService employeeService;
     @Autowired
     private PlayerPackService playerPackService;
+    @Autowired
+    private CoreLogger coreLogger;
     @Autowired
     private AllianceHelpService allianceHelpService;
     @Autowired
@@ -1145,7 +1148,19 @@ public class SimBuildingService implements SimPlayerTickListener, SimTaskStateRe
                 return code;
             }
         }
-        simCasinoService.addCasinoExp(ctx, finalReward.getOrDefault(BuildingOutputType.CASINO_LEVEL_EXP, 0L));
+        long casinoExp = finalReward.getOrDefault(BuildingOutputType.CASINO_LEVEL_EXP, 0L);
+        long beforeCasinoExp = casino.getExp();
+        simCasinoService.addCasinoExp(ctx, casinoExp);
+        //仅补充 Kafka 道具流水，不改变娱乐城经验原有的发放路径。
+        if (casinoExp > 0) {
+            coreLogger.addItems(
+                    ctx.playerId(),
+                    Map.of(SimConstant.Item.CASINO_EXP, beforeCasinoExp),
+                    Map.of(SimConstant.Item.CASINO_EXP, casinoExp),
+                    Map.of(SimConstant.Item.CASINO_EXP, (long) casino.getExp()),
+                    AddType.SIM_BUILD_OFFLINE_REWARDS,
+                    "离线收益娱乐城经验");
+        }
         //经营信息: 离线产出金币计入经营收益; 看广告领取计入观看广告数
         long offlineGold = finalReward.getOrDefault(BuildingOutputType.GOLD, 0L);
         ctx.getSimBaseData().addBusinessIncome(offlineGold);

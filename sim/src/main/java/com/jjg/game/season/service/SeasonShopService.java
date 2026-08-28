@@ -4,6 +4,7 @@ import com.jjg.game.core.service.PlayerPackService;
 import com.jjg.game.core.constant.AddType;
 import com.jjg.game.core.constant.Code;
 import com.jjg.game.core.data.CommonResult;
+import com.jjg.game.core.logger.CoreLogger;
 import com.jjg.game.sampledata.bean.SeasonShopCfg;
 import com.jjg.game.sim.data.SimPlayerContext;
 import com.jjg.game.season.data.SeasonPlayerData;
@@ -25,12 +26,14 @@ public class SeasonShopService {
     private final SeasonConfigService configService;
     private final PlayerPackService playerPackService;
     private final SimAutoSaveService autoSaveService;
+    private final CoreLogger coreLogger;
 
     public SeasonShopService(SeasonConfigService configService, PlayerPackService playerPackService,
-                             SimAutoSaveService autoSaveService) {
+                             SimAutoSaveService autoSaveService, CoreLogger coreLogger) {
         this.configService = configService;
         this.playerPackService = playerPackService;
         this.autoSaveService = autoSaveService;
+        this.coreLogger = coreLogger;
     }
 
     public CommonResult<Map<Integer, Long>> buy(SimPlayerContext ctx, int shopId, int count) {
@@ -60,7 +63,8 @@ public class SeasonShopService {
         Map<Integer, Long> goods = multiply(cfg.getGoods(), count);
         int currencyId = configService.currencyItemId();
         long coinCost = cost.getOrDefault(currencyId, 0L);
-        if (data.getSeasonCoin() < coinCost) {
+        long seasonCoinBefore = data.getSeasonCoin();
+        if (seasonCoinBefore < coinCost) {
             log.warn("赛季商店赛季币不足 playerId={},shopId={},need={},have={}",
                     ctx.playerId(), shopId, coinCost, data.getSeasonCoin());
             return new CommonResult<>(Code.NOT_ENOUGH);
@@ -86,6 +90,14 @@ public class SeasonShopService {
         }
         purchaseCounters.put(shopId, purchased + count);
         autoSaveService.enqueueSave(data);
+        // 赛季币由赛季数据直接扣除，不经过背包服务；购买成功后单独补充 Kafka 道具消费流水。
+        if (coinCost > 0) {
+            coreLogger.consumeItem(ctx.playerId(),
+                    Map.of(currencyId, seasonCoinBefore),
+                    Map.of(currencyId, coinCost),
+                    Map.of(currencyId, data.getSeasonCoin()),
+                    AddType.ITEM_EXCHANGE);
+        }
         return new CommonResult<>(Code.SUCCESS, goods);
     }
 
