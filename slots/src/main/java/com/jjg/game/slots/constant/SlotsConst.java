@@ -266,5 +266,10 @@ public class SlotsConst {
         //好友同玩邀请
         public static final int REQ_TOGETHER_PLAY_INVITE = BASE_MSG_PREFIX | 0x16;
         public static final int RES_TOGETHER_PLAY_INVITE = BASE_MSG_PREFIX | 0x17;
+        //我邀请的好友同玩玩家列表
+        public static final int REQ_TOGETHER_PLAY_INVITED_PLAYER_LIST = BASE_MSG_PREFIX | 0x18;
+        public static final int RES_TOGETHER_PLAY_INVITED_PLAYER_LIST = BASE_MSG_PREFIX | 0x19;
+        //好友同玩玩家中奖广播
+        public static final int NOTIFY_PLAYER_REWARDS = BASE_MSG_PREFIX | 0x1A;
     }
 }

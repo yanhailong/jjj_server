@@ -165,6 +165,19 @@ public class SlotsCommonMessageHandler {
         }
     }
 
+    @Command(SlotsConst.SlotsCommon.REQ_TOGETHER_PLAY_INVITED_PLAYER_LIST)
+    public void reqTogetherPlayInvitedPlayerList(PlayerController playerController,
+                                                  ReqTogetherPlayInvitedPlayerList req) {
+        try {
+            SlotsPlayerGameData gameData = getPlayerGameData(playerController);
+            playerController.send(togetherPlayService.invitedPlayerList(gameData));
+        } catch (Exception e) {
+            log.error("获取我邀请的好友同玩玩家列表异常 playerId={}",
+                    playerController.playerId(), e);
+            playerController.send(new ResTogetherPlayInvitedPlayerList(Code.EXCEPTION));
+        }
+    }
+
     @Command(SlotsConst.SlotsCommon.REQ_TOGETHER_PLAY_INVITE)
     public void reqTogetherPlayInvite(PlayerController playerController, ReqTogetherPlayInvite req) {
         try {

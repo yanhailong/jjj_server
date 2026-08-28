@@ -501,7 +501,8 @@ public abstract class AbstractSlotsGameManager<T extends SlotsPlayerGameData, L 
         }
         //公共: 旋转成功后通知 sim 联动 (扣能量/加经验/赌场升级/道具掉落), winTimes 取各游戏写入的 allWinTimes
         if (gameRunInfo != null && gameRunInfo.success()) {
-            togetherPlayService.onSpin(playerGameData,gameRunInfo.getAllWinGold());
+            togetherPlayService.onSpin(
+                    playerGameData, gameRunInfo.getAllWinGold(), gameRunInfo.getAllWinTimes());
             boolean freeModeAfter = isFreeMode(playerGameData);
             SpinStatInfo statInfo = buildSpinStatInfo(
                     playerGameData, gameRunInfo, freeMode, !freeMode && freeModeAfter);
