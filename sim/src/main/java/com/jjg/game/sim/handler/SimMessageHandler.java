@@ -686,11 +686,20 @@ public class SimMessageHandler implements GmListener {
     //--------------------------任务 (主线/成就) begin--------------------------
 
     /**
-     * 获取主线及指定徽章的成就任务列表
+     * 获取主线任务列表
      */
     @Command(SimConstant.MsgBean.REQ_SIM_TASK_LIST)
     public void reqSimTaskList(PlayerController playerController, ReqSimTaskList req) {
-        execute(playerController, ctx -> ctx.send(taskService.buildTaskList(ctx, req.badgeId)), ReqSimTaskList.class);
+        execute(playerController, ctx -> ctx.send(taskService.buildTaskList(ctx)), ReqSimTaskList.class);
+    }
+
+    /**
+     * 获取指定建筑的成就任务列表
+     */
+    @Command(SimConstant.MsgBean.REQ_SIM_ACHIEVEMENT_TASK_LIST)
+    public void reqSimAchievementTaskList(PlayerController playerController, ReqSimAchievementTaskList req) {
+        execute(playerController, ctx -> ctx.send(taskService.buildAchievementTaskList(ctx, req.buildingId)),
+                ReqSimAchievementTaskList.class);
     }
 
     /**

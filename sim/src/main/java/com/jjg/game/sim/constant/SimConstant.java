@@ -134,7 +134,7 @@ public interface SimConstant {
         int REQ_SIM_PLAYER_INFO = BASE_MSG_PREFIX | 0x3C;
         int RES_SIM_PLAYER_INFO = BASE_MSG_PREFIX | 0x3D;
 
-        //任务列表 (主线+成就)
+        //主线任务列表
         int REQ_SIM_TASK_LIST = BASE_MSG_PREFIX | 0x3E;
         int RES_SIM_TASK_LIST = BASE_MSG_PREFIX | 0x3F;
 
@@ -277,6 +277,10 @@ public interface SimConstant {
         //细分运营数据看板-实时容纳人数（供客户端每秒刷新）
         int REQ_OPERATION_CAPACITY = BASE_MSG_PREFIX | 0x8A;
         int RES_OPERATION_CAPACITY = BASE_MSG_PREFIX | 0x8B;
+
+        //成就任务列表
+        int REQ_SIM_ACHIEVEMENT_TASK_LIST = BASE_MSG_PREFIX | 0x8C;
+        int RES_SIM_ACHIEVEMENT_TASK_LIST = BASE_MSG_PREFIX | 0x8D;
     }
 
     interface SpecialGuest {

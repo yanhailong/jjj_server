@@ -22,6 +22,7 @@ import com.jjg.game.core.task.pb.Task;
 import com.jjg.game.core.task.pb.TaskCondition;
 import com.jjg.game.core.utils.ItemUtils;
 import com.jjg.game.sampledata.GameDataManager;
+import com.jjg.game.sampledata.bean.MedalBuffCfg;
 import com.jjg.game.sampledata.bean.TaskCfg;
 import com.jjg.game.sim.dao.SimTaskDao;
 import com.jjg.game.sim.data.SimBaseData;
@@ -33,6 +34,7 @@ import com.jjg.game.sim.logger.SimAchievementTaskLogger;
 import com.jjg.game.sim.logger.SimMainTaskLogger;
 import com.jjg.game.sim.manager.SimPlayerContextRegistry;
 import com.jjg.game.sim.pb.res.NotifySimTaskUpdate;
+import com.jjg.game.sim.pb.res.ResSimAchievementTaskList;
 import com.jjg.game.sim.pb.res.ResSimTaskList;
 import com.jjg.game.sim.pb.res.ResSimTaskReward;
 import org.slf4j.Logger;
@@ -102,6 +104,8 @@ public class SimTaskService implements IRedDotService {
     @Lazy
     @Autowired(required = false)
     private List<SimTaskStateReporter> stateReporters = Collections.emptyList();
+    @Autowired
+    private SimConfigCacheService simConfigCacheService;
 
     // =====================================================================
     // 加载 / 接取
@@ -925,25 +929,17 @@ public class SimTaskService implements IRedDotService {
     // =====================================================================
 
     /**
-     * 任务列表: 主线当前节点 + 指定徽章下的全部独立成就任务。badgeId=0 时返回全部成就。
+     * 主线任务列表：只返回当前主线节点及主线完成状态。
      */
-    public ResSimTaskList buildTaskList(SimPlayerContext ctx, int badgeId) {
+    public ResSimTaskList buildTaskList(SimPlayerContext ctx) {
         ResSimTaskList res = new ResSimTaskList(Code.SUCCESS);
         SimTaskData data = ctx.getSimTaskData();
         Player player = resolvePlayer(ctx);
         if (data == null || player == null) {
             return res;
         }
-        if (badgeId < 0 || (badgeId > 0 && taskConfig.badge(badgeId) == null)) {
-            res.code = Code.PARAM_ERROR;
-            return res;
-        }
-        //开界面时顺带补齐(配置热更新新增成就/主线续接) + 状态补报与轮询结算
-        //本次响应就带上最新状态, 无需再推送 NotifySimTaskUpdate
-        ensureActive(player.getId(), data);
-        if (settleState(ctx, false)) {
-            updateTaskRedDot(ctx);
-        }
+
+        prepareTaskList(ctx);
 
         TaskDetail main = data.getMainTask();
         if (main != null) {
@@ -956,6 +952,33 @@ public class SimTaskService implements IRedDotService {
         }
         //客户端按配置渲染整条链, 服务端只推进"当前节点": 排查"某个任务进度不动"先看这行是不是那个 taskId
         logMainSnapshot(ctx, player, main);
+        return res;
+    }
+
+    /** 成就任务列表：沿用建筑到徽章的配置映射，buildingId=0 时返回全部成就。 */
+    public ResSimAchievementTaskList buildAchievementTaskList(SimPlayerContext ctx, int buildingId) {
+        ResSimAchievementTaskList res = new ResSimAchievementTaskList(Code.SUCCESS);
+        SimTaskData data = ctx.getSimTaskData();
+        Player player = resolvePlayer(ctx);
+        if (data == null || player == null) {
+            return res;
+        }
+
+        int badgeId = 0;
+        if (buildingId > 0) {
+            List<MedalBuffCfg> medalBuffCfgs = simConfigCacheService.getMedalBuffCfgs(buildingId);
+            if (medalBuffCfgs == null || medalBuffCfgs.isEmpty()) {
+                log.warn("获取建筑对应的成就任务为空 playerId={},buildingId={}", ctx.playerId(), buildingId);
+                return res;
+            }
+            badgeId = medalBuffCfgs.getFirst().getMedalType();
+        }
+        if (buildingId < 0 || (badgeId > 0 && taskConfig.badge(badgeId) == null)) {
+            res.code = Code.PARAM_ERROR;
+            return res;
+        }
+        prepareTaskList(ctx);
+
         List<Integer> achievementTaskIds = taskConfig.achievementTaskIds(badgeId);
         List<Task> achievements = new ArrayList<>(achievementTaskIds.size());
         for (Integer taskId : achievementTaskIds) {
@@ -970,6 +993,14 @@ public class SimTaskService implements IRedDotService {
         }
         res.achievementTasks = achievements;
         return res;
+    }
+
+    /** 复用列表查询前的任务补齐、状态结算与红点更新。 */
+    private void prepareTaskList(SimPlayerContext ctx) {
+        ensureActive(ctx.playerId(), ctx.getSimTaskData());
+        if (settleState(ctx, false)) {
+            updateTaskRedDot(ctx);
+        }
     }
 
     // =====================================================================

@@ -135,6 +135,9 @@ public class SimConfigCacheService implements ConfigExcelChangeListener {
     //每个等级解锁的功能
     private Map<Integer, List<Integer>> allLevelUnlockFunctionMap = null;
 
+    //buildingId -> list
+    private Map<Integer, List<MedalBuffCfg>> buildMedalMap = null;
+
     @Autowired
     public SimConfigCacheService(ConditionRuleRegistry conditionRules,
                                  ConditionParser conditionParser) {
@@ -176,6 +179,7 @@ public class SimConfigCacheService implements ConfigExcelChangeListener {
 
         loadItemConfig();
         loadSeasonSimulationDataConfig();
+        loadMedalBuffConfig();
     }
 
     /**
@@ -621,6 +625,15 @@ public class SimConfigCacheService implements ConfigExcelChangeListener {
         this.seasonSimulationDataCfgMap = tmpSeasonSimulationDataCfgMap;
     }
 
+    private void loadMedalBuffConfig() {
+        Map<Integer, List<MedalBuffCfg>> tmpMedalBuffCfgMap = new HashMap<>();
+        for (MedalBuffCfg cfg : GameDataManager.getMedalBuffCfgList()) {
+            List<MedalBuffCfg> tmpList = tmpMedalBuffCfgMap.computeIfAbsent(cfg.getBuildID(), k -> new ArrayList<>());
+            tmpList.add(cfg);
+        }
+        this.buildMedalMap = tmpMedalBuffCfgMap;
+    }
+
     public void loadGameFunction() {
         Map<Integer, List<Integer>> tmpAllLevelUnlockFunctionMap = new HashMap<>();
         for (GameFunctionCfg cfg : GameDataManager.getGameFunctionCfgList()) {
@@ -698,6 +711,7 @@ public class SimConfigCacheService implements ConfigExcelChangeListener {
         addInitSampleFileObserveWithCallBack(SeasonSimulationDataCfg.EXCEL_NAME, this::loadSeasonSimulationDataConfig);
 
         addInitSampleFileObserveWithCallBack(GameFunctionCfg.EXCEL_NAME, this::loadGameFunction);
+        addInitSampleFileObserveWithCallBack(MedalBuffCfg.EXCEL_NAME, this::loadMedalBuffConfig);
     }
 
     // ---------------------------------------------------------------------
@@ -1108,5 +1122,12 @@ public class SimConfigCacheService implements ConfigExcelChangeListener {
             return Collections.emptyList();
         }
         return tmpMap.get(level);
+    }
+
+    public List<MedalBuffCfg> getMedalBuffCfgs(int buildingId) {
+        if(this.buildMedalMap == null){
+            return null;
+        }
+        return this.buildMedalMap.get(buildingId);
     }
 }
