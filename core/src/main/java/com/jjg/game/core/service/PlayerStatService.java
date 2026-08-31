@@ -42,6 +42,7 @@ public class PlayerStatService {
     public static final int BUILDING_UNLOCK = 12273;
     public static final int SLOT_WIN = 12274;
     public static final int WEALTH_GOD_MODE = 12275;
+    public static final int SKILL_TOTAL_LEVEL = 12276;
 
     public static final int GOLD_ITEM_ID = 1990000;
     public static final int DIAMOND_ITEM_ID = 1980000;
@@ -54,7 +55,7 @@ public class PlayerStatService {
 
     public static boolean supports(int conditionId) {
         return conditionId == BUILDING_LEVEL
-                || conditionId >= SLOT_ITEM && conditionId <= WEALTH_GOD_MODE && conditionId != 12258;
+                || conditionId >= SLOT_ITEM && conditionId <= SKILL_TOTAL_LEVEL && conditionId != 12258;
     }
 
     public static boolean recorded(int conditionId) {

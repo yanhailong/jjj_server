@@ -284,7 +284,7 @@ public class HallRPCController extends CoreRPCController implements GmToHallBrid
             log.warn("添加技能失败，该技能 playerId={}", playerId);
             return new CommonResult<>(Code.NOT_FOUND);
         }
-        int code = simSkillService.addSkill(data, skillId);
+        int code = simSkillService.addSkill(ctx, data, skillId);
         if (code != Code.SUCCESS) {
             return new CommonResult<>(code);
         }
@@ -350,7 +350,7 @@ public class HallRPCController extends CoreRPCController implements GmToHallBrid
                 continue;
             }
             enqueueSimTaskEvent(playerId, new GameWinConditionEvent(
-                    EGameType.DOU_XIAN.getGameTypeId(), transactionItemId, win),
+                            EGameType.DOU_XIAN.getGameTypeId(), transactionItemId, win),
                     "dou xian win task progress");
             accepted = true;
         }

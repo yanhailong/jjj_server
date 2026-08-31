@@ -61,6 +61,8 @@ public class SimPlayerStatService {
                     condition.spec().intParameter(0));
             case PlayerStatService.BUILDING_UNLOCK -> building(ctx,
                     condition.spec().intParameter(0), condition.spec().intParameter(1)) == null ? 0 : 1;
+            case PlayerStatService.SKILL_TOTAL_LEVEL -> skillLevel(ctx,
+                    condition.spec().intParameter(0));
             default -> 0;
         };
     }
@@ -169,6 +171,14 @@ public class SimPlayerStatService {
         }
         SimSkillsData skillsData = ctx.getSkillData(gameType);
         return skillsData == null ? 0 : simSkillService.oneGameCombatPower(skillsData);
+    }
+
+    private long skillLevel(SimPlayerContext ctx, int gameType) {
+        if (gameType == 0) {
+            return ctx.getSimBaseData() == null ? 0 : ctx.getSimBaseData().getSkillAllLevel();
+        }
+        SimSkillsData skillsData = ctx.getSkillData(gameType);
+        return skillsData == null || skillsData.getSkillsMap() == null ? 0 : skillsData.allLevel();
     }
 
     /**

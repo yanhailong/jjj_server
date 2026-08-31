@@ -57,6 +57,8 @@ public class SimBaseData extends AbstractData {
     private int specialGuestAdRefreshDay;
     //广告特殊游客冷却结束时间 (ms)
     private long specialGuestAdCdEndTime;
+    //技能总等级
+    private int skillAllLevel;
 
     public long getPlayerId() {
         return playerId;
@@ -383,5 +385,13 @@ public class SimBaseData extends AbstractData {
 
     public void setSpecialGuestAdCdEndTime(long specialGuestAdCdEndTime) {
         this.specialGuestAdCdEndTime = specialGuestAdCdEndTime;
+    }
+
+    public int getSkillAllLevel() {
+        return skillAllLevel;
+    }
+
+    public void setSkillAllLevel(int skillAllLevel) {
+        this.skillAllLevel = skillAllLevel;
     }
 }

@@ -6,7 +6,10 @@ import com.jjg.game.sampledata.GameDataManager;
 import com.jjg.game.sampledata.bean.PropCfg;
 import com.jjg.game.sampledata.bean.ResearchSkillsCfg;
 import com.jjg.game.sim.dao.SimSkillsDao;
+import com.jjg.game.sim.data.SimBaseData;
+import com.jjg.game.sim.data.SimPlayerContext;
 import com.jjg.game.sim.data.SimSkillsData;
+import com.jjg.game.sim.data.SkillDetailData;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -54,7 +57,7 @@ public abstract class AbstractSkillService implements ConfigExcelChangeListener 
             Map<Integer, Map<Integer, ResearchSkillsCfg>> tmpMap1 = tmp.computeIfAbsent(cfg.getGameType(), k -> new HashMap<>());
             Map<Integer, ResearchSkillsCfg> tmpMap2 = tmpMap1.computeIfAbsent(cfg.getAttr(), k -> new HashMap<>());
 
-            tmpMap2.put(cfg.getGrade(),cfg);
+            tmpMap2.put(cfg.getGrade(), cfg);
         }
         this.skillsCfgMap = tmp;
     }
@@ -67,29 +70,39 @@ public abstract class AbstractSkillService implements ConfigExcelChangeListener 
         return simSkillsDao.findById(SimSkillsData.buildKey(playerId, gameType)).orElse(null);
     }
 
-    public ResearchSkillsCfg getResearchSkillsCfg(int gameType,int skillAttrId,int level){
+    public ResearchSkillsCfg getResearchSkillsCfg(int gameType, int skillAttrId, int level) {
         Map<Integer, Map<Integer, ResearchSkillsCfg>> gameTymeCfgMap = this.skillsCfgMap.get(gameType);
-        if(gameTymeCfgMap == null || gameTymeCfgMap.isEmpty()){
+        if (gameTymeCfgMap == null || gameTymeCfgMap.isEmpty()) {
             return null;
         }
         Map<Integer, ResearchSkillsCfg> attrMap = gameTymeCfgMap.get(skillAttrId);
-        if(attrMap == null || attrMap.isEmpty()){
+        if (attrMap == null || attrMap.isEmpty()) {
             return null;
         }
         return attrMap.get(level);
     }
 
-    public int addSkill(SimSkillsData simSkillsData, int skillId) {
+    public int addSkill(SimPlayerContext ctx, SimSkillsData simSkillsData, int skillId) {
         ResearchSkillsCfg cfg = GameDataManager.getResearchSkillsCfg(skillId);
         if (cfg == null) {
             log.warn("添加技能失败，未找到技能配置 playerId={},skillId={}", simSkillsData.getPlayerId(), skillId);
             return Code.NOT_FOUND;
         }
-        simSkillsData.changeSkillLevel(cfg.getAttr(), cfg.getGrade());
+        changeSkillLevel(ctx, simSkillsData, cfg.getAttr(), cfg.getGrade());
         return Code.SUCCESS;
     }
 
     public void save(SimSkillsData simSkillsData) {
         simSkillsDao.save(simSkillsData);
+    }
+
+    public void changeSkillLevel(SimPlayerContext ctx, SimSkillsData simSkillsData, int propId, int skillLevel) {
+        SkillDetailData skillDetailData = simSkillsData.findSkilLevelByPropId(propId);
+        int oldLevel = skillDetailData == null ? 0 : skillDetailData.getLevel();
+        simSkillsData.changeSkillLevel(propId, skillLevel);
+        if (simSkillsData.getGameType() != GLOBAL_GAME_TYPE) {
+            SimBaseData baseData = ctx.getSimBaseData();
+            baseData.setSkillAllLevel(baseData.getSkillAllLevel() + skillLevel - oldLevel);
+        }
     }
 }

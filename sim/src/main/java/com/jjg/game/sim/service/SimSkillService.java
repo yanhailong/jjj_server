@@ -99,7 +99,7 @@ public class SimSkillService extends AbstractSkillService {
             data.setGameType(gameType);
             skillsMap.put(gameType, data);
         }
-        data.changeSkillLevel(cfg.getId(), 0);
+        super.changeSkillLevel(ctx,data,cfg.getId(),0);
     }
 
     /**
@@ -249,7 +249,7 @@ public class SimSkillService extends AbstractSkillService {
                     return;
                 }
             }
-            skillData.changeSkillLevel(skillPropId, newLevelCfg.getGrade());
+            super.changeSkillLevel(ctx,skillData,skillPropId,newLevelCfg.getGrade());
             refreshBuildOutput(skillData, skillPropId);
             //联盟任务: 技能研究次数 (param=游戏类型, 供 0=任意/指定游戏 过滤)
             allianceEventService.onGameResearch(ctx.playerId(), gameType);
@@ -271,7 +271,7 @@ public class SimSkillService extends AbstractSkillService {
                         continue;
                     }
                     if (cfg.getSkillId() == null || cfg.getSkillId().isEmpty()) {
-                        skillData.changeSkillLevel(cfg.getId(), 0);
+                        super.changeSkillLevel(ctx,skillData,cfg.getId(),0);
                         res.newUnlockSkills.add(cfg.getId());
                     } else {
                         for (Map.Entry<Integer, Integer> en : cfg.getSkillId().entrySet()) {
@@ -279,7 +279,7 @@ public class SimSkillService extends AbstractSkillService {
                             if (tmpSkillDetailData == null || tmpSkillDetailData.getLevel() < en.getValue()) {
                                 continue;
                             }
-                            skillData.changeSkillLevel(cfg.getId(), 0);
+                            super.changeSkillLevel(ctx,skillData,cfg.getId(),0);
                             res.newUnlockSkills.add(cfg.getId());
                         }
                     }
@@ -401,7 +401,7 @@ public class SimSkillService extends AbstractSkillService {
                 }
             }
 
-            result.code = addSkill(data, skillId);
+            result.code = addSkill(ctx, data, skillId);
             if (result.code == Code.SUCCESS) {
                 ctx.addSkillData(data);
 
@@ -418,9 +418,9 @@ public class SimSkillService extends AbstractSkillService {
     }
 
     @Override
-    public int addSkill(SimSkillsData simSkillsData, int skillId) {
+    public int addSkill(SimPlayerContext ctx, SimSkillsData simSkillsData, int skillId) {
         ResearchSkillsCfg cfg = GameDataManager.getResearchSkillsCfg(skillId);
-        int code = super.addSkill(simSkillsData, skillId);
+        int code = super.addSkill(ctx, simSkillsData, skillId);
         if (code == Code.SUCCESS) {
             refreshBuildOutput(simSkillsData, cfg.getAttr());
         }
@@ -479,7 +479,7 @@ public class SimSkillService extends AbstractSkillService {
             Map<Integer, Map<Integer, ResearchSkillsCfg>> tmpMap1 = tmp.computeIfAbsent(cfg.getGameType(), k -> new HashMap<>());
             Map<Integer, ResearchSkillsCfg> tmpMap2 = tmpMap1.computeIfAbsent(cfg.getAttr(), k -> new HashMap<>());
 
-            tmpMap2.put(cfg.getGrade(),cfg);
+            tmpMap2.put(cfg.getGrade(), cfg);
 
             Integer before = tmpMaxLevelMap.get(cfg.getAttr());
             if (before == null || before < cfg.getGrade()) {
