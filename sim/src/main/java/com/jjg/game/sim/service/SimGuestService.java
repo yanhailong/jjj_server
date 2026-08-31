@@ -1195,6 +1195,7 @@ public class SimGuestService implements SimPlayerTickListener, ItemListener, Sim
                 }
                 //添加羁绊
                 casino.addGuestBonds(visitorBondsCfg.getId());
+                employeeRedDotService.recordNewBond(casino, visitorBondsCfg.getId());
                 log.info("成功解锁羁绊 playerId={},bondsId={}", casino.getPlayerId(), visitorBondsCfg.getId());
             }
         }
@@ -2026,18 +2027,21 @@ public class SimGuestService implements SimPlayerTickListener, ItemListener, Sim
                 continue;
             }
             details.add(redDotManager.buildRedDotDetails(getModule(), currentSubmodule,
-                    getSpecialGuestRedDotCount(playerId, baseData, casino, currentSubmodule, today, now)));
+                    getSpecialGuestRedDotCount(playerId, baseData, casino, currentSubmodule, today, now),
+                    currentSubmodule == SimConstant.SpecialGuest.RED_DOT_INVITE_ITEM
+                            ? RedDotDetails.RedDotType.COUNT : RedDotDetails.RedDotType.COMMON));
         }
         return details;
     }
 
-    private int getSpecialGuestRedDotCount(long playerId, SimBaseData baseData, SimCasinoData casino,
+    private long getSpecialGuestRedDotCount(long playerId, SimBaseData baseData, SimCasinoData casino,
                                            int submodule, int today, long now) {
         return switch (submodule) {
             case SimConstant.SpecialGuest.RED_DOT_FREE_REFRESH -> hasFreeSpecialGuestRefresh(casino, today) ? 1 : 0;
             case SimConstant.SpecialGuest.RED_DOT_AD_AVAILABLE ->
                     hasAvailableSpecialGuestAd(playerId, baseData, casino, today, now) ? 1 : 0;
-            case SimConstant.SpecialGuest.RED_DOT_INVITE_ITEM -> hasSpecialGuestInviteItem(casino) ? 1 : 0;
+            case SimConstant.SpecialGuest.RED_DOT_INVITE_ITEM -> casino == null ? 0
+                    : casino.getSpecialGuestItemCounts().values().stream().filter(count -> count != null && count > 0).mapToLong(Long::longValue).sum();
             default -> 0;
         };
     }

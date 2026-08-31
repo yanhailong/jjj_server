@@ -101,6 +101,10 @@ public class HallRPCController extends CoreRPCController implements GmToHallBrid
     @Autowired
     private SimEmployeeRedDotService simEmployeeRedDotService;
     @Autowired
+    private com.jjg.game.sim.service.SimBuildingRedDotService simBuildingRedDotService;
+    @Autowired
+    private com.jjg.game.activity.manager.ActivityItemRedDotListener activityItemRedDotListener;
+    @Autowired
     private SimGuideLogger simGuideLogger;
     @Autowired
     private TaskManager taskManager;
@@ -572,6 +576,8 @@ public class HallRPCController extends CoreRPCController implements GmToHallBrid
             }
             simGuideService.triggerItemsAdded(ctx, items);
             simEmployeeRedDotService.onPackItemsChanged(playerId, items, addType);
+            simBuildingRedDotService.invalidate(playerId);
+            activityItemRedDotListener.refresh(playerId, items);
             return new CommonResult<>(Code.SUCCESS, true);
         } catch (Exception e) {
             log.error("跨节点处理道具入账事件异常 playerId={},items={},addType={}", playerId, items, addType, e);
@@ -589,6 +595,8 @@ public class HallRPCController extends CoreRPCController implements GmToHallBrid
             }
             List<Task> taskUpdates = allianceEventService.collectItemConsumeTaskUpdates(ctx, items);
             simEmployeeRedDotService.onPackItemsChanged(playerId, items, addType);
+            simBuildingRedDotService.invalidate(playerId);
+            activityItemRedDotListener.refresh(playerId, items);
             notifyRemoteSimTaskUpdates(playerId, taskUpdates);
             return new CommonResult<>(Code.SUCCESS, true);
         } catch (Exception e) {

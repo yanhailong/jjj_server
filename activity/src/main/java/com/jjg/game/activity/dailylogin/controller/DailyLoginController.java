@@ -44,6 +44,31 @@ import java.util.stream.Collectors;
 @Component
 public class DailyLoginController extends BaseActivityController {
 
+    @Override
+    public com.jjg.game.core.pb.reddot.RedDotDetails.RedDotType getRedDotType() {
+        return com.jjg.game.core.pb.reddot.RedDotDetails.RedDotType.COUNT;
+    }
+
+    @Override
+    public long getRedDotCount(long playerId, ActivityData data) {
+        Map<Integer, PlayerActivityData> states = playerActivityDao.getPlayerActivityData(playerId, data.getType(), data.getId());
+        Map<Integer, DailyRewardsCfg> configs = getDetailCfgBean(data);
+        Player player = corePlayerService.get(playerId);
+        if (states == null || configs == null || player == null) return 0;
+        long count = 0;
+        for (Map.Entry<Integer, PlayerActivityData> entry : states.entrySet()) {
+            DailyRewardsCfg cfg = configs.get(entry.getKey());
+            if (cfg == null || CollectionUtil.isEmpty(cfg.getGetItem())) continue;
+            int status = entry.getValue().getClaimStatus();
+            // 连续签到领取接口允许NOT_CLAIM在条件满足时自愈；这里仅判定，不写状态。
+            boolean claimable = status == ActivityConstant.ClaimStatus.CAN_CLAIM
+                    || cfg.getType() == ActivityConstant.DailyLogin.CONTINUE_TYPE
+                    && status == ActivityConstant.ClaimStatus.NOT_CLAIM;
+            if (claimable && conditionManager.isAchievement(player, "", createTimeEvent(data), cfg.getCondition())) count++;
+        }
+        return count;
+    }
+
     private final Logger log = LoggerFactory.getLogger(DailyLoginController.class);
     private final DailyLoginDao dailyLoginDao;
 

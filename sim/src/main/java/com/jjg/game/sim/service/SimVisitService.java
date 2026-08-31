@@ -355,16 +355,18 @@ public class SimVisitService implements IRedDotService {
         SimVisitProfileData profile = visitDao.findCommentsView(ownerId);
         List<SimVisitCommentData> comments = profile == null ? List.of() : profile.getComments();
         res.total = comments.size();
-        res.comments = page(comments, offset, limit, configService.getRecordLimit()).stream()
-                .map(this::toCommentInfo).toList();
+        List<SimVisitCommentData> shown = page(comments, offset, limit, configService.getRecordLimit());
+        res.comments = shown.stream().map(this::toCommentInfo).toList();
         res.todayPopularity = (int) quotaService.used(SimVisitConstant.QuotaType.POPULARITY, ownerId);
         res.totalPopularity = profile == null ? 0 : profile.getTotalPopularity();
         //只有房主自己翻看才算已读，访客浏览不清房主的未读数
         if (ownerId == viewerId && profile != null && profile.getUnreadCommentCount() > 0
-                && !profile.getComments().isEmpty()) {
-            if (visitDao.clearUnreadComments(ownerId, profile.getUnreadCommentCount(),
-                    profile.getComments().get(0).getId())) {
-                updateVisitRedDot(ownerId, false);
+                && !shown.isEmpty()) {
+            try {
+                visitDao.markCommentsRead(ownerId, shown.stream().map(SimVisitCommentData::getId).toList());
+                updateVisitRedDot(ownerId);
+            } catch (Exception e) {
+                log.error("标记留言已读失败 playerId={}", ownerId, e);
             }
         }
         return res;
@@ -377,6 +379,7 @@ public class SimVisitService implements IRedDotService {
             return res;
         }
         res.commentId = commentId;
+        updateVisitRedDot(playerId);
         return res;
     }
 
@@ -690,7 +693,7 @@ public class SimVisitService implements IRedDotService {
             SimVisitProfileData profile = visitDao.addInteraction(playerId, popularity, record, comment,
                     configService.getRecordLimit());
             if (profile != null && comment != null) {
-                updateVisitRedDot(playerId, true);
+                updateVisitRedDot(playerId);
             }
             return profile;
         } catch (Exception e) {
@@ -699,11 +702,11 @@ public class SimVisitService implements IRedDotService {
         }
     }
 
-    private void updateVisitRedDot(long playerId, boolean hasRedDot) {
+    private void updateVisitRedDot(long playerId) {
         try {
-            redDotManager.updateRedDot(getModule(), getSubmodule(), playerId, hasRedDot ? 1 : 0);
+            redDotManager.updateRedDot(initialize(playerId, 0), playerId);
         } catch (Exception e) {
-            log.error("更新拜访留言红点失败 playerId={},hasRedDot={}", playerId, hasRedDot, e);
+            log.error("更新拜访留言红点失败 playerId={}", playerId, e);
         }
     }
 
@@ -715,7 +718,7 @@ public class SimVisitService implements IRedDotService {
     @Override
     public List<RedDotDetails> initialize(long playerId, int submodule) {
         SimVisitProfileData profile = visitDao.findBrief(playerId);
-        int count = profile != null && profile.getUnreadCommentCount() > 0 ? 1 : 0;
+        int count = profile == null ? 0 : Math.max(0, profile.getUnreadCommentCount());
         return List.of(redDotManager.buildRedDotDetails(getModule(), getSubmodule(), count));
     }
 

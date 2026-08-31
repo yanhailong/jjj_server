@@ -36,7 +36,6 @@ import org.springframework.stereotype.Service;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Collections;
-import java.util.EnumSet;
 import java.util.HashMap;
 import java.util.LinkedHashSet;
 import java.util.List;
@@ -47,17 +46,13 @@ import java.util.Set;
 @Service
 public class SimEmployeeRedDotService implements IRedDotService, ItemAddListener, ItemConsumeListener,
         SimPlayerTickListener {
+    public static final int NEW_EMPLOYEE = 4;
+    public static final int NEW_BOND = 5;
     private static final Logger log = LoggerFactory.getLogger(SimEmployeeRedDotService.class);
     private static final List<Integer> RED_DOT_SUBMODULES = List.of(
             SimConstant.Employee.RED_DOT_RECRUIT_POOL,
             SimConstant.Employee.RED_DOT_GUEST_STAR_UP,
-            SimConstant.Employee.RED_DOT_EMPLOYEE_GROWTH);
-    private static final Set<AddType> MANAGED_ADD_TYPES = EnumSet.of(
-            AddType.SIM_GUEST_RECRUIT,
-            AddType.SIM_EMPLOYEE_RECRUIT,
-            AddType.SIM_GUEST_STAR_UP,
-            AddType.SIM_EMPLOYEE_STAR_UP,
-            AddType.SIM_EMPLOYEE_LEVEL_UP);
+            SimConstant.Employee.RED_DOT_EMPLOYEE_GROWTH, NEW_EMPLOYEE, NEW_BOND);
 
     @Autowired
     private SimPlayerContextRegistry contextRegistry;
@@ -76,6 +71,8 @@ public class SimEmployeeRedDotService implements IRedDotService, ItemAddListener
     private PlayerPackService playerPackService;
     @Autowired
     private RedDotManager redDotManager;
+    @Autowired
+    private com.jjg.game.core.dao.RedDotReadDao redDotReadDao;
 
     private volatile ActivePoolSnapshot activePoolSnapshot = ActivePoolSnapshot.empty();
     private volatile long activePoolScanSecond = -1;
@@ -103,7 +100,14 @@ public class SimEmployeeRedDotService implements IRedDotService, ItemAddListener
         ActivePoolSnapshot poolSnapshot = includesPool ? currentActivePools(System.currentTimeMillis()) : null;
         List<RedDotDetails> details = new ArrayList<>(submodules.size());
         for (int currentSubmodule : submodules) {
-            Collection<Map<Integer, Long>> requirements = switch (currentSubmodule) {
+            if (currentSubmodule == NEW_EMPLOYEE || currentSubmodule == NEW_BOND) {
+                Set<Integer> ids = redDotReadDao.unread(playerId, readScope(playerId, ctx, currentSubmodule));
+                RedDotDetails dot = redDotManager.buildRedDotDetails(getModule(), currentSubmodule, ids.isEmpty() ? 0 : 1);
+                dot.setExtra(com.alibaba.fastjson.JSON.toJSONString(Map.of("ids", ids.stream().sorted().toList())));
+                details.add(dot);
+                continue;
+            }
+            List<Requirement> requirements = switch (currentSubmodule) {
                 case SimConstant.Employee.RED_DOT_RECRUIT_POOL -> poolSnapshot.requirements();
                 case SimConstant.Employee.RED_DOT_GUEST_STAR_UP -> guestStarRequirements(playerId, ctx);
                 case SimConstant.Employee.RED_DOT_EMPLOYEE_GROWTH -> employeeGrowthRequirements(playerId, ctx);
@@ -112,8 +116,19 @@ public class SimEmployeeRedDotService implements IRedDotService, ItemAddListener
             if (requirements == null) {
                 continue;
             }
-            int count = playerPackService.checkHasAnyItems(player, requirements) ? 1 : 0;
-            details.add(redDotManager.buildRedDotDetails(getModule(), currentSubmodule, count));
+            Set<Integer> satisfied = playerPackService.findSatisfiedItemRequirements(player,
+                    requirements.stream().map(Requirement::cost).toList());
+            Set<Integer> ids = new java.util.TreeSet<>();
+            Map<String, Set<Integer>> actions = new java.util.TreeMap<>();
+            for (int i : satisfied) {
+                Requirement requirement = requirements.get(i);
+                ids.add(requirement.id());
+                actions.computeIfAbsent(requirement.action(), key -> new java.util.TreeSet<>()).add(requirement.id());
+            }
+            RedDotDetails dot = redDotManager.buildRedDotDetails(getModule(), currentSubmodule, ids.size(), RedDotDetails.RedDotType.COUNT);
+            actions.put("ids", ids);
+            dot.setExtra(com.alibaba.fastjson.JSON.toJSONString(actions));
+            details.add(dot);
         }
         if (ctx != null && includesPool) {
             ctx.setEmployeePoolRedDotVersion(poolSnapshot.version());
@@ -123,6 +138,11 @@ public class SimEmployeeRedDotService implements IRedDotService, ItemAddListener
 
     @Override
     public void onTick(SimPlayerContext ctx, long now) {
+        if (ctx.isEmployeeRedDotDirty()) {
+            ctx.setEmployeeRedDotDirty(false);
+            updateRedDots(ctx.playerId(), SimConstant.Employee.RED_DOT_RECRUIT_POOL,
+                    SimConstant.Employee.RED_DOT_GUEST_STAR_UP, SimConstant.Employee.RED_DOT_EMPLOYEE_GROWTH);
+        }
         ActivePoolSnapshot snapshot = currentActivePools(now);
         if (ctx.getEmployeePoolRedDotVersion() == snapshot.version()) {
             return;
@@ -144,24 +164,12 @@ public class SimEmployeeRedDotService implements IRedDotService, ItemAddListener
     /** 普通背包变更及跨节点转发统一从这里刷新受影响的页签。 */
     public void onPackItemsChanged(long playerId, Map<Integer, Long> items, AddType addType) {
         SimPlayerContext ctx = contextRegistry.getContext(playerId);
-        if (ctx == null || items == null || items.isEmpty()
-                || (addType != null && MANAGED_ADD_TYPES.contains(addType))) {
+        if (ctx == null || items == null || items.isEmpty()) {
             return;
         }
-        Set<Integer> changedItemIds = items.keySet();
-        List<Integer> affected = new ArrayList<>(RED_DOT_SUBMODULES.size());
-        if (!Collections.disjoint(currentActivePools(System.currentTimeMillis()).itemIds(), changedItemIds)) {
-            affected.add(SimConstant.Employee.RED_DOT_RECRUIT_POOL);
-        }
-        if (requirementsUseItems(guestStarRequirements(playerId, ctx), changedItemIds)) {
-            affected.add(SimConstant.Employee.RED_DOT_GUEST_STAR_UP);
-        }
-        if (requirementsUseItems(employeeGrowthRequirements(playerId, ctx), changedItemIds)) {
-            affected.add(SimConstant.Employee.RED_DOT_EMPLOYEE_GROWTH);
-        }
-        if (!affected.isEmpty()) {
-            updateRedDots(playerId, affected);
-        }
+        // 扣道具回调早于等级/星级更新，延迟到同玩家下一次tick合并刷新，避免使用旧等级。
+        // 不再忽略招募/升星来源：它们可能同时影响其他页签的可操作数量。
+        ctx.setEmployeeRedDotDirty(true);
     }
 
     public void updateRedDots(long playerId, int... submodules) {
@@ -180,7 +188,7 @@ public class SimEmployeeRedDotService implements IRedDotService, ItemAddListener
         }
     }
 
-    private Collection<Map<Integer, Long>> guestStarRequirements(long playerId, SimPlayerContext ctx) {
+    private List<Requirement> guestStarRequirements(long playerId, SimPlayerContext ctx) {
         SimCasinoData casino = ctx == null ? null : ctx.getCurrentCasino();
         if (casino == null) {
             int casinoId = simPlayerGameDao.findCurrentCasinoId(playerId);
@@ -190,20 +198,20 @@ public class SimEmployeeRedDotService implements IRedDotService, ItemAddListener
             return List.of();
         }
 
-        List<Map<Integer, Long>> requirements = new ArrayList<>();
+        List<Requirement> requirements = new ArrayList<>();
         for (GuestData guest : casino.getGuestMap().values()) {
             VisitorStarCfg currentCfg = configCache.getVisitorStarCfgByGuest(guest.getId(), guest.getStar());
             VisitorStarCfg nextCfg = configCache.getVisitorStarCfgByGuest(guest.getId(), guest.getStar() + 1);
             VisitorQuestCfg guestCfg = GameDataManager.getVisitorQuestCfg(guest.getId());
             List<Integer> shard = guestCfg == null ? null : guestCfg.getDuplicatetoShard();
             if (currentCfg != null && nextCfg != null && shard != null && shard.size() > 1) {
-                requirements.add(Map.of(shard.get(1), (long) currentCfg.getAscend()));
+                requirements.add(new Requirement(guest.getId(), "starUpIds", Map.of(shard.get(1), (long) currentCfg.getAscend())));
             }
         }
         return requirements;
     }
 
-    private Collection<Map<Integer, Long>> employeeGrowthRequirements(long playerId, SimPlayerContext ctx) {
+    private List<Requirement> employeeGrowthRequirements(long playerId, SimPlayerContext ctx) {
         Collection<SimEmployeeData> employees = ctx == null
                 ? simEmployeeDao.findGrowthRedDotData(playerId)
                 : ctx.getEmployeeMap().values();
@@ -211,14 +219,14 @@ public class SimEmployeeRedDotService implements IRedDotService, ItemAddListener
             return List.of();
         }
 
-        List<Map<Integer, Long>> requirements = new ArrayList<>();
+        List<Requirement> requirements = new ArrayList<>();
         for (SimEmployeeData employee : employees) {
             EmployeeStarCfg starCfg = getEmployeeStarCfg(employee.getEmployeeId(), employee.getStar());
             if (starCfg != null && starCfg.getStarUpCost() > 0) {
                 EmployeeProfileCfg profileCfg = GameDataManager.getEmployeeProfileCfg(employee.getEmployeeId());
                 List<Integer> shard = profileCfg == null ? null : profileCfg.getDuplicatetoShard();
                 if (shard != null && shard.size() > 1) {
-                    requirements.add(Map.of(shard.get(1), (long) starCfg.getStarUpCost()));
+                    requirements.add(new Requirement(employee.getEmployeeId(), "starUpIds", Map.of(shard.get(1), (long) starCfg.getStarUpCost())));
                 }
             }
 
@@ -229,7 +237,7 @@ public class SimEmployeeRedDotService implements IRedDotService, ItemAddListener
             EmployeeLevelCfg nextLevelCfg = getEmployeeLevelCfg(employee.getEmployeeId(), employee.getLevel() + 1);
             if (nextLevelCfg != null) {
                 Map<Integer, Long> cost = nextLevelCfg.getUpgradeCost();
-                requirements.add(cost == null ? Map.of() : cost);
+                requirements.add(new Requirement(employee.getEmployeeId(), "levelUpIds", cost == null ? Map.of() : cost));
             }
         }
         return requirements;
@@ -247,15 +255,6 @@ public class SimEmployeeRedDotService implements IRedDotService, ItemAddListener
         return employeeCfg == null ? null : employeeCfg.get(star);
     }
 
-    private boolean requirementsUseItems(Collection<Map<Integer, Long>> requirements, Set<Integer> itemIds) {
-        for (Map<Integer, Long> requirement : requirements) {
-            if (requirement != null && !Collections.disjoint(requirement.keySet(), itemIds)) {
-                return true;
-            }
-        }
-        return false;
-    }
-
     private ActivePoolSnapshot currentActivePools(long now) {
         long scanSecond = now / 1000;
         if (activePoolScanSecond == scanSecond) {
@@ -265,13 +264,13 @@ public class SimEmployeeRedDotService implements IRedDotService, ItemAddListener
             if (activePoolScanSecond == scanSecond) {
                 return activePoolSnapshot;
             }
-            LinkedHashSet<Map<Integer, Long>> requirements = new LinkedHashSet<>();
+            List<Requirement> requirements = new ArrayList<>();
             addOpenPoolRequirements(requirements, SimConstant.PoolList.TYPE_GUEST);
             addOpenPoolRequirements(requirements, SimConstant.PoolList.TYPE_EMPLOYEE);
-            List<Map<Integer, Long>> currentRequirements = List.copyOf(requirements);
+            List<Requirement> currentRequirements = List.copyOf(requirements);
             if (!currentRequirements.equals(activePoolSnapshot.requirements())) {
                 Set<Integer> itemIds = new LinkedHashSet<>();
-                currentRequirements.forEach(requirement -> itemIds.addAll(requirement.keySet()));
+                currentRequirements.forEach(requirement -> itemIds.addAll(requirement.cost().keySet()));
                 activePoolSnapshot = new ActivePoolSnapshot(activePoolSnapshot.version() + 1,
                         currentRequirements, Set.copyOf(itemIds));
             }
@@ -280,19 +279,54 @@ public class SimEmployeeRedDotService implements IRedDotService, ItemAddListener
         }
     }
 
-    private void addOpenPoolRequirements(Set<Map<Integer, Long>> requirements, int poolType) {
+    private void addOpenPoolRequirements(List<Requirement> requirements, int poolType) {
         for (RecruitPoolInfo poolInfo : configCache.getOpenPoolIds(poolType)) {
             PoolListCfg poolCfg = configCache.getOpenPoolCfg(poolInfo.id, poolType);
             boolean validDrop = poolCfg != null && (poolType == SimConstant.PoolList.TYPE_GUEST
                     ? configCache.getPoolRand(poolCfg.getDropItem()) != null
                     : configCache.getEmployeePoolRand(poolCfg.getDropItem()) != null);
             if (validDrop && poolCfg.getDrawCost() != null && !poolCfg.getDrawCost().isEmpty()) {
-                requirements.add(Collections.unmodifiableMap(new HashMap<>(poolCfg.getDrawCost())));
+                requirements.add(new Requirement(poolInfo.id, "poolIds", Collections.unmodifiableMap(new HashMap<>(poolCfg.getDrawCost()))));
             }
         }
     }
 
-    private record ActivePoolSnapshot(long version, List<Map<Integer, Long>> requirements, Set<Integer> itemIds) {
+    private String readScope(long playerId, SimPlayerContext ctx, int submodule) {
+        if (submodule == NEW_EMPLOYEE) return "newEmployee";
+        int casinoId = ctx != null && ctx.getCurrentCasino() != null ? ctx.getCurrentCasino().getCasinoId()
+                : simPlayerGameDao.findCurrentCasinoId(playerId);
+        return "newBond:" + casinoId;
+    }
+
+    /** 获得新内容后记录未读；独立容错，避免影响招募/解锁结果。 */
+    public void recordNewContent(SimPlayerContext ctx, int submodule, int id) {
+        try {
+            redDotReadDao.addUnread(ctx.playerId(), readScope(ctx.playerId(), ctx, submodule), List.of(id));
+            updateRedDots(ctx.playerId(), submodule);
+        } catch (Exception e) {
+            log.error("记录新内容红点失败 playerId={},submodule={},id={}", ctx.playerId(), submodule, id, e);
+        }
+    }
+
+    public void recordNewBond(SimCasinoData casino, int bondId) {
+        try {
+            redDotReadDao.addUnread(casino.getPlayerId(), "newBond:" + casino.getCasinoId(), List.of(bondId));
+            updateRedDots(casino.getPlayerId(), NEW_BOND);
+        } catch (Exception e) {
+            log.error("记录新羁绊红点失败 playerId={},bondId={}", casino.getPlayerId(), bondId, e);
+        }
+    }
+
+    @Override
+    public boolean markRead(long playerId, int submodule, List<Integer> ids) {
+        if (submodule != NEW_EMPLOYEE && submodule != NEW_BOND) return false;
+        redDotReadDao.read(playerId, readScope(playerId, contextRegistry.getContext(playerId), submodule), ids);
+        return true;
+    }
+
+    private record Requirement(int id, String action, Map<Integer, Long> cost) {}
+
+    private record ActivePoolSnapshot(long version, List<Requirement> requirements, Set<Integer> itemIds) {
         private static ActivePoolSnapshot empty() {
             return new ActivePoolSnapshot(0, List.of(), Set.of());
         }

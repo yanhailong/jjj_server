@@ -318,6 +318,8 @@ public interface MessageConst {
         //请求检测功能状态
         int REQ_CHECK_FUNCTION_STATE = BASE_MSG_PREFIX | 0x22;
         int RES_CHECK_FUNCTION_STATE = BASE_MSG_PREFIX | 0x23;
+        //确认已查看红点内容；通过 NOTIFY_RED_DOT 返回更新后的状态
+        int REQ_MARK_RED_DOT_READ = BASE_MSG_PREFIX | 0x24;
     }
 
     interface RoomMessage {

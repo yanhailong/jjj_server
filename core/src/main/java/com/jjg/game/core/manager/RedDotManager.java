@@ -108,12 +108,15 @@ public class RedDotManager {
      * @return 红点详情
      */
     public RedDotDetails buildRedDotDetails(RedDotDetails.RedDotModule module, int submodule, int count) {
+        return buildRedDotDetails(module, submodule, count, module.getRedDotType());
+    }
+
+    /** 子模块独立选择显示类型；数量红点保留真实非负数量。 */
+    public RedDotDetails buildRedDotDetails(RedDotDetails.RedDotModule module, int submodule, long count,
+                                          RedDotDetails.RedDotType type) {
         RedDotDetails details = new RedDotDetails();
-        details.setCount(count);
-        if (module.getRedDotType() == RedDotDetails.RedDotType.COMMON) {
-            details.setCount(count >= 1 ? 1 : 0);
-        }
-        details.setRedDotType(module.getRedDotType());
+        details.setCount(type == RedDotDetails.RedDotType.COUNT ? Math.max(0, count) : (count > 0 ? 1 : 0));
+        details.setRedDotType(type);
         details.setRedDotModule(module);
         details.setRedDotSubmodule(submodule);
         return details;
@@ -336,6 +339,19 @@ public class RedDotManager {
         updateRedDot(module, 0, playerId);
     }
 
+
+    /** 只允许业务服务确认可阅读状态，客户端不能清除可领取/可升级红点。 */
+    public void markRead(PlayerController player, RedDotDetails.RedDotModule module, int submodule,
+                         List<Integer> entityIds) {
+        if (module == null || module.isNeedTrusteeship() || submodule <= 0
+                || (entityIds != null && entityIds.size() > 200)) return;
+        Map<Integer, IRedDotService> services = redDotServiceMap.get(module);
+        IRedDotService service = services == null ? null : services.get(submodule);
+        if (service != null && service.markRead(player.playerId(), submodule,
+                entityIds == null ? List.of() : entityIds)) {
+            notifyReddot(player, module, submodule);
+        }
+    }
 
     public void notifyReddot(PlayerController playerController, RedDotDetails.RedDotModule module, int submodule) {
         List<RedDotDetails> result = new ArrayList<>();

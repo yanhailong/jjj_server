@@ -51,6 +51,22 @@ import java.util.stream.Collectors;
 @Component
 public class PiggyBankController extends BaseActivityController implements OrderGenerate {
 
+    @Override
+    public com.jjg.game.core.pb.reddot.RedDotDetails.RedDotType getRedDotType() {
+        return com.jjg.game.core.pb.reddot.RedDotDetails.RedDotType.COUNT;
+    }
+
+    /** 只统计已满且可领取的罐子，不改变原有购买/领取规则。 */
+    @Override
+    public long getRedDotCount(long playerId, ActivityData data) {
+        Map<Integer, PiggyBankData> states = playerActivityDao.getPlayerActivityData(playerId, data.getType(), data.getId());
+        Map<Integer, PiggyBankCfg> configs = getDetailCfgBean(data);
+        if (states == null || configs == null) return 0;
+        return states.entrySet().stream().filter(e -> configs.containsKey(e.getKey())
+                && e.getValue().getClaimStatus() == ActivityConstant.ClaimStatus.CAN_CLAIM
+                && e.getValue().getProgress() >= configs.get(e.getKey()).getFullUp() - configs.get(e.getKey()).getBaseGold()).count();
+    }
+
     // 日志记录
     private final Logger log = LoggerFactory.getLogger(PiggyBankController.class);
 

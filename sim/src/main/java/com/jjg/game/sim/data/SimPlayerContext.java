@@ -62,6 +62,22 @@ public class SimPlayerContext {
     private long lastGemEarningTime;
     //雇员卡池红点已检查的有效卡池版本 (内存态; 仅在开放卡池变化时重算)
     private long employeePoolRedDotVersion = -1;
+    private boolean employeeRedDotDirty;
+    public boolean isEmployeeRedDotDirty() { return employeeRedDotDirty; }
+    public void setEmployeeRedDotDirty(boolean value) { employeeRedDotDirty = value; }
+    // 建筑红点会话缓存，退出即释放；道具变更置脏，tick在业务变更结束后刷新。
+    private boolean buildingRedDotDirty = true;
+    private long buildingRedDotCheckTime;
+    private String buildingRedDotInput;
+    private String buildingRedDotSnapshot;
+    public boolean isBuildingRedDotDirty() { return buildingRedDotDirty; }
+    public void setBuildingRedDotDirty(boolean value) { buildingRedDotDirty = value; }
+    public long getBuildingRedDotCheckTime() { return buildingRedDotCheckTime; }
+    public void setBuildingRedDotCheckTime(long value) { buildingRedDotCheckTime = value; }
+    public String getBuildingRedDotInput() { return buildingRedDotInput; }
+    public void setBuildingRedDotInput(String value) { buildingRedDotInput = value; }
+    public String getBuildingRedDotSnapshot() { return buildingRedDotSnapshot; }
+    public void setBuildingRedDotSnapshot(String value) { buildingRedDotSnapshot = value; }
     //联盟免费捐献红点已检查的自然日 (内存态)
     private int allianceDonateRedDotDay;
     //下一条有效入盟申请的过期时间 (ms; -1 表示尚未初始化)

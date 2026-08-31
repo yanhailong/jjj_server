@@ -203,10 +203,17 @@ public abstract class BaseActivityController {
      * @param oldState 老的红点状态
      */
     public final void updateRodDot(long playerId, ActivityData data, boolean oldState, boolean compulsory) {
-        boolean hasRedDot = hasRedDot(playerId, data);
-        if (hasRedDot != oldState || compulsory) {
-            redDotManager.updateActivityRedDot(playerId, data.getType().getType(), hasRedDot);
-        }
+        // 数字从3变2也要推送，同类型的多个活动由管理器统一汇总。
+        activityManager.refreshRedDots(playerId, data.getType().getType());
+    }
+
+    /** 默认保持普通红点，需要数量的活动单独覆盖。 */
+    public long getRedDotCount(long playerId, ActivityData data) {
+        return hasRedDot(playerId, data) ? 1 : 0;
+    }
+
+    public com.jjg.game.core.pb.reddot.RedDotDetails.RedDotType getRedDotType() {
+        return com.jjg.game.core.pb.reddot.RedDotDetails.RedDotType.COMMON;
     }
 
     /**

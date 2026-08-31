@@ -327,7 +327,7 @@ public class ScratchCardsController extends BaseActivityController implements Or
         }
         //获取背包数据
         PlayerPack playerPack = playerPackService.getFromAllDB(playerId);
-        return playerPack.getItemCount(costItem.getId()) > 0;
+        return playerPack != null && playerPack.getItemCount(costItem.getId()) > 0;
     }
 
     public AbstractResponse reqScratchCardsExchange(Player player, ReqScratchCardsExchange req) {

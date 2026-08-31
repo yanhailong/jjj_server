@@ -13,19 +13,19 @@ public class RedDotDetails {
     /**
      * 类型
      */
-    @ProtoDesc("类型 0-普通红点 1-数量红点")
+    @ProtoDesc("类型 0-普通红点 1-数量红点 2-感叹号；展示优先级：数量、感叹号、普通")
     private RedDotType redDotType;
 
     /**
      * 模块
      */
-    @ProtoDesc("模块 1-邮件 2-背包 3-活动")
+    @ProtoDesc("模块枚举，PB从0开始，与服务器内部getType编号不同")
     private RedDotModule redDotModule;
 
     /**
      * 子模块
      */
-    @ProtoDesc("子模块 1-获得新道具 2-签到")
+    @ProtoDesc("子模块编号，按所属模块解释")
     private int redDotSubmodule;
 
     /**
@@ -37,7 +37,7 @@ public class RedDotDetails {
     /**
      * 额外参数
      */
-    @ProtoDesc("额外参数")
+    @ProtoDesc("可选JSON明细，ids为实体ID集合，具体结构见红点对接说明")
     private String extra;
 
     /**
@@ -56,6 +56,9 @@ public class RedDotDetails {
          */
         @ProtoDesc("数量红点")
         COUNT,
+        /** 追加枚举以保持原协议编号不变。 */
+        @ProtoDesc("感叹号提示")
+        EXCLAMATION,
     }
 
     /**
@@ -73,7 +76,7 @@ public class RedDotDetails {
          * 背包
          */
         @ProtoDesc("背包")
-        PACK(2, RedDotType.COMMON, true),
+        PACK(2, RedDotType.COUNT, false),
         /**
          * 活动
          */
@@ -108,7 +111,7 @@ public class RedDotDetails {
          * 拜访
          */
         @ProtoDesc("拜访")
-        VISIT(9, RedDotType.COMMON, false),
+        VISIT(9, RedDotType.COUNT, false),
         /**
          * 好友
          */
@@ -133,7 +136,9 @@ public class RedDotDetails {
          * 联盟
          */
         @ProtoDesc("联盟")
-        ALLIANCE(14, RedDotType.COMMON, false);
+        ALLIANCE(14, RedDotType.COMMON, false),
+        @ProtoDesc("建筑")
+        BUILDING(15, RedDotType.COUNT, false);
 
         private final int type;
         private final RedDotType redDotType;

@@ -11,6 +11,10 @@ import java.util.List;
  * <p>子模块
  */
 public interface IRedDotService {
+    /** 确认已查看，默认不支持，不能清除可操作数量。 */
+    default boolean markRead(long playerId, int submodule, List<Integer> entityIds) {
+        return false;
+    }
 
     /**
      * 获取所属模块{@link RedDotDetails.RedDotModule}

@@ -402,6 +402,21 @@ public class SimBuildingService implements SimPlayerTickListener, SimTaskStateRe
         return currentCfg != null && checkBuildingUpgrade(ctx, data, currentCfg).getFirst() == BuildingUpgradeCheck.CAN_UPGRADE && playerPackService.checkHasItems(ctx.getPlayer(), currentCfg.getUpgradeCost());
     }
 
+    /** 红点用的只读条件：包含升级前的进度条投入，与升级接口保持同一校验顺序。 */
+    public Map<Integer, Long> redDotUpgradeCost(SimPlayerContext ctx, int buildingId) {
+        SimCasinoData casino = ctx.getCurrentCasino();
+        BuildingData data = casino == null ? null : casino.findBuilding(buildingId);
+        if (data == null || data.isUpgrading(System.currentTimeMillis())) return null;
+        BuildingUpgradeTableCfg cfg = configCache.getBuildingUpgradeCfg(buildingId, data.getLevel());
+        if (cfg == null) return null;
+        BuildingUpgradeCheck check = checkBuildingUpgrade(ctx, data, cfg).getFirst();
+        if (check == BuildingUpgradeCheck.ADD_PROGRESS) {
+            List<Integer> cost = cfg.getCostPerLevel().get(data.getProgress());
+            return cost != null && cost.size() >= 2 && cost.get(1) >= 0 ? Map.of(cost.get(0), cost.get(1).longValue()) : null;
+        }
+        return check == BuildingUpgradeCheck.CAN_UPGRADE ? cfg.getUpgradeCost() : null;
+    }
+
     public void onUpgradeBuilding(SimPlayerContext ctx, int buildingId) {
         ResUpgradeBuilding res = new ResUpgradeBuilding(Code.SUCCESS);
         try {

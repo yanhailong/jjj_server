@@ -150,6 +150,11 @@ public class ActivityManager implements TimerListener<Long>, IPlayerLoginSuccess
 
     private volatile Map<EGameEventType, List<ActivityData>> activityConditionCache = Map.of();
 
+    @org.springframework.beans.factory.annotation.Autowired
+    private com.jjg.game.core.service.CorePlayerService redDotPlayerService;
+    @org.springframework.beans.factory.annotation.Autowired
+    private com.jjg.game.core.dao.RedDotReadDao redDotReadDao;
+
 
     public ActivityManager(TimerCenter timerCenter, ClusterSystem clusterSystem,
                            CoreMarqueeManager marqueeManager,
@@ -421,6 +426,28 @@ public class ActivityManager implements TimerListener<Long>, IPlayerLoginSuccess
         notifyActivityChange.activityInfos = new ArrayList<>();
         notifyActivityChange.activityInfos.add(ActivityBuilder.buildActivityInfo(data));
         clusterSystem.broadcastToOnlinePlayer(notifyActivityChange);
+        refreshOnlineRedDots(Set.of(data.getType().getType()));
+    }
+
+    /** 活动开关/轮次变化后在各玩家线程重算；包括0，避免父入口残留旧数量。 */
+    private void refreshOnlineRedDots(Set<Integer> submodules) {
+        for (PFSession session : clusterSystem.getAllOnlinePlayerPFSession()) {
+            long playerId = session.playerId;
+            if (playerId <= 0 || !(session.getReference() instanceof PlayerController)) continue;
+            boolean published = PlayerExecutorGroupDisruptor.getDefaultExecutor().tryPublish(session.getWorkId(), 0,
+                    new BaseHandler<String>() {
+                        @Override public void action() {
+                            try {
+                                List<RedDotDetails> dots = new ArrayList<>();
+                                for (int submodule : submodules) dots.addAll(initialize(playerId, submodule));
+                                redDotManager.updateRedDot(dots, playerId);
+                            } catch (Exception e) {
+                                log.error("活动变化刷新红点失败 playerId={}", playerId, e);
+                            }
+                        }
+                    }.setHandlerParamWithSelf("activity red dot refresh"));
+            if (!published) log.warn("活动红点刷新任务入队失败 playerId={}", playerId);
+        }
     }
 
 
@@ -467,6 +494,7 @@ public class ActivityManager implements TimerListener<Long>, IPlayerLoginSuccess
             addPlayerActivityProgress(player, ActivityTargetType.LOGIN.getTargetKey(), 1, null);
         }
         playerController.send(info);
+        refreshRedDots(player.getId(), 0);
     }
 
 
@@ -514,16 +542,9 @@ public class ActivityManager implements TimerListener<Long>, IPlayerLoginSuccess
         }
         //通知红点
         if (CollectionUtil.isNotEmpty(dataArrayList)) {
-            List<RedDotDetails> redInfo = new ArrayList<>();
-            for (ActivityData data : dataArrayList) {
-                RedDotDetails redDotDetails = new RedDotDetails();
-                redDotDetails.setRedDotModule(getModule());
-                redDotDetails.setRedDotType(RedDotDetails.RedDotType.COMMON);
-                redDotDetails.setCount(1);
-                redDotDetails.setRedDotSubmodule(data.getType().getType());
-                redInfo.add(redDotDetails);
+            for (ActivityType type : dataArrayList.stream().map(ActivityData::getType).distinct().toList()) {
+                refreshRedDots(playerId, type.getType());
             }
-            redDotManager.updateRedDot(redInfo, playerId);
         }
     }
 
@@ -778,6 +799,7 @@ public class ActivityManager implements TimerListener<Long>, IPlayerLoginSuccess
                     if (CollectionUtil.isNotEmpty(openActivityData)) {
                         NotifyActivityChange change = buildNotifyActivityChange(openActivityData);
                         sendToPlayer(player.getId(), change);
+                        refreshRedDots(player.getId(), 0);
                     }
                 }
             }
@@ -850,6 +872,8 @@ public class ActivityManager implements TimerListener<Long>, IPlayerLoginSuccess
                     }
                     //触发登录活动
                     addPlayerActivityProgress(player, ActivityTargetType.LOGIN.getTargetKey(), 1, null);
+                    // 集合礼包和视频福利没有LOGIN进度，跨天仍需更新红点及0状态。
+                    refreshRedDots(playerId, 0);
                     log.info("玩家触发登陆行为完成 playerId:{}", player.getId());
                 }
             }.setHandlerParamWithSelf("activity onZeroEvent"));
@@ -922,6 +946,9 @@ public class ActivityManager implements TimerListener<Long>, IPlayerLoginSuccess
         if (CollectionUtil.isNotEmpty(changeData)) {
             NotifyActivityChange notifyActivityChange = buildNotifyActivityChange(changeData);
             clusterSystem.broadcastToOnlinePlayer(notifyActivityChange);
+            Set<Integer> types = new HashSet<>();
+            changeData.forEach(data -> types.add(data.getType().getType()));
+            refreshOnlineRedDots(types);
         }
         loadActivityConditionCache();
         gameEventManager.registerEventListener(this);
@@ -955,38 +982,51 @@ public class ActivityManager implements TimerListener<Long>, IPlayerLoginSuccess
      */
     @Override
     public List<RedDotDetails> initialize(long playerId, int submodule) {
-        if (CollectionUtil.isEmpty(activityData)) {
-            return List.of();
-        }
-        Map<Long, ActivityData> activityDataMap = null;
-        //全活动红点
-        if (submodule == 0) {
-            activityDataMap = activityData;
-        } else {
-            //指定活动类型红点
-            ActivityType activityType = ActivityType.fromType(submodule);
-            if (activityType != null) {
-                activityDataMap = activityTypeData.get(activityType);
+        Player player = redDotPlayerService.get(playerId);
+        List<RedDotDetails> result = new ArrayList<>();
+        for (ActivityType type : ActivityType.values()) {
+            if (submodule != 0 && submodule != type.getType()) continue;
+            BaseActivityController controller = type.getController();
+            if (controller == null) continue;
+            long count = 0;
+            for (ActivityData data : activityTypeData.getOrDefault(type, Map.of()).values()) {
+                if (player != null && playerCanJoinActivity(data, player)) {
+                    count += controller.getRedDotCount(playerId, data);
+                }
             }
+            // 包括0，确保领完/关闭后客户端能熄灭；同类型仅发一条。
+            result.add(redDotManager.buildRedDotDetails(getModule(), type.getType(), count, controller.getRedDotType()));
         }
-        //没有数据直接返回
-        if (CollectionUtil.isEmpty(activityDataMap)) {
-            return List.of();
+        return result;
+    }
+
+    /** 展示通知失败只记日志，不能把已成功的领奖/进度操作变成异常。 */
+    public void refreshRedDots(long playerId, int submodule) {
+        try {
+            redDotManager.updateRedDot(initialize(playerId, submodule), playerId);
+        } catch (Exception e) {
+            log.error("刷新活动红点失败 playerId={},submodule={}", playerId, submodule, e);
         }
-        List<RedDotDetails> redDotDetails = new ArrayList<>();
-        for (ActivityData data : activityDataMap.values()) {
-            //判断该活动是否有红点
-            boolean redDot = data.getType().getController().hasRedDot(playerId, data);
-            if (redDot) {
-                RedDotDetails redDotDetailInfo = new RedDotDetails();
-                redDotDetailInfo.setRedDotModule(getModule());
-                redDotDetailInfo.setRedDotType(RedDotDetails.RedDotType.COMMON);
-                redDotDetailInfo.setCount(1);
-                redDotDetailInfo.setRedDotSubmodule(data.getType().getType());
-                redDotDetails.add(redDotDetailInfo);
-            }
-        }
-        return redDotDetails;
+    }
+
+    @Override
+    public List<Integer> getSubmodules() {
+        List<Integer> result = new ArrayList<>();
+        result.add(0);
+        for (ActivityType type : ActivityType.values()) result.add(type.getType());
+        return result;
+    }
+
+    @Override
+    public boolean markRead(long playerId, int submodule, List<Integer> entityIds) {
+        if (submodule != ActivityType.BUNDLE_GIFT_PACK.getType()) return false;
+        Player player = redDotPlayerService.get(playerId);
+        boolean available = activityTypeData.getOrDefault(ActivityType.BUNDLE_GIFT_PACK, Map.of()).values().stream()
+                .anyMatch(data -> playerCanJoinActivity(data, player)
+                        && !data.getType().getController().getDetailCfgBean(data).isEmpty());
+        if (!available) return false;
+        redDotReadDao.viewToday(playerId, "bundleGiftPack");
+        return true;
     }
 
     @Override

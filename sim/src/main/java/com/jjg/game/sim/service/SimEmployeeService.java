@@ -183,6 +183,8 @@ public class SimEmployeeService implements SimTaskStateReporter {
             }
 
             res.shardInfos = recruitItems;
+            addEmployee.keySet().forEach(id -> employeeRedDotService.recordNewContent(
+                    ctx, SimEmployeeRedDotService.NEW_EMPLOYEE, id));
             //联盟任务: 卡池抽奖次数 (param=卡池ID, 供 0=任意/指定卡池 过滤; 10 连计为 10 次)
             allianceEventService.onCardPoolDraw(ctx.playerId(), poolCfg.getId(), count);
             allianceEventService.onEmployeePoolDraw(ctx.playerId(), count);

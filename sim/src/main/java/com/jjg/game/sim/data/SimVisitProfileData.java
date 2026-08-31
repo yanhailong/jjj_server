@@ -18,6 +18,10 @@ public class SimVisitProfileData {
     private long playerId;
     private long totalPopularity;
     private int unreadCommentCount;
+    // 留言红点CAS版本，防止分页已读覆盖并发到达的新留言。
+    private Long commentRevision;
+    public Long getCommentRevision() { return commentRevision; }
+    public void setCommentRevision(Long commentRevision) { this.commentRevision = commentRevision; }
     private List<SimVisitRecordData> records;
     private List<SimVisitCommentData> comments;
 

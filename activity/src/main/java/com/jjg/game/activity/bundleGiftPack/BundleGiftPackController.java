@@ -43,6 +43,15 @@ import java.util.Map;
 public class BundleGiftPackController extends BaseActivityController implements OrderGenerate {
     private static final int ALL_GIFT_ID = 0;
 
+    @org.springframework.beans.factory.annotation.Autowired
+    private com.jjg.game.core.dao.RedDotReadDao redDotReadDao;
+
+    @Override
+    public boolean hasRedDot(long playerId, ActivityData activityData) {
+        return activityData.canRun() && !getDetailCfgBean(activityData).isEmpty()
+                && !redDotReadDao.viewedToday(playerId, "bundleGiftPack");
+    }
+
     @Override
     public AbstractResponse joinActivity(Player player, ActivityData activityData, int detailId, int times) {
         return null;

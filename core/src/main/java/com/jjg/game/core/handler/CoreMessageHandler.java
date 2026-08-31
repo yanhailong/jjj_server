@@ -473,6 +473,12 @@ public class CoreMessageHandler {
         redDotManager.notifyReddot(playerController, req.getModule(), req.getSubmodule());
     }
 
+    @Command(MessageConst.CoreMessage.REQ_MARK_RED_DOT_READ)
+    public void markRedDotRead(PlayerController playerController,
+                              com.jjg.game.core.pb.reddot.ReqMarkRedDotRead req) {
+        redDotManager.markRead(playerController, req.module, req.submodule, req.entityIds);
+    }
+
     /**
      * 消息订阅处理
      */

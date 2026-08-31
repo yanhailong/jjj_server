@@ -173,22 +173,33 @@ public class AdsRewardController extends BaseActivityController {
 
     @Override
     public boolean hasRedDot(long playerId, ActivityData activityData) {
+        return getRedDotCount(playerId, activityData) > 0;
+    }
+
+    @Override
+    public com.jjg.game.core.pb.reddot.RedDotDetails.RedDotType getRedDotType() {
+        return com.jjg.game.core.pb.reddot.RedDotDetails.RedDotType.COUNT;
+    }
+
+    @Override
+    public long getRedDotCount(long playerId, ActivityData activityData) {
         if (!activityData.canRun()) {
-            return false;
+            return 0;
         }
         Map<Integer, VideoRewardCfg> cfgMap = getDetailCfgBean(activityData);
         if (!validConfigs(activityData, cfgMap)) {
-            return false;
+            return 0;
         }
         int day = TimeHelper.getDayNumerical();
         int watchCount = getWatchCount(playerId, activityData, day);
         Map<Integer, PlayerActivityData> claimedData = getTodayClaimedData(playerId, activityData, day);
+        long count = 0;
         for (VideoRewardCfg cfg : cfgMap.values()) {
             if (watchCount >= cfg.getVideoCount() && !isClaimed(claimedData.get(cfg.getId()), day)) {
-                return true;
+                count++;
             }
         }
-        return false;
+        return count;
     }
 
     @Override

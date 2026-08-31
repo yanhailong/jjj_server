@@ -48,6 +48,29 @@ public class SimSkillService extends AbstractSkillService {
     //每个技能的最大等级
     private Map<Integer, Integer> maxLevelMap = new HashMap<>();
 
+    /** 技能红点只读预检，不解锁技能、不扣研究点。返回null表示当前不可升级。 */
+    public Map<Integer, Long> redDotUpgradeCost(SimPlayerContext ctx, int gameType, int propId) {
+        SimSkillsData data = ctx.getSkillData(gameType);
+        SkillDetailData detail = data == null ? null : data.findSkilLevelByPropId(propId);
+        PropCfg prop = GameDataManager.getPropCfg(propId);
+        if (detail == null || prop == null || skillGameType(prop) != gameType) return null;
+        ResearchSkillsCfg next = getResearchSkillsCfg(gameType, propId, detail.getLevel() + 1);
+        if (next == null) return null;
+        if (gameType != GLOBAL_GAME_TYPE) {
+            BuildingAreaTableCfg area = simConfigCacheService.getBuildingAreaTableCfgByGameType(gameType);
+            BuildingData building = area == null || ctx.getCurrentCasino() == null ? null : ctx.getCurrentCasino().findBuilding(area.getId());
+            if (building == null || building.getLevel() < next.getBuildingLevel()) return null;
+        }
+        Map<Integer, Long> cost = new HashMap<>();
+        if (next.getResearchPoints() != null) {
+            for (Map.Entry<Integer, Integer> entry : next.getResearchPoints().entrySet()) {
+                if (entry.getKey() == null || !canUseResearchPoint(gameType, entry.getKey())) return null;
+                if (entry.getValue() != null && entry.getValue() > 0) cost.put(entry.getKey(), entry.getValue().longValue());
+            }
+        }
+        return cost;
+    }
+
     /**
      * 登录加载技能 (player 全量)。须在加载场景数据之前调用: initUnlock 依据已入内存的技能等级决定是否补解锁。
      */

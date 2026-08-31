@@ -16,6 +16,10 @@ public class SimVisitCommentData {
     private String content;
     private int popularity;
     private long createTime;
+    // null表示旧版本数据，首次访问时依据旧的未读计数兼容迁移。
+    private Boolean unread;
+    public Boolean getUnread() { return unread; }
+    public void setUnread(Boolean unread) { this.unread = unread; }
 
     public String getId() { return id; }
     public void setId(String id) { this.id = id; }

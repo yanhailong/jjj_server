@@ -40,33 +40,55 @@ public class SimVisitDao extends MongoBaseDao<SimVisitProfileData, Long> {
             update.push("records").atPosition(0).slice(limit).each(record);
         }
         if (comment != null) {
+            comment.setUnread(true);
             update.push("comments").atPosition(0).slice(limit).each(comment);
             update.inc("unreadCommentCount", 1);
+            update.inc("commentRevision", 1);
         }
-        return mongoTemplate.findAndModify(query, update,
+        SimVisitProfileData result = mongoTemplate.findAndModify(query, update,
                 FindAndModifyOptions.options().upsert(true).returnNew(true), SimVisitProfileData.class);
+        // slice淘汰的留言不再计入未读。
+        return comment == null ? result : editComments(playerId, java.util.Set.of(), null);
     }
 
     public boolean deleteComment(long playerId, String commentId) {
-        Query owner = Query.query(Criteria.where("_id").is(playerId)
-                .and("comments.id").is(commentId));
-        Query comment = Query.query(Criteria.where("id").is(commentId));
-        return mongoTemplate.updateFirst(owner,
-                new Update().pull("comments", comment.getQueryObject()), SimVisitProfileData.class)
-                .getModifiedCount() > 0;
+        SimVisitProfileData current = findCommentsView(playerId);
+        if (current == null || current.getComments().stream().noneMatch(c -> commentId.equals(c.getId()))) return false;
+        editComments(playerId, java.util.Set.of(), commentId);
+        return true;
     }
 
-    public boolean clearUnreadComments(long playerId, int readCount, String latestCommentId) {
-        if (readCount <= 0 || latestCommentId == null) {
-            return false;
+    public SimVisitProfileData markCommentsRead(long playerId, Collection<String> ids) {
+        return editComments(playerId, new java.util.HashSet<>(ids), null);
+    }
+
+    /** 更新留言状态及计数为同一次原子写入；CAS失败重新读取，不覆盖新留言。 */
+    private SimVisitProfileData editComments(long playerId, java.util.Set<String> readIds, String deleteId) {
+        for (int attempt = 0; attempt < 8; attempt++) {
+            SimVisitProfileData profile = findCommentsView(playerId);
+            if (profile == null) return null;
+            int oldCount = profile.getUnreadCommentCount();
+            java.util.List<SimVisitCommentData> comments = new java.util.ArrayList<>(profile.getComments());
+            normalizeUnread(comments, oldCount);
+            comments.removeIf(c -> deleteId != null && deleteId.equals(c.getId()));
+            comments.forEach(c -> { if (readIds.contains(c.getId())) c.setUnread(false); });
+            int count = (int) comments.stream().filter(c -> Boolean.TRUE.equals(c.getUnread())).count();
+            Query query = Query.query(Criteria.where("_id").is(playerId)
+                    .and("commentRevision").is(profile.getCommentRevision()));
+            Update update = new Update().set("comments", comments).set("unreadCommentCount", count)
+                    .inc("commentRevision", 1);
+            SimVisitProfileData updated = mongoTemplate.findAndModify(query, update,
+                    FindAndModifyOptions.options().returnNew(true), SimVisitProfileData.class);
+            if (updated != null) return updated;
         }
-        //CAS 同时校验未读数和最新留言，避免并发读取误清刚到达的新留言。
-        Query query = Query.query(Criteria.where("_id").is(playerId)
-                .and("unreadCommentCount").is(readCount)
-                .and("comments.0.id").is(latestCommentId));
-        return mongoTemplate.updateFirst(query,
-                new Update().set("unreadCommentCount", 0), SimVisitProfileData.class)
-                .getModifiedCount() > 0;
+        throw new IllegalStateException("留言状态并发修改重试失败 playerId=" + playerId);
+    }
+
+    /** 旧逻辑一次清空，故旧记录中最新的N条就是未读；已迁移记录保留逐条状态。 */
+    static void normalizeUnread(List<SimVisitCommentData> comments, int oldCount) {
+        for (int i = 0; i < comments.size(); i++) {
+            if (comments.get(i).getUnread() == null) comments.get(i).setUnread(i < oldCount);
+        }
     }
 
     public List<SimVisitProfileData> findAllByPlayerIds(Collection<Long> playerIds) {

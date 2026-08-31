@@ -858,6 +858,22 @@ public class PlayerPackService implements IPlayerRegister {
         return false;
     }
 
+    /** 返回满足需求的下标，一批红点只读取一次背包；不扣除任何物品。 */
+    public Set<Integer> findSatisfiedItemRequirements(Player player, List<Map<Integer, Long>> requirements) {
+        Set<Integer> result = new HashSet<>();
+        if (player == null || requirements == null || requirements.isEmpty()) return result;
+        try {
+            PlayerPack pack = getFromAllDB(player.getId());
+            for (int i = 0; i < requirements.size(); i++) {
+                Map<Integer, Long> cost = requirements.get(i);
+                if (cost != null && checkHasItems(player, checkItemParam(cost), pack) == Code.SUCCESS) result.add(i);
+            }
+        } catch (Exception e) {
+            log.error("批量计算红点道具条件失败 playerId={}", player.getId(), e);
+        }
+        return result;
+    }
+
     /**
      * 检查是否拥有道具
      *
