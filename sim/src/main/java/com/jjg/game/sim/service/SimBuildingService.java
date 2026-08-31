@@ -1075,13 +1075,7 @@ public class SimBuildingService implements SimPlayerTickListener, SimTaskStateRe
         }
         OfflineReward rewards = new OfflineReward();
         if (reward.getBaseReward() != null && !reward.getBaseReward().isEmpty()) {
-            rewards.rewards = new ArrayList<>();
-            for (Map.Entry<BuildingOutputType, Long> en : reward.getBaseReward().entrySet()) {
-                ItemInfo itemInfo = new ItemInfo();
-                itemInfo.itemId = en.getKey().getCode();
-                itemInfo.count = en.getValue();
-                rewards.rewards.add(itemInfo);
-            }
+            rewards.rewards = buildRewardInfos(reward.getBaseReward());
         }
         rewards.offlineMinutes = reward.getEffectiveMinutes();
         rewards.capMinutes = reward.getCapMinutes();
@@ -1107,11 +1101,7 @@ public class SimBuildingService implements SimPlayerTickListener, SimTaskStateRe
         if (effectiveMinutes <= 0) {
             return null;
         }
-        Map<BuildingOutputType, Long> perMinute = computePerMinuteOutput(ctx, casino);
-        if (perMinute.isEmpty()) {
-            return null;
-        }
-        Map<BuildingOutputType, Long> baseReward = multiply(perMinute, effectiveMinutes);
+        Map<BuildingOutputType, Long> baseReward = computeDurationOutput(ctx, casino, effectiveMinutes);
         if (baseReward.isEmpty()) {
             return null;
         }
@@ -1202,6 +1192,27 @@ public class SimBuildingService implements SimPlayerTickListener, SimTaskStateRe
         SimConditionEventFactory.emitOwnershipCounts(sink, ActionConditionEvent.Type.BUILDING_COUNT, 0, countByLevel);
     }
 
+    private Map<BuildingOutputType, Long> computeDurationOutput(SimPlayerContext ctx, SimCasinoData casino, int minutes) {
+        return multiply(computePerMinuteOutput(ctx, casino), minutes);
+    }
+
+    /** 与离线收益共用计算和协议构建，不应用离线上限和广告倍率。 */
+    public List<ItemInfo> computeRewardItems(SimPlayerContext ctx, int minutes) {
+        return buildRewardInfos(computeDurationOutput(ctx, ctx.getCurrentCasino(), minutes));
+    }
+
+    /** 收益协议统一使用 BuildingOutputType 编号，与 OfflineReward.rewards 一致。 */
+    public List<ItemInfo> buildRewardInfos(Map<BuildingOutputType, Long> rewards) {
+        List<ItemInfo> items = new ArrayList<>(rewards.size());
+        for (Map.Entry<BuildingOutputType, Long> en : rewards.entrySet()) {
+            ItemInfo item = new ItemInfo();
+            item.itemId = en.getKey().getCode();
+            item.count = en.getValue();
+            items.add(item);
+        }
+        return items;
+    }
+
     private Map<BuildingOutputType, Long> multiply(Map<BuildingOutputType, Long> src, long factor) {
         Map<BuildingOutputType, Long> result = new HashMap<>(src.size());
         src.forEach((k, v) -> result.put(k, v * factor));
@@ -1211,7 +1222,7 @@ public class SimBuildingService implements SimPlayerTickListener, SimTaskStateRe
     /**
      * 建筑产出映射为 itemId (无对应道具的产出类型不入账)
      */
-    private Map<Integer, Long> toItemMap(Map<BuildingOutputType, Long> resources) {
+    public Map<Integer, Long> toItemMap(Map<BuildingOutputType, Long> resources) {
         Map<Integer, Long> items = new HashMap<>(resources.size());
         for (Map.Entry<BuildingOutputType, Long> en : resources.entrySet()) {
             Integer itemId = toItemId(en.getKey());

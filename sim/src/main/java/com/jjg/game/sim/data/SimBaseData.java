@@ -53,12 +53,61 @@ public class SimBaseData extends AbstractData {
     private Set<Integer> allMedalIds;
     //当前广告特殊游客配置ID
     private List<Integer> specialGuestAdCfgIds;
-    //广告特殊游客列表刷新日 (yyyyMMdd)，广告展示和限制为玩家全局
+    //广告特殊游客冷却重置日 (yyyyMMdd)，广告展示和限制为玩家全局
     private int specialGuestAdRefreshDay;
+    //广告特殊游客下次定时刷新时间 (ms)，0 表示不按时段刷新
+    private long specialGuestAdNextRefreshTime;
     //广告特殊游客冷却结束时间 (ms)
     private long specialGuestAdCdEndTime;
     //技能总等级
     private int skillAllLevel;
+    //在线收益每日领取次数 (玩家全局，跨场景共享)
+    private int onlineRewardDay;
+    private int onlineRewardAdCount;
+    private int onlineRewardDiamondCount;
+    //视频冷却结束时间 (ms)，跨日与领取次数一并重置
+    private long onlineRewardAdCdEndTime;
+
+    public void resetOnlineRewardDay(int today) {
+        if (onlineRewardDay != today) {
+            onlineRewardDay = today;
+            onlineRewardAdCount = 0;
+            onlineRewardDiamondCount = 0;
+            onlineRewardAdCdEndTime = 0;
+        }
+    }
+
+    public int getOnlineRewardDay() {
+        return onlineRewardDay;
+    }
+
+    public void setOnlineRewardDay(int onlineRewardDay) {
+        this.onlineRewardDay = onlineRewardDay;
+    }
+
+    public int getOnlineRewardAdCount() {
+        return onlineRewardAdCount;
+    }
+
+    public void setOnlineRewardAdCount(int onlineRewardAdCount) {
+        this.onlineRewardAdCount = onlineRewardAdCount;
+    }
+
+    public int getOnlineRewardDiamondCount() {
+        return onlineRewardDiamondCount;
+    }
+
+    public void setOnlineRewardDiamondCount(int onlineRewardDiamondCount) {
+        this.onlineRewardDiamondCount = onlineRewardDiamondCount;
+    }
+
+    public long getOnlineRewardAdCdEndTime() {
+        return onlineRewardAdCdEndTime;
+    }
+
+    public void setOnlineRewardAdCdEndTime(long onlineRewardAdCdEndTime) {
+        this.onlineRewardAdCdEndTime = onlineRewardAdCdEndTime;
+    }
 
     public long getPlayerId() {
         return playerId;
@@ -381,6 +430,14 @@ public class SimBaseData extends AbstractData {
 
     public long getSpecialGuestAdCdEndTime() {
         return specialGuestAdCdEndTime;
+    }
+
+    public long getSpecialGuestAdNextRefreshTime() {
+        return specialGuestAdNextRefreshTime;
+    }
+
+    public void setSpecialGuestAdNextRefreshTime(long specialGuestAdNextRefreshTime) {
+        this.specialGuestAdNextRefreshTime = specialGuestAdNextRefreshTime;
     }
 
     public void setSpecialGuestAdCdEndTime(long specialGuestAdCdEndTime) {

@@ -31,4 +31,8 @@ public class SpecialGuestInfo {
     public List<ItemInfo> output;
     @ProtoDesc("礼包出现游客的种类个数")
     public int visitorGiftPackCount;
+    @ProtoDesc("本次刷新已购买次数")
+    public int purchaseCount;
+    @ProtoDesc("本次刷新购买次数上限，0表示不限")
+    public int maxPurchasePerRefresh;
 }

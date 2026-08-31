@@ -64,6 +64,8 @@ public class SimMessageHandler implements GmListener {
     @Autowired
     private SimBuildingService buildingService;
     @Autowired
+    private SimOnlineRewardService onlineRewardService;
+    @Autowired
     private SimEmployeeService employeeService;
     @Autowired
     private SimSkillService skillService;
@@ -635,6 +637,19 @@ public class SimMessageHandler implements GmListener {
     }
     //--------------------------游客相关 end--------------------------
 
+    /** 获取在线收益信息。 */
+    @Command(SimConstant.MsgBean.REQ_SIM_ONLINE_REWARD)
+    public void reqSimOnlineReward(PlayerController playerController, ReqSimOnlineReward req) {
+        execute(playerController, ctx -> ctx.send(onlineRewardService.getInfo(ctx)), ReqSimOnlineReward.class);
+    }
+
+    /** 领取在线收益。 */
+    @Command(SimConstant.MsgBean.REQ_SIM_CLAIM_ONLINE_REWARD)
+    public void reqSimClaimOnlineReward(PlayerController playerController, ReqSimClaimOnlineReward req) {
+        execute(playerController, ctx -> ctx.send(onlineRewardService.claim(ctx, req.type)),
+                ReqSimClaimOnlineReward.class);
+    }
+
     //--------------------------经营信息 begin--------------------------
 
     /**
@@ -1195,6 +1210,20 @@ public class SimMessageHandler implements GmListener {
             } else if ("unlockAllBuild".equalsIgnoreCase(gmOrders[0])) {
                 SimPlayerContext ctx = this.simPlayerContextRegistry.getContext(playerController.playerId());
                 buildingService.gmUnlockAllBuilds(ctx);
+            } else if ("reqSimOnlineReward".equalsIgnoreCase(gmOrders[0])) {
+                // reqSimOnlineReward 0；GM 总入口要求至少携带一个参数，参数值不使用。
+                reqSimOnlineReward(playerController, new ReqSimOnlineReward());
+                res.data = "已请求在线收益信息";
+            } else if ("reqSimClaimOnlineReward".equalsIgnoreCase(gmOrders[0])) {
+                if (gmOrders.length < 2 || (!"0".equals(gmOrders[1]) && !"1".equals(gmOrders[1]))) {
+                    res.code = Code.PARAM_ERROR;
+                    res.data = "参数错误，格式：reqSimClaimOnlineReward <0=视频, 1=钻石>";
+                    return res;
+                }
+                ReqSimClaimOnlineReward req = new ReqSimClaimOnlineReward();
+                req.type = Integer.parseInt(gmOrders[1]);
+                reqSimClaimOnlineReward(playerController, req);
+                res.data = "已请求领取在线收益";
             } else {
                 res.code = Code.NOT_FOUND;
             }

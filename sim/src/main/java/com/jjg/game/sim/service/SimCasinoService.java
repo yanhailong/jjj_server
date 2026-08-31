@@ -3,6 +3,7 @@ package com.jjg.game.sim.service;
 import com.alibaba.fastjson.JSONObject;
 import com.jjg.game.alliance.service.AllianceCacheService;
 import com.jjg.game.alliance.service.AllianceHelpService;
+import com.jjg.game.common.utils.TimeHelper;
 import com.jjg.game.core.base.condition.numeric.ActionConditionEvent;
 import com.jjg.game.core.base.gameevent.EGameEventType;
 import com.jjg.game.core.base.gameevent.GameEventManager;
@@ -216,6 +217,10 @@ public class SimCasinoService implements SimTaskStateReporter {
             //获取下一等级的配置
             CasinoStatsSheetCfg nextLevelCfg = configCacheService.getCasinoStatsSheetCfg(casinoData.getCasinoId(), casinoData.getCasinoLevel() + 1);
             res.upgradeLevelConditions = toUpgradeLevelConditions(nextLevelCfg, ctx);
+            long now = System.currentTimeMillis();
+            SimBaseData base = ctx.getSimBaseData();
+            base.resetOnlineRewardDay(Integer.parseInt(TimeHelper.getDate(now, "yyyyMMdd")));
+            res.adCdEndTime = base.getOnlineRewardAdCdEndTime() > now ? base.getOnlineRewardAdCdEndTime() : 0;
         } catch (Exception e) {
             log.error("", e);
             res.code = Code.EXCEPTION;

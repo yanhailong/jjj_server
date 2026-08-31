@@ -321,6 +321,8 @@ public enum AddType {
     SIM_SPECIAL_GUEST_REFRESH(1822),
     //特殊游客购买
     SIM_SPECIAL_GUEST_BUY(1824),
+    //在线收益领取及钻石消耗
+    SIM_ONLINE_REWARD(1825),
 
     //创建联盟
     ALLIANCE_CREATE(2001),

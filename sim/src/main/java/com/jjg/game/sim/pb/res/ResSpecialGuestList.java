@@ -14,10 +14,14 @@ import java.util.List;
 @ProtoDesc("获取特殊游客列表返回")
 public class ResSpecialGuestList extends AbstractResponse {
     public List<SpecialGuestInfo> specialGuestList;
-    @ProtoDesc("今日已手动刷新次数")
+    @ProtoDesc("当前时段已手动刷新次数")
     public int refreshCount;
     @ProtoDesc("下一次手动刷新消耗")
     public ItemInfo nextRefreshCost;
+    @ProtoDesc("付费游客下次定时刷新时间，毫秒时间戳，0表示不按时段刷新")
+    public long nextRefreshTime;
+    @ProtoDesc("广告游客下次定时刷新时间，毫秒时间戳，0表示不按时段刷新")
+    public long adNextRefreshTime;
 
     public ResSpecialGuestList(int code) {
         super(code);

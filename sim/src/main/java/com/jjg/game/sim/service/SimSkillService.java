@@ -234,19 +234,12 @@ public class SimSkillService extends AbstractSkillService {
                 //扣除研究点 (研究点已按 itemId 存于背包, 先校验再扣除, 不足整体失败)
                 Map<Integer, Long> costMap = new HashMap<>();
                 for (Map.Entry<Integer, Integer> en : newLevelCfg.getResearchPoints().entrySet()) {
-                    if (en.getKey() == null || !canUseResearchPoint(skillData.getGameType(), en.getKey())) {
-                        log.warn("升级技能失败，研究点道具与游戏不匹配 playerId={},gameType={},propId={},itemId={}",
-                                skillData.getPlayerId(), skillData.getGameType(), skillPropId, en.getKey());
-                        res.code = Code.PARAM_ERROR;
-                        ctx.send(res);
-                        return;
-                    }
                     if (en.getValue() != null && en.getValue() > 0) {
                         costMap.put(en.getKey(), en.getValue().longValue());
                     }
                 }
                 if (!playerPackService.removeItems(ctx.getPlayer(), costMap, AddType.SIM_SKILL_UPGRADE, "skillUpgrade:" + skillPropId).success()) {
-                    log.warn("升级技能失败，研究点不足 playerId={},propId={},newLevelCfgId={}", skillData.getPlayerId(), skillPropId, newLevelCfg.getId());
+                    log.warn("升级技能失败，道具不足 playerId={},propId={},newLevelCfgId={}", skillData.getPlayerId(), skillPropId, newLevelCfg.getId());
                     res.code = Code.NOT_ENOUGH;
                     ctx.send(res);
                     return;

@@ -281,6 +281,12 @@ public interface SimConstant {
         //成就任务列表
         int REQ_SIM_ACHIEVEMENT_TASK_LIST = BASE_MSG_PREFIX | 0x8C;
         int RES_SIM_ACHIEVEMENT_TASK_LIST = BASE_MSG_PREFIX | 0x8D;
+
+        //在线收益
+        int REQ_SIM_ONLINE_REWARD = BASE_MSG_PREFIX | 0x8E;
+        int RES_SIM_ONLINE_REWARD = BASE_MSG_PREFIX | 0x8F;
+        int REQ_SIM_CLAIM_ONLINE_REWARD = BASE_MSG_PREFIX | 0x90;
+        int RES_SIM_CLAIM_ONLINE_REWARD = BASE_MSG_PREFIX | 0x91;
     }
 
     interface SpecialGuest {
@@ -436,6 +442,14 @@ public interface SimConstant {
         int GEN_GUEST_GUIDE = 300;
         //游客（品质刷新）：知名度预期上限值
         int GUEST_AWARENESS_MAX = 301;
+        //在线收益: 视频每日次数、收益小时数、CD分钟数
+        int ONLINE_REWARD_AD_LIMIT = 303;
+        int ONLINE_REWARD_AD_HOURS = 304;
+        int ONLINE_REWARD_AD_CD = 305;
+        //在线收益: 钻石每日次数、收益小时数、消耗(value=道具ID_第1次数量,第2次数量,...)
+        int ONLINE_REWARD_DIAMOND_LIMIT = 306;
+        int ONLINE_REWARD_DIAMOND_HOURS = 307;
+        int ONLINE_REWARD_DIAMOND_COST = 308;
     }
 
     /**
