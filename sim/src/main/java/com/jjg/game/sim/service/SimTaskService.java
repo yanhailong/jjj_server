@@ -543,7 +543,8 @@ public class SimTaskService implements IRedDotService {
             ConditionUpdate update = def.condition().evaluate(event);
             boolean relevant = update.matched()
                     || (def.condition().spec().id() == PlayerStatService.FREE_MODE
-                    && event instanceof GameConditionEvent);
+                    && event instanceof GameConditionEvent gameEvent
+                    && gameEvent.matchesGame(def.condition().spec().parameter(0)));
             if (!relevant) {
                 return;
             }

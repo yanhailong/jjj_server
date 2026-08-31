@@ -91,10 +91,10 @@ public class SlotsRPCLinkManager {
         ensureSpinId(statInfo);
         if (statInfo != null) {
             long playerId = playerGameData.getPlayerId();
-            playerStatService.recordBigShow(playerId, statInfo.getBigShowId());
-            playerStatService.recordJackpots(playerId, statInfo.getJackpotCounts());
+            playerStatService.recordBigShow(playerId, gameType, statInfo.getBigShowId());
+            playerStatService.recordJackpots(playerId, gameType, statInfo.getJackpotCounts());
             if (statInfo.isTriggerFree()) {
-                playerStatService.recordFreeMode(playerId);
+                playerStatService.recordFreeMode(playerId, gameType);
             }
             int enterType = playerGameData.getEnterType();
             if (enterType == EnterGameType.NORMAL.getValue()) {

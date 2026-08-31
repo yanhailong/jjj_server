@@ -549,7 +549,7 @@ public class SimConfigCacheService implements ConfigExcelChangeListener {
     private void loadPropConfig() {
         Map<Integer, List<PropCfg>> tmpMap = new HashMap<>();
         for (PropCfg cfg : GameDataManager.getPropCfgList()) {
-            int gameType = cfg.getType() == 1 ? 0 : cfg.getGameType();
+            int gameType = cfg.getSkillTypeId() == 1 ? 0 : cfg.getGameType();
             tmpMap.computeIfAbsent(gameType, k -> new ArrayList<>()).add(cfg);
         }
         this.propCfgMap = tmpMap;

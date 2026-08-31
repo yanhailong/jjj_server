@@ -63,7 +63,7 @@ public abstract class AbstractSkillService implements ConfigExcelChangeListener 
     }
 
     protected int skillGameType(PropCfg cfg) {
-        return cfg.getType() == GLOBAL_SKILL_TYPE ? GLOBAL_GAME_TYPE : cfg.getGameType();
+        return cfg.getSkillTypeId() == GLOBAL_SKILL_TYPE ? GLOBAL_GAME_TYPE : cfg.getGameType();
     }
 
     public SimSkillsData getSkillDataByGameType(long playerId, int gameType) {
