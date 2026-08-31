@@ -15,6 +15,31 @@ import static org.junit.jupiter.api.Assertions.*;
 import static org.mockito.Mockito.*;
 
 class SimBuildingRedDotTest {
+    @Test void skillRedDotUsesLatestConfiguredCostWithoutResearchPointTypeRestriction() {
+        SimSkillService service = spy(new SimSkillService());
+        SimPlayerContext ctx = new SimPlayerContext();
+        SimSkillsData skillData = new SimSkillsData();
+        skillData.setGameType(10); skillData.changeSkillLevel(201, 1);
+        ctx.getSkillsDataMap().put(10, skillData);
+        BuildingData building = new BuildingData(); building.setLevel(2);
+        SimCasinoData casino = new SimCasinoData(); casino.setBuildingData(Map.of(101, building));
+        ctx.setCurrentCasino(casino);
+        SimConfigCacheService config = mock(SimConfigCacheService.class);
+        BuildingAreaTableCfg area = mock(BuildingAreaTableCfg.class); when(area.getId()).thenReturn(101);
+        when(config.getBuildingAreaTableCfgByGameType(10)).thenReturn(area);
+        ReflectionTestUtils.setField(service, "simConfigCacheService", config);
+        var next = mock(com.jjg.game.sampledata.bean.ResearchSkillsCfg.class);
+        when(next.getResearchPoints()).thenReturn(Map.of(9001, 4));
+        doReturn(next).when(service).getResearchSkillsCfg(10, 201, 2);
+        var prop = mock(com.jjg.game.sampledata.bean.PropCfg.class);
+        when(prop.getSkillTypeId()).thenReturn(2); when(prop.getGameType()).thenReturn(10);
+        try (var configs = mockStatic(GameDataManager.class)) {
+            configs.when(() -> GameDataManager.getPropCfg(201)).thenReturn(prop);
+            assertEquals(Map.of(9001, 4L), service.redDotUpgradeCost(ctx, 10, 201));
+        }
+        assertEquals(1, skillData.findSkilLevelByPropId(201).getLevel());
+    }
+
     @Test void buildingAndSkillAreDeduplicatedAndPackSnapshotIsCached() {
         SimBuildingRedDotService service = new SimBuildingRedDotService();
         SimPlayerContext ctx = new SimPlayerContext();

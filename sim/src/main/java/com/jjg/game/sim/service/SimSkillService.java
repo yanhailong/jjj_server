@@ -64,7 +64,8 @@ public class SimSkillService extends AbstractSkillService {
         Map<Integer, Long> cost = new HashMap<>();
         if (next.getResearchPoints() != null) {
             for (Map.Entry<Integer, Integer> entry : next.getResearchPoints().entrySet()) {
-                if (entry.getKey() == null || !canUseResearchPoint(gameType, entry.getKey())) return null;
+                // 与远端最新升级接口一致：消耗由ResearchSkills配置决定，不再限定研究点类型。
+                if (entry.getKey() == null) return null;
                 if (entry.getValue() != null && entry.getValue() > 0) cost.put(entry.getKey(), entry.getValue().longValue());
             }
         }
