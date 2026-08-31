@@ -52,8 +52,6 @@ public class SimEmployeeService implements SimTaskStateReporter {
     @Autowired
     private AllianceEventService allianceEventService;
     @Autowired
-    private SimMedalService medalService;
-    @Autowired
     private SimGuideConfigService guideConfigService;
     //懒加载打破与 SimTaskService 的循环依赖 (对方持有本服务作状态补报口)
     @Autowired
@@ -427,12 +425,12 @@ public class SimEmployeeService implements SimTaskStateReporter {
     }
 
     /**
-     * 汇总玩家加成固定值之和 (雇员等级加成 + 勋章品质加成) 到 bonusesMap; 单位千分比。
+     * 汇总所有已解锁雇员的等级百分比加成到 bonusesMap；单位千分比。
      *
      * @param ctx        玩家上下文
      * @param bonusesMap 加成汇总输出
      */
-    public void computeTypeBonusFixed(SimPlayerContext ctx, Map<BuildingOutputType, Integer> bonusesMap) {
+    public void computeEmployeeLevelBonus(SimPlayerContext ctx, Map<BuildingOutputType, Integer> bonusesMap) {
         //所有已解锁同职业雇员的等级加成
         for (SimEmployeeData emp : ctx.getEmployeeMap().values()) {
             EmployeeLevelCfg levelCfg = getLevelCfg(emp.getEmployeeId(), emp.getLevel());
@@ -441,13 +439,11 @@ public class SimEmployeeService implements SimTaskStateReporter {
             }
             sumBouns(bonusesMap, levelCfg.getAttributeValue());
         }
-        //勋章品质加成
-        medalService.mergeMedalBonus(ctx, bonusesMap);
     }
 
     /**
      * 单个雇员的普通加成 (等级加成; 单位千分比), 不含勋章, key 保留 MANAGE_ARRT(11) 不拆。
-     * 与 {@link #computeTypeBonusFixed} 的雇员聚合口径同源, 供雇员列表逐雇员返回。
+     * 与 {@link #computeEmployeeLevelBonus} 的雇员聚合口径同源, 供雇员列表逐雇员返回。
      */
     private Map<BuildingOutputType, Integer> employeeNormalBonus(SimEmployeeData emp) {
         EmployeeLevelCfg levelCfg = getLevelCfg(emp.getEmployeeId(), emp.getLevel());

@@ -22,12 +22,8 @@ public class ResSimTaskList extends AbstractResponse {
     public Task mainTask;
     @ProtoDesc("主线是否全部完成 (任务预告状态)")
     public boolean mainFinished;
-    @ProtoDesc("成就当前节点列表 (每个成就组一条)")
+    @ProtoDesc("指定徽章下的成就任务列表，按任务配置id升序")
     public List<Task> achievementTasks;
-    @ProtoDesc("已激活的成就勋章配置id")
-    public List<Integer> activatedMedalIds;
-    @ProtoDesc("当前展示的成就勋章配置id, 顺序即展示顺序")
-    public List<Integer> displayedMedalIds;
 
     public ResSimTaskList(int code) {
         super(code);

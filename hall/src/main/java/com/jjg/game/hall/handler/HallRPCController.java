@@ -196,7 +196,7 @@ public class HallRPCController extends CoreRPCController implements GmToHallBrid
         List<Integer> coreTaskIds = null;
         List<Integer> simTaskIds = null;
         if (operationType == BackendGMCmd.TaskOperation.FINISH_ALL) {
-            // null 分别表示完成 core 全部任务，以及 sim 主线/各成就组末节点。
+            // null 分别表示完成 core 全部任务，以及 sim 主线末节点/全部独立成就任务。
         } else if (operationType == BackendGMCmd.TaskOperation.FINISH_SPECIFIED) {
             if (taskIds == null || taskIds.isEmpty()) {
                 return Code.PARAM_ERROR;

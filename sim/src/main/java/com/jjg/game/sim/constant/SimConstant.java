@@ -145,10 +145,6 @@ public interface SimConstant {
         //通知任务更新 (进度/状态变更)
         int NOTIFY_SIM_TASK_UPDATE = BASE_MSG_PREFIX | 0x42;
 
-        //设置经营信息展示的成就勋章
-        int REQ_SET_DISPLAYED_MEDALS = BASE_MSG_PREFIX | 0x43;
-        int RES_SET_DISPLAYED_MEDALS = BASE_MSG_PREFIX | 0x44;
-
         //拜访赌场快照/随机切换
         int REQ_VISIT_CASINO = BASE_MSG_PREFIX | 0x45;
         int RES_VISIT_CASINO = BASE_MSG_PREFIX | 0x46;

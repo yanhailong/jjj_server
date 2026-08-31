@@ -751,7 +751,7 @@ public class SimBuildingService implements SimPlayerTickListener, SimTaskStateRe
 
         //获取雇员加成
         Map<BuildingOutputType, Integer> bonusesMap = new HashMap<>();
-        employeeService.computeTypeBonusFixed(ctx, bonusesMap);
+        employeeService.computeEmployeeLevelBonus(ctx, bonusesMap);
 
         Map<BuildingOutputType, Long> total = new HashMap<>();
         for (BuildingData building : casino.getBuildingData().values()) {
@@ -812,7 +812,7 @@ public class SimBuildingService implements SimPlayerTickListener, SimTaskStateRe
             return Collections.emptyMap();
         }
         Map<BuildingOutputType, Integer> bonusesMap = new HashMap<>();
-        employeeService.computeTypeBonusFixed(ctx, bonusesMap);
+        employeeService.computeEmployeeLevelBonus(ctx, bonusesMap);
         Map<BuildingOutputType, Long> actual = applyBuildingBonus(
                 ctx, base, areaCfg.getEmployeeProfile(), bonusesMap);
 
@@ -858,7 +858,7 @@ public class SimBuildingService implements SimPlayerTickListener, SimTaskStateRe
     /**
      * 为单个建筑的基础产出叠加 (普通雇员 + 主管) 加成; 按产出类型分别计算:
      * 实际产出 = 基础 + 基础 * 百分比 / 1000 + 固定值。
-     * 百分比 = 雇员等级加成 + 主管技能 Modifier; 固定值 = 主管技能 Buff。
+     * 百分比 = 雇员等级加成 + 主管技能 Modifier；固定值 = 主管技能 Buff + 成就徽章 BuffId。
      */
     private Map<BuildingOutputType, Long> applyBuildingBonus(SimPlayerContext ctx, Map<BuildingOutputType, Long> base, int employeeProfile, Map<BuildingOutputType, Integer> bonusesMap) {
         if (base == null || base.isEmpty()) {
@@ -871,7 +871,8 @@ public class SimBuildingService implements SimPlayerTickListener, SimTaskStateRe
             BuildingOutputType group = en.getKey().bonusGroup();
             long baseVal = en.getValue();
             int percent = bonusesMap.getOrDefault(group, 0) + manage.modifier().getOrDefault(group, 0);
-            int fixed = manage.buff().getOrDefault(group, 0);
+            int fixed = manage.buff().getOrDefault(group, 0)
+                    + medalService.getFixedBonus(ctx, en.getKey());
             result.put(en.getKey(), baseVal + baseVal * percent / SimConstant.Common.EMPLOYEE_BONUS_DIVISOR + fixed);
         }
         return result;
@@ -891,7 +892,7 @@ public class SimBuildingService implements SimPlayerTickListener, SimTaskStateRe
             return result;
         }
         Map<BuildingOutputType, Integer> bonusesMap = new HashMap<>();
-        employeeService.computeTypeBonusFixed(ctx, bonusesMap);
+        employeeService.computeEmployeeLevelBonus(ctx, bonusesMap);
 
         for (BuildingData building : casino.getBuildingData().values()) {
             BuildingAreaTableCfg areaCfg = GameDataManager.getBuildingAreaTableCfg(building.getId());
@@ -994,7 +995,7 @@ public class SimBuildingService implements SimPlayerTickListener, SimTaskStateRe
         }
         BuildingAreaTableCfg areaCfg = GameDataManager.getBuildingAreaTableCfg(dept.getId());
         Map<BuildingOutputType, Integer> bonusesMap = new HashMap<>();
-        employeeService.computeTypeBonusFixed(ctx, bonusesMap);
+        employeeService.computeEmployeeLevelBonus(ctx, bonusesMap);
         Map<BuildingOutputType, Long> actual = applyBuildingBonus(ctx, base, areaCfg.getEmployeeProfile(), bonusesMap);
         return actual.getOrDefault(outputType, 0L);
     }
@@ -1035,7 +1036,7 @@ public class SimBuildingService implements SimPlayerTickListener, SimTaskStateRe
         }
         //所有已解锁雇员的等级加成 (按类型汇总)
         Map<BuildingOutputType, Integer> bonusesMap = new HashMap<>();
-        employeeService.computeTypeBonusFixed(ctx, bonusesMap);
+        employeeService.computeEmployeeLevelBonus(ctx, bonusesMap);
         List<KVInfo> list = new ArrayList<>(base.size());
         for (Map.Entry<BuildingOutputType, Long> en : base.entrySet()) {
             int bonus = bonusesMap.getOrDefault(en.getKey().bonusGroup(), 0);
@@ -1235,7 +1236,7 @@ public class SimBuildingService implements SimPlayerTickListener, SimTaskStateRe
     }
 
     /**
-     * 计算离线收益最终产出 (入账/展示统一口径): 看广告则按广告倍数放大并叠加广告金币加成, 否则原样。
+     * 计算离线收益最终产出 (入账/展示统一口径): 看广告则按广告倍数放大并叠加广告金币固定值, 否则原样。
      */
     private Map<BuildingOutputType, Long> computeFinalReward(SimPlayerContext ctx, SimOfflineReward reward, boolean watchAd) {
         double multiplier = 1.0;
@@ -1250,18 +1251,18 @@ public class SimBuildingService implements SimPlayerTickListener, SimTaskStateRe
     }
 
     /**
-     * 看广告领取离线收益时, 对金币部分叠加勋章-广告金币收益加成 (千分比, condition 12408)。
+     * 看广告领取离线收益时，对金币部分叠加徽章配置的 WATCH_ADS_ADD_GOLD 固定值。
      */
     private void applyAdGoldBonus(SimPlayerContext ctx, Map<BuildingOutputType, Long> reward) {
-        int permil = medalService.getAdGoldBonusPermil(ctx);
-        if (permil <= 0) {
+        int fixed = medalService.getAdGoldBonusFixed(ctx);
+        if (fixed == 0) {
             return;
         }
         Long gold = reward.get(BuildingOutputType.GOLD);
         if (gold == null || gold <= 0) {
             return;
         }
-        reward.put(BuildingOutputType.GOLD, gold + gold * permil / SimConstant.Common.EMPLOYEE_BONUS_DIVISOR);
+        reward.put(BuildingOutputType.GOLD, gold + fixed);
     }
 
     /**

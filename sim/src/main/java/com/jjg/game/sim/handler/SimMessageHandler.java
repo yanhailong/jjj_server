@@ -686,11 +686,11 @@ public class SimMessageHandler implements GmListener {
     //--------------------------任务 (主线/成就) begin--------------------------
 
     /**
-     * 获取任务列表 (主线 + 成就)
+     * 获取主线及指定徽章的成就任务列表
      */
     @Command(SimConstant.MsgBean.REQ_SIM_TASK_LIST)
     public void reqSimTaskList(PlayerController playerController, ReqSimTaskList req) {
-        execute(playerController, ctx -> ctx.send(taskService.buildTaskList(ctx)), ReqSimTaskList.class);
+        execute(playerController, ctx -> ctx.send(taskService.buildTaskList(ctx, req.badgeId)), ReqSimTaskList.class);
     }
 
     /**
@@ -730,15 +730,6 @@ public class SimMessageHandler implements GmListener {
     }
 
     /**
-     * 设置经营信息中展示的成就勋章
-     */
-    @Command(SimConstant.MsgBean.REQ_SET_DISPLAYED_MEDALS)
-    public void reqSetDisplayedMedals(PlayerController playerController, ReqSetDisplayedMedals req) {
-        execute(playerController, ctx -> ctx.send(taskService.setDisplayedMedals(ctx, req.medalIds)),
-                ReqSetDisplayedMedals.class);
-    }
-
-    /**
      * 成就勋章面板 (达成统计/全服排行/品质统计/加成档)
      */
     @Command(SimConstant.MsgBean.REQ_MEDAL_PANEL)
@@ -747,11 +738,11 @@ public class SimMessageHandler implements GmListener {
     }
 
     /**
-     * 修改展示中的勋章
+     * 修改场景与个人简介共用的展示徽章
      */
     @Command(SimConstant.MsgBean.REQ_CHANGE_SHOW_MEDAL)
-    public void reqChangeShowMwdal(PlayerController playerController, ReqChangeShowMedal req) {
-        execute(playerController, ctx -> ctx.send(medalService.changeShowMedal(ctx, req.newMedalId)),
+    public void reqChangeShowMedal(PlayerController playerController, ReqChangeShowMedal req) {
+        execute(playerController, ctx -> ctx.send(medalService.changeShowMedal(ctx, req.medalIds)),
                 ReqChangeShowMedal.class);
     }
 

@@ -45,7 +45,7 @@ public class SimTaskDao extends MongoBaseDao<SimTaskData, Long> {
      */
     public Map<Integer, Integer> findClaimableCounts(long playerId) {
         Document achievements = new Document("$objectToArray",
-                new Document("$ifNull", List.of("$achievements", new Document())));
+                new Document("$ifNull", List.of("$achievementTasks", new Document())));
         Document claimableAchievements = new Document("$filter", new Document("input", achievements)
                 .append("as", "task")
                 .append("cond", new Document("$eq", List.of("$$task.v.status",

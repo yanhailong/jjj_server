@@ -496,15 +496,16 @@ public class SimManager {
         }
 
         ctx.setSimBaseData(baseData);
-        simMedalService.refreshMedalBonusCache(ctx);
         //加载技能 (须在加载场景数据之前: initUnlock 依赖已入内存的技能等级)
         skillService.loadSkillsData(ctx);
         //加载场景数据
         simCasinoService.loadCasinoData(ctx, baseData);
         //加载雇员数据
         employeeService.loadEmployeeData(ctx);
-        //加载主线/成就任务数据 (首登接取主线首节点+各成就组首节点)
+        //加载主线/成就任务数据 (首登接取主线首节点+全部独立成就任务)
         simTaskService.initTaskData(ctx);
+        //徽章档位由已完成成就任务决定，必须在任务数据就绪后刷新
+        simMedalService.refreshMedalBonusCache(ctx);
         //加载多人协作任务数据 (每日池懒重置)
         simCoopTaskService.initData(ctx);
         SeasonPlayerData seasonData = seasonPlayerDao.findById(playerId).orElse(null);

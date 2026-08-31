@@ -19,6 +19,16 @@ public class BaseRoomCfg extends BaseCfgBean {
   /** 配置表工作薄名 */
   public static final String SHEET_NAME = "BaseRoom";
 
+  /** 机器人金币增长速率 */
+  protected int GrowthRate;
+  /** 间隔时间 */
+  protected List<Integer> Interval;
+  /** 机器人加入房间间隔（毫秒） */
+  protected List<Integer> IntervalTime;
+  /** 下注金额 */
+  protected Map<Integer,Integer> RobotBet;
+  /** 中奖倍数 */
+  protected Map<Integer,Integer> WinMultiplier;
   /** 实际押注抽水入奖池万分比 */
   protected int commissionProp;
   /** 默认押分 */
@@ -41,8 +51,35 @@ public class BaseRoomCfg extends BaseCfgBean {
   protected List<Integer> minBankerAmount;
   /** 多语言表ID */
   protected int nameid;
+  /** 机器人人数（时间段:机器人人数|……） */
+  protected List<List<Integer>> robot_num;
   /** 倍场名称 */
   protected int roomName;
+
+  /** 返回机器人金币增长速率 */
+  public int getGrowthRate() {
+    return GrowthRate;
+  }
+
+  /** 返回间隔时间 */
+  public List<Integer> getInterval() {
+    return Interval;
+  }
+
+  /** 返回机器人加入房间间隔（毫秒） */
+  public List<Integer> getIntervalTime() {
+    return IntervalTime;
+  }
+
+  /** 返回下注金额 */
+  public Map<Integer,Integer> getRobotBet() {
+    return RobotBet;
+  }
+
+  /** 返回中奖倍数 */
+  public Map<Integer,Integer> getWinMultiplier() {
+    return WinMultiplier;
+  }
 
   /** 返回实际押注抽水入奖池万分比 */
   public int getCommissionProp() {
@@ -97,6 +134,11 @@ public class BaseRoomCfg extends BaseCfgBean {
   /** 返回多语言表ID */
   public int getNameid() {
     return nameid;
+  }
+
+  /** 返回机器人人数（时间段:机器人人数|……） */
+  public List<List<Integer>> getRobot_num() {
+    return robot_num;
   }
 
   /** 返回倍场名称 */

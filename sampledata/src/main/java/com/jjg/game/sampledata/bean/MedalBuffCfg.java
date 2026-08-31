@@ -29,6 +29,8 @@ public class MedalBuffCfg extends BaseCfgBean {
   protected int MedalType;
   /** 建筑ID */
   protected int buildID;
+  /** 徽章名称 */
+  protected int nameid;
 
   /** 返回加成效果 */
   public Map<Integer,Integer> getBuffId() {
@@ -53,6 +55,11 @@ public class MedalBuffCfg extends BaseCfgBean {
   /** 返回建筑ID */
   public int getBuildID() {
     return buildID;
+  }
+
+  /** 返回徽章名称 */
+  public int getNameid() {
+    return nameid;
   }
 
   @Override

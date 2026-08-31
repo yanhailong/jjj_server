@@ -600,7 +600,7 @@ public class SimCasinoService implements SimTaskStateReporter {
 
         //获取雇员加成
         Map<BuildingOutputType, Integer> bonusesMap = new HashMap<>();
-        employeeService.computeTypeBonusFixed(ctx, bonusesMap);
+        employeeService.computeEmployeeLevelBonus(ctx, bonusesMap);
         //运营部产出知名度: 加成 = 管理区集合体(MANAGE_ARRT, 雇员/主管) + 知名度专项(AWARENESS, 勋章)
         int bouns = bonusesMap.getOrDefault(BuildingOutputType.MANAGE_ARRT, 0)
                 + bonusesMap.getOrDefault(BuildingOutputType.AWARENESS, 0);

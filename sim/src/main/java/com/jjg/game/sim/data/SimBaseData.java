@@ -51,8 +51,6 @@ public class SimBaseData extends AbstractData {
     private Map<Integer, SlotGameStatsData> slotStatsMap;
     //所有的激活的勋章
     private Set<Integer> allMedalIds;
-    //展示的勋章
-    private List<Integer> showMedalIds;
     //当前广告特殊游客配置ID
     private List<Integer> specialGuestAdCfgIds;
     //广告特殊游客列表刷新日 (yyyyMMdd)，广告展示和限制为玩家全局
@@ -354,14 +352,6 @@ public class SimBaseData extends AbstractData {
 
     public void setAllMedalIds(Set<Integer> allMedalIds) {
         this.allMedalIds = allMedalIds == null ? null : new HashSet<>(allMedalIds);
-    }
-
-    public List<Integer> getShowMedalIds() {
-        return showMedalIds;
-    }
-
-    public void setShowMedalIds(List<Integer> showMedalIds) {
-        this.showMedalIds = showMedalIds;
     }
 
     public void activeMedalId(int id) {

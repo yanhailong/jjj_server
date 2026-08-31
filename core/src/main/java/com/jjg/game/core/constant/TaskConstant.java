@@ -22,9 +22,9 @@ public interface TaskConstant {
          */
         int MAIN_LINE = 2;
         /**
-         * 成就任务 (sim 分组阶梯链, 不由 core 管理)
+         * 成就任务 (sim 独立任务, 通过 BadgeID 归属徽章, 不由 core 管理)
          */
-        int ACHIEVEMENT = 3;
+        int ACHIEVEMENT = 7;
         /**
          * 多人协作任务 (sim 每日任务池 + slots 协作房间, 不由 core 管理)
          */

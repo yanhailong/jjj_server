@@ -13,9 +13,9 @@ import java.util.List;
  * @date 2026/6/1
  */
 @ProtobufMessage(messageType = MessageConst.MessageTypeDef.SIM_GAME, cmd = SimConstant.MsgBean.RES_CHANGE_SHOW_MEDAL, resp = true)
-@ProtoDesc("修改展示的勋章返回")
+@ProtoDesc("修改展示的成就徽章返回")
 public class ResChangeShowMedal extends AbstractResponse {
-    @ProtoDesc("展示中的勋章")
+    @ProtoDesc("展示中的徽章ID列表(MedalBuff.MedalType)")
     public List<Integer> showMedalIds;
 
     public ResChangeShowMedal(int code) {

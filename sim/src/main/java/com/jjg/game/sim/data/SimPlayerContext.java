@@ -5,6 +5,7 @@ import com.jjg.game.core.data.CommonResult;
 import com.jjg.game.core.data.Player;
 import com.jjg.game.core.data.PlayerController;
 import com.jjg.game.season.data.SeasonPlayerData;
+import com.jjg.game.sim.constant.BuildingOutputType;
 
 import java.util.*;
 
@@ -36,8 +37,8 @@ public class SimPlayerContext {
     private SimCoopTaskData simCoopTaskData;
     //赛季玩法玩家聚合数据
     private SeasonPlayerData seasonPlayerData;
-    //勋章品质加成缓存 (condition表id -> 千分比加成值; 登录/成就领奖后刷新; 内存态不落库, 供收益计算零IO读取)
-    private Map<Integer, Integer> medalBuffMap = new HashMap<>();
+    //成就徽章固定值加成缓存 (BuildingOutputType -> 固定值; 登录/成就完成后刷新; 内存态不落库)
+    private Map<BuildingOutputType, Integer> medalBuffMap = new EnumMap<>(BuildingOutputType.class);
 
     //近期已处理的旋转 RPC 幂等 id (内存态; 防 slots 超时重试双计, 同玩家 RPC 串行执行无需加锁)
     private final LinkedHashMap<Long, CommonResult<SlotsSpinResult>> recentSpinResults = new LinkedHashMap<>();
@@ -214,12 +215,15 @@ public class SimPlayerContext {
         this.seasonPlayerData = seasonPlayerData;
     }
 
-    public Map<Integer, Integer> getMedalBuffMap() {
+    public Map<BuildingOutputType, Integer> getMedalBuffMap() {
         return medalBuffMap;
     }
 
-    public void setMedalBuffMap(Map<Integer, Integer> medalBuffMap) {
-        this.medalBuffMap = medalBuffMap == null ? new HashMap<>() : medalBuffMap;
+    public void setMedalBuffMap(Map<BuildingOutputType, Integer> medalBuffMap) {
+        this.medalBuffMap = new EnumMap<>(BuildingOutputType.class);
+        if (medalBuffMap != null) {
+            this.medalBuffMap.putAll(medalBuffMap);
+        }
     }
 
     /** 返回近期同一旋转 RPC 已提交的结果；spinId=0 不参与幂等。 */

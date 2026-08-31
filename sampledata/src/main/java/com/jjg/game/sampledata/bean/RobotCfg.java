@@ -19,6 +19,8 @@ public class RobotCfg extends BaseCfgBean {
   /** 配置表工作薄名 */
   public static final String SHEET_NAME = "Robot";
 
+  /** slot游戏退出房间 */
+  protected List<Integer> LeaveRoom;
   /** 补充金币 */
   protected List<List<Long>> addMoney;
   /** 补充贝币 */
@@ -53,6 +55,11 @@ public class RobotCfg extends BaseCfgBean {
   protected List<List<Integer>> southRobotID;
   /** VIP等级 */
   protected int vipLevel;
+
+  /** 返回slot游戏退出房间 */
+  public List<Integer> getLeaveRoom() {
+    return LeaveRoom;
+  }
 
   /** 返回补充金币 */
   public List<List<Long>> getAddMoney() {

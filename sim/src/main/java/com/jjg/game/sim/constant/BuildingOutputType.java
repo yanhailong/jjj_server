@@ -83,6 +83,9 @@ public enum BuildingOutputType {
             case 12 -> {
                 return CASINO_LEVEL_EXP;
             }
+            case 13 -> {
+                return WATCH_ADS_ADD_GOLD;
+            }
             default -> {
                 return null;
             }
