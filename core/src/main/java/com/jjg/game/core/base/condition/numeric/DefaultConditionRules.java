@@ -161,13 +161,15 @@ final class DefaultConditionRules {
         //12251-12276 与上面的接取型条件判定口径一致，进度由玩家统计提供而非任务计数器。
         rules.add(game(12251, 3, 3, 2, ProgressMode.ADD,
                 (s, e) -> e.matchesGame(s.parameter(0)), (s, e) -> e.itemGain(s.intParameter(1))));
-        rules.add(game(12252, 2, 2, 1, ProgressMode.ADD,
-                (s, e) -> optional(s.parameter(0), e.awardType()), (s, e) -> 1));
-        rules.add(game(12253, 2, 2, 1, ProgressMode.ADD,
-                (s, e) -> e.jackpotCount(s.intParameter(0)) > 0,
-                (s, e) -> e.jackpotCount(s.intParameter(0))));
-        rules.add(game(12254, 1, 1, 0, ProgressMode.ADD,
-                (s, e) -> e.freeGameTriggers() > 0, (s, e) -> e.freeGameTriggers()));
+        rules.add(game(12252, 3, 3, 2, ProgressMode.ADD,
+                (s, e) -> e.matchesGame(s.parameter(0)) && optional(s.parameter(1), e.awardType()),
+                (s, e) -> 1));
+        rules.add(game(12253, 3, 3, 2, ProgressMode.ADD,
+                (s, e) -> e.matchesGame(s.parameter(0)) && e.jackpotCount(s.intParameter(1)) > 0,
+                (s, e) -> e.jackpotCount(s.intParameter(1))));
+        rules.add(game(12254, 2, 2, 1, ProgressMode.ADD,
+                (s, e) -> e.matchesGame(s.parameter(0)) && e.freeGameTriggers() > 0,
+                (s, e) -> e.freeGameTriggers()));
         rules.add(action(12255, 2, 2, 1, ProgressMode.ADD, ActionConditionEvent.Type.BUILDING_UPGRADE,
                 (s, e) -> e.matchesSubject(s.parameter(0)), (s, e) -> positiveCount(e)));
         rules.add(action(12256, 2, 2, 0, ProgressMode.SET, ActionConditionEvent.Type.BUILDING_COUNT,

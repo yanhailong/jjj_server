@@ -108,7 +108,7 @@ public class SimPlayerGameDao extends MongoBaseDao<SimBaseData, Long> {
     public SimBaseData findSpecialGuestRedDotData(long playerId) {
         Query query = Query.query(Criteria.where("_id").is(playerId));
         query.fields().include("playerId", "currentCasinoId", "specialGuestAdCfgIds",
-                "specialGuestAdRefreshDay", "specialGuestAdCdEndTime");
+                "specialGuestAdRefreshDay", "specialGuestAdCdEndTime", "specialGuestAdNextRefreshTime");
         return mongoTemplate.findOne(query, SimBaseData.class);
     }
 

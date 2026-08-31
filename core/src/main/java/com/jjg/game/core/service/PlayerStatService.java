@@ -83,14 +83,17 @@ public class PlayerStatService {
         });
     }
 
-    public void recordBigShow(long playerId, int bigShowId) {
+    public void recordBigShow(long playerId, int gameType, int bigShowId) {
         if (bigShowId <= 0) {
             return;
         }
-        incrementDimensionPlayer(BIG_SHOW, bigShowId, playerId, 1);
+        incrementDimensionsPlayer(BIG_SHOW, gameType, bigShowId, playerId, 1);
+        if (gameType != 0) {
+            incrementDimensionsPlayer(BIG_SHOW, 0, bigShowId, playerId, 1);
+        }
     }
 
-    public void recordJackpots(long playerId, Map<Integer, Long> jackpotCounts) {
+    public void recordJackpots(long playerId, int gameType, Map<Integer, Long> jackpotCounts) {
         if (jackpotCounts == null || jackpotCounts.isEmpty()) {
             return;
         }
@@ -98,12 +101,18 @@ public class PlayerStatService {
             if (jackpotId == null || count == null || count <= 0) {
                 return;
             }
-            incrementDimensionPlayer(JACKPOT, jackpotId, playerId, count);
+            incrementDimensionsPlayer(JACKPOT, gameType, jackpotId, playerId, count);
+            if (gameType != 0) {
+                incrementDimensionsPlayer(JACKPOT, 0, jackpotId, playerId, count);
+            }
         });
     }
 
-    public void recordFreeMode(long playerId) {
-        incrementPlayer(FREE_MODE, playerId, 1);
+    public void recordFreeMode(long playerId, int gameType) {
+        incrementDimensionPlayer(FREE_MODE, gameType, playerId, 1);
+        if (gameType != 0) {
+            incrementDimensionPlayer(FREE_MODE, 0, playerId, 1);
+        }
     }
 
     public void recordBuildingUpgrade(long playerId, int buildingId) {
@@ -202,9 +211,11 @@ public class PlayerStatService {
         return switch (conditionId) {
             case SLOT_ITEM -> getPlayerDimension(SLOT_ITEM, playerId,
                     condition.spec().intParameter(0), condition.spec().intParameter(1));
-            case BIG_SHOW -> getDimensionPlayer(BIG_SHOW, condition.spec().intParameter(0), playerId);
-            case JACKPOT -> getDimensionPlayer(JACKPOT, condition.spec().intParameter(0), playerId);
-            case FREE_MODE -> getPlayer(FREE_MODE, playerId);
+            case BIG_SHOW -> getDimensionsPlayer(BIG_SHOW, condition.spec().intParameter(0),
+                    condition.spec().intParameter(1), playerId);
+            case JACKPOT -> getDimensionsPlayer(JACKPOT, condition.spec().intParameter(0),
+                    condition.spec().intParameter(1), playerId);
+            case FREE_MODE -> getDimensionPlayer(FREE_MODE, condition.spec().intParameter(0), playerId);
             case BUILDING_UPGRADE -> getPlayerItem(BUILDING_UPGRADE, playerId,
                     condition.spec().intParameter(0));
             case AD_WATCH -> getPlayer(AD_WATCH, playerId);

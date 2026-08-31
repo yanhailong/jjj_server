@@ -41,6 +41,8 @@ public class ResSimCasinoInfo extends AbstractResponse {
     public List<CasinoUpgradeCondition> upgradeLevelConditions;
     @ProtoDesc("好友同玩断线恢复游戏类型，0表示不恢复")
     public int togetherPlayGameType;
+    @ProtoDesc("在线收益视频冷却结束时间，毫秒时间戳，0表示无冷却")
+    public long adCdEndTime;
 
     public ResSimCasinoInfo(int code) {
         super(code);

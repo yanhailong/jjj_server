@@ -65,14 +65,14 @@ public class SimCasinoDao extends MongoBaseDao<SimCasinoData, String> {
         Query query = casinoId > 0
                 ? Query.query(Criteria.where("_id").is(SimCasinoData.buildKey(playerId, casinoId)))
                 : Query.query(Criteria.where("playerId").is(playerId)).limit(1);
-        query.fields().include("playerId", "casinoId", "specialGuestRefreshDay",
+        query.fields().include("playerId", "casinoId", "specialGuestNextRefreshTime",
                 "specialGuestRefreshCount", "specialGuestItemCounts");
         SimCasinoData data = mongoTemplate.findOne(query, SimCasinoData.class);
         if (data != null || casinoId <= 0) {
             return data;
         }
         query = Query.query(Criteria.where("playerId").is(playerId)).limit(1);
-        query.fields().include("playerId", "casinoId", "specialGuestRefreshDay",
+        query.fields().include("playerId", "casinoId", "specialGuestNextRefreshTime",
                 "specialGuestRefreshCount", "specialGuestItemCounts");
         return mongoTemplate.findOne(query, SimCasinoData.class);
     }

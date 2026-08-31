@@ -78,12 +78,6 @@ public class SimSkillService extends AbstractSkillService {
         for (SimSkillsData data : simSkillsDao.findByPlayerId(ctx.playerId())) {
             ctx.getSkillsDataMap().putIfAbsent(data.getGameType(), data);
         }
-        for (PropCfg cfg : GameDataManager.getPropCfgList()) {
-            if (skillGameType(cfg) == GLOBAL_GAME_TYPE
-                    && (cfg.getSkillId() == null || cfg.getSkillId().isEmpty())) {
-                unlockInitialSkill(ctx, cfg, GLOBAL_GAME_TYPE);
-            }
-        }
     }
 
     /**
@@ -100,11 +94,13 @@ public class SimSkillService extends AbstractSkillService {
             if (cfg.getSkillId() != null && !cfg.getSkillId().isEmpty()) {
                 continue;
             }
+
             int gameType = skillGameType(cfg);
-            if (gameType == GLOBAL_GAME_TYPE || !researchGames.contains(gameType)) {
-                continue;
+            if (gameType == GLOBAL_GAME_TYPE) {
+                unlockInitialSkill(ctx, cfg, gameType);
+            } else if (researchGames.contains(gameType)) {
+                unlockInitialSkill(ctx, cfg, gameType);
             }
-            unlockInitialSkill(ctx, cfg, gameType);
         }
     }
 
@@ -122,7 +118,7 @@ public class SimSkillService extends AbstractSkillService {
             data.setGameType(gameType);
             skillsMap.put(gameType, data);
         }
-        super.changeSkillLevel(ctx,data,cfg.getId(),0);
+        super.changeSkillLevel(ctx, data, cfg.getId(), 0);
     }
 
     /**
@@ -168,20 +164,27 @@ public class SimSkillService extends AbstractSkillService {
     public void onUpgradeSkill(SimPlayerContext ctx, int gameType, int skillPropId) {
         ResSimUpgradeSkill res = new ResSimUpgradeSkill(Code.SUCCESS);
         try {
-            SimSkillsData skillData = ctx.getSkillData(gameType);
-            if (skillData == null) {
-                log.warn("升级技能失败: simSkillsData 不存在 playerId={}", ctx.playerId());
-                res.code = Code.NOT_FOUND;
-                ctx.send(res);
-                return;
-            }
             PropCfg propCfg = GameDataManager.getPropCfg(skillPropId);
             if (propCfg == null) {
-                log.warn("升级技能失败，未找到prop配置 playerId={},skillPropId={}", skillData.getPlayerId(), skillPropId);
+                log.warn("升级技能失败，未找到prop配置 playerId={},skillPropId={}", ctx.playerId(), skillPropId);
                 res.code = Code.NOT_FOUND;
                 ctx.send(res);
                 return;
             }
+            SimSkillsData skillData;
+            if (propCfg.getSkillTypeId() == 1) {
+                skillData = ctx.getSkillData(0);
+                gameType = GLOBAL_GAME_TYPE;
+            } else {
+                skillData = ctx.getSkillData(gameType);
+            }
+            if (skillData == null) {
+                log.warn("升级技能失败: simSkillsData 不存在 playerId={},gameType={},skillPropId={},propType={}", ctx.playerId(), gameType, skillPropId, propCfg.getSkillTypeId());
+                res.code = Code.NOT_FOUND;
+                ctx.send(res);
+                return;
+            }
+
             if (skillGameType(propCfg) != gameType) {
                 log.warn("升级技能失败，技能类型与请求不匹配 playerId={},propId={},gameType={}",
                         skillData.getPlayerId(), skillPropId, gameType);
@@ -254,25 +257,18 @@ public class SimSkillService extends AbstractSkillService {
                 //扣除研究点 (研究点已按 itemId 存于背包, 先校验再扣除, 不足整体失败)
                 Map<Integer, Long> costMap = new HashMap<>();
                 for (Map.Entry<Integer, Integer> en : newLevelCfg.getResearchPoints().entrySet()) {
-                    if (en.getKey() == null || !canUseResearchPoint(skillData.getGameType(), en.getKey())) {
-                        log.warn("升级技能失败，研究点道具与游戏不匹配 playerId={},gameType={},propId={},itemId={}",
-                                skillData.getPlayerId(), skillData.getGameType(), skillPropId, en.getKey());
-                        res.code = Code.PARAM_ERROR;
-                        ctx.send(res);
-                        return;
-                    }
                     if (en.getValue() != null && en.getValue() > 0) {
                         costMap.put(en.getKey(), en.getValue().longValue());
                     }
                 }
                 if (!playerPackService.removeItems(ctx.getPlayer(), costMap, AddType.SIM_SKILL_UPGRADE, "skillUpgrade:" + skillPropId).success()) {
-                    log.warn("升级技能失败，研究点不足 playerId={},propId={},newLevelCfgId={}", skillData.getPlayerId(), skillPropId, newLevelCfg.getId());
+                    log.warn("升级技能失败，道具不足 playerId={},propId={},newLevelCfgId={}", skillData.getPlayerId(), skillPropId, newLevelCfg.getId());
                     res.code = Code.NOT_ENOUGH;
                     ctx.send(res);
                     return;
                 }
             }
-            super.changeSkillLevel(ctx,skillData,skillPropId,newLevelCfg.getGrade());
+            super.changeSkillLevel(ctx, skillData, skillPropId, newLevelCfg.getGrade());
             refreshBuildOutput(skillData, skillPropId);
             //联盟任务: 技能研究次数 (param=游戏类型, 供 0=任意/指定游戏 过滤)
             allianceEventService.onGameResearch(ctx.playerId(), gameType);
@@ -294,7 +290,7 @@ public class SimSkillService extends AbstractSkillService {
                         continue;
                     }
                     if (cfg.getSkillId() == null || cfg.getSkillId().isEmpty()) {
-                        super.changeSkillLevel(ctx,skillData,cfg.getId(),0);
+                        super.changeSkillLevel(ctx, skillData, cfg.getId(), 0);
                         res.newUnlockSkills.add(cfg.getId());
                     } else {
                         for (Map.Entry<Integer, Integer> en : cfg.getSkillId().entrySet()) {
@@ -302,7 +298,7 @@ public class SimSkillService extends AbstractSkillService {
                             if (tmpSkillDetailData == null || tmpSkillDetailData.getLevel() < en.getValue()) {
                                 continue;
                             }
-                            super.changeSkillLevel(ctx,skillData,cfg.getId(),0);
+                            super.changeSkillLevel(ctx, skillData, cfg.getId(), 0);
                             res.newUnlockSkills.add(cfg.getId());
                         }
                     }

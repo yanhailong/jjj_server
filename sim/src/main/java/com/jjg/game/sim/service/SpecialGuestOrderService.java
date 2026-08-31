@@ -21,8 +21,8 @@ import java.math.BigDecimal;
 /**
  * 处理现金购买特殊游客的充值到账。
  *
- * <p>订单的 productId 保存 {@link VisitorGenPaidCfg} 配置 ID，desc 保存下单场景 ID；
- * 只有游客写入该场景成功后才增加玩家当天的全局购买次数。</p>
+ * <p>订单的 productId 保存 {@link VisitorGenPaidCfg} 配置 ID，desc 保存下单场景 ID 和展示轮次；
+ * 额度只在创建订单时检查，到账成功后累计购买次数，不因额度变化拒绝发放。</p>
  */
 @Service
 public class SpecialGuestOrderService implements OrderGenerate {
@@ -63,7 +63,7 @@ public class SpecialGuestOrderService implements OrderGenerate {
         }
         SimPlayerContext context = simPlayerContextRegistry.getContext(player.getId());
         if (context == null) {
-            return true;
+            return false;
         }
         VisitorGenPaidCfg cfg = getCashCfg(order.getProductId());
         if (cfg == null) {
@@ -78,6 +78,8 @@ public class SpecialGuestOrderService implements OrderGenerate {
                     player.getId(), order.getId(), cfg.getId(), cfg.getVisitorID(), cfg.getVisitorCount(), code);
             return false;
         }
+        simGuestService.recordCashSpecialGuestPurchase(context, order, cfg.getId());
+        dailyCountService.addPaidCount(player.getId(), cfg.getId());
         log.info("现金购买特殊游客到账成功 playerId={},orderId={},cfgId={},visitorItemId={},visitorCount={}",
                 player.getId(), order.getId(), cfg.getId(), cfg.getVisitorID(), cfg.getVisitorCount());
         return true;

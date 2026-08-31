@@ -37,12 +37,16 @@ public class SimCasinoData extends AbstractData {
     private Map<Integer, GuestData> guestMap;
     //已生成待领奖的购买游客 (uid -> data, 落库用于断线重连)
     private Map<String, PurchasedGuestData> purchasedGuestMap;
-    //特殊游客列表刷新日 (yyyyMMdd)
-    private int specialGuestRefreshDay;
-    //特殊游客当日手动刷新次数
+    //特殊游客列表下次定时刷新时间 (ms)，0 表示不按时段刷新
+    private long specialGuestNextRefreshTime;
+    //特殊游客当前时段手动刷新次数
     private int specialGuestRefreshCount;
     //当前付费特殊游客配置ID
     private List<Integer> specialGuestPaidCfgIds;
+    //本次刷新各付费游客的购买次数 (生成配置ID -> 次数)
+    private Map<Integer, Integer> specialGuestPurchaseCounts;
+    //付费展示轮次，每次定时或手动刷新递增，用于区分异步到账订单所属列表
+    private long specialGuestOfferVersion;
     //当前场景持有的特殊游客数量 (游客道具ID -> 数量)
     private Map<Integer, Long> specialGuestItemCounts;
     //已到账的现金购买订单，用于防止充值重试重复发放
@@ -266,12 +270,27 @@ public class SimCasinoData extends AbstractData {
         return remove;
     }
 
-    public int getSpecialGuestRefreshDay() {
-        return specialGuestRefreshDay;
+    public long getSpecialGuestNextRefreshTime() {
+        return specialGuestNextRefreshTime;
     }
 
-    public void setSpecialGuestRefreshDay(int specialGuestRefreshDay) {
-        this.specialGuestRefreshDay = specialGuestRefreshDay;
+    public void setSpecialGuestNextRefreshTime(long specialGuestNextRefreshTime) {
+        this.specialGuestNextRefreshTime = specialGuestNextRefreshTime;
+    }
+
+    public Map<Integer, Integer> getSpecialGuestPurchaseCounts() {
+        if (specialGuestPurchaseCounts == null) {
+            specialGuestPurchaseCounts = new HashMap<>();
+        }
+        return specialGuestPurchaseCounts;
+    }
+
+    public long getSpecialGuestOfferVersion() {
+        return specialGuestOfferVersion;
+    }
+
+    public void setSpecialGuestOfferVersion(long specialGuestOfferVersion) {
+        this.specialGuestOfferVersion = specialGuestOfferVersion;
     }
 
     public int getSpecialGuestRefreshCount() {
