@@ -275,7 +275,7 @@ public class SimVisitService implements IRedDotService {
         int sourceRemaining = quotaService.consume(SimVisitConstant.QuotaType.COMMENT,
                 ctx.playerId(), 1, configService.getDailyCommentLimit());
         if (sourceRemaining < 0) {
-            return actionFailure(Code.FORBID);
+            return actionFailure(Code.TODAY_CLIAM_LIMIT);
         }
         int points = configService.getCommentPopularity();
         int ownerRemaining = quotaService.consume(SimVisitConstant.QuotaType.POPULARITY,

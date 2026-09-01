@@ -1,5 +1,6 @@
 package com.jjg.game.core.service;
 
+import com.jjg.game.common.baselogic.function.SystemInterfaceHolder;
 import com.jjg.game.common.cluster.ClusterSystem;
 import com.jjg.game.common.constant.EFunctionType;
 import com.jjg.game.common.protostuff.PFSession;
@@ -16,6 +17,7 @@ import com.jjg.game.core.base.gameevent.PlayerEvent;
 import com.jjg.game.core.data.Player;
 import com.jjg.game.core.data.PlayerController;
 import com.jjg.game.core.listener.GameFunctionListener;
+import com.jjg.game.core.listener.GameFunctionOpenChecker;
 import com.jjg.game.core.manager.ConditionManager;
 import com.jjg.game.core.pb.NotifyOpenFunction;
 import com.jjg.game.sampledata.GameDataManager;
@@ -43,7 +45,8 @@ public class GameFunctionService implements GameEventListener {
     private final ClusterSystem clusterSystem;
     private final List<GameFunctionListener> gameFunctionListeners;
 
-    public GameFunctionService(ConditionManager conditionManager, ConditionParser conditionParser, ClusterSystem clusterSystem, List<GameFunctionListener> gameFunctionListeners) {
+    public GameFunctionService(ConditionManager conditionManager, ConditionParser conditionParser,
+                               ClusterSystem clusterSystem, List<GameFunctionListener> gameFunctionListeners) {
         this.conditionManager = conditionManager;
         this.conditionParser = conditionParser;
         this.clusterSystem = clusterSystem;
@@ -179,6 +182,11 @@ public class GameFunctionService implements GameEventListener {
 
         if (!functionCfg.getIsOpen()) {
             return false;
+        }
+        for (GameFunctionOpenChecker checker : SystemInterfaceHolder.getGameSysInterface(GameFunctionOpenChecker.class)) {
+            if (!checker.isFunctionOpen(player, functionCfg.getId())) {
+                return false;
+            }
         }
         String check = join ? functionCfg.getCondition() : functionCfg.getShowCondition();
         if (notify) {
