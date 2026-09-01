@@ -2,10 +2,13 @@ package com.jjg.game.core.manager;
 
 import cn.hutool.core.collection.CollectionUtil;
 import com.jjg.game.common.cluster.ClusterSystem;
+import com.jjg.game.common.curator.MarsNode;
+import com.jjg.game.common.curator.NodeType;
 import com.jjg.game.common.protostuff.PFSession;
 import com.jjg.game.core.base.reddot.IRedDotService;
 import com.jjg.game.core.dao.RedDotDao;
 import com.jjg.game.core.data.PlayerController;
+import com.jjg.game.core.data.PlayerSessionInfo;
 import com.jjg.game.core.pb.reddot.NotifyRedDot;
 import com.jjg.game.core.pb.reddot.RedDotDetails;
 import com.jjg.game.core.service.PlayerSessionService;
@@ -62,6 +65,76 @@ public class RedDotManager {
         }
     }
 
+    private boolean isServiceRegistered(RedDotDetails.RedDotModule module, int submodule) {
+        Map<Integer, IRedDotService> serviceMap = redDotServiceMap.get(module);
+        return CollectionUtil.isNotEmpty(serviceMap) && (submodule == 0 || serviceMap.containsKey(submodule));
+    }
+
+    private boolean isServiceSupported(RedDotDetails.RedDotModule module, int submodule, NodeType nodeType) {
+        Map<Integer, IRedDotService> serviceMap = redDotServiceMap.get(module);
+        if (nodeType == null || CollectionUtil.isEmpty(serviceMap)) {
+            return false;
+        }
+        if (submodule == 0) {
+            return serviceMap.values().stream()
+                    .anyMatch(service -> service.getSupportedNodeTypes().contains(nodeType));
+        }
+        IRedDotService service = serviceMap.get(submodule);
+        return service != null && service.getSupportedNodeTypes().contains(nodeType);
+    }
+
+    private RedDotRecipient resolveRecipient(long playerId) {
+        PFSession localSession = clusterSystem.getSession(playerId);
+        if (localSession != null) {
+            return new RedDotRecipient(localSession,
+                    NodeType.getNodeTypeByName(clusterSystem.nodeConfig.getType()), null);
+        }
+
+        PlayerSessionInfo sessionInfo = playerSessionService.getInfo(playerId);
+        if (sessionInfo == null) {
+            return null;
+        }
+        NodeType nodeType = resolveNodeType(sessionInfo.getCurrentNode());
+        return nodeType == null ? null : new RedDotRecipient(null, nodeType, sessionInfo);
+    }
+
+    private NodeType resolveNodeType(String nodePath) {
+        if (nodePath == null) {
+            return null;
+        }
+        if (Objects.equals(clusterSystem.getNodePath(), nodePath)) {
+            return NodeType.getNodeTypeByName(clusterSystem.nodeConfig.getType());
+        }
+        MarsNode node = clusterSystem.getNode(nodePath);
+        return node == null || node.getNodeConfig() == null
+                ? null
+                : NodeType.getNodeTypeByName(node.getNodeConfig().getType());
+    }
+
+    private void sendRedDots(List<RedDotDetails> list, RedDotRecipient recipient) {
+        List<RedDotDetails> supportedRedDots = new ArrayList<>(list.size());
+        for (RedDotDetails details : list) {
+            if (isServiceSupported(details.getRedDotModule(), details.getRedDotSubmodule(), recipient.nodeType())) {
+                supportedRedDots.add(details);
+            }
+        }
+        if (supportedRedDots.isEmpty()) {
+            return;
+        }
+        PFSession session = recipient.session() != null
+                ? recipient.session()
+                : playerSessionService.getSession(recipient.sessionInfo());
+        if (session == null) {
+            return;
+        }
+        NotifyRedDot notifyRedDot = new NotifyRedDot();
+        notifyRedDot.setRedDotList(supportedRedDots);
+        session.send(notifyRedDot);
+    }
+
+    private record RedDotRecipient(PFSession session, NodeType nodeType, PlayerSessionInfo sessionInfo) {
+    }
+
     /**
      * 加载所有红点数据
      *
@@ -70,24 +143,32 @@ public class RedDotManager {
      */
     public List<RedDotDetails> loadAll(long playerId) {
         //获取需要存储的红点信息
-        Map<RedDotDetails.RedDotModule, Map<Integer, Integer>> dotDaoAll = redDotDao.getAll(playerId);
         List<RedDotDetails> allRedDots = new ArrayList<>();
-        if (!dotDaoAll.isEmpty()) {
+        boolean hasTrusteeshipService = redDotServiceMap.keySet().stream()
+                .anyMatch(RedDotDetails.RedDotModule::isNeedTrusteeship);
+        if (hasTrusteeshipService) {
+            Map<RedDotDetails.RedDotModule, Map<Integer, Integer>> dotDaoAll = redDotDao.getAll(playerId);
             for (Map.Entry<RedDotDetails.RedDotModule, Map<Integer, Integer>> entry : dotDaoAll.entrySet()) {
-                if (!entry.getKey().isNeedTrusteeship()) {
+                RedDotDetails.RedDotModule module = entry.getKey();
+                if (!module.isNeedTrusteeship() || !isServiceRegistered(module, 0)) {
                     continue;
                 }
                 //该模块下的所有子模块
                 for (Map.Entry<Integer, Integer> submoduleInfo : entry.getValue().entrySet()) {
-                    allRedDots.add(buildRedDotDetails(entry.getKey(), submoduleInfo.getKey(), submoduleInfo.getValue()));
+                    if (isServiceRegistered(module, submoduleInfo.getKey())) {
+                        allRedDots.add(buildRedDotDetails(module, submoduleInfo.getKey(), submoduleInfo.getValue()));
+                    }
                 }
             }
         }
         //获取不需要存储的红点信息
         if (CollectionUtil.isNotEmpty(redDotServiceMap)) {
-            for (Map<Integer, IRedDotService> iRedDotServiceMap : redDotServiceMap.values()) {
+            for (Map.Entry<RedDotDetails.RedDotModule, Map<Integer, IRedDotService>> entry : redDotServiceMap.entrySet()) {
+                if (entry.getKey().isNeedTrusteeship()) {
+                    continue;
+                }
                 try {
-                    for (IRedDotService redDotService : new HashSet<>(iRedDotServiceMap.values())) {
+                    for (IRedDotService redDotService : new HashSet<>(entry.getValue().values())) {
                         allRedDots.addAll(redDotService.initialize(playerId, 0));
                     }
                 } catch (Exception e) {
@@ -198,6 +279,9 @@ public class RedDotManager {
             log.warn("红点模块为空，玩家ID: {}", playerId);
             return Collections.emptyList();
         }
+        if (!isServiceRegistered(module, submodule)) {
+            return Collections.emptyList();
+        }
         List<RedDotDetails> list = new ArrayList<>();
         //托管给红点系统的
         if (module.isNeedTrusteeship()) {
@@ -213,7 +297,9 @@ public class RedDotManager {
             }
             if (submodule == 0) {
                 for (Map.Entry<Integer, Integer> entry : map.entrySet()) {
-                    list.add(buildRedDotDetails(module, entry.getKey(), entry.getValue()));
+                    if (isServiceRegistered(module, entry.getKey())) {
+                        list.add(buildRedDotDetails(module, entry.getKey(), entry.getValue()));
+                    }
                 }
             } else {
                 list.add(buildRedDotDetails(module, submodule, map.getOrDefault(submodule, 0)));
@@ -222,9 +308,6 @@ public class RedDotManager {
         }
         //自己处理的
         Map<Integer, IRedDotService> serviceMap = redDotServiceMap.get(module);
-        if (CollectionUtil.isEmpty(serviceMap)) {
-            return list;
-        }
         if (submodule == 0) {
             for (IRedDotService redDotService : new HashSet<>(serviceMap.values())) {
                 list.addAll(redDotService.initialize(playerId, submodule));
@@ -248,18 +331,26 @@ public class RedDotManager {
         if (list == null || list.isEmpty()) {
             return;
         }
-        NotifyRedDot notifyRedDot = new NotifyRedDot();
-        notifyRedDot.setRedDotList(list);
         if (playerId > 0) {
-            PFSession session = playerSessionService.getSession(playerId);
-            if (session == null) {
-                return;
+            RedDotRecipient recipient = resolveRecipient(playerId);
+            if (recipient != null) {
+                sendRedDots(list, recipient);
             }
-            session.send(notifyRedDot);
-//            log.debug("玩家刷新红点 playerId = {},details = {}", playerId, JSONObject.toJSONString(list));
-        } else {
-            clusterSystem.broadcastToOnlinePlayer(notifyRedDot);
+            return;
         }
+
+        List<RedDotDetails> supportedRedDots = new ArrayList<>(list.size());
+        for (RedDotDetails details : list) {
+            if (isServiceRegistered(details.getRedDotModule(), details.getRedDotSubmodule())) {
+                supportedRedDots.add(details);
+            }
+        }
+        if (supportedRedDots.isEmpty()) {
+            return;
+        }
+        NotifyRedDot notifyRedDot = new NotifyRedDot();
+        notifyRedDot.setRedDotList(supportedRedDots);
+        clusterSystem.broadcastToOnlinePlayer(notifyRedDot);
     }
 
 
@@ -269,11 +360,11 @@ public class RedDotManager {
      * @param submodule 子模块
      * @param playerId  玩家id 如果参数<=0则广播给所有在线玩家
      */
-    public void updateRedDot(RedDotDetails.RedDotModule module, int submodule, long playerId, int redCount) {
+    public void updateRedDot(RedDotDetails.RedDotModule module, int submodule, long playerId, long redCount) {
         if (module == null) {
             return;
         }
-        updateRedDot(List.of(buildRedDotDetails(module, submodule, redCount)), playerId);
+        updateRedDot(List.of(buildRedDotDetails(module, submodule, redCount, module.getRedDotType())), playerId);
     }
 
     /**
@@ -318,15 +409,24 @@ public class RedDotManager {
         if (serviceMap == null) {
             return;
         }
+        RedDotRecipient recipient = playerId > 0 ? resolveRecipient(playerId) : null;
+        if (playerId > 0 && recipient == null) {
+            return;
+        }
         List<RedDotDetails> updateList = new ArrayList<>();
         for (Integer submodule : submoduleList) {
             IRedDotService iRedDotService = serviceMap.get(submodule);
-            if (iRedDotService == null) {
+            if (iRedDotService == null || (recipient != null
+                    && !iRedDotService.getSupportedNodeTypes().contains(recipient.nodeType()))) {
                 continue;
             }
             updateList.addAll(iRedDotService.initialize(playerId, submodule));
         }
-        updateRedDot(updateList, playerId);
+        if (recipient == null) {
+            updateRedDot(updateList, playerId);
+        } else {
+            sendRedDots(updateList, recipient);
+        }
     }
 
 

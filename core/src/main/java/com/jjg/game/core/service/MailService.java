@@ -14,7 +14,6 @@ import com.jjg.game.core.dao.MailDao;
 import com.jjg.game.core.data.*;
 import com.jjg.game.core.logger.CoreLogger;
 import com.jjg.game.core.manager.RedDotManager;
-import com.jjg.game.core.pb.reddot.NotifyRedDot;
 import com.jjg.game.core.pb.reddot.RedDotDetails;
 import com.jjg.game.core.utils.ItemUtils;
 import com.jjg.game.sampledata.GameDataManager;
@@ -473,15 +472,7 @@ public class MailService implements IRedDotService, IPlayerLoginSuccess, IPlayer
     }
 
     private void updateRedDot(Long count, PFSession session) {
-        List<RedDotDetails> redDotDetailsList = new ArrayList<>();
-        RedDotDetails redDotDetails = new RedDotDetails();
-        redDotDetails.setRedDotModule(getModule());
-        redDotDetails.setRedDotType(RedDotDetails.RedDotType.COUNT);
-        redDotDetails.setCount(count);
-        redDotDetailsList.add(redDotDetails);
-        NotifyRedDot notifyRedDot = new NotifyRedDot();
-        notifyRedDot.setRedDotList(redDotDetailsList);
-        session.send(notifyRedDot);
+        redDotManager.updateRedDot(getModule(), getSubmodule(), session.playerId, count);
     }
 
 

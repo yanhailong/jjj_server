@@ -227,7 +227,7 @@ public class BuyOneGetSevenController extends BaseActivityController implements 
 
     @Override
     public BigDecimal generateOrderDetailInfo(Player player, ReqGenerateOrder req) {
-        ActivityData activityData = getRequestedActivity(req.productId);
+        ActivityData activityData = activityManager.getOpenActivityData(player, ActivityType.BUY_ONE_GET_SEVEN);
         Map<Integer, BuyOneGetSevenCfg> cfgMap = getDetailCfgBean(activityData);
         if (!validConfig(activityData, cfgMap) || !activityManager.playerCanJoinActivity(activityData, player)
                 || !canPurchase(activityData, System.currentTimeMillis())) {
@@ -256,7 +256,7 @@ public class BuyOneGetSevenController extends BaseActivityController implements 
         if (order.getRechargeType() != getRechargeType()) {
             return true;
         }
-        ActivityData activityData = getRequestedActivity(order.getProductId());
+        ActivityData activityData = activityManager.getOpenActivityData(player, ActivityType.BUY_ONE_GET_SEVEN);
         Map<Integer, BuyOneGetSevenCfg> cfgMap = getDetailCfgBean(activityData);
         if (!validConfig(activityData, cfgMap) || !activityManager.playerCanJoinActivity(activityData, player)) {
             log.error("买一送七充值回调活动无效 playerId:{} order:{}", player.getId(), JSONObject.toJSONString(order));
@@ -411,19 +411,5 @@ public class BuyOneGetSevenController extends BaseActivityController implements 
 
     private String getChannelProductId(Player player, ShopRechargeListCfg shopCfg) {
         return player.getChannel() == ChannelType.APPLE ? shopCfg.getIosShopId() : shopCfg.getGoogleShopId();
-    }
-
-    private ActivityData getRequestedActivity(String productId) {
-        if (StringUtils.isBlank(productId)) {
-            return null;
-        }
-        try {
-            ActivityData activityData = activityManager.getActivityData().get(Long.parseLong(productId));
-            return activityData != null && activityData.getType() == ActivityType.BUY_ONE_GET_SEVEN
-                    ? activityData
-                    : null;
-        } catch (NumberFormatException e) {
-            return null;
-        }
     }
 }
