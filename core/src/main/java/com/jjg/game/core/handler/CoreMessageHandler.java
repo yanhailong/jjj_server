@@ -191,7 +191,7 @@ public class CoreMessageHandler {
             }
 
             if ("playerWinMarquee".equalsIgnoreCase(cmd)) {
-                marqueeManager.playerWinMarquee("shiyi", 17001, 100100026, 500000,false);
+                marqueeManager.playerWinMarquee("shiyi", 17001, 100100026, 500000, false);
                 return;
             }
 
@@ -208,6 +208,11 @@ public class CoreMessageHandler {
 
             if ("bindThird".equalsIgnoreCase(cmd)) {
                 bindThirdAccount(res, playerController, arr);
+                return;
+            }
+
+            if ("order".equalsIgnoreCase(cmd)) {
+                order(res, playerController, arr);
                 return;
             }
 
@@ -452,6 +457,17 @@ public class CoreMessageHandler {
         playerController.send(res);
     }
 
+    private void order(ResGm res, PlayerController playerController, String[] orders) {
+        ReqGenerateOrder req = new ReqGenerateOrder();
+        req.payType = 1;
+        req.rechargeType = Integer.parseInt(orders[1]);
+
+        if (orders.length > 2) {
+            req.productId = orders[2];
+        }
+        generateOrder(playerController, req);
+    }
+
     @Command(MessageConst.CoreMessage.REQ_CONFIRM_PLAYER_SCENE)
     public void reqConfirmPlayerScene(PlayerController playerController, ReqConfirmPlayerScene req) {
         // 获取当前节点类型
@@ -475,7 +491,7 @@ public class CoreMessageHandler {
 
     @Command(MessageConst.CoreMessage.REQ_MARK_RED_DOT_READ)
     public void markRedDotRead(PlayerController playerController,
-                              com.jjg.game.core.pb.reddot.ReqMarkRedDotRead req) {
+                               com.jjg.game.core.pb.reddot.ReqMarkRedDotRead req) {
         redDotManager.markRead(playerController, req.module, req.submodule, req.entityIds);
     }
 
