@@ -19,7 +19,7 @@ import org.springframework.context.annotation.Lazy;
 import org.springframework.stereotype.Service;
 import java.util.*;
 
-/** 建筑和技能共用一个入口计数，每栋建筑最多贡献1；extra提供按钮明细。 */
+/** 建筑升级按建筑计数；所有全局/专属技能升级合并贡献1；extra提供按钮明细。 */
 @Service
 public class SimBuildingRedDotService implements IRedDotService, SimPlayerTickListener, ItemAddListener, ItemConsumeListener {
     @Autowired private SimPlayerContextRegistry contexts;
@@ -68,8 +68,11 @@ public class SimBuildingRedDotService implements IRedDotService, SimPlayerTickLi
             if (offer.propId() == 0) buildingIds.add(offer.buildingId());
             else skillIds.computeIfAbsent(offer.buildingId(), key -> new TreeSet<>()).add(offer.propId());
         }
-        RedDotDetails dot = manager.buildRedDotDetails(getModule(), 1, ids.size());
+        int skillCount = skillIds.isEmpty() ? 0 : 1;
+        int count = buildingIds.size() + skillCount;
+        RedDotDetails dot = manager.buildRedDotDetails(getModule(), 1, count, RedDotDetails.RedDotType.COUNT);
         dot.setExtra(JSON.toJSONString(Map.of("ids", ids, "buildingIds", buildingIds, "skillIds", skillIds,
+                "buildingCount", buildingIds.size(), "skillCount", skillCount,
                 "casinoId", ctx.getCurrentCasino().getCasinoId())));
         String snapshot = JSON.toJSONString(dot);
         boolean changed = !snapshot.equals(ctx.getBuildingRedDotSnapshot());
