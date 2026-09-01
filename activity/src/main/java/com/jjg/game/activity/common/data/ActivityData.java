@@ -11,7 +11,6 @@ import java.math.BigDecimal;
 import java.time.LocalDateTime;
 import java.time.temporal.TemporalAdjusters;
 import java.util.List;
-import java.util.Map;
 
 /**
  * @author lm
@@ -85,7 +84,7 @@ public class ActivityData {
     /**
      * 渠道和商品ID
      */
-    private Map<Integer, String> channelCommodity;
+    private int channelCommodity;
     /**
      * 道具掉落包ID
      */
@@ -133,11 +132,11 @@ public class ActivityData {
         this.id = id;
     }
 
-    public Map<Integer, String> getChannelCommodity() {
+    public int getChannelCommodity() {
         return channelCommodity;
     }
 
-    public void setChannelCommodity(Map<Integer, String> channelCommodity) {
+    public void setChannelCommodity(int channelCommodity) {
         this.channelCommodity = channelCommodity;
     }
 

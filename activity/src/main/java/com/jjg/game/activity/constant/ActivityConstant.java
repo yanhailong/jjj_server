@@ -342,5 +342,11 @@ public interface ActivityConstant {
         int RES_ADS_REWARD_INFO = BASE_MSG_PREFIX | 0x88;
         int RES_ADS_REWARD_WATCH = BASE_MSG_PREFIX | 0x89;
         int RES_ADS_REWARD_CLAIM = BASE_MSG_PREFIX | 0x8A;
+
+        //买一送七
+        int RES_BUY_ONE_GET_SEVEN = BASE_MSG_PREFIX | 0x8B;
+        //买一送七领取奖励
+        int REQ_BUY_ONE_GET_SEVEN_CLAIM_REWARDS = BASE_MSG_PREFIX | 0x8C;
+        int RES_BUY_ONE_GET_SEVEN_CLAIM_REWARDS = BASE_MSG_PREFIX | 0x8D;
     }
 }

@@ -23,6 +23,10 @@ public class PassListCfg extends BaseCfgBean {
   protected boolean FollowsSeason;
   /** 通行证名称 */
   protected int PassName;
+  /** 高级付费金额 */
+  protected int ShopRechargeList1ID;
+  /** 初级付费金额 */
+  protected int ShopRechargeListID;
   /** 是否开启 */
   protected boolean isOpen;
 
@@ -34,6 +38,16 @@ public class PassListCfg extends BaseCfgBean {
   /** 返回通行证名称 */
   public int getPassName() {
     return PassName;
+  }
+
+  /** 返回高级付费金额 */
+  public int getShopRechargeList1ID() {
+    return ShopRechargeList1ID;
+  }
+
+  /** 返回初级付费金额 */
+  public int getShopRechargeListID() {
+    return ShopRechargeListID;
   }
 
   /** 返回是否开启 */

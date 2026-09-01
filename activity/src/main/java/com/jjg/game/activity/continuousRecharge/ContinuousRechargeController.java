@@ -38,7 +38,6 @@ import org.springframework.stereotype.Component;
 import java.math.BigDecimal;
 import java.math.RoundingMode;
 import java.time.LocalDate;
-import java.time.LocalDateTime;
 import java.time.ZoneId;
 import java.util.*;
 
@@ -1282,57 +1281,57 @@ public class ContinuousRechargeController extends BaseActivityController impleme
     public CommonResult<String> gm(PlayerController playerController, String[] gmOrders) {
         CommonResult<String> res = new CommonResult<>(Code.SUCCESS);
         try {
-            if ("setActivityDay".equalsIgnoreCase(gmOrders[0])) {
-                String dayStr = gmOrders[1];
-                long beforeTime = currentTimeMillis();
-                if ("0".equals(dayStr.trim())) {
-                    this.debugMills = 0;
-                    genTodayWefareCfgIds();
-                } else {
-                    String year = dayStr.substring(0, 4);
-                    String month = dayStr.substring(4, 6);
-                    String day = dayStr.substring(6, 8);
-
-                    LocalDateTime now = LocalDateTime.now();
-                    now = now.withYear(Integer.parseInt(year));
-                    now = now.withMonth(Integer.parseInt(month));
-                    now = now.withDayOfMonth(Integer.parseInt(day));
-
-                    this.debugMills = TimeHelper.getTimestamp(now);
-                }
-                long afterTime = currentTimeMillis();
-                if (!TimeHelper.inSameDay(beforeTime, afterTime)) {
-                    genTodayWefareCfgIds();
-                }
-                return res;
-            } else if ("rechargeAll".equalsIgnoreCase(gmOrders[0])) {
-                int activityId = Integer.parseInt(gmOrders[1]);
-                ActivityData activityData = activityManager.getActivityData().get(activityId);
-                if (activityData == null) {
-                    log.warn("未找到该活动配置数据 activityId = {}", activityId);
-                    res.code = Code.NOT_FOUND;
-                    return res;
-                }
-
-                Map<Integer, PlayerActivityData> dataMap = playerActivityDao.getPlayerActivityData(playerController.playerId(), ActivityType.CONTINUOUS_RECHARGE, activityData.getId());
-                if (CollectionUtil.isEmpty(dataMap)) {
-                    log.warn("获取dataMap为空 playerId = {}", playerController.playerId());
-                    res.code = Code.REPEAT_OP;
-                    return res;
-                }
-
-                ContinuousRechargeActivityData playerActivityData = (ContinuousRechargeActivityData) dataMap.get(DETAIL_ID);
-                playerActivityData.setCurrentDayIndex(6);
-                Order order = new Order();
-                order.setPrice(BigDecimal.valueOf(9999999));
-
-                Pair<Integer, long[]> phase = getPhase(activityData, true);
-
-                for (int i = 0; i < ActivityConstant.ContinuousRecharge.CONTINUOUS_DAYS; i++) {
-                    handleContinuousRecharge(playerController.getPlayer(), activityData, i, playerActivityData, dataMap, order, phase);
-                }
-                return res;
-            }
+//            if ("setActivityDay".equalsIgnoreCase(gmOrders[0])) {
+//                String dayStr = gmOrders[1];
+//                long beforeTime = currentTimeMillis();
+//                if ("0".equals(dayStr.trim())) {
+//                    this.debugMills = 0;
+//                    genTodayWefareCfgIds();
+//                } else {
+//                    String year = dayStr.substring(0, 4);
+//                    String month = dayStr.substring(4, 6);
+//                    String day = dayStr.substring(6, 8);
+//
+//                    LocalDateTime now = LocalDateTime.now();
+//                    now = now.withYear(Integer.parseInt(year));
+//                    now = now.withMonth(Integer.parseInt(month));
+//                    now = now.withDayOfMonth(Integer.parseInt(day));
+//
+//                    this.debugMills = TimeHelper.getTimestamp(now);
+//                }
+//                long afterTime = currentTimeMillis();
+//                if (!TimeHelper.inSameDay(beforeTime, afterTime)) {
+//                    genTodayWefareCfgIds();
+//                }
+//                return res;
+//            } else if ("rechargeAll".equalsIgnoreCase(gmOrders[0])) {
+//                int activityId = Integer.parseInt(gmOrders[1]);
+//                ActivityData activityData = activityManager.getActivityData().get(activityId);
+//                if (activityData == null) {
+//                    log.warn("未找到该活动配置数据 activityId = {}", activityId);
+//                    res.code = Code.NOT_FOUND;
+//                    return res;
+//                }
+//
+//                Map<Integer, PlayerActivityData> dataMap = playerActivityDao.getPlayerActivityData(playerController.playerId(), ActivityType.CONTINUOUS_RECHARGE, activityData.getId());
+//                if (CollectionUtil.isEmpty(dataMap)) {
+//                    log.warn("获取dataMap为空 playerId = {}", playerController.playerId());
+//                    res.code = Code.REPEAT_OP;
+//                    return res;
+//                }
+//
+//                ContinuousRechargeActivityData playerActivityData = (ContinuousRechargeActivityData) dataMap.get(DETAIL_ID);
+//                playerActivityData.setCurrentDayIndex(6);
+//                Order order = new Order();
+//                order.setPrice(BigDecimal.valueOf(9999999));
+//
+//                Pair<Integer, long[]> phase = getPhase(activityData, true);
+//
+//                for (int i = 0; i < ActivityConstant.ContinuousRecharge.CONTINUOUS_DAYS; i++) {
+//                    handleContinuousRecharge(playerController.getPlayer(), activityData, i, playerActivityData, dataMap, order, phase);
+//                }
+//                return res;
+//            }
 
             return null;
         } catch (Exception e) {

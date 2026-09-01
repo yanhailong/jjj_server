@@ -1,6 +1,9 @@
 package com.jjg.game.activity.common.message.handler;
 
 import cn.hutool.core.collection.CollectionUtil;
+import com.jjg.game.activity.buyOneGetSeven.BuyOneGetSevenController;
+import com.jjg.game.activity.buyOneGetSeven.message.ReqBuyOneGetSevenClaimRewards;
+import com.jjg.game.activity.buyOneGetSeven.message.ResBuyOneGetSevenClaimRewards;
 import com.jjg.game.activity.cashcow.controller.CashCowController;
 import com.jjg.game.activity.cashcow.message.req.ReqCashCowFreeRewards;
 import com.jjg.game.activity.cashcow.message.req.ReqCashCowRecord;
@@ -140,6 +143,22 @@ public class ActivityMessageHandler {
             if (response.code == Code.SUCCESS) {
                 controller.updateRodDot(playerController.playerId(), data, true);
             }
+        }
+    }
+
+    @Command(ActivityConstant.MsgBean.REQ_BUY_ONE_GET_SEVEN_CLAIM_REWARDS)
+    public void reqBuyOneGetSevenClaimRewards(PlayerController playerController,
+                                               ReqBuyOneGetSevenClaimRewards req) {
+        ActivityData data = activityManager.getOpenActivityData(
+                playerController.getPlayer(), ActivityType.BUY_ONE_GET_SEVEN);
+        if (data == null || !(ActivityType.BUY_ONE_GET_SEVEN.getController() instanceof BuyOneGetSevenController controller)) {
+            playerController.send(new ResBuyOneGetSevenClaimRewards(Code.NOT_FOUND));
+            return;
+        }
+        AbstractResponse response = controller.claimActivityRewards(playerController.getPlayer(), data, req.detailId);
+        playerController.send(response);
+        if (response.code == Code.SUCCESS) {
+            controller.updateRodDot(playerController.playerId(), data, true);
         }
     }
 
