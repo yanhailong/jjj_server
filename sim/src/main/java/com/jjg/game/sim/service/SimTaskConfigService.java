@@ -52,6 +52,8 @@ public class SimTaskConfigService implements ConfigExcelChangeListener {
 
     private final ConditionRuleRegistry conditionRules;
 
+    private boolean init = false;
+
     public SimTaskConfigService() {
         this(ConditionRuleRegistry.standard());
     }
@@ -61,12 +63,9 @@ public class SimTaskConfigService implements ConfigExcelChangeListener {
         this.conditionRules = conditionRules;
     }
 
-    @Override
-    public void initSampleCallbackCollector() {
-        addInitSampleFileObserveWithCallBack(TaskCfg.EXCEL_NAME, this::loadChains)
-                .addInitSampleFileObserveWithCallBack(ConditionCfg.EXCEL_NAME, this::loadChains)
-                .addInitSampleFileObserveWithCallBack(MedalBuffCfg.EXCEL_NAME, this::loadChains)
-                .addInitSampleFileObserveWithCallBack(BuildingAreaTableCfg.EXCEL_NAME, this::loadChains);
+    public void init() {
+        loadChains();
+        init = true;
     }
 
     @Override
@@ -77,8 +76,13 @@ public class SimTaskConfigService implements ConfigExcelChangeListener {
                 .addChangeSampleFileObserveWithCallBack(BuildingAreaTableCfg.EXCEL_NAME, this::loadChains);
     }
 
-    /** 初始化与热更共用：一次构建不可变索引，玩家热路径只读。 */
+    /**
+     * 初始化与热更共用：一次构建不可变索引，玩家热路径只读。
+     */
     public void loadChains() {
+        if(!init){
+            return;
+        }
         List<TaskCfg> all = GameDataManager.getTaskCfgList();
         if (all == null || all.isEmpty()) {
             log.warn("加载 sim 任务配置失败: task 配置为空");
@@ -291,7 +295,9 @@ public class SimTaskConfigService implements ConfigExcelChangeListener {
         return achievementStateTaskIds;
     }
 
-    /** 高频游戏事件只检查所属游戏的成就；其他事件按条件事件类型取候选。 */
+    /**
+     * 高频游戏事件只检查所属游戏的成就；其他事件按条件事件类型取候选。
+     */
     public List<Integer> achievementTaskIdsFor(ConditionEvent event) {
         if (event instanceof GameConditionEvent gameEvent) {
             LinkedHashSet<Integer> ids = new LinkedHashSet<>();
@@ -324,7 +330,9 @@ public class SimTaskConfigService implements ConfigExcelChangeListener {
                 .toList();
     }
 
-    /** 配置加载后不可变，可被玩家热路径无锁复用。 */
+    /**
+     * 配置加载后不可变，可被玩家热路径无锁复用。
+     */
     public record TaskConditionDef(PreparedCondition condition, String counterType) {
     }
 

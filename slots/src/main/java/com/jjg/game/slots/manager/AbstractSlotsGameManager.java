@@ -62,6 +62,7 @@ import com.jjg.game.slots.pb.NoticeSlotsLibChange;
 import com.jjg.game.slots.pb.NotifySlotsStatus;
 import com.jjg.game.slots.service.SlotsPlayerService;
 import com.jjg.game.slots.service.SlotsSkillService;
+import com.jjg.game.slots.service.TogetherPlayPlayerCountService;
 import com.jjg.game.slots.service.TogetherPlayService;
 import io.netty.util.Timeout;
 import org.apache.commons.lang3.StringUtils;
@@ -133,6 +134,8 @@ public abstract class AbstractSlotsGameManager<T extends SlotsPlayerGameData, L 
     protected SeasonFreeGameService seasonFreeGameService;
     @Autowired
     protected TogetherPlayService togetherPlayService;
+    @Autowired
+    protected TogetherPlayPlayerCountService togetherPlayPlayerCountService;
 
     protected AtomicBoolean open = new AtomicBoolean(false);
 
@@ -373,6 +376,7 @@ public abstract class AbstractSlotsGameManager<T extends SlotsPlayerGameData, L 
         G gameRunInfo = createGameRunInfo(playerController.playerId(), Code.SUCCESS);
         gameRunInfo.setData(playerGameData);
         notifyGuideAfterEnterGame(playerController, playerGameData);
+        togetherPlayPlayerCountService.notifyPlayer(playerGameData);
         return gameRunInfo;
     }
 

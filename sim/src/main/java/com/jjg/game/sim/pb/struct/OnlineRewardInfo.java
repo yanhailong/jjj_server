@@ -25,6 +25,6 @@ public class OnlineRewardInfo {
     public int diamondDailyLimit;
     @ProtoDesc("钻石每次可领取的收益时长，小时")
     public int diamondRewardHours;
-    @ProtoDesc("下一次钻石领取消耗；次数用完时为空")
+    @ProtoDesc("下一次钻石领取消耗；次数用完时返回最后一次使用的道具和数量")
     public ItemInfo diamondCost;
 }

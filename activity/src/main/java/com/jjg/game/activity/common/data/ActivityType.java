@@ -2,6 +2,7 @@ package com.jjg.game.activity.common.data;
 
 import com.jjg.game.activity.adsReward.AdsRewardController;
 import com.jjg.game.activity.bundleGiftPack.BundleGiftPackController;
+import com.jjg.game.activity.buyOneGetSeven.BuyOneGetSevenController;
 import com.jjg.game.activity.cashcow.controller.CashCowController;
 import com.jjg.game.activity.common.controller.BaseActivityController;
 import com.jjg.game.activity.continuousRecharge.ContinuousRechargeController;
@@ -55,6 +56,9 @@ public enum ActivityType {
     //成长基金
     GROWTH_FUND(15, GrowthFundController.class, true, false,
             ActivityTargetType.LEVEL.getTargetKey(), false, false, false),
+    //买一送七
+    BUY_ONE_GET_SEVEN(19, BuyOneGetSevenController.class, false, false,
+            ActivityTargetType.NONE.getTargetKey(), false, false, true),
     //连续充值
     CONTINUOUS_RECHARGE(21, ContinuousRechargeController.class, false, false,
             ActivityTargetType.NONE.getTargetKey(), true, false, true),

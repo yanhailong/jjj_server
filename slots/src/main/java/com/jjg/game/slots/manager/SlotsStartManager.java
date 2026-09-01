@@ -6,6 +6,8 @@ import com.jjg.game.core.handler.CoreMessageHandler;
 import com.jjg.game.core.manager.CoreMarqueeManager;
 import com.jjg.game.core.service.CoreStartService;
 import com.jjg.game.core.task.manager.TaskManager;
+import com.jjg.game.slots.service.TogetherPlayPlayerCountService;
+import com.jjg.game.slots.service.TogetherPlayRobotService;
 import org.springframework.beans.BeansException;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.context.ApplicationContext;
@@ -38,6 +40,10 @@ public class SlotsStartManager implements SmartLifecycle, ApplicationContextAwar
     private TaskManager taskManager;
     @Autowired
     private CoreMessageHandler coreMessageHandler;
+    @Autowired
+    private TogetherPlayRobotService togetherPlayRobotService;
+    @Autowired
+    private TogetherPlayPlayerCountService togetherPlayPlayerCountService;
 
     //上下文
     private ApplicationContext context;
@@ -64,6 +70,8 @@ public class SlotsStartManager implements SmartLifecycle, ApplicationContextAwar
 
     @Override
     public void stop() {
+        togetherPlayRobotService.shutdown();
+        togetherPlayPlayerCountService.shutdown();
         //关闭工厂
         this.slotsFactoryManager.shutdown();
         //关闭core模块

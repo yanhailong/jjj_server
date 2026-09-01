@@ -1,5 +1,6 @@
 package com.jjg.game.social.service;
 
+import com.jjg.game.common.curator.NodeType;
 import com.jjg.game.common.redis.RedisLock;
 import com.jjg.game.common.utils.WheelTimerUtil;
 import com.jjg.game.core.base.reddot.IRedDotService;
@@ -33,6 +34,7 @@ import java.util.Date;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ConcurrentLinkedQueue;
 import java.util.concurrent.ExecutorService;
@@ -464,6 +466,11 @@ public class PrivateChatService implements IRedDotService {
         } finally {
             redisLock.tryUnlock(lockKey);
         }
+    }
+
+    @Override
+    public Set<NodeType> getSupportedNodeTypes() {
+        return Set.of(NodeType.HALL, NodeType.GAME);
     }
 
     @Override

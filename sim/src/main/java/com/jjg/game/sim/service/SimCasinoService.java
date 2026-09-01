@@ -414,7 +414,7 @@ public class SimCasinoService implements SimTaskStateReporter {
         }
     }
 
-    private void notifyCasinoUpgrade(SimPlayerContext ctx, SimCasinoData casino,
+    public void notifyCasinoUpgrade(SimPlayerContext ctx, SimCasinoData casino,
                                      CasinoStatsSheetCfg currentCfg, CasinoStatsSheetCfg nextCfg, int oldAllLevel, int newAllLevel) {
         NotifyCasinoUpgrade notify = new NotifyCasinoUpgrade();
         notify.level = casino.getCasinoLevel();

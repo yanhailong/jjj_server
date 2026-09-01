@@ -20,10 +20,7 @@ import com.jjg.game.common.proto.Pair;
 import com.jjg.game.core.constant.AddType;
 import com.jjg.game.core.constant.Code;
 import com.jjg.game.core.dao.CountDao;
-import com.jjg.game.core.data.CommonResult;
-import com.jjg.game.core.data.ItemOperationResult;
-import com.jjg.game.core.data.Order;
-import com.jjg.game.core.data.Player;
+import com.jjg.game.core.data.*;
 import com.jjg.game.core.listener.OrderGenerate;
 import com.jjg.game.core.pb.RechargeType;
 import com.jjg.game.core.pb.ReqGenerateOrder;
@@ -32,6 +29,7 @@ import com.jjg.game.core.utils.TipUtils;
 import com.jjg.game.sampledata.GameDataManager;
 import com.jjg.game.sampledata.bean.BaseCfgBean;
 import com.jjg.game.sampledata.bean.GrowthFundCfg;
+import com.jjg.game.sampledata.bean.ShopRechargeListCfg;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Component;
@@ -122,8 +120,10 @@ public class GrowthFundController extends BaseActivityController implements Orde
             info.rewards = ItemUtils.buildItemInfo(rewards);
         }
 
+        ShopRechargeListCfg shopRechargeListCfg = GameDataManager.getShopRechargeListCfg(activityData.getChannelCommodity());
+
         info.isBuy = true;
-        activityLogger.sendGrowthFundBuyLog(player, activityData, activityData.getBigDecimalParam().getLast(),
+        activityLogger.sendGrowthFundBuyLog(player, activityData, shopRechargeListCfg == null ? null : shopRechargeListCfg.getPrice(),
                 rewards, addItems == null ? null : addItems.data);
         return info;
     }
@@ -343,13 +343,18 @@ public class GrowthFundController extends BaseActivityController implements Orde
             }
             ActivityData activityData = activityManager.getActivityData().get(entry.getKey());
             if (activityData != null) {
-                if (activityData.getBigDecimalParam().size() >= 3) {
-                    activityInfo.sellingPrice = activityData.getBigDecimalParam().getLast().toPlainString();
+                ShopRechargeListCfg shopRechargeListCfg = GameDataManager.getShopRechargeListCfg(activityData.getChannelCommodity());
+                if(shopRechargeListCfg != null){
+                    activityInfo.sellingPrice = shopRechargeListCfg.getPrice().toPlainString();
+                    if(player.getChannel() == ChannelType.APPLE){
+                        activityInfo.productId = shopRechargeListCfg.getIosShopId();
+                    }else {
+                        activityInfo.productId = shopRechargeListCfg.getGoogleShopId();
+                    }
+                }
+                if (activityData.getBigDecimalParam().size() >= 2) {
                     activityInfo.originalPrice = activityData.getBigDecimalParam().get(1).toPlainString();
                     activityInfo.totalGet = activityData.getBigDecimalParam().getFirst().longValue();
-                }
-                if (CollectionUtil.isNotEmpty(activityData.getChannelCommodity())) {
-                    activityInfo.productId = activityData.getChannelCommodity().get(player.getChannel().getValue());
                 }
                 activityInfo.isBuy = countDao.getCount(CountDao.CountType.ACTIVITY_COUNT.getParam().formatted(activityData.getId()), String.valueOf(player.getId())).longValue() > 0;
                 activityInfo.buyGetItems = ItemUtils.buildItemInfo(getBuyGetRewards(activityData));
@@ -430,11 +435,11 @@ public class GrowthFundController extends BaseActivityController implements Orde
         if (activityData == null || !checkPlayerCanJoinActivity(player, activityData)) {
             return null;
         }
-        String channelCommodity = activityData.getChannelCommodity().get(player.getChannel().getValue());
-        if (channelCommodity == null) {
+        ShopRechargeListCfg shopRechargeListCfg = GameDataManager.getShopRechargeListCfg(activityData.getChannelCommodity());
+        if(shopRechargeListCfg == null){
             return null;
         }
-        return activityData.getBigDecimalParam().getLast();
+        return shopRechargeListCfg.getPrice();
     }
 
     @Override

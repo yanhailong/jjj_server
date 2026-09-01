@@ -59,6 +59,10 @@ public enum RechargeType {
      * 集合礼包
      */
     BUNDLE_GIFT_PACK(12),
+    /**
+     * 买一送七
+     */
+    BUY_ONE_GET_SEVEN(13),
     ;
     private final int type;
 

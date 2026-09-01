@@ -696,7 +696,11 @@ public class SimConfigCacheService implements ConfigExcelChangeListener {
                 continue;
             }
 
-            if (cfg.getPosition() == null || !cfg.getPosition().contains(5) || !cfg.getPosition().contains(3)) {
+            if (cfg.getPosition() == null) {
+                continue;
+            }
+
+            if(!cfg.getPosition().contains(5) && !cfg.getPosition().contains(3)){
                 continue;
             }
 

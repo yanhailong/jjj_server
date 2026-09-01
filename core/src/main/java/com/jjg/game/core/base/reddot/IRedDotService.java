@@ -1,8 +1,10 @@
 package com.jjg.game.core.base.reddot;
 
+import com.jjg.game.common.curator.NodeType;
 import com.jjg.game.core.pb.reddot.RedDotDetails;
 
 import java.util.List;
+import java.util.Set;
 
 /**
  * 红点服务
@@ -39,5 +41,10 @@ public interface IRedDotService {
 
     default List<Integer> getSubmodules() {
         return List.of(getSubmodule());
+    }
+
+    /** 允许加载该红点服务的节点类型。 */
+    default Set<NodeType> getSupportedNodeTypes() {
+        return Set.of(NodeType.HALL);
     }
 }

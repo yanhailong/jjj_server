@@ -144,6 +144,10 @@ public enum AddType {
     ACTIVITY_BUNDLE_GIFT_PACK(630),
     //视频福利累计奖励
     ACTIVITY_ADS_REWARD(631),
+    //买一送七购买奖励
+    ACTIVITY_BUY_ONE_GET_SEVEN_BUY(632),
+    //买一送七领取奖励
+    ACTIVITY_BUY_ONE_GET_SEVEN_CLAIM_REWARD(633),
 
 
     //好友房申请庄家扣除准备金

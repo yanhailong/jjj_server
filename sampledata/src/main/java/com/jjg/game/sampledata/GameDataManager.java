@@ -145,6 +145,7 @@ public class GameDataManager {
     containerMap.put(BuildingUpgradeTableCfg.class, new BuildingUpgradeTableCfgContainer());
     containerMap.put(BuildingWaitPosCfg.class, new BuildingWaitPosCfgContainer());
     containerMap.put(BundleGiftPackCfg.class, new BundleGiftPackCfgContainer());
+    containerMap.put(BuyOneGetSevenCfg.class, new BuyOneGetSevenCfgContainer());
     containerMap.put(CashcowCfg.class, new CashcowCfgContainer());
     containerMap.put(CasinoListCfg.class, new CasinoListCfgContainer());
     containerMap.put(CasinoStatsSheetCfg.class, new CasinoStatsSheetCfgContainer());
@@ -984,6 +985,18 @@ public class GameDataManager {
 
   public static List<BundleGiftPackCfg> getBundleGiftPackCfgList() {
     return getInstance().getCfgContainer(BundleGiftPackCfg.class).getCfgBeanList();
+  }
+
+  public static BuyOneGetSevenCfg getBuyOneGetSevenCfg(int key) {
+    return getInstance().getCfgContainer(BuyOneGetSevenCfg.class).getCfgBeanMap().get(key);
+  }
+
+  public static Map<Integer, BuyOneGetSevenCfg> getBuyOneGetSevenCfgMap() {
+    return getInstance().getCfgContainer(BuyOneGetSevenCfg.class).getCfgBeanMap();
+  }
+
+  public static List<BuyOneGetSevenCfg> getBuyOneGetSevenCfgList() {
+    return getInstance().getCfgContainer(BuyOneGetSevenCfg.class).getCfgBeanList();
   }
 
   public static CashcowCfg getCashcowCfg(int key) {
