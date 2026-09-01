@@ -31,12 +31,29 @@ public class TogetherPlayDao {
             redis.call('HDEL', KEYS[2], ARGV[1])
             return score
             """;
+    private static final String RESET_SESSION_SCRIPT = """
+            local playerId = ARGV[4]
+            local invitees = redis.call('ZRANGE', KEYS[1], 0, -1)
+            for _, inviteeId in ipairs(invitees) do
+                redis.call('ZREM', ARGV[1] .. inviteeId, playerId)
+                redis.call('HDEL', ARGV[3] .. inviteeId, playerId)
+            end
+            local inviters = redis.call('ZRANGE', KEYS[2], 0, -1)
+            for _, inviterId in ipairs(inviters) do
+                redis.call('ZREM', ARGV[2] .. inviterId, playerId)
+                redis.call('HDEL', ARGV[3] .. inviterId, playerId)
+            end
+            redis.call('DEL', KEYS[1], KEYS[2], KEYS[3])
+            return #invitees + #inviters
+            """;
     private static final String ADD_COMMISSION_SCRIPT = """
             return redis.call('HINCRBY', KEYS[1], ARGV[1], ARGV[2])
             """;
     private static final String RECORD_INVITE_SCRIPT = """
-            redis.call('ZADD', KEYS[1], ARGV[1], ARGV[2])
-            redis.call('ZADD', KEYS[2], ARGV[3], ARGV[4])
+            local latest = redis.call('ZREVRANGE', KEYS[1], 0, 0, 'WITHSCORES')
+            local order = #latest == 0 and 1 or tonumber(latest[2]) + 1
+            redis.call('ZADD', KEYS[1], order, ARGV[1])
+            redis.call('ZADD', KEYS[2], ARGV[2], ARGV[3])
             return 1
             """;
 
@@ -54,28 +71,35 @@ public class TogetherPlayDao {
     }
 
     public Long leave(int gameType, long playerId) {
+        return removePlayer(gameType, playerId);
+    }
+
+    public void remove(int gameType, long playerId) {
+        removePlayer(gameType, playerId);
+    }
+
+    private Long removePlayer(int gameType, long playerId) {
         Object score = redissonClient.getScript(StringCodec.INSTANCE).eval(
                 RScript.Mode.READ_WRITE, LEAVE_SCRIPT, RScript.ReturnType.VALUE,
                 List.of(key(gameType), effectKey(gameType)), String.valueOf(playerId));
         return score == null ? null : Double.valueOf(score.toString()).longValue();
     }
 
-    public void remove(int gameType, long playerId) {
-        zset(gameType).remove(playerId);
-        effectMap(gameType).fastRemove(String.valueOf(playerId));
-    }
-
     public void resetSession(int gameType, long playerId) {
-        invitees(gameType, playerId).delete();
-        commissionMap(gameType, playerId).delete();
+        redissonClient.getScript(StringCodec.INSTANCE).eval(
+                RScript.Mode.READ_WRITE, RESET_SESSION_SCRIPT, RScript.ReturnType.INTEGER,
+                List.of(inviteeKey(gameType, playerId), inviterKey(gameType, playerId),
+                        commissionKey(gameType, playerId)),
+                inviterKeyPrefix(gameType), inviteeKeyPrefix(gameType), commissionKeyPrefix(gameType),
+                String.valueOf(playerId));
     }
 
-    public void recordInvite(int gameType, long inviterId, long inviteeId, long order) {
+    public void recordInvite(int gameType, long inviterId, long inviteeId) {
         redissonClient.getScript(StringCodec.INSTANCE).eval(
                 RScript.Mode.READ_WRITE, RECORD_INVITE_SCRIPT, RScript.ReturnType.INTEGER,
                 List.of(inviteeKey(gameType, inviterId), inviterKey(gameType, inviteeId)),
-                String.valueOf(order), String.valueOf(inviteeId),
-                String.valueOf(System.currentTimeMillis()), String.valueOf(inviterId));
+                String.valueOf(inviteeId), String.valueOf(System.currentTimeMillis()),
+                String.valueOf(inviterId));
     }
 
     public List<Long> invitees(int gameType, long inviterId, int start, int count) {
@@ -190,7 +214,7 @@ public class TogetherPlayDao {
         return new ArrayList<>(set.valueRange(start, start + count - 1));
     }
 
-    private String key(int gameType) {
+    static String key(int gameType) {
         return KEY_PREFIX + gameType;
     }
 
@@ -199,15 +223,27 @@ public class TogetherPlayDao {
     }
 
     private String commissionKey(int gameType, long playerId) {
-        return COMMISSION_KEY_PREFIX + gameType + ":" + playerId;
+        return commissionKeyPrefix(gameType) + playerId;
     }
 
     private String inviteeKey(int gameType, long inviterId) {
-        return INVITEE_KEY_PREFIX + gameType + ":" + inviterId;
+        return inviteeKeyPrefix(gameType) + inviterId;
     }
 
     private String inviterKey(int gameType, long inviteeId) {
-        return INVITER_KEY_PREFIX + gameType + ":" + inviteeId;
+        return inviterKeyPrefix(gameType) + inviteeId;
+    }
+
+    private String commissionKeyPrefix(int gameType) {
+        return COMMISSION_KEY_PREFIX + gameType + ":";
+    }
+
+    private String inviteeKeyPrefix(int gameType) {
+        return INVITEE_KEY_PREFIX + gameType + ":";
+    }
+
+    private String inviterKeyPrefix(int gameType) {
+        return INVITER_KEY_PREFIX + gameType + ":";
     }
 
     public record PlayerScore(long playerId, long winGold) {

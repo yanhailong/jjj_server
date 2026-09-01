@@ -98,6 +98,12 @@ public class SlotsConst {
         //最大离线时间
         public static final int MAX_OFFLINE_TIME = 5 * TimeHelper.ONE_MINUTE_OF_MILLIS;
 
+        // 好友同玩中奖通知仅在倍数严格大于此值时发送（真人、展示机器人共用）。
+        public static final int TOGETHER_PLAY_NOTIFY_MIN_TIMES = 5;
+        public static final int TOGETHER_PLAY_PAGE_SIZE = 20;
+        // Redis暂不可用时的展示任务重试间隔，不影响配置中的正常随机间隔。
+        public static final int TOGETHER_PLAY_ROBOT_RETRY_MILLIS = 1000;
+
         //无效的图标起始id
         public static final int INVALID_ICON_BEGIN_ID = 1000;
 

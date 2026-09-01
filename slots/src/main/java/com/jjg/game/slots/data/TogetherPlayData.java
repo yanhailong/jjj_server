@@ -7,7 +7,7 @@ import java.util.Set;
  * 好友同玩信息
  */
 public class TogetherPlayData {
-    //本次进入期间已邀请的玩家，使用插入顺序支撑“我的邀请”分页
+    //本次进入期间已邀请过的玩家；实时关系与顺序以 Redis 双向索引为准
     private Set<Long> invitePlayerIds = new LinkedHashSet<>();
     //掉线时从实时集合中取出的本次进入净输赢
     private Long offlineWinGold;

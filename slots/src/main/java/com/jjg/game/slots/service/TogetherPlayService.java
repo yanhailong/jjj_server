@@ -3,7 +3,6 @@ package com.jjg.game.slots.service;
 import com.jjg.game.common.cluster.ClusterClient;
 import com.jjg.game.common.concurrent.BaseHandler;
 import com.jjg.game.common.concurrent.PlayerExecutorGroupDisruptor;
-import com.jjg.game.common.protostuff.PFSession;
 import com.jjg.game.common.rpc.ClusterRpcReference;
 import com.jjg.game.common.rpc.GameRpcContext;
 import com.jjg.game.common.rpc.RpcReqParameterBuilder;
@@ -13,9 +12,7 @@ import com.jjg.game.core.constant.GameConstant;
 import com.jjg.game.core.dao.TogetherPlayReconnectDao;
 import com.jjg.game.core.data.Player;
 import com.jjg.game.core.data.PlayerController;
-import com.jjg.game.core.data.PlayerSessionInfo;
 import com.jjg.game.core.service.CorePlayerService;
-import com.jjg.game.core.service.PlayerSessionService;
 import com.jjg.game.slots.constant.SlotsConst;
 import com.jjg.game.slots.dao.TogetherPlayDao;
 import com.jjg.game.slots.data.SlotsPlayerGameData;
@@ -32,7 +29,7 @@ import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Service;
 
 import java.util.ArrayList;
-import java.util.Iterator;
+import java.util.Comparator;
 import java.util.LinkedHashMap;
 import java.util.LinkedHashSet;
 import java.util.List;
@@ -44,29 +41,32 @@ import java.util.concurrent.CompletableFuture;
 public class TogetherPlayService {
     public static final int LIST_ALL = 0;
     public static final int LIST_INVITED = 1;
-    private static final int DEFAULT_PAGE_SIZE = 20;
-    private static final int MAX_PAGE_SIZE = 20;
+    private static final int DEFAULT_PAGE_SIZE = SlotsConst.Common.TOGETHER_PLAY_PAGE_SIZE;
+    private static final int MAX_PAGE_SIZE = SlotsConst.Common.TOGETHER_PLAY_PAGE_SIZE;
     private static final int INVITED_PLAYER_LIMIT = 3;
 
     private final Logger log = LoggerFactory.getLogger(getClass());
     private final TogetherPlayDao togetherPlayDao;
     private final TogetherPlayReconnectDao reconnectDao;
     private final CorePlayerService playerService;
-    private final PlayerSessionService playerSessionService;
+    private final TogetherPlayRewardNotifier rewardNotifier;
     private final SlotsPlayerService slotsPlayerService;
     private final SocialRelationCache relationCache;
+    private final TogetherPlayRobotService robotService;
     @ClusterRpcReference
     private ToSocialBridge toSocialBridge;
 
     public TogetherPlayService(TogetherPlayDao togetherPlayDao, TogetherPlayReconnectDao reconnectDao,
-                               CorePlayerService playerService, PlayerSessionService playerSessionService,
-                               SlotsPlayerService slotsPlayerService, SocialRelationCache relationCache) {
+                               CorePlayerService playerService, TogetherPlayRewardNotifier rewardNotifier,
+                               SlotsPlayerService slotsPlayerService, SocialRelationCache relationCache,
+                               TogetherPlayRobotService robotService) {
         this.togetherPlayDao = togetherPlayDao;
         this.reconnectDao = reconnectDao;
         this.playerService = playerService;
-        this.playerSessionService = playerSessionService;
+        this.rewardNotifier = rewardNotifier;
         this.slotsPlayerService = slotsPlayerService;
         this.relationCache = relationCache;
+        this.robotService = robotService;
     }
 
     public void onEnter(SlotsPlayerGameData gameData) {
@@ -90,9 +90,6 @@ public class TogetherPlayService {
                 gameData.getTogetherPlaySkillEffect().getWinCommission()));
         gameData.setTogetherPlayData(togetherData);
         try {
-            if (!reconnect) {
-                togetherPlayDao.resetSession(gameData.getGameType(), gameData.getPlayerId());
-            }
             togetherPlayDao.enter(gameData.getGameType(), gameData.getPlayerId(), winGold,
                     togetherData.getCommissionUsers(), togetherData.getWinCommission());
             togetherData.setOfflineWinGold(null);
@@ -104,24 +101,26 @@ public class TogetherPlayService {
         if (reconnectGameType != 0) {
             removeReconnectMark(gameData.getPlayerId());
         }
+        robotService.onEnter(gameData);
     }
 
     public void onExit(SlotsPlayerGameData gameData, boolean dropped) {
         if (!normal(gameData)) {
             return;
         }
+        robotService.onExit(gameData);
         Long winGold = null;
         try {
             if (dropped) {
                 winGold = togetherPlayDao.leave(gameData.getGameType(), gameData.getPlayerId());
             } else {
                 togetherPlayDao.remove(gameData.getGameType(), gameData.getPlayerId());
-                togetherPlayDao.resetSession(gameData.getGameType(), gameData.getPlayerId());
             }
         } catch (Exception e) {
             log.error("好友同玩玩家离开实时集合失败 playerId={},gameType={}",
                     gameData.getPlayerId(), gameData.getGameType(), e);
         }
+        endInviteSession(gameData);
         if (!dropped) {
             gameData.setTogetherPlayData(null);
             removeReconnectMark(gameData.getPlayerId());
@@ -152,12 +151,14 @@ public class TogetherPlayService {
         if (!normal(gameData)) {
             return;
         }
+        robotService.onExit(gameData);
         try {
             togetherPlayDao.remove(gameData.getGameType(), gameData.getPlayerId());
         } catch (Exception e) {
             log.error("关闭Slots节点时移除好友同玩玩家失败 playerId={},gameType={}",
                     gameData.getPlayerId(), gameData.getGameType(), e);
         }
+        endInviteSession(gameData);
     }
 
     public void onSpin(SlotsPlayerGameData gameData, long rewards, int times) {
@@ -176,7 +177,7 @@ public class TogetherPlayService {
             commissions = awardCommissions(
                     gameData.getGameType(), gameData.getPlayerId(), rewards);
         }
-        if (times > 5) {
+        if (times > SlotsConst.Common.TOGETHER_PLAY_NOTIFY_MIN_TIMES) {
             notifyPlayerRewards(gameData, rewards, times, commissions);
         }
     }
@@ -200,8 +201,10 @@ public class TogetherPlayService {
             res.playerInfos = List.of();
             return res;
         }
+        Map<Long, TogetherPlayPlayerInfo> robots = listType == LIST_ALL
+                ? robotService.playerInfos(gameData.getGameType(), gameData.getRoomCfgId()) : Map.of();
         List<TogetherPlayDao.PlayerScore> scores = listType == LIST_ALL
-                ? allPlayerScores(gameData.getGameType(), (int) startValue, res.pageSize, res)
+                ? allPlayerScores(gameData.getGameType(), (int) startValue, res.pageSize, res, robots)
                 : invitedPlayerScores(gameData, (int) startValue, res.pageSize, res);
         Set<Long> commissionEnabled = Set.of();
         Map<Long, Long> commissions = Map.of();
@@ -216,7 +219,7 @@ public class TogetherPlayService {
             commissions = togetherPlayDao.commissions(gameData.getGameType(), gameData.getPlayerId(),
                     scores.stream().map(TogetherPlayDao.PlayerScore::playerId).toList());
         }
-        res.playerInfos = toPlayerInfos(scores, commissionEnabled, commissions);
+        res.playerInfos = toPlayerInfos(scores, commissionEnabled, commissions, robots);
         return res;
     }
 
@@ -296,16 +299,15 @@ public class TogetherPlayService {
                                 if (res.code == Code.SUCCESS && gameData.isOnline()
                                         && normal(gameData) && togetherData != null) {
                                     Set<Long> invitePlayerIds = togetherData.getInvitePlayerIds();
-                                    if (!invitePlayerIds.contains(targetPlayerId)) {
-                                        try {
-                                            togetherPlayDao.recordInvite(gameType, playerId, targetPlayerId,
-                                                    invitePlayerIds.size() + 1L);
+                                    try {
+                                        if (!togetherPlayDao.hasInvite(gameType, playerId, targetPlayerId)) {
+                                            togetherPlayDao.recordInvite(gameType, playerId, targetPlayerId);
                                             invitePlayerIds.add(targetPlayerId);
-                                        } catch (Exception e) {
-                                            log.error("记录好友同玩邀请关系失败 playerId={},targetPlayerId={},gameType={}",
-                                                    playerId, targetPlayerId, gameType, e);
-                                            res.code = Code.EXCEPTION;
                                         }
+                                    } catch (Exception e) {
+                                        log.error("记录好友同玩邀请关系失败 playerId={},targetPlayerId={},gameType={}",
+                                                playerId, targetPlayerId, gameType, e);
+                                        res.code = Code.EXCEPTION;
                                     }
                                 }
                                 responseFuture.complete(res);
@@ -315,8 +317,25 @@ public class TogetherPlayService {
     }
 
     private List<TogetherPlayDao.PlayerScore> allPlayerScores(int gameType, int start, int pageSize,
-                                                               ResTogetherPlayPlayerList res) {
-        List<TogetherPlayDao.PlayerScore> scores = togetherPlayDao.page(gameType, start, pageSize + 1);
+                                                               ResTogetherPlayPlayerList res,
+                                                               Map<Long, TogetherPlayPlayerInfo> robots) {
+        // 最多只有 robots.size() 个机器人能把真人挤到后页，只回查这段窗口，不拉取全部真人。
+        int humanStart = Math.max(0, start - robots.size());
+        int offset = start - humanStart;
+        List<TogetherPlayDao.PlayerScore> scores = new ArrayList<>(
+                togetherPlayDao.page(gameType, humanStart, offset + pageSize + 1));
+        if (!robots.isEmpty()) {
+            for (TogetherPlayPlayerInfo robot : robots.values()) {
+                scores.add(new TogetherPlayDao.PlayerScore(robot.playerId, robot.winGold));
+            }
+            // 与 Redis ZREVRANGE 的 score + 成员字符串降序保持一致。
+            scores.sort(Comparator.comparingLong(TogetherPlayDao.PlayerScore::winGold)
+                    .thenComparing(score -> Long.toString(score.playerId())).reversed());
+        }
+        if (offset >= scores.size()) {
+            return List.of();
+        }
+        scores = scores.subList(offset, scores.size());
         if (scores.size() > pageSize) {
             res.nextPageIndex = res.pageIndex + 1;
             return new ArrayList<>(scores.subList(0, pageSize));
@@ -326,17 +345,14 @@ public class TogetherPlayService {
 
     private List<TogetherPlayDao.PlayerScore> invitedPlayerScores(SlotsPlayerGameData gameData, int start,
                                                                    int pageSize, ResTogetherPlayPlayerList res) {
-        TogetherPlayData togetherData = gameData.getTogetherPlayData();
-        if (togetherData == null || togetherData.getInvitePlayerIds().isEmpty()) {
-            return List.of();
-        }
         List<TogetherPlayDao.PlayerScore> page = new ArrayList<>(pageSize);
-        Iterator<Long> iterator = togetherData.getInvitePlayerIds().iterator();
+        int relationStart = 0;
         int activeIndex = 0;
-        while (iterator.hasNext()) {
-            List<Long> batchIds = new ArrayList<>(MAX_PAGE_SIZE);
-            while (iterator.hasNext() && batchIds.size() < MAX_PAGE_SIZE) {
-                batchIds.add(iterator.next());
+        while (true) {
+            List<Long> batchIds = togetherPlayDao.invitees(
+                    gameData.getGameType(), gameData.getPlayerId(), relationStart, MAX_PAGE_SIZE);
+            if (batchIds.isEmpty()) {
+                break;
             }
             List<Double> redisScores = togetherPlayDao.scores(gameData.getGameType(), batchIds);
             for (int i = 0; i < batchIds.size(); i++) {
@@ -350,20 +366,44 @@ public class TogetherPlayService {
                 }
                 page.add(new TogetherPlayDao.PlayerScore(batchIds.get(i), score.longValue()));
             }
+            if (batchIds.size() < MAX_PAGE_SIZE) {
+                break;
+            }
+            relationStart += batchIds.size();
         }
         return page;
     }
 
+    private void endInviteSession(SlotsPlayerGameData gameData) {
+        try {
+            togetherPlayDao.resetSession(gameData.getGameType(), gameData.getPlayerId());
+        } catch (Exception e) {
+            log.error("清理好友同玩邀请关系失败 playerId={},gameType={}",
+                    gameData.getPlayerId(), gameData.getGameType(), e);
+        }
+        TogetherPlayData togetherData = gameData.getTogetherPlayData();
+        if (togetherData != null) {
+            togetherData.getInvitePlayerIds().clear();
+        }
+    }
+
     private List<TogetherPlayPlayerInfo> toPlayerInfos(List<TogetherPlayDao.PlayerScore> scores,
                                                        Set<Long> commissionEnabled,
-                                                       Map<Long, Long> commissions) {
+                                                       Map<Long, Long> commissions,
+                                                       Map<Long, TogetherPlayPlayerInfo> robots) {
         if (scores.isEmpty()) {
             return List.of();
         }
-        List<Long> playerIds = scores.stream().map(TogetherPlayDao.PlayerScore::playerId).toList();
-        Map<Long, Player> players = playerService.multiGetPlayerMap(playerIds);
+        List<Long> playerIds = scores.stream().map(TogetherPlayDao.PlayerScore::playerId)
+                .filter(id -> !robots.containsKey(id)).toList();
+        Map<Long, Player> players = playerIds.isEmpty() ? Map.of() : playerService.multiGetPlayerMap(playerIds);
         List<TogetherPlayPlayerInfo> infos = new ArrayList<>(scores.size());
         for (TogetherPlayDao.PlayerScore score : scores) {
+            TogetherPlayPlayerInfo robot = robots.get(score.playerId());
+            if (robot != null) {
+                infos.add(robot);
+                continue;
+            }
             Player player = players.get(score.playerId());
             if (player == null) {
                 continue;
@@ -418,62 +458,14 @@ public class TogetherPlayService {
 
     private void notifyPlayerRewards(SlotsPlayerGameData gameData, long rewards, int times,
                                      Map<Long, Long> commissions) {
-        int gameType = gameData.getGameType();
-        long winnerId = gameData.getPlayerId();
         Player winner = gameData.getPlayer();
-        int headImg = winner == null ? 0 : winner.getHeadImgId();
-        int headFrame = winner == null ? 0 : winner.getHeadFrameId();
-        int start = 0;
-        while (true) {
-            List<TogetherPlayDao.PlayerScore> players;
-            try {
-                players = togetherPlayDao.page(gameType, start, MAX_PAGE_SIZE);
-            } catch (Exception e) {
-                log.error("获取好友同玩中奖广播玩家失败 winnerId={},gameType={},start={}",
-                        winnerId, gameType, start, e);
-                return;
-            }
-            if (players.isEmpty()) {
-                return;
-            }
-            List<Long> playerIds = players.stream()
-                    .map(TogetherPlayDao.PlayerScore::playerId).toList();
-            List<PlayerSessionInfo> sessionInfos;
-            try {
-                sessionInfos = playerSessionService.getInfos(playerIds);
-            } catch (Exception e) {
-                log.error("获取好友同玩中奖广播会话失败 winnerId={},gameType={},start={}",
-                        winnerId, gameType, start, e);
-                return;
-            }
-            for (int i = 0; i < playerIds.size(); i++) {
-                PlayerSessionInfo sessionInfo = sessionInfos.get(i);
-                if (sessionInfo == null) {
-                    continue;
-                }
-                try {
-                    PFSession session = playerSessionService.getSession(sessionInfo);
-                    if (session == null) {
-                        continue;
-                    }
-                    NotifyPlayerRewards notify = new NotifyPlayerRewards();
-                    notify.playerId = winnerId;
-                    notify.headImg = headImg;
-                    notify.headFrame = headFrame;
-                    notify.rewards = rewards;
-                    notify.commission = commissions.getOrDefault(playerIds.get(i), 0L);
-                    notify.times = times;
-                    session.send(notify);
-                } catch (Exception e) {
-                    log.warn("发送好友同玩中奖广播失败 playerId={},winnerId={},gameType={}",
-                            playerIds.get(i), winnerId, gameType, e);
-                }
-            }
-            if (players.size() < MAX_PAGE_SIZE) {
-                return;
-            }
-            start += players.size();
-        }
+        NotifyPlayerRewards notify = new NotifyPlayerRewards();
+        notify.playerId = gameData.getPlayerId();
+        notify.headImg = winner == null ? 0 : winner.getHeadImgId();
+        notify.headFrame = winner == null ? 0 : winner.getHeadFrameId();
+        notify.rewards = rewards;
+        notify.times = times;
+        rewardNotifier.notify(gameData.getGameType(), notify, commissions);
     }
 
     private Map<Long, CommissionRecipient> commissionRecipients(int gameType, long winnerId) {

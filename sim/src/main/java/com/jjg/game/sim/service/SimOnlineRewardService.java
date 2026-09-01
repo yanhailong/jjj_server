@@ -160,11 +160,9 @@ public class SimOnlineRewardService {
         info.adUsedCount = base.getOnlineRewardAdCount();
         info.adCdEndTime = base.getOnlineRewardAdCdEndTime() > now ? base.getOnlineRewardAdCdEndTime() : 0;
         info.diamondUsedCount = base.getOnlineRewardDiamondCount();
-        if (info.diamondUsedCount < info.diamondDailyLimit) {
-            Item cost = costs.get(base.getOnlineRewardDiamondCount());
-            info.diamondCost = ItemUtils.buildItemInfo(cost.getId(), cost.getItemCount());
-        } else {
-            info.diamondCost = null;
-        }
+        int costIndex = info.diamondUsedCount < info.diamondDailyLimit
+                ? info.diamondUsedCount : Math.max(0, info.diamondUsedCount - 1);
+        Item cost = costs.get(Math.min(costIndex, costs.size() - 1));
+        info.diamondCost = ItemUtils.buildItemInfo(cost.getId(), cost.getItemCount());
     }
 }
