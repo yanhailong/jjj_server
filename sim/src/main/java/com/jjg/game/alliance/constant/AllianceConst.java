@@ -20,6 +20,8 @@ public interface AllianceConst {
         int FREE_DONATE = 1;
         //待处理入盟申请数量
         int APPLICATION = 2;
+        //当天首次进入联盟任务界面提醒；页面仍有任务且尚未查看时点亮
+        int TASK_DAILY_ENTRY = 3;
     }
 
     /**

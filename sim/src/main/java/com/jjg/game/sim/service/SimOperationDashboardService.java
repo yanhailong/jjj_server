@@ -27,8 +27,13 @@ import com.jjg.game.sim.tools.SimTool;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
 
+import java.math.BigDecimal;
+import java.time.Instant;
+import java.time.ZoneId;
+import java.time.format.DateTimeFormatter;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.Comparator;
@@ -44,6 +49,12 @@ import java.util.Map;
 @Service
 public class SimOperationDashboardService {
     private static final Logger log = LoggerFactory.getLogger(SimOperationDashboardService.class);
+    private static final DateTimeFormatter SATISFACTION_LOG_TIME = DateTimeFormatter
+            .ofPattern("yyyy-MM-dd HH:mm:ss.SSS").withZone(ZoneId.systemDefault());
+
+    //测试核对用，只在请求完整看板时输出；不需要排查时可通过配置关闭。
+    @Value("${sim.dashboard.satisfaction-log-enabled:true}")
+    private boolean satisfactionLogEnabled = true;
 
     private static final int RESEARCH_UNLOCKED = 1;
     private static final int RESEARCH_CURRENT = 2;
@@ -100,9 +111,10 @@ public class SimOperationDashboardService {
             } else {
                 long now = System.currentTimeMillis();
                 res.casinoId = casino.getCasinoId();
-                res.currentCapacity = casino.countGenerateInWindow(now, SimConstant.Common.CAPACITY_WINDOW_MS);
                 res.buildings = buildCapacityData(casino, now);
                 res.totalCapacity = res.buildings.stream().mapToInt(data -> data.capacity).sum();
+                res.currentCapacity = Math.min(res.totalCapacity,
+                        casino.countGenerateInWindow(now, SimConstant.Common.CAPACITY_WINDOW_MS));
             }
         } catch (Exception e) {
             log.error("获取看板实时容纳数据异常 playerId={}", ctx.playerId(), e);
@@ -116,8 +128,10 @@ public class SimOperationDashboardService {
         Map<BuildingOutputType, Long> outputs = buildingService.computePerMinuteOutput(ctx, casino);
         overview.goldOutputPerMinute = outputs.getOrDefault(BuildingOutputType.GOLD, 0L);
         overview.expOutputPerMinute = outputs.getOrDefault(BuildingOutputType.CASINO_LEVEL_EXP, 0L);
-        overview.currentCapacity = casino.countGenerateInWindow(now, SimConstant.Common.CAPACITY_WINDOW_MS);
         overview.totalCapacity = computeCurrentCapacity(casino);
+        //窗口累计人数仅用于展示，按当前容纳上限截断，不修改原始游客/交互统计。
+        overview.currentCapacity = Math.min(overview.totalCapacity,
+                casino.countGenerateInWindow(now, SimConstant.Common.CAPACITY_WINDOW_MS));
         overview.serviceCapacity = buildingService.computeDeptValue(ctx, casino, BuildingOutputType.SERVICE);
         overview.awareness = buildingService.computeDeptValue(ctx, casino, BuildingOutputType.AWARENESS);
         long exposure = buildingService.computeDeptValue(ctx, casino, BuildingOutputType.EXPOSURE);
@@ -126,7 +140,7 @@ public class SimOperationDashboardService {
                 casino.getCasinoId(), casino.getCasinoLevel());
         overview.customerAcquisitionPerMinute = customerAcquisitionPerMinute(exposure, casinoCfg);
         overview.operationRate = operationRate(exposure, casinoCfg);
-        overview.satisfactionRate = satisfactionRate(casino, casinoCfg, now);
+        overview.satisfactionRate = satisfactionRate(ctx.playerId(), casino, casinoCfg, now);
         overview.premiumVisitorRates = premiumVisitorRates(casino);
         return overview;
     }
@@ -165,8 +179,8 @@ public class SimOperationDashboardService {
             BuildingUpgradeTableCfg levelCfg = configCache.getBuildingUpgradeCfg(building.getId(), building.getLevel());
             if (levelCfg != null && (buildingType == BuildingType.GAME || buildingType == BuildingType.REST)) {
                 data.capacity = levelCfg.getMaxInteractionCount();
-                data.currentCapacity = casino.countBuildingInteractionsInWindow(
-                        building.getId(), now, SimConstant.Common.CAPACITY_WINDOW_MS);
+                data.currentCapacity = Math.min(data.capacity, casino.countBuildingInteractionsInWindow(
+                        building.getId(), now, SimConstant.Common.CAPACITY_WINDOW_MS));
             }
 
             Map<BuildingOutputType, Long> values = buildingService.computeDashboardBuildingValues(ctx, building);
@@ -279,9 +293,9 @@ public class SimOperationDashboardService {
             }
             OperationBuildingCapacity data = new OperationBuildingCapacity();
             data.buildingId = building.getId();
-            data.currentCapacity = casino.countBuildingInteractionsInWindow(
-                    building.getId(), now, SimConstant.Common.CAPACITY_WINDOW_MS);
             data.capacity = cfg.getMaxInteractionCount();
+            data.currentCapacity = Math.min(data.capacity, casino.countBuildingInteractionsInWindow(
+                    building.getId(), now, SimConstant.Common.CAPACITY_WINDOW_MS));
             result.add(data);
         }
         return result;
@@ -326,12 +340,10 @@ public class SimOperationDashboardService {
         return (int) Math.min(SimConstant.Common.DASHBOARD_RATE_BASE, rate);
     }
 
-    private int satisfactionRate(SimCasinoData casino, CasinoStatsSheetCfg cfg, long now) {
+    private int satisfactionRate(long playerId, SimCasinoData casino, CasinoStatsSheetCfg cfg, long now) {
         int guestCount = casino.countGenerateInWindow(now, SimConstant.Common.CAPACITY_WINDOW_MS);
-        if (guestCount <= 0) {
-            return SimConstant.Common.DASHBOARD_RATE_BASE;
-        }
-        int requiredInteractions = cfg == null ? 0 : cfg.getInteractCount();
+        int configuredInteractions = cfg == null ? 0 : cfg.getInteractCount();
+        int requiredInteractions = configuredInteractions;
         //兼容策划表尚未增加 InteractCount 的环境：按每名游客至少完成一次交互计算。
         if (requiredInteractions <= 0) {
             requiredInteractions = 1;
@@ -340,7 +352,22 @@ public class SimOperationDashboardService {
         long denominator = (long) guestCount * requiredInteractions;
         long rate = denominator <= 0 ? SimConstant.Common.DASHBOARD_RATE_BASE
                 : interactions * SimConstant.Common.DASHBOARD_RATE_BASE / denominator;
-        return (int) Math.min(SimConstant.Common.DASHBOARD_RATE_BASE, rate);
+        int result = (int) Math.min(SimConstant.Common.DASHBOARD_RATE_BASE, rate);
+        if (satisfactionLogEnabled && log.isInfoEnabled()) {
+            //直接记录本次计算快照，不重复统计；人数不使用前端容纳展示的截断值。
+            log.info("看板满意度计算：玩家编号：{}，场景编号：{}，统计时长：最近{}分钟，窗口开始：{}，窗口结束：{}，"
+                            + "游客人数（未截断）：{}，规划交互次数：{}，配置要求交互次数：{}，每名游客要求交互次数：{}，"
+                            + "最终满意度：{}%，计算说明：{}",
+                    playerId, casino.getCasinoId(), SimConstant.Common.CAPACITY_WINDOW_MS / 60_000,
+                    SATISFACTION_LOG_TIME.format(Instant.ofEpochMilli(now - SimConstant.Common.CAPACITY_WINDOW_MS)),
+                    SATISFACTION_LOG_TIME.format(Instant.ofEpochMilli(now)),
+                    guestCount, interactions, configuredInteractions, requiredInteractions,
+                    BigDecimal.valueOf(result, 2).toPlainString(),
+                    guestCount <= 0 ? "窗口内没有游客，默认满满意度"
+                            : configuredInteractions <= 0 ? "配置未设置有效次数，按每名游客一次计算，最高百分之百"
+                            : "规划交互次数除以游客人数与要求次数的乘积，最高百分之百");
+        }
+        return result;
     }
 
     private List<OperationVisitorQualityRate> premiumVisitorRates(SimCasinoData casino) {

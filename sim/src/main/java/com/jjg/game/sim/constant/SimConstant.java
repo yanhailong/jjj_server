@@ -299,6 +299,8 @@ public interface SimConstant {
         int RED_DOT_FREE_REFRESH = 1;
         int RED_DOT_AD_AVAILABLE = 2;
         int RED_DOT_INVITE_ITEM = 3;
+        //每天首次进入特邀游客界面提醒；确认查看后当天不再提示
+        int RED_DOT_DAILY_ENTRY = 4;
     }
 
     interface Employee {

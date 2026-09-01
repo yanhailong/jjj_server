@@ -13,6 +13,7 @@ import com.jjg.game.core.base.condition.numeric.GuestInviteConditionEvent;
 import com.jjg.game.core.base.reddot.IRedDotService;
 import com.jjg.game.core.constant.AddType;
 import com.jjg.game.core.constant.Code;
+import com.jjg.game.core.dao.RedDotReadDao;
 import com.jjg.game.core.data.*;
 import com.jjg.game.core.listener.ItemListener;
 import com.jjg.game.core.manager.RedDotManager;
@@ -61,7 +62,9 @@ public class SimGuestService implements SimPlayerTickListener, ItemListener, Sim
     private static final List<Integer> RED_DOT_SUBMODULES = List.of(
             SimConstant.SpecialGuest.RED_DOT_FREE_REFRESH,
             SimConstant.SpecialGuest.RED_DOT_AD_AVAILABLE,
-            SimConstant.SpecialGuest.RED_DOT_INVITE_ITEM);
+            SimConstant.SpecialGuest.RED_DOT_INVITE_ITEM,
+            SimConstant.SpecialGuest.RED_DOT_DAILY_ENTRY);
+    private static final String RED_DOT_DAILY_ENTRY_SCOPE = "special_guest_daily_entry";
 
     @Autowired
     private SimConfigCacheService configCache;
@@ -91,6 +94,8 @@ public class SimGuestService implements SimPlayerTickListener, ItemListener, Sim
     private NodeConfig nodeConfig;
     @Autowired
     private RedDotManager redDotManager;
+    @Autowired
+    private RedDotReadDao redDotReadDao;
     @Autowired
     private SimEmployeeRedDotService employeeRedDotService;
 
@@ -2078,6 +2083,15 @@ public class SimGuestService implements SimPlayerTickListener, ItemListener, Sim
     }
 
     @Override
+    public boolean markRead(long playerId, int submodule, List<Integer> entityIds) {
+        if (submodule != SimConstant.SpecialGuest.RED_DOT_DAILY_ENTRY) {
+            return false;
+        }
+        redDotReadDao.viewToday(playerId, RED_DOT_DAILY_ENTRY_SCOPE);
+        return true;
+    }
+
+    @Override
     public List<RedDotDetails> initialize(long playerId, int submodule) {
         SimPlayerContext ctx = simPlayerContextRegistry.getContext(playerId);
         SimBaseData baseData;
@@ -2115,6 +2129,8 @@ public class SimGuestService implements SimPlayerTickListener, ItemListener, Sim
                     hasAvailableSpecialGuestAd(playerId, baseData, casino, today, now) ? 1 : 0;
             case SimConstant.SpecialGuest.RED_DOT_INVITE_ITEM -> casino == null ? 0
                     : casino.getSpecialGuestItemCounts().values().stream().filter(count -> count != null && count > 0).mapToLong(Long::longValue).sum();
+            case SimConstant.SpecialGuest.RED_DOT_DAILY_ENTRY -> baseData != null && casino != null
+                    && !redDotReadDao.viewedToday(playerId, RED_DOT_DAILY_ENTRY_SCOPE) ? 1 : 0;
             default -> 0;
         };
     }

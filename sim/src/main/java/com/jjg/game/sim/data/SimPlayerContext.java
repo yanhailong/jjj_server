@@ -82,6 +82,8 @@ public class SimPlayerContext {
     private int allianceDonateRedDotDay;
     //下一条有效入盟申请的过期时间 (ms; -1 表示尚未初始化)
     private long allianceApplicationRedDotNextExpireTime = -1;
+    //联盟任务每日首次查看红点已检查的自然日 (内存态)
+    private int allianceTaskRedDotDay;
 
     public PlayerController getPlayerController() {
         return playerController;
@@ -109,6 +111,14 @@ public class SimPlayerContext {
 
     public void setAllianceApplicationRedDotNextExpireTime(long allianceApplicationRedDotNextExpireTime) {
         this.allianceApplicationRedDotNextExpireTime = allianceApplicationRedDotNextExpireTime;
+    }
+
+    public int getAllianceTaskRedDotDay() {
+        return allianceTaskRedDotDay;
+    }
+
+    public void setAllianceTaskRedDotDay(int allianceTaskRedDotDay) {
+        this.allianceTaskRedDotDay = allianceTaskRedDotDay;
     }
 
     public void setPlayerController(PlayerController playerController) {
