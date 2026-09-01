@@ -138,6 +138,32 @@ public class AllianceTaskService {
     // =====================================================================
 
     /**
+     * 判断联盟任务页是否还有任务可展示，包括任务池中的可接任务和玩家自己的进行中任务。
+     * 与任务列表使用同一套整点惰性补齐逻辑，避免任务池尚未初始化或已跨整点时红点错误熄灭。
+     */
+    public boolean hasAvailableTask(long playerId) {
+        long allianceId = cacheService.getAllianceId(playerId);
+        if (allianceId < 1) {
+            return false;
+        }
+        AllianceData alliance = cacheService.getAlliance(allianceId);
+        if (alliance == null) {
+            return false;
+        }
+        alliance = ensurePoolRefreshed(alliance, false);
+        long now = System.currentTimeMillis();
+        boolean hasPoolTask = alliance.getTasks() != null && alliance.getTasks().values().stream()
+                .anyMatch(task -> task != null && task.getExpireTime() > now
+                        && configService.getAllianceTaskByCfgId(task.getCfgId()) != null);
+        if (hasPoolTask) {
+            return true;
+        }
+        PlayerTakenTask taken = alliancePlayerDao.getOrEmpty(playerId).getTakenTask();
+        return taken != null && !taken.expired(now)
+                && configService.getAllianceTaskByCfgId(taken.getCfgId()) != null;
+    }
+
+    /**
      * 任务列表: 先确保任务池已按当前整点补齐, 再返回池 + 我的任务。
      */
     public ResAllianceTaskList taskList(long playerId) {

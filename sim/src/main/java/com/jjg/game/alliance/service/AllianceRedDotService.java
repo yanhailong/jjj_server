@@ -9,6 +9,7 @@ import com.jjg.game.alliance.data.AlliancePlayerData;
 import com.jjg.game.alliance.data.DonateCfg;
 import com.jjg.game.common.utils.TimeHelper;
 import com.jjg.game.core.base.reddot.IRedDotService;
+import com.jjg.game.core.dao.RedDotReadDao;
 import com.jjg.game.core.manager.RedDotManager;
 import com.jjg.game.core.pb.reddot.RedDotDetails;
 import com.jjg.game.sim.data.SimPlayerContext;
@@ -24,13 +25,15 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
 
-/** 联盟免费捐献及待处理入盟申请红点。 */
+/** 联盟免费捐献、待处理入盟申请及每日任务入口红点。 */
 @Service
 public class AllianceRedDotService implements IRedDotService, SimPlayerTickListener {
     private static final Logger log = LoggerFactory.getLogger(AllianceRedDotService.class);
+    private static final String TASK_DAILY_ENTRY_SCOPE = "alliance_task_daily_entry";
     private static final List<Integer> RED_DOT_SUBMODULES = List.of(
             AllianceConst.RedDot.FREE_DONATE,
-            AllianceConst.RedDot.APPLICATION);
+            AllianceConst.RedDot.APPLICATION,
+            AllianceConst.RedDot.TASK_DAILY_ENTRY);
 
     @Autowired
     private AlliancePlayerDao alliancePlayerDao;
@@ -42,6 +45,10 @@ public class AllianceRedDotService implements IRedDotService, SimPlayerTickListe
     private SimPlayerContextRegistry contextRegistry;
     @Autowired
     private RedDotManager redDotManager;
+    @Autowired
+    private RedDotReadDao redDotReadDao;
+    @Autowired
+    private AllianceTaskService allianceTaskService;
 
     @Override
     public RedDotDetails.RedDotModule getModule() {
@@ -77,23 +84,47 @@ public class AllianceRedDotService implements IRedDotService, SimPlayerTickListe
                 details.add(buildDetails(currentSubmodule, applicationSnapshot.count(),
                         RedDotDetails.RedDotType.COUNT));
                 updateApplicationExpireTime(playerId, applicationSnapshot.nextExpireTime());
+            } else if (currentSubmodule == AllianceConst.RedDot.TASK_DAILY_ENTRY) {
+                boolean show = playerData != null && playerData.getAllianceId() > 0
+                        && !redDotReadDao.viewedToday(playerId, TASK_DAILY_ENTRY_SCOPE)
+                        && allianceTaskService.hasAvailableTask(playerId);
+                details.add(buildDetails(currentSubmodule, show ? 1 : 0,
+                        RedDotDetails.RedDotType.COMMON));
+                updateTaskDay(playerId, today);
             }
         }
         return details;
     }
 
     @Override
+    public boolean markRead(long playerId, int submodule, List<Integer> entityIds) {
+        if (submodule != AllianceConst.RedDot.TASK_DAILY_ENTRY) {
+            return false;
+        }
+        redDotReadDao.viewToday(playerId, TASK_DAILY_ENTRY_SCOPE);
+        updateTaskDay(playerId, TimeHelper.getDayNumerical());
+        return true;
+    }
+
+    @Override
     public void onTick(SimPlayerContext ctx, long now) {
         int today = TimeHelper.getDayNumerical();
         boolean refreshDonate = ctx.getAllianceDonateRedDotDay() != today;
+        boolean refreshTask = ctx.getAllianceTaskRedDotDay() != today;
         long nextExpireTime = ctx.getAllianceApplicationRedDotNextExpireTime();
         boolean refreshApplications = nextExpireTime < 0 || nextExpireTime > 0 && now >= nextExpireTime;
-        if (refreshDonate && refreshApplications) {
+        if (refreshDonate && refreshApplications && refreshTask) {
             refreshAll(ctx.playerId());
-        } else if (refreshDonate) {
-            refresh(ctx.playerId(), AllianceConst.RedDot.FREE_DONATE);
-        } else if (refreshApplications) {
-            refresh(ctx.playerId(), AllianceConst.RedDot.APPLICATION);
+        } else {
+            if (refreshDonate) {
+                refresh(ctx.playerId(), AllianceConst.RedDot.FREE_DONATE);
+            }
+            if (refreshApplications) {
+                refresh(ctx.playerId(), AllianceConst.RedDot.APPLICATION);
+            }
+            if (refreshTask) {
+                refresh(ctx.playerId(), AllianceConst.RedDot.TASK_DAILY_ENTRY);
+            }
         }
     }
 
@@ -116,7 +147,8 @@ public class AllianceRedDotService implements IRedDotService, SimPlayerTickListe
         updateApplicationExpireTime(playerId, 0);
         push(playerId, List.of(
                 buildDetails(AllianceConst.RedDot.FREE_DONATE, 0, RedDotDetails.RedDotType.COMMON),
-                buildDetails(AllianceConst.RedDot.APPLICATION, 0, RedDotDetails.RedDotType.COUNT)));
+                buildDetails(AllianceConst.RedDot.APPLICATION, 0, RedDotDetails.RedDotType.COUNT),
+                buildDetails(AllianceConst.RedDot.TASK_DAILY_ENTRY, 0, RedDotDetails.RedDotType.COMMON)));
     }
 
     public void refreshApplications(long playerId) {
@@ -207,6 +239,13 @@ public class AllianceRedDotService implements IRedDotService, SimPlayerTickListe
         SimPlayerContext ctx = contextRegistry.getContext(playerId);
         if (ctx != null) {
             ctx.setAllianceApplicationRedDotNextExpireTime(nextExpireTime);
+        }
+    }
+
+    private void updateTaskDay(long playerId, int today) {
+        SimPlayerContext ctx = contextRegistry.getContext(playerId);
+        if (ctx != null) {
+            ctx.setAllianceTaskRedDotDay(today);
         }
     }
 

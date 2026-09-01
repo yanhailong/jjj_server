@@ -15,6 +15,6 @@ public class ReqMarkRedDotRead extends AbstractMessage {
     public RedDotDetails.RedDotModule module;
     @ProtoDesc("已查看的子模块，必须指定；不支持清除整个模块")
     public int submodule;
-    @ProtoDesc("实际查看的实体ID列表；雇员传雇员ID，羁绊传羁绊ID；每日查看类不填")
+    @ProtoDesc("实际查看的实体ID列表；雇员传雇员ID，羁绊传羁绊ID；特邀游客/联盟任务等每日查看类不填")
     public List<Integer> entityIds;
 }
