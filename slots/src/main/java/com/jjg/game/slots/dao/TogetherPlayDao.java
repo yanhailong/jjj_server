@@ -178,6 +178,10 @@ public class TogetherPlayDao {
         return result;
     }
 
+    public int count(int gameType) {
+        return zset(gameType).size();
+    }
+
     public List<Double> scores(int gameType, List<Long> playerIds) {
         if (playerIds == null || playerIds.isEmpty()) {
             return List.of();

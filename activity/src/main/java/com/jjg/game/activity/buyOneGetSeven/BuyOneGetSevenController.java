@@ -152,7 +152,7 @@ public class BuyOneGetSevenController extends BaseActivityController implements 
 
     @Override
     public BuyOneGetSevenDetailInfo buildPlayerActivityDetail(Player player, ActivityData activityData,
-                                                               BaseCfgBean baseCfgBean, PlayerActivityData data) {
+                                                              BaseCfgBean baseCfgBean, PlayerActivityData data) {
         if (!(baseCfgBean instanceof BuyOneGetSevenCfg cfg)) {
             return null;
         }
@@ -236,6 +236,7 @@ public class BuyOneGetSevenController extends BaseActivityController implements 
         Map<Integer, BuyOneGetSevenPlayerData> playerData = playerActivityDao.getPlayerActivityData(
                 player.getId(), activityData.getType(), activityData.getId());
         if (CollectionUtil.isNotEmpty(playerData)) {
+            log.warn("玩家已经购买过该礼包 playerId={},activityType={},activityId={}", player.getId(), activityData.getType(), activityData.getId());
             return null;
         }
         ShopRechargeListCfg shopCfg = getShopCfg(activityData);
@@ -307,8 +308,8 @@ public class BuyOneGetSevenController extends BaseActivityController implements 
     }
 
     private ResBuyOneGetSeven buildResponse(Player player, ActivityData activityData,
-                                             Map<Integer, BuyOneGetSevenCfg> cfgMap,
-                                             Map<Integer, BuyOneGetSevenPlayerData> playerData) {
+                                            Map<Integer, BuyOneGetSevenCfg> cfgMap,
+                                            Map<Integer, BuyOneGetSevenPlayerData> playerData) {
         ResBuyOneGetSeven res = new ResBuyOneGetSeven(Code.SUCCESS);
         res.activityData = new ArrayList<>();
         if (!validConfig(activityData, cfgMap)) {

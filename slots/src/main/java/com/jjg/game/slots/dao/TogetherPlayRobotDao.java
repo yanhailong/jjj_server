@@ -26,6 +26,7 @@ public class TogetherPlayRobotDao {
             redis.call('HSET', KEYS[1], 'schedule', ARGV[2])
             if ARGV[3] ~= '' then
                 redis.call('HSET', KEYS[1], 'robots', ARGV[3])
+                redis.call('HSET', KEYS[1], 'count', ARGV[4])
             end
             return 1
             """;
@@ -51,6 +52,12 @@ public class TogetherPlayRobotDao {
         }
     }
 
+    public int count(int gameType) {
+        String count = redissonClient.<String, String>getMap(
+                key(gameType), StringCodec.INSTANCE).get("count");
+        return count == null ? 0 : Integer.parseInt(count);
+    }
+
     /** 校验旧时间戳并原子推进；只有成功的节点可以发送该次中奖通知。 */
     public boolean save(int gameType, Schedule before, Schedule after, List<DisplayRobot> robots) {
         try {
@@ -58,7 +65,8 @@ public class TogetherPlayRobotDao {
                     RScript.Mode.READ_WRITE, SAVE_SCRIPT, RScript.ReturnType.INTEGER,
                     List.of(key(gameType), TogetherPlayDao.key(gameType)),
                     before == null ? "" : MAPPER.writeValueAsString(before),
-                    MAPPER.writeValueAsString(after), robots == null ? "" : MAPPER.writeValueAsString(robots));
+                    MAPPER.writeValueAsString(after), robots == null ? "" : MAPPER.writeValueAsString(robots),
+                    robots == null ? "" : String.valueOf(robots.size()));
             return saved != null && saved == 1;
         } catch (JsonProcessingException e) {
             throw new IllegalStateException("好友同玩机器人数据编码失败 gameType=" + gameType, e);
