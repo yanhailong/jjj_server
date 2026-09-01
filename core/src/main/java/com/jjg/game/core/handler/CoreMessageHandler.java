@@ -531,6 +531,8 @@ public class CoreMessageHandler {
     @Command(MessageConst.CoreMessage.REQ_GENERATE_ORDER)
     public void generateOrder(PlayerController playerController, ReqGenerateOrder req) {
         ResGenerateOrder res = new ResGenerateOrder(Code.SUCCESS);
+        OrderGenerate matchedGenerate = null;
+        boolean orderCreated = false;
         try {
             PayType payType = PayType.valueOf(req.payType);
             if (payType == null) {
@@ -552,6 +554,7 @@ public class CoreMessageHandler {
             for (OrderGenerate generate : SystemInterfaceHolder.getGameSysInterface(OrderGenerate.class)) {
                 try {
                     if (generate.getRechargeType() == rechargeType) {
+                        matchedGenerate = generate;
                         price = generate.generateOrderDetailInfo(playerController.getPlayer(), req);
                         break;
                     }
@@ -560,6 +563,7 @@ public class CoreMessageHandler {
                 }
             }
             if (price == null) {
+                notifyOrderCreationFailed(matchedGenerate, playerController, req);
                 log.debug("预下单失败 playerId = {},req = {}", playerController.playerId(), JSON.toJSONString(req));
                 res.code = Code.FAIL;
                 playerController.send(res);
@@ -567,11 +571,13 @@ public class CoreMessageHandler {
             }
             Order order = orderService.generateOrder(playerController.getPlayer(), payType, req.productId, price, rechargeType, req.desc);
             if (order == null) {
+                notifyOrderCreationFailed(matchedGenerate, playerController, req);
                 log.debug("预下单失败11 playerId = {},req = {}", playerController.playerId(), JSON.toJSONString(req));
                 res.code = Code.FAIL;
                 playerController.send(res);
                 return;
             }
+            orderCreated = true;
 
             if (payType == PayType.IOS) {
                 res.orderId = order.getUuid();
@@ -590,6 +596,9 @@ public class CoreMessageHandler {
                 }
             }
         } catch (Exception e) {
+            if (!orderCreated) {
+                notifyOrderCreationFailed(matchedGenerate, playerController, req);
+            }
             log.error("", e);
             res.code = Code.EXCEPTION;
         }
@@ -762,6 +771,17 @@ public class CoreMessageHandler {
             }
         } catch (Exception e) {
             log.error("", e);
+        }
+    }
+
+    private void notifyOrderCreationFailed(OrderGenerate generate, PlayerController playerController, ReqGenerateOrder req) {
+        if (generate == null) {
+            return;
+        }
+        try {
+            generate.onOrderCreationFailed(playerController.getPlayer(), req);
+        } catch (Exception e) {
+            log.error("预下单失败补偿异常 playerId = {},req = {}", playerController.playerId(), JSON.toJSONString(req), e);
         }
     }
 }

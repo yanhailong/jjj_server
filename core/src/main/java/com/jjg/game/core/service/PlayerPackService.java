@@ -1107,6 +1107,126 @@ public class PlayerPackService implements IPlayerRegister {
         return result;
     }
 
+    /**
+     * 在同一背包锁和一次 Redis 写入内提交挖矿存档、扣除工具/矿石并发放普通背包奖励。
+     * expectedMiningState 作为玩法版本的 CAS 条件，防止同一请求重放或并发重复发奖。
+     */
+    public CommonResult<ItemOperationResult> exchangeMiningItems(Player player,
+                                                                  Map<Integer, Long> removeItems,
+                                                                  Map<Integer, Long> addItems,
+                                                                  AddType addType, String desc,
+                                                                  String expectedMiningState,
+                                                                  String newMiningState) {
+        CommonResult<ItemOperationResult> result = new CommonResult<>(Code.FAIL);
+        result.data = new ItemOperationResult();
+        if (player == null) {
+            result.code = Code.NOT_FOUND;
+            return result;
+        }
+        if (newMiningState == null) {
+            result.code = Code.PARAM_ERROR;
+            return result;
+        }
+        List<Item> removes = checkItemParam(removeItems);
+        List<Item> adds = checkItemParam(addItems);
+        if (!validPackExchangeItems(removes) || !validPackExchangeItems(adds)) {
+            result.code = Code.PARAM_ERROR;
+            return result;
+        }
+
+        long playerId = player.getId();
+        Map<Integer, Long> beforeRemove = new HashMap<>();
+        Map<Integer, Long> afterRemove = new HashMap<>();
+        Map<Integer, Long> afterExchange = new HashMap<>();
+        String key = getLockKey(playerId);
+        boolean lock = false;
+        try {
+            lock = redisLock.tryLockWithDefaultTime(key);
+            if (!lock) {
+                return result;
+            }
+            PlayerPack pack = getFromAllDB(playerId);
+            if (pack == null) {
+                result.code = Code.NOT_FOUND;
+                return result;
+            }
+            if (!Objects.equals(expectedMiningState, pack.getMiningState())) {
+                result.code = Code.REPEAT_OP;
+                return result;
+            }
+            if (!pack.checkHasItems(removes)) {
+                result.code = Code.NOT_ENOUGH_ITEM;
+                try {
+                    notifyItemsNotEnough(player, removes, addType);
+                } catch (Exception e) {
+                    log.error("挖矿道具不足通知失败 playerId={}", playerId, e);
+                }
+                return result;
+            }
+
+            Set<Integer> changedItemIds = new LinkedHashSet<>();
+            removes.forEach(item -> changedItemIds.add(item.getId()));
+            adds.forEach(item -> changedItemIds.add(item.getId()));
+            changedItemIds.forEach(itemId -> beforeRemove.put(itemId, pack.getItemCount(itemId)));
+
+            for (Item item : removes) {
+                CommonResult<Long> removed = pack.removeItem(item.getId(), item.getItemCount());
+                if (!removed.success()) {
+                    result.code = removed.code;
+                    return result;
+                }
+            }
+            changedItemIds.forEach(itemId -> afterRemove.put(itemId, pack.getItemCount(itemId)));
+
+            for (Item item : adds) {
+                ItemCfg itemCfg = GameDataManager.getItemCfg(item.getId());
+                pack.addItem(item.getId(), item.getItemCount(), itemCfg.getProp());
+            }
+            changedItemIds.forEach(itemId -> afterExchange.put(itemId, pack.getItemCount(itemId)));
+            pack.setMiningState(newMiningState);
+            redisTemplate.opsForHash().put(tableName, playerId, pack);
+            result.data.setChangeBeforeItemNum(beforeRemove);
+            result.data.setChangeEndItemNum(afterExchange);
+            result.code = Code.SUCCESS;
+        } catch (Exception e) {
+            log.error("提交挖矿背包事务失败 playerId={},removeItems={},addItems={}",
+                    playerId, removeItems, addItems, e);
+        } finally {
+            if (lock) {
+                redisLock.tryUnlock(key);
+            }
+        }
+
+        // 存档与道具已经提交，后续日志、通知或任务异常不能把成功改成可重试失败。
+        if (result.success()) {
+            try {
+                Map<Integer, Long> consumed = removes.stream().collect(HashMap::new,
+                        (map, item) -> map.merge(item.getId(), item.getItemCount(), Long::sum), HashMap::putAll);
+                Map<Integer, Long> rewarded = adds.stream().collect(HashMap::new,
+                        (map, item) -> map.merge(item.getId(), item.getItemCount(), Long::sum), HashMap::putAll);
+                if (!consumed.isEmpty()) {
+                    coreLogger.consumeItem(playerId, beforeRemove, consumed, afterRemove, addType);
+                    notifyItemsConsumed(playerId, consumed, addType);
+                    for (Item item : removes) {
+                        taskManager.trigger(playerId, TaskConstant.ConditionType.PLAY_USE_ITEM, () -> {
+                            TaskConditionParam12101 param = new TaskConditionParam12101();
+                            param.setItemId(item.getId());
+                            param.setAddValue(item.getItemCount());
+                            return param;
+                        });
+                    }
+                }
+                if (!rewarded.isEmpty()) {
+                    coreLogger.addItems(playerId, afterRemove, rewarded, afterExchange, addType, desc);
+                    notifyItemsAdded(playerId, adds, addType);
+                }
+            } catch (Exception e) {
+                log.error("挖矿背包事务提交后的日志或通知失败 playerId={}", playerId, e);
+            }
+        }
+        return result;
+    }
+
     private boolean validPackExchangeItems(List<Item> items) {
         for (Item item : items) {
             if (item == null || item.getItemCount() <= 0 || isSpecialItem(item.getId())) {

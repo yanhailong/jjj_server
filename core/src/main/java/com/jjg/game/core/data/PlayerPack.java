@@ -23,6 +23,8 @@ public class PlayerPack {
     private Map<Integer, List<Integer>> itemIndexMap = new HashMap<>();
     // 已经被占用的格子id
     private Set<Integer> usedGird = new HashSet<>();
+    // 挖矿玩法存档。与背包道具一起持久化，保证玩法版本和道具变化原子提交
+    private String miningState;
 
     public PlayerPack() {
     }
@@ -61,6 +63,14 @@ public class PlayerPack {
 
     public void setUsedGird(Set<Integer> usedGird) {
         this.usedGird = usedGird;
+    }
+
+    public String getMiningState() {
+        return miningState;
+    }
+
+    public void setMiningState(String miningState) {
+        this.miningState = miningState;
     }
 
     /**

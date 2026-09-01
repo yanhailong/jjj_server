@@ -23,6 +23,13 @@ public interface OrderGenerate extends IGameSysFuncInterface {
     BigDecimal generateOrderDetailInfo(Player player, ReqGenerateOrder req);
 
     /**
+     * 预下单业务校验成功、但订单最终未创建时的补偿回调。
+     * 默认无需处理；存在限购预占等状态的业务可覆盖。
+     */
+    default void onOrderCreationFailed(Player player, ReqGenerateOrder req) {
+    }
+
+    /**
      * 获取对应充值类型
      *
      * @return 充值类型

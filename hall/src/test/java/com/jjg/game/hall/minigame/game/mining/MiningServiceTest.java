@@ -1,0 +1,237 @@
+package com.jjg.game.hall.minigame.game.mining;
+
+import com.alibaba.fastjson.JSON;
+import com.jjg.game.common.utils.TimeHelper;
+import com.jjg.game.core.constant.Code;
+import com.jjg.game.core.data.*;
+import com.jjg.game.core.pb.RechargeType;
+import com.jjg.game.core.pb.ReqGenerateOrder;
+import com.jjg.game.core.service.PlayerPackService;
+import com.jjg.game.hall.minigame.game.mining.message.*;
+import com.jjg.game.sampledata.GameDataManager;
+import org.junit.jupiter.api.BeforeAll;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
+import org.redisson.api.RLock;
+import org.redisson.api.RedissonClient;
+
+import java.math.BigDecimal;
+import java.util.*;
+
+import static org.junit.jupiter.api.Assertions.*;
+import static org.mockito.ArgumentMatchers.*;
+import static org.mockito.Mockito.*;
+
+class MiningServiceTest {
+    private MiningService service;
+    private PlayerPackService packs;
+    private MiningAdTicketService ads;
+    private MiningRankService ranks;
+    private MiningConfig config;
+    private final Player player = new Player();
+    private String saved;
+    private Map<Integer, Long> wallet;
+
+    @BeforeAll static void loadTables() throws Exception { MiningFixtures.install(); }
+    @BeforeEach void setup() {
+        player.setId(10001L); saved = null; wallet = new HashMap<>();
+        wallet.put(1024034, 100L); wallet.put(1024035, 20L); wallet.put(1024036, 20L); wallet.put(1024037, 1000L);
+        config = new MiningConfig(); packs = mock(PlayerPackService.class); ads = mock(MiningAdTicketService.class);
+        ranks = mock(MiningRankService.class); RedissonClient redis = mock(RedissonClient.class); RLock lock = mock(RLock.class);
+        when(lock.tryLock()).thenReturn(true); when(redis.getLock(anyString())).thenReturn(lock);
+        when(ranks.seasonReadLock(anyString())).thenReturn(lock);
+        when(packs.getFromAllDB(player.getId())).thenAnswer(inv -> { PlayerPack p = new PlayerPack(player.getId()); p.setMiningState(saved); return p; });
+        when(packs.getItemCount(eq(player.getId()), anyInt())).thenAnswer(inv -> wallet.getOrDefault(inv.getArgument(1), 0L));
+        when(packs.exchangeMiningItems(eq(player), anyMap(), anyMap(), any(), anyString(), nullable(String.class), anyString()))
+                .thenAnswer(inv -> {
+                    Map<Integer, Long> costs = inv.getArgument(1), rewards = inv.getArgument(2);
+                    if (!Objects.equals(saved, inv.getArgument(5))) return new CommonResult<ItemOperationResult>(Code.REPEAT_OP);
+                    if (costs.entrySet().stream().anyMatch(e -> wallet.getOrDefault(e.getKey(), 0L) < e.getValue()))
+                        return new CommonResult<ItemOperationResult>(Code.NOT_ENOUGH_ITEM);
+                    costs.forEach((id, n) -> wallet.merge(id, -n, Long::sum)); rewards.forEach((id, n) -> wallet.merge(id, n, Long::sum));
+                    saved = inv.getArgument(6); return new CommonResult<ItemOperationResult>(Code.SUCCESS);
+                });
+        service = new MiningService(config, packs, redis, ranks, ads);
+        assertEquals(Code.SUCCESS, service.info(player).code);
+    }
+
+    private MiningState state() { return JSON.parseObject(saved, MiningState.class); }
+    private ReqMiningAction request(int action, int id) {
+        ReqMiningAction request = new ReqMiningAction(); request.action = action; request.id = id;
+        request.seasonId = state().seasonId; request.version = state().version; request.count = 1; request.row = 1; request.column = 1;
+        return request;
+    }
+
+    @Test void mainStateIsLeanAndPanelsAreLoadedOnDemand() {
+        ResMiningState main = service.info(player);
+        Set<Integer> toolIds = new MiningEngine().toolItemIds();
+        Set<Integer> oreIds = new MiningEngine().resourceItemIds();
+        assertEquals(toolIds, main.info.tools.stream().map(item -> item.itemId).collect(java.util.stream.Collectors.toSet()));
+        assertEquals(oreIds, main.info.ores.stream().map(item -> item.itemId).collect(java.util.stream.Collectors.toSet()));
+        assertTrue(Collections.disjoint(toolIds, oreIds));
+
+        ResMiningExchangeShop exchange = service.exchangeShop(player);
+        assertEquals(Code.SUCCESS, exchange.code); assertFalse(exchange.goods.isEmpty()); assertFalse(exchange.currencies.isEmpty());
+        assertEquals(state().version, exchange.version);
+
+        ResMiningBundleShop bundles = service.bundleShop(player);
+        assertEquals(Code.SUCCESS, bundles.code); assertFalse(bundles.bundles.isEmpty()); assertEquals(state().version, bundles.version);
+
+        ResMiningAchievements achievements = service.achievements(player);
+        assertEquals(Code.SUCCESS, achievements.code); assertFalse(achievements.achievements.isEmpty());
+
+        MiningConfig.DailyTask task = new MiningConfig.DailyTask(); task.id = 1; task.kind = 1;
+        task.target = 1; task.rewards = Map.of(1024034, 1L); config.dailyTasks = List.of(task);
+        ResMiningDailyTasks dailyTasks = service.dailyTasks(player);
+        assertEquals(Code.SUCCESS, dailyTasks.code); assertEquals(1, dailyTasks.dailyTasks.size());
+    }
+
+    @Test void duplicateDigAndStaleMapDoNotConsumeAgain() {
+        ReqMiningAction request = request(MiningConstant.DIG, 101);
+        ResMiningState first = service.action(player, request); assertEquals(Code.SUCCESS, first.code);
+        Map<Integer, Long> after = Map.copyOf(wallet); long version = state().version;
+        ResMiningState second = service.action(player, request);
+        assertEquals("STALE_VERSION", second.reason); assertEquals(version, state().version); assertEquals(after, wallet);
+    }
+
+    @Test void scrollReturnsOffsetAndOnlyVisibleChangedCells() {
+        MiningState before = state();
+        ReqMiningAction request = request(MiningConstant.DIG, 103);
+        request.row = before.topRow + before.visibleRows - 1;
+        ResMiningState response = service.action(player, request);
+        assertEquals(Code.SUCCESS, response.code); assertEquals(1, response.scrollRows);
+        assertEquals(before.topRow + response.scrollRows, response.info.topRow);
+        assertTrue(response.changed.stream().allMatch(cell -> cell.row >= response.info.topRow
+                && cell.row < response.info.topRow + response.info.visibleRows));
+    }
+
+    @Test void insufficientToolLeavesWholeStateUnchanged() {
+        wallet.put(1024034, 0L); String before = saved;
+        assertEquals(Code.NOT_ENOUGH_ITEM, service.action(player, request(MiningConstant.DIG, 101)).code);
+        assertEquals(before, saved);
+    }
+
+    @Test void disconnectedTargetAndNegativeCountLeaveStateAndWalletUnchanged() {
+        ReqMiningAction req = request(MiningConstant.DIG, 101); req.row = 8;
+        String before = saved; Map<Integer, Long> balance = Map.copyOf(wallet);
+        assertEquals("CELL_NOT_CONNECTED", service.action(player, req).reason);
+        req = request(MiningConstant.EXCHANGE, 5004); req.count = -1;
+        assertEquals("INVALID_COUNT", service.action(player, req).reason);
+        assertEquals(before, saved); assertEquals(balance, wallet);
+    }
+
+    @Test void freeBundleLimitResetsOnDayChangeButPermanentLimitDoesNot() {
+        config.permanentLimits = Map.of(6001, 2);
+        assertEquals(Code.SUCCESS, service.action(player, request(MiningConstant.BUNDLE, 6001)).code);
+        assertEquals(Code.DAILY_LIMIT, service.action(player, request(MiningConstant.BUNDLE, 6001)).code);
+        MiningState next = state(); next.day = 20000101; saved = JSON.toJSONString(next);
+        service.info(player);
+        assertEquals(Code.SUCCESS, service.action(player, request(MiningConstant.BUNDLE, 6001)).code);
+        next = state(); next.day = 20000101; saved = JSON.toJSONString(next); service.info(player);
+        assertEquals(Code.DAILY_LIMIT, service.action(player, request(MiningConstant.BUNDLE, 6001)).code);
+    }
+
+    @Test void exchangeLimitsApplyToQuantityAndPersistProgressAtomically() {
+        ReqMiningAction req = request(MiningConstant.EXCHANGE, 5004); req.count = 3;
+        assertEquals(Code.SUCCESS, service.action(player, req).code);
+        assertEquals(940, wallet.get(1024037)); assertEquals(3, wallet.get(1024008));
+        assertEquals(3, state().total.exchanges);
+        req = request(MiningConstant.EXCHANGE, 5004); req.count = 3;
+        assertEquals(Code.DAILY_LIMIT, service.action(player, req).code);
+        assertEquals(940, wallet.get(1024037));
+    }
+
+    @Test void unsupportedEntityRewardIsRejectedBeforeDeduction() {
+        Map<Integer, Long> before = Map.copyOf(wallet); String old = saved;
+        var res = service.action(player, request(MiningConstant.EXCHANGE, 5007));
+        assertEquals(Code.SAMPLE_ERROR, res.code); assertTrue(res.reason.startsWith("UNSUPPORTED_NON_BAG_REWARD"));
+        assertEquals(before, wallet); assertEquals(old, saved);
+    }
+
+    @Test void adRequiresVerifiedSingleUseTicketAndPaidBundleCannotUseFreeClaim() {
+        assertEquals(Code.FORBID, service.action(player, request(MiningConstant.BUNDLE, 6002)).code);
+        ReqMiningAction req = request(MiningConstant.BUNDLE, 6002); req.adTicket = "verified";
+        when(ads.valid(player.getId(), TimeHelper.getDayNumerical(), "verified")).thenReturn(true);
+        assertEquals(Code.SUCCESS, service.action(player, req).code);
+        req = request(MiningConstant.BUNDLE, 6002); req.adTicket = "verified";
+        assertEquals(Code.FORBID, service.action(player, req).code);
+        assertEquals(1, state().total.ads);
+        assertEquals("PAYMENT_REQUIRED", service.action(player, request(MiningConstant.BUNDLE, 6003)).reason);
+    }
+
+    @Test void achievementCountsFullDestroyedCellsAndCanBeClaimedOnlyOnce() {
+        assertEquals(Code.ERROR_REQ, service.action(player, request(MiningConstant.ACHIEVEMENT, 1)).code);
+        MiningState state = state(); state.total.grids = 100; saved = JSON.toJSONString(state);
+        assertEquals(Code.SUCCESS, service.action(player, request(MiningConstant.ACHIEVEMENT, 1)).code);
+        long balance = wallet.get(1024034);
+        assertEquals(Code.REPEAT_OP, service.action(player, request(MiningConstant.ACHIEVEMENT, 1)).code);
+        assertEquals(balance, wallet.get(1024034));
+        assertEquals(100, MiningService.achievementInfo(state(), GameDataManager.getMiningAchievementCfg(1)).progress);
+    }
+
+    @Test void dailyTaskClaimUsesTodaysProgressAndCannotBeRepeated() {
+        MiningConfig.DailyTask task = new MiningConfig.DailyTask(); task.id = 1; task.kind = 1;
+        task.target = 50; task.rewards = Map.of(1024034, 5L); config.dailyTasks = List.of(task);
+        assertEquals("TASK_NOT_COMPLETE", service.action(player, request(MiningConstant.DAILY_TASK, 1)).reason);
+        MiningState state = state(); state.daily.grids = 50; saved = JSON.toJSONString(state);
+        assertEquals(Code.SUCCESS, service.action(player, request(MiningConstant.DAILY_TASK, 1)).code);
+        assertEquals(105, wallet.get(1024034));
+        assertEquals(Code.REPEAT_OP, service.action(player, request(MiningConstant.DAILY_TASK, 1)).code);
+        state = state(); state.day = 20000101; saved = JSON.toJSONString(state); service.info(player);
+        assertEquals("TASK_NOT_COMPLETE", service.action(player, request(MiningConstant.DAILY_TASK, 1)).reason);
+        assertEquals(105, wallet.get(1024034));
+    }
+
+    @Test void paymentQuoteLocksPriceRewardsAndDuplicateCallbackCannotGrantAgain() {
+        ReqGenerateOrder req = new ReqGenerateOrder(); req.productId = "6003"; req.desc = "client supplied";
+        assertEquals(new BigDecimal("6"), service.generateOrderDetailInfo(player, req));
+        assertNotEquals("client supplied", req.desc);
+        Order order = new Order(); order.setId("paid-order-1"); order.setPlayerId(player.getId());
+        order.setRechargeType(RechargeType.MINING_BUNDLE); order.setProductId("6003"); order.setDesc(req.desc);
+        order.setPrice(new BigDecimal("1"));
+        assertFalse(service.onReceivedRecharge(player, order));
+        order.setPrice(new BigDecimal("6"));
+        assertTrue(service.onReceivedRecharge(player, order)); assertEquals(110, wallet.get(1024034));
+        assertTrue(service.onReceivedRecharge(player, order)); assertEquals(110, wallet.get(1024034));
+        assertEquals(1, state().dailyPurchases.get(6003));
+        assertTrue(state().paymentQuotes.isEmpty());
+    }
+
+    @Test void failedOrderCreationReleasesReservationExactlyOnce() {
+        ReqGenerateOrder req = new ReqGenerateOrder(); req.productId = "6003";
+        assertNotNull(service.generateOrderDetailInfo(player, req));
+        assertEquals(1, state().dailyPurchases.get(6003));
+        service.onOrderCreationFailed(player, req); service.onOrderCreationFailed(player, req);
+        assertEquals(0, state().dailyPurchases.get(6003)); assertEquals(0, state().permanentPurchases.get(6003));
+        assertTrue(state().paymentQuotes.isEmpty()); assertEquals(100, wallet.get(1024034));
+    }
+
+    @Test void rejectedSpecialRewardRefundsCostsAndRestoresQuota() {
+        when(packs.addItems(eq(player.getId()), anyMap(), any(), anyString())).thenReturn(new CommonResult<>(Code.FAIL));
+        var res = service.action(player, request(MiningConstant.EXCHANGE, 5001));
+        assertEquals("SPECIAL_REWARD_FAILED_REFUNDED", res.reason);
+        assertEquals(1000, wallet.get(1024037)); assertEquals(0, state().total.exchanges);
+        assertFalse(state().dailyPurchases.containsKey(5001)); assertNull(state().delivery);
+    }
+
+    @Test void uncertainSpecialRewardBlocksRetriesUntilExplicitReconciliation() {
+        when(packs.addItems(eq(player.getId()), anyMap(), any(), anyString())).thenThrow(new IllegalStateException("connection lost"));
+        var res = service.action(player, request(MiningConstant.EXCHANGE, 5001));
+        assertEquals(Code.EXCEPTION, res.code); assertNotNull(state().delivery); assertEquals(980, wallet.get(1024037));
+        assertEquals("DELIVERY_REQUIRES_RECONCILIATION", service.action(player, request(MiningConstant.EXCHANGE, 5001)).reason);
+        service.reconcileDelivery(player, state().delivery.id, false);
+        assertNull(state().delivery); assertEquals(1000, wallet.get(1024037)); assertEquals(0, state().total.exchanges);
+    }
+
+    @Test void seasonResetPreservesLifetimeAchievementsInventoryAndRejectsOldVersion() {
+        MiningState old = state(); old.total.grids = 100; old.claimedAchievements.add(1); old.depth = 20; saved = JSON.toJSONString(old);
+        ReqMiningAction previous = request(MiningConstant.DIG, 101);
+        MiningConfig.Season season = new MiningConfig.Season(); season.id = "s2";
+        season.startTime = System.currentTimeMillis() - 1000; season.endTime = System.currentTimeMillis() + 100000;
+        config.seasons = List.of(season);
+        assertEquals("STALE_VERSION", service.action(player, previous).reason);
+        assertEquals("s2", state().seasonId); assertEquals(0, state().depth); assertEquals(100, state().total.grids);
+        assertTrue(state().claimedAchievements.contains(1)); assertEquals(100, wallet.get(1024034));
+        verify(ranks).sync(eq(player.getId()), argThat(s -> "practice".equals(s.seasonId) && s.depth == 20));
+    }
+}

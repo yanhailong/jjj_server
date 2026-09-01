@@ -346,7 +346,20 @@ public enum AddType {
     ALLIANCE_TASK_REFRESH(2008),
 
     //好友赠礼领取
-    FRIEND_GIFT_COLLECT(2101);
+    FRIEND_GIFT_COLLECT(2101),
+
+    //挖矿消耗与奖励
+    MINING_DIG(2201),
+    //挖矿兑换商店
+    MINING_EXCHANGE(2202),
+    //挖矿礼包
+    MINING_BUNDLE(2203),
+    //挖矿成就奖励
+    MINING_ACHIEVEMENT(2204),
+    //挖矿每日任务奖励
+    MINING_DAILY_TASK(2205),
+    //挖矿排行奖励
+    MINING_RANK(2206);
     private int value;
 
     AddType(int value) {

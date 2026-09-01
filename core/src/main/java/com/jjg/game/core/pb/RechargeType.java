@@ -63,6 +63,10 @@ public enum RechargeType {
      * 买一送七
      */
     BUY_ONE_GET_SEVEN(13),
+    /**
+     * 挖矿付费礼包
+     */
+    MINING_BUNDLE(14),
     ;
     private final int type;
 
