@@ -82,23 +82,6 @@ public class HallRoomService implements IConsoleReceiver {
     }
 
     /**
-     * 进入不依赖warehouse场次的独立游戏节点。
-     */
-    public int enterStandaloneGameNode(PlayerController playerController, int gameType, int enterType) {
-        MarsNode marsNode = nodeManager.getGameNodeByWeight(gameType, playerController.playerId(),
-                playerController.ipAddress());
-        if (marsNode == null) {
-            log.debug("获取独立游戏节点为空，进入游戏失败 playerId = {},gameType = {}",
-                    playerController.playerId(), gameType);
-            return Code.NOT_FOUND;
-        }
-
-        playerSessionService.changeGameType(playerController.playerId(), gameType, 0, enterType, null);
-        clusterSystem.switchNode(playerController.getSession(), marsNode);
-        return Code.SUCCESS;
-    }
-
-    /**
      * 切换到sim节点
      *
      * @param playerController
