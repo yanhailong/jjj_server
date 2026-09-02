@@ -64,8 +64,8 @@ public class SimTaskConfigService implements ConfigExcelChangeListener {
     }
 
     public void init() {
-        loadChains();
         init = true;
+        loadChains();
     }
 
     @Override
