@@ -250,4 +250,6 @@ public interface Code {
     int REFRESH_MAX = 4053118;
     //您已有接取任务，无法再次领取
     int TASK_LIMIT = 4056077;
+    //今日已达留言次数上限
+    int COMMONT_DAILY_LIMIT = 4057168;
 }
