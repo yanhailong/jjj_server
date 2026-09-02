@@ -825,11 +825,7 @@ public class HallMessageHandler implements GmListener, ChooseWareListener, Choos
 
         WareHouseConfigInfo info = wareHouseConfigList.stream().filter(c -> c.wareId == roomCfgId).findFirst().orElse(null);
         if (info == null) {
-            List<Integer> availableWareIds = wareHouseConfigList.stream().map(c -> c.wareId).toList();
-            WarehouseCfg requestedCfg = GameDataManager.getWarehouseCfg(roomCfgId);
-            log.warn("未找到请求的游戏场次，选择场次失败 playerId={},gameType={},roomCfgId={},availableWareIds={},configuredGameType={}",
-                    playerController.playerId(), gameType, roomCfgId, availableWareIds,
-                    requestedCfg == null ? null : requestedCfg.getGameID());
+            log.debug("未找到对应的游戏场次配置2，选择场次失败 playerId = {},gameType = {},roomCfgId = {}", playerController.playerId(), gameType, roomCfgId);
             return new CommonResult<>(Code.NOT_FOUND);
         }
 
