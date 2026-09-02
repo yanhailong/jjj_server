@@ -1722,7 +1722,9 @@ public class SimGuestService implements SimPlayerTickListener, ItemListener, Sim
         return generateRes.code;
     }
 
-    /** 到账只结算订单所属的展示轮次，已刷新的旧订单不占用新一轮购买额度。 */
+    /**
+     * 到账只结算订单所属的展示轮次，已刷新的旧订单不占用新一轮购买额度。
+     */
     public void recordCashSpecialGuestPurchase(SimPlayerContext ctx, Order order, int cfgId) {
         String[] orderContext = order.getDesc().split(":");
         int casinoId = Integer.parseInt(orderContext[0]);
@@ -1803,7 +1805,9 @@ public class SimGuestService implements SimPlayerTickListener, ItemListener, Sim
         return nextRefreshTime > 0 && now >= nextRefreshTime;
     }
 
-    /** 只在生成列表时计算下一个时点，离线跨过多个时段也只生成一次。 */
+    /**
+     * 只在生成列表时计算下一个时点，离线跨过多个时段也只生成一次。
+     */
     private static long nextSpecialGuestRefreshTime(VisitorTargetListCfg cfg, long now) {
         if (!cfg.getIsRefreshByTimePeriod()) {
             return 0;
@@ -1931,12 +1935,10 @@ public class SimGuestService implements SimPlayerTickListener, ItemListener, Sim
         info.dailyBuyCount = specialGuestDailyCountService.getAdCount(ctx.playerId());
         info.dailyLimitCount = poolCfg.getDailyViewLimit();
         //广告领取后立即刷新该槽位，因此返回的始终是尚未购买的新展示。
-        info.maxPurchasePerRefresh = poolCfg.getMaxPurchasePerRefresh();
         info.viewCd = cfg.getViewCD();
         info.viewCdEndTime = baseData.getSpecialGuestAdCdEndTime();
         info.output = getSpecialGuestOutput(ctx, info.itemId);
         info.visitorGiftPackCount = poolCfg.getVisitorGiftPackCount();
-        info.maxManualRefreshPerPeriod = poolCfg.getMaxManualRefreshPerPeriod();
         return info;
     }
 
@@ -1949,13 +1951,12 @@ public class SimGuestService implements SimPlayerTickListener, ItemListener, Sim
         info.dailyBuyCount = specialGuestDailyCountService.getPaidCount(ctx.playerId(), cfg.getId());
         info.dailyLimitCount = cfg.getDailyLimitCount();
         info.purchaseCount = ctx.getCurrentCasino().getSpecialGuestPurchaseCounts().getOrDefault(cfg.getId(), 0);
-        info.maxPurchasePerRefresh = poolCfg.getMaxPurchasePerRefresh();
         if (cfg.getPriceValue1() != null) {
             info.price = cfg.getPriceValue1().toPlainString();
         }
         info.output = getSpecialGuestOutput(ctx, info.itemId);
         info.visitorGiftPackCount = poolCfg.getVisitorGiftPackCount();
-        info.maxManualRefreshPerPeriod = poolCfg.getMaxManualRefreshPerPeriod();
+
         return info;
     }
 
@@ -1988,6 +1989,17 @@ public class SimGuestService implements SimPlayerTickListener, ItemListener, Sim
         res.nextRefreshCost = nextSpecialGuestRefreshCost(ctx.getCurrentCasino());
         res.nextRefreshTime = ctx.getCurrentCasino().getSpecialGuestNextRefreshTime();
         res.adNextRefreshTime = baseData.getSpecialGuestAdNextRefreshTime();
+
+        res.purchaseCount = 0;
+        if (ctx.getCurrentCasino().getSpecialGuestPurchaseCounts() != null && !ctx.getCurrentCasino().getSpecialGuestPurchaseCounts().isEmpty()) {
+            for (Map.Entry<Integer, Integer> en : ctx.getCurrentCasino().getSpecialGuestPurchaseCounts().entrySet()) {
+                res.purchaseCount += en.getValue();
+            }
+        }
+
+        VisitorTargetListCfg poolCfg = getSpecialGuestPoolCfg(ctx.getCurrentCasino(), SimConstant.SpecialGuest.POOL_AD);
+        res.maxPurchasePerRefresh = poolCfg.getMaxPurchasePerRefresh();
+        res.maxManualRefreshPerPeriod = poolCfg.getMaxManualRefreshPerPeriod();
     }
 
     private boolean validPaidSpecialGuestCfg(VisitorGenPaidCfg cfg) {
@@ -2127,7 +2139,7 @@ public class SimGuestService implements SimPlayerTickListener, ItemListener, Sim
     }
 
     private long getSpecialGuestRedDotCount(long playerId, SimBaseData baseData, SimCasinoData casino,
-                                           int submodule, int today, long now) {
+                                            int submodule, int today, long now) {
         return switch (submodule) {
             case SimConstant.SpecialGuest.RED_DOT_FREE_REFRESH -> hasFreeSpecialGuestRefresh(casino, now) ? 1 : 0;
             case SimConstant.SpecialGuest.RED_DOT_AD_AVAILABLE ->
