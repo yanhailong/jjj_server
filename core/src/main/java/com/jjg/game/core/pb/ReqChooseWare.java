@@ -14,7 +14,7 @@ import com.jjg.game.common.pb.AbstractMessage;
 public class ReqChooseWare extends AbstractMessage {
     @ProtoDesc("游戏类型")
     public int gameType;
-    @ProtoDesc("场次id")
+    @ProtoDesc("场次id，挖矿等独立游戏忽略该字段，可传0")
     public int wareId;
     @ProtoDesc("0.正常进入  1.从赛季进入  2.拜访   3.多人任务")
     public int enterType;
