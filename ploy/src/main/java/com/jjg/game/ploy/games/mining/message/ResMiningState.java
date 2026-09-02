@@ -23,5 +23,7 @@ public class ResMiningState extends AbstractResponse {
     public List<MiningCellInfo> changed;
     @ProtoDesc("本次地图向上滚动的行数，0表示未滚动")
     public int scrollRows;
+    @ProtoDesc("本次被挖开且产出奖励的格子及各自奖励，使用操作前的绝对坐标")
+    public List<MiningRewardCellInfo> rewardCells;
     public ResMiningState(int code) { super(code); }
 }

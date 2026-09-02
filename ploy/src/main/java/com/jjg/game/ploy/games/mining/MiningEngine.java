@@ -22,7 +22,9 @@ public class MiningEngine {
         return state;
     }
 
-    public record DigResult(int itemId, Map<Integer, Long> rewards, List<MiningState.Cell> changed, int scrollRows) { }
+    public record CellReward(MiningState.Cell cell, Map<Integer, Long> rewards) { }
+    public record DigResult(int itemId, Map<Integer, Long> rewards, List<CellReward> rewardCells,
+                            List<MiningState.Cell> changed, int scrollRows) { }
 
     public DigResult dig(MiningState state, int row, int column, int toolId, long now) {
         MiningToolsCfg tool = catalog.tool(toolId);
@@ -44,13 +46,16 @@ public class MiningEngine {
                 .toList();
         if (affected.isEmpty()) throw new MiningException("NO_DIGGABLE_CELL");
         Map<Integer, Long> rewards = new HashMap<>();
+        List<CellReward> rewardCells = new ArrayList<>();
         boolean scroll = false;
         for (MiningState.Cell c : affected) {
             c.hp = Math.max(0, c.hp - tool.getDamage());
             if (c.hp > 0) continue;
             MiningCellTypeCfg type = catalog.cell(c.type);
             if (type == null) throw new MiningException("MISSING_CELL_CONFIG");
-            merge(rewards, MiningCatalog.itemPair(type.getReward()));
+            Map<Integer, Long> cellRewards = MiningCatalog.itemPair(type.getReward());
+            merge(rewards, cellRewards);
+            if (!cellRewards.isEmpty()) rewardCells.add(new CellReward(c, cellRewards));
             state.total.grids++;
             state.daily.grids++;
             state.daily.depth = Math.max(state.daily.depth, c.row);
@@ -72,7 +77,7 @@ public class MiningEngine {
             state.secrets.keySet().removeIf(id -> state.cells.stream().noneMatch(c -> c.secretId == id));
             ensureRows(state, Math.addExact(bottom, 1));
         }
-        return new DigResult(tool.getItemid(), rewards, affected, scroll ? 1 : 0);
+        return new DigResult(tool.getItemid(), rewards, rewardCells, affected, scroll ? 1 : 0);
     }
 
     public boolean connected(MiningState state, int row, int column) {

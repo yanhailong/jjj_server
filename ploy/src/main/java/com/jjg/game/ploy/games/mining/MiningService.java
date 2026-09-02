@@ -74,6 +74,14 @@ public class MiningService implements OrderGenerate {
                             costs = Map.of(result.itemId(), 1L); rewards = result.rewards();
                             MiningState hitState = state;
                             response.scrollRows = result.scrollRows();
+                            response.rewardCells = result.rewardCells().stream().map(cellReward -> {
+                                MiningRewardCellInfo info = new MiningRewardCellInfo();
+                                info.row = cellReward.cell().row;
+                                info.column = cellReward.cell().column;
+                                info.typeId = cellReward.cell().type;
+                                info.rewards = ItemUtils.buildItemInfo(cellReward.rewards());
+                                return info;
+                            }).toList();
                             int visibleBottom = Math.addExact(hitState.topRow, hitState.visibleRows);
                             response.changed = result.changed().stream()
                                     .filter(c -> c.row >= hitState.topRow && c.row < visibleBottom)
@@ -145,7 +153,7 @@ public class MiningService implements OrderGenerate {
                 return response;
             });
         } catch (MiningException e) {
-            response.code = e.code; response.reason = e.getMessage(); response.changed = null;
+            response.code = e.code; response.reason = e.getMessage(); response.changed = null; response.rewardCells = null;
         } catch (Exception e) {
             response.code = Code.EXCEPTION; response.reason = "SERVER_ERROR_REFRESH_STATE";
             log.error("挖矿请求异常 playerId={}", player.getId(), e);

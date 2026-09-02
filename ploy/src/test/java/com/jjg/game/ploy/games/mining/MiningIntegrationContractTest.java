@@ -33,9 +33,14 @@ class MiningIntegrationContractTest {
         ItemInfo tool = new ItemInfo(); tool.itemId = 1024034; tool.count = 3;
         ItemInfo ore = new ItemInfo(); ore.itemId = 1024037; ore.count = 9;
         res.info.cells = List.of(cell); res.info.tools = List.of(tool); res.info.ores = List.of(ore);
+        MiningRewardCellInfo rewardCell = new MiningRewardCellInfo(); rewardCell.row = 1000;
+        rewardCell.column = 6; rewardCell.typeId = 1004; rewardCell.rewards = List.of(ore);
+        res.rewardCells = List.of(rewardCell);
         ResMiningState result = ProtostuffUtil.deserialize(ProtostuffUtil.serialize(res), ResMiningState.class);
         assertEquals(Code.SUCCESS, result.code); assertEquals(1002, result.info.cells.getFirst().typeId); assertEquals(124, result.info.version);
         assertEquals(2, result.scrollRows);
+        assertEquals(1000, result.rewardCells.getFirst().row);
+        assertEquals(1024037, result.rewardCells.getFirst().rewards.getFirst().itemId);
         assertEquals(1024034, result.info.tools.getFirst().itemId); assertEquals(1024037, result.info.ores.getFirst().itemId);
 
         ResMiningExchangeShop shop = new ResMiningExchangeShop(Code.SUCCESS); shop.version = 125;

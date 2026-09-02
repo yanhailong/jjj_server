@@ -94,6 +94,19 @@ class MiningServiceTest {
         assertEquals("STALE_VERSION", second.reason); assertEquals(version, state().version); assertEquals(after, wallet);
     }
 
+    @Test void digReturnsEachRewardWithItsSourceCell() {
+        MiningState current = state();
+        MiningState.Cell rewardCell = current.cells.stream()
+                .filter(cell -> cell.row == 1 && cell.column == 1).findFirst().orElseThrow();
+        rewardCell.type = 1004; rewardCell.hp = 1; saved = JSON.toJSONString(current);
+        ResMiningState response = service.action(player, request(MiningConstant.DIG, 101));
+        assertEquals(Code.SUCCESS, response.code);
+        assertEquals(1, response.rewardCells.size());
+        MiningRewardCellInfo source = response.rewardCells.getFirst();
+        assertEquals(1, source.row); assertEquals(1, source.column); assertEquals(1004, source.typeId);
+        assertEquals(1024037, source.rewards.getFirst().itemId); assertEquals(1, source.rewards.getFirst().count);
+    }
+
     @Test void scrollReturnsOffsetAndOnlyVisibleChangedCells() {
         MiningState before = state();
         ReqMiningAction request = request(MiningConstant.DIG, 103);

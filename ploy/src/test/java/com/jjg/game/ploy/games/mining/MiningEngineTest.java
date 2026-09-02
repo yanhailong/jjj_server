@@ -70,6 +70,11 @@ class MiningEngineTest {
         MiningState state = MiningFixtures.flat(1, 1004);
         var result = engine.dig(state, 1, 2, 101, 7);
         assertEquals(Map.of(1024037, 1L), result.rewards());
+        assertEquals(1, result.rewardCells().size());
+        assertEquals(1, result.rewardCells().getFirst().cell().row);
+        assertEquals(2, result.rewardCells().getFirst().cell().column);
+        assertEquals(1004, result.rewardCells().getFirst().cell().type);
+        assertEquals(Map.of(1024037, 1L), result.rewardCells().getFirst().rewards());
         assertEquals(1, state.total.resources.get(1024037));
         assertThrows(MiningException.class, () -> engine.dig(state, 1, 2, 101, 8));
         assertEquals(1, state.total.grids);
