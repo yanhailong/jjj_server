@@ -40,6 +40,7 @@ import com.jjg.game.sim.manager.SimPlayerContextRegistry;
 import com.jjg.game.sim.pb.res.NotifySimTaskUpdate;
 import com.jjg.game.sim.pb.res.ResSimTaskReward;
 import com.jjg.game.sim.pb.res.NotifyTogetherPlayInvite;
+import com.jjg.game.sim.pb.res.ResVisitCasino;
 import com.jjg.game.sim.service.SimCoopTaskService;
 import com.jjg.game.sim.service.SimEmployeeRedDotService;
 import com.jjg.game.sim.service.SimGuideService;
@@ -47,6 +48,7 @@ import com.jjg.game.sim.service.SimGuestService;
 import com.jjg.game.sim.service.SimPackService;
 import com.jjg.game.sim.service.SimSkillService;
 import com.jjg.game.sim.service.SimTaskService;
+import com.jjg.game.sim.service.SimVisitService;
 import com.jjg.game.social.bridge.ToSocialBridge;
 import com.jjg.game.social.service.ChatService;
 import com.jjg.game.social.service.SocialSender;
@@ -98,6 +100,8 @@ public class HallRPCController extends CoreRPCController implements GmToHallBrid
     private SimGuideService simGuideService;
     @Autowired
     private SimGuestService simGuestService;
+    @Autowired
+    private SimVisitService simVisitService;
     @Autowired
     private SimEmployeeRedDotService simEmployeeRedDotService;
     @Autowired
@@ -321,6 +325,18 @@ public class HallRPCController extends CoreRPCController implements GmToHallBrid
             return new ResSimTaskReward(Code.NOT_FOUND);
         }
         return simTaskService.claimReward(ctx, taskId);
+    }
+
+    @Override
+    @RpcCallSetting(processorModKey = "#arg0")
+    public ResVisitCasino visitCasino(long playerId, long targetPlayerId, int casinoId) {
+        SimPlayerContext ctx = simPlayerContextRegistry.getContext(playerId);
+        if (ctx == null) {
+            log.warn("拜访赌场失败，未找到玩家 sim 数据 playerId={},targetPlayerId={},casinoId={}",
+                    playerId, targetPlayerId, casinoId);
+            return new ResVisitCasino(Code.NOT_FOUND);
+        }
+        return simVisitService.visit(ctx, targetPlayerId, casinoId);
     }
 
     @Override

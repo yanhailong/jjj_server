@@ -18,11 +18,9 @@ import com.jjg.game.core.pb.reddot.RedDotDetails;
 import com.jjg.game.core.service.CorePlayerService;
 import com.jjg.game.core.service.PlayerPackService;
 import com.jjg.game.core.service.PlayerSessionService;
+import com.jjg.game.core.utils.RobotUtil;
 import com.jjg.game.sampledata.GameDataManager;
-import com.jjg.game.sampledata.bean.BuildingAreaTableCfg;
-import com.jjg.game.sampledata.bean.CasinoStatsSheetCfg;
-import com.jjg.game.sampledata.bean.GiftListCfg;
-import com.jjg.game.sampledata.bean.ItemCfg;
+import com.jjg.game.sampledata.bean.*;
 import com.jjg.game.sim.constant.SimConstant;
 import com.jjg.game.sim.constant.SimVisitConstant;
 import com.jjg.game.sim.dao.SimCasinoDao;
@@ -44,6 +42,7 @@ import com.jjg.game.sim.pb.struct.VisitCasinoInfo;
 import com.jjg.game.sim.pb.struct.VisitCommentInfo;
 import com.jjg.game.sim.pb.struct.VisitGameInfo;
 import com.jjg.game.sim.pb.struct.VisitRecordInfo;
+import com.jjg.game.social.service.SimRobotService;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -109,11 +108,40 @@ public class SimVisitService implements IRedDotService {
     private AllianceEventService allianceEventService;
     @Autowired
     private RedDotManager redDotManager;
+    @Autowired
+    private SimRobotService simRobotService;
+
 
     public ResVisitCasino visit(SimPlayerContext ctx, long playerId, int casinoId) {
         ResVisitCasino res = new ResVisitCasino(Code.SUCCESS);
         try {
-            TargetResult target = findTarget(ctx.playerId(), playerId, casinoId);
+            boolean robot = RobotUtil.isRobot(playerId);
+            TargetResult target;
+            if (robot) {
+                RobotCfg robotCfg = simRobotService.queryRobotCfg(playerId);
+                if (robotCfg == null) {
+                    log.warn("获取机器人配置失败 selfId={},targetId={}", ctx.playerId(), playerId);
+                    res.code = Code.SAMPLE_ERROR;
+                    return res;
+                }
+
+                long bindPlayerId = simRobotService.queryPlayerId(robotCfg.getId());
+                if (bindPlayerId < 1) {
+                    bindPlayerId = simPlayerGameDao.findRandomVisitCandidates(2).stream()
+                            .mapToLong(candidate -> candidate.getPlayerId())
+                            .filter(pid -> pid != ctx.playerId())
+                            .findFirst()
+                            .orElse(0);
+                    if (bindPlayerId > 0) {
+                        simRobotService.bind(playerId, bindPlayerId);
+                    }
+                }
+                System.out.println(bindPlayerId);
+                target = findTarget(ctx.playerId(), bindPlayerId, casinoId);
+            } else {
+                target = findTarget(ctx.playerId(), playerId, casinoId);
+            }
+
             if (!target.success()) {
                 res.code = target.code();
                 return res;

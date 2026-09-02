@@ -414,7 +414,7 @@ public class AllianceTaskService {
         PlayerTakenTask current = playerData.getTakenTask();
         if (current != null) {
             if (!current.expired(now)) {
-                res.code = Code.REPEAT_OP;
+                res.code = Code.TASK_LIMIT;
                 log.warn("接取联盟任务失败,已有进行中任务 playerId={},currentTaskCfgIf={}", playerId, current.getCfgId());
                 return res;
             }
@@ -491,7 +491,9 @@ public class AllianceTaskService {
     // 进度 (事件驱动, 高频路径)
     // =====================================================================
 
-    /** 非 slots 结算产生的金币收益上报，沿用 12306 的游戏/货币过滤规则。 */
+    /**
+     * 非 slots 结算产生的金币收益上报，沿用 12306 的游戏/货币过滤规则。
+     */
     public void onEarnGold(long playerId, int gameType, long gold) {
         onConditionEvent(playerId,
                 SimConditionEventFactory.fromGameResult(gameType, Long.MAX_VALUE, gold, 0));

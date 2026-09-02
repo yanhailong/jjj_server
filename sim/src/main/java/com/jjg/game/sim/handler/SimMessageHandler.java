@@ -867,8 +867,40 @@ public class SimMessageHandler implements GmListener {
 
     @Command(SimConstant.MsgBean.REQ_VISIT_CASINO)
     public void reqVisitCasino(PlayerController playerController, ReqVisitCasino req) {
-        executeVisit(playerController, ctx -> visitService.visit(ctx, req.playerId, req.casinoId),
-                ResVisitCasino::new, ReqVisitCasino.class);
+        long playerId = playerController.playerId();
+        SimPlayerContext ctx = simPlayerContextRegistry.getContext(playerId);
+        if (ctx != null) {
+            executeVisit(playerController, context -> visitService.visit(context, req.playerId, req.casinoId),
+                    ResVisitCasino::new, ReqVisitCasino.class);
+            return;
+        }
+        playerController.send(visitCasinoRemotely(playerController, req.playerId, req.casinoId));
+    }
+
+    private ResVisitCasino visitCasinoRemotely(PlayerController playerController,
+                                                long targetPlayerId, int casinoId) {
+        long playerId = playerController.playerId();
+        ClusterClient client = simNodeService.getSimClusterClient(playerId, playerController.ipAddress());
+        if (client == null) {
+            log.warn("跨节点拜访赌场失败，未找到玩家 sim 节点 playerId={},targetPlayerId={},casinoId={}",
+                    playerId, targetPlayerId, casinoId);
+            return new ResVisitCasino(Code.NOT_FOUND);
+        }
+
+        GameRpcContext rpcContext = GameRpcContext.getContext();
+        RpcReqParameterBuilder previousBuilder = rpcContext.getReqParameterBuilder();
+        try {
+            rpcContext.withReqParameterBuilder(RpcReqParameterBuilder.create()
+                    .addClusterClient(client).setTryMillisPerClient(1000));
+            ResVisitCasino response = toSimBridge.visitCasino(playerId, targetPlayerId, casinoId);
+            return response == null ? new ResVisitCasino(Code.EXCEPTION) : response;
+        } catch (Exception e) {
+            log.error("跨节点拜访赌场异常 playerId={},targetPlayerId={},casinoId={}",
+                    playerId, targetPlayerId, casinoId, e);
+            return new ResVisitCasino(Code.EXCEPTION);
+        } finally {
+            rpcContext.setReqParameterBuilder(previousBuilder);
+        }
     }
 
     @Command(SimConstant.MsgBean.REQ_RANDOM_VISIT)

@@ -248,4 +248,6 @@ public interface Code {
     int PLEASR_REFRESH = 4053117;
     //此时段刷新次数达到上限
     int REFRESH_MAX = 4053118;
+    //您已有接取任务，无法再次领取
+    int TASK_LIMIT = 4056077;
 }

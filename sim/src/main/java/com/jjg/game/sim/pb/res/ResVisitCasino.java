@@ -21,6 +21,10 @@ public class ResVisitCasino extends AbstractResponse {
     public boolean commentUnlocked;
     public int commissionRate;
 
+    public ResVisitCasino() {
+        super(0);
+    }
+
     public ResVisitCasino(int code) {
         super(code);
     }
