@@ -7,6 +7,7 @@ import java.util.List;
  */
 public class SeasonMatchResult {
     private String matchId;
+    private int gameType;
     private int result;
     private long playerTotalWin;
     private long opponentTotalWin;
@@ -17,6 +18,8 @@ public class SeasonMatchResult {
 
     public String getMatchId() { return matchId; }
     public void setMatchId(String matchId) { this.matchId = matchId; }
+    public int getGameType() { return gameType; }
+    public void setGameType(int gameType) { this.gameType = gameType; }
     public int getResult() { return result; }
     public void setResult(int result) { this.result = result; }
     public long getPlayerTotalWin() { return playerTotalWin; }

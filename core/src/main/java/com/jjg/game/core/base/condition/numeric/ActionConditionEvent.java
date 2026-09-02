@@ -35,6 +35,7 @@ public record ActionConditionEvent(Type type, int subjectId, int relatedId, long
         EMPLOYEE_POOL_DRAW,
         ALLIANCE_DONATE,
         COMPETITIVE_MATCH,
+        SEASON_GEM_DROP,
         GRID_MINED,
         DEPTH_REACHED,
         ITEM_USE,

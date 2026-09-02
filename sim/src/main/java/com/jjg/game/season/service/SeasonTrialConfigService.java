@@ -29,6 +29,8 @@ import java.util.Map;
 public class SeasonTrialConfigService {
     private static final Logger log = LoggerFactory.getLogger(SeasonTrialConfigService.class);
     private static final int CONDITION_RECHARGE = 11002;
+    private static final int CONDITION_CHALLENGE_MIN = 12601;
+    private static final int CONDITION_CHALLENGE_MAX = 12606;
 
     /**
      * 测试注入用配置源; null 时走 GameDataManager
@@ -172,6 +174,12 @@ public class SeasonTrialConfigService {
             }
         }
         int conditionId = base.getFirst().intValue();
+        if (conditionId != CONDITION_RECHARGE
+                && (conditionId < CONDITION_CHALLENGE_MIN || conditionId > CONDITION_CHALLENGE_MAX)) {
+            log.warn("赛季试炼配置无效: 不支持的条件类型 trialId={},conditionId={},taskIds={}",
+                    trialId, conditionId, ids(group));
+            return null;
+        }
         PreparedCondition prepared;
         try {
             prepared = conditionRules.prepare(ConditionSpec.from(base));

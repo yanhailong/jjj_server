@@ -93,7 +93,7 @@ public class SeasonService implements SimPlayerTickListener {
         SeasonMatchResult offlineResult = matchService.settleOfflineMatch(
                 ctx, lifecycleService.currentTime(ctx, systemTime));
         if (offlineResult != null) {
-            socialSender.sendTo(ctx.playerId(), matchNotify(offlineResult));
+            onMatchSettled(ctx, offlineResult);
         }
         SeasonStartCfg cfg = configService.season(snapshot.seasonId());
         SeasonInfo info = new SeasonInfo();
@@ -236,11 +236,14 @@ public class SeasonService implements SimPlayerTickListener {
     }
 
     private void onTaskEvent(SimPlayerContext ctx, ActionConditionEvent.Type type) {
+        onTaskEvent(ctx, new ActionConditionEvent(type, 0, 0, 0, 1, 0, false));
+    }
+
+    private void onTaskEvent(SimPlayerContext ctx, ActionConditionEvent event) {
         try {
-            simTaskService.onConditionEvent(ctx,
-                    new ActionConditionEvent(type, 0, 0, 0, 1, 0, false));
+            simTaskService.onConditionEvent(ctx, event);
         } catch (RuntimeException e) {
-            log.error("赛季任务事件处理失败 playerId={},eventType={}", ctx.playerId(), type, e);
+            log.error("赛季任务事件处理失败 playerId={},eventType={}", ctx.playerId(), event.type(), e);
         }
     }
 
@@ -308,6 +311,10 @@ public class SeasonService implements SimPlayerTickListener {
         long systemTime = System.currentTimeMillis();
         lifecycleService.ensureCurrent(ctx, systemTime);
         long now = lifecycleService.currentTime(ctx, systemTime);
+        SeasonMatchResult expiredResult = matchService.settleIfExpired(ctx, now);
+        if (expiredResult != null) {
+            onMatchSettled(ctx, expiredResult);
+        }
         CommonResult<SeasonMatchSession> result = passive
                 ? matchService.startPassive(ctx, gameType, stake, now, excludedSpinId)
                 : matchService.start(ctx, gameType, stake, now);
@@ -433,11 +440,14 @@ public class SeasonService implements SimPlayerTickListener {
         //宝石已入账, 对局结算异常也要把掉落交回调用方下发, 故在 try 外持有
         Map<Integer, Long> gemGains = Map.of();
         try {
-            //宝石掉落在条件事件构造之后才结算, 就地补入事实, 12608 才能按本次掉落计数
             gemGains = dropService.onSpin(ctx, gameType);
+            if (!gemGains.isEmpty()) {
+                onTaskEvent(ctx, new ActionConditionEvent(ActionConditionEvent.Type.SEASON_GEM_DROP,
+                        gameType, 0, 0, 1, 0, false));
+            }
             //试炼挑战窗口推进; 结算时直接下发通知 (与对局互斥: 试炼仅新手赛季, 对局仅进阶/循环赛季)
             SeasonTrialResult trialResult = event == null
-                    ? null : trialService.onSpin(ctx, gameType, event.withGemDrop(gemGains));
+                    ? null : trialService.onSpin(ctx, gameType, event);
             if (trialResult != null) {
                 socialSender.sendTo(ctx.playerId(), trialNotify(trialResult));
             }
@@ -451,11 +461,17 @@ public class SeasonService implements SimPlayerTickListener {
                 }
                 return gemGains;
             }
-            socialSender.sendTo(ctx.playerId(), matchNotify(result.data));
+            onMatchSettled(ctx, result.data);
         } catch (Exception e) {
             log.error("赛季旋转联动异常 playerId={},gameType={}", ctx.playerId(), gameType, e);
         }
         return gemGains;
+    }
+
+    private void onMatchSettled(SimPlayerContext ctx, SeasonMatchResult result) {
+        onTaskEvent(ctx, new ActionConditionEvent(ActionConditionEvent.Type.COMPETITIVE_MATCH,
+                result.getGameType(), 0, 0, 1, 0, false));
+        socialSender.sendTo(ctx.playerId(), matchNotify(result));
     }
 
     /**
@@ -552,7 +568,7 @@ public class SeasonService implements SimPlayerTickListener {
         long now = lifecycleService.currentTime(ctx, systemTime);
         SeasonMatchResult result = matchService.settleIfExpired(ctx, now);
         if (result != null) {
-            socialSender.sendTo(ctx.playerId(), matchNotify(result));
+            onMatchSettled(ctx, result);
         }
     }
 

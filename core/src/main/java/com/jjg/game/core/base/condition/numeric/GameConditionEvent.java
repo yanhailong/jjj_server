@@ -1,6 +1,5 @@
 package com.jjg.game.core.base.condition.numeric;
 
-import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
@@ -24,7 +23,6 @@ public record GameConditionEvent(
         int awardType,
         Map<Integer, Long> jackpotCounts,
         int freeGameTriggers,
-        int gemDrops,
         Set<Integer> specialModes,
         List<Integer> icons,
         Map<Integer, Long> itemGains) implements GameWinEvent {
@@ -72,25 +70,6 @@ public record GameConditionEvent(
 
     public long itemGain(int itemId) {
         return itemGains.getOrDefault(itemId, 0L);
-    }
-
-    /**
-     * 赛季宝石掉落在本事件构造之后才结算，就地派生一个带掉落事实的新事件（一次旋转最多掉落一次）。
-     * 宝石同样是本次到账的道具，一并计入收益明细；无掉落时返回自身，热路径不产生额外对象。
-     */
-    public GameConditionEvent withGemDrop(Map<Integer, Long> gemGains) {
-        if (gemGains == null || gemGains.isEmpty()) {
-            return this;
-        }
-        Map<Integer, Long> merged = new HashMap<>(itemGains);
-        for (Map.Entry<Integer, Long> en : gemGains.entrySet()) {
-            if (en.getKey() != null && en.getValue() != null && en.getValue() > 0) {
-                merged.merge(en.getKey(), en.getValue(), Long::sum);
-            }
-        }
-        return new GameConditionEvent(gameId, gameType, roomType, betItemId, winItemId,
-                bet, win, multiple, energyConsumed, normalSpin, awardType, jackpotCounts,
-                freeGameTriggers, gemDrops + 1, specialModes, icons, merged);
     }
 
     /**

@@ -203,9 +203,9 @@ public class AllianceEventService implements ItemConsumeListener {
                 0, 0, 0, count, 0, paid));
     }
 
-    public void onDonate(long playerId, long amount) {
+    public void onDonate(long playerId) {
         onConditionEvent(playerId, new ActionConditionEvent(ActionConditionEvent.Type.ALLIANCE_DONATE,
-                0, 0, amount, 1, 0, false));
+                0, 0, 0, 1, 0, false));
     }
 
     public void onRecharge(long playerId, int channelId, long amount) {
@@ -233,7 +233,7 @@ public class AllianceEventService implements ItemConsumeListener {
                             (int) param, 0, 0, 1, 0, false));
             case 12305 -> onAllianceConditionEvent(playerId,
                     new ActionConditionEvent(ActionConditionEvent.Type.ALLIANCE_DONATE,
-                            0, 0, param, value, 0, false));
+                            0, 0, 0, value, 0, false));
             case 12306 -> onAllianceConditionEvent(playerId,
                     SimConditionEventFactory.fromGameResult((int) param, Long.MAX_VALUE, value, 0));
             case 12307 -> onAllianceConditionEvent(playerId, new RechargeConditionEvent((int) param, value));

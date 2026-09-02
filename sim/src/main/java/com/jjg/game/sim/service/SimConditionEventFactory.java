@@ -71,8 +71,6 @@ public final class SimConditionEventFactory {
                 statInfo == null ? 0 : statInfo.getBigShowId(),
                 statInfo == null ? Map.of() : statInfo.getJackpotCounts(),
                 freeGameTriggers(statInfo),
-                //赛季宝石掉落在 SeasonService 结算后由 withGemDrop 补入
-                0,
                 statInfo == null || statInfo.getSpecialModes() == null
                         ? Set.of() : Set.copyOf(statInfo.getSpecialModes()),
                 statInfo == null ? List.of() : statInfo.getIcons(),
@@ -112,7 +110,7 @@ public final class SimConditionEventFactory {
     public static GameConditionEvent fromGameResult(int gameType, long bet, long win, long multiple) {
         int transactionItemId = resolveGoldItemId();
         return new GameConditionEvent(gameType, gameType, 0, transactionItemId, transactionItemId,
-                bet, win, multiple, true, true, 0, Map.of(), 0, 0,
+                bet, win, multiple, true, true, 0, Map.of(), 0,
                 Set.of(), List.of(), win > 0 && transactionItemId > 0
                 ? Map.of(transactionItemId, win) : Map.of());
     }

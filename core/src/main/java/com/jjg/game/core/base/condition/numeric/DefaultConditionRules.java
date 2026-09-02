@@ -238,8 +238,8 @@ final class DefaultConditionRules {
                 (s, e) -> e.matchesSubject(s.parameter(0)), (s, e) -> positiveCount(e)));
         rules.add(action(12304, 2, 2, 1, ProgressMode.ADD, ActionConditionEvent.Type.GAME_RESEARCH,
                 (s, e) -> e.matchesSubject(s.parameter(0)), (s, e) -> positiveCount(e)));
-        rules.add(action(12305, 2, 2, 1, ProgressMode.ADD, ActionConditionEvent.Type.ALLIANCE_DONATE,
-                (s, e) -> e.value() >= s.parameter(0), (s, e) -> positiveCount(e)));
+        rules.add(action(12305, 1, 1, 0, ProgressMode.ADD, ActionConditionEvent.Type.ALLIANCE_DONATE,
+                (s, e) -> true, (s, e) -> positiveCount(e)));
         rules.add(game(12306, 4, 4, 3, ProgressMode.ADD,
                 (s, e) -> e.matchesGame(s.parameter(0)) && e.bet() >= s.parameter(1)
                         && e.energyConsumed() && optional(s.parameter(2), e.winItemId()),
@@ -280,9 +280,8 @@ final class DefaultConditionRules {
                 (s, e) -> e.matchesGame(s.parameter(0)), (s, e) -> Math.max(0, e.win())));
         rules.add(action(12607, 2, 2, 1, ProgressMode.ADD, ActionConditionEvent.Type.COMPETITIVE_MATCH,
                 (s, e) -> e.matchesSubject(s.parameter(0)), (s, e) -> positiveCount(e)));
-        rules.add(game(12608, 2, 2, 1, ProgressMode.ADD,
-                (s, e) -> e.matchesGame(s.parameter(0)),
-                (s, e) -> e.gemDrops()));
+        rules.add(action(12608, 2, 2, 1, ProgressMode.ADD, ActionConditionEvent.Type.SEASON_GEM_DROP,
+                (s, e) -> e.matchesSubject(s.parameter(0)), (s, e) -> positiveCount(e)));
         rules.add(game(12609, 4, 4, 3, ProgressMode.ADD,
                 (s, e) -> e.matchesGame(s.parameter(0)) && e.bet() >= s.parameter(1)
                         && optional(s.parameter(2), e.winItemId()),

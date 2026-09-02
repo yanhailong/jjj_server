@@ -91,7 +91,6 @@ public class SeasonMatchService {
         if (data == null || data.seasonPhase() == null || data.seasonPhase() == SeasonPhase.NOVICE) {
             return failStart(Code.NOT_UNLOCKED, ctx, gameType, stake, "阶段未开放");
         }
-        settleIfExpired(ctx, now);
         if (data.getActiveMatch() != null) {
             return failStart(Code.REPEAT_OP, ctx, gameType, stake, "已有进行中的对局");
         }
@@ -401,6 +400,7 @@ public class SeasonMatchService {
 
         SeasonMatchResult result = new SeasonMatchResult();
         result.setMatchId(session.getMatchId());
+        result.setGameType(session.getGameType());
         result.setResult(Long.compare(actualChange, 0));
         result.setPlayerTotalWin(playerTotal);
         result.setOpponentTotalWin(opponentTotal);

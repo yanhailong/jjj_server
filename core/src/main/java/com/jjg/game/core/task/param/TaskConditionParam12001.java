@@ -37,7 +37,7 @@ public class TaskConditionParam12001 extends DefaultTaskConditionParam {
         if (conditionEvent == null) {
             conditionEvent = new GameConditionEvent(
                     gameId, gameId, 0, 0, 0, addValue, 0, 0,
-                    addValue > 0, true, 0, Map.of(), 0, 0, Set.of(), List.of(), Map.of());
+                    addValue > 0, true, 0, Map.of(), 0, Set.of(), List.of(), Map.of());
         }
         return conditionEvent;
     }
