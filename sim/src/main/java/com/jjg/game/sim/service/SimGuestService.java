@@ -1936,6 +1936,7 @@ public class SimGuestService implements SimPlayerTickListener, ItemListener, Sim
         info.viewCdEndTime = baseData.getSpecialGuestAdCdEndTime();
         info.output = getSpecialGuestOutput(ctx, info.itemId);
         info.visitorGiftPackCount = poolCfg.getVisitorGiftPackCount();
+        info.maxManualRefreshPerPeriod = poolCfg.getMaxManualRefreshPerPeriod();
         return info;
     }
 
@@ -1954,6 +1955,7 @@ public class SimGuestService implements SimPlayerTickListener, ItemListener, Sim
         }
         info.output = getSpecialGuestOutput(ctx, info.itemId);
         info.visitorGiftPackCount = poolCfg.getVisitorGiftPackCount();
+        info.maxManualRefreshPerPeriod = poolCfg.getMaxManualRefreshPerPeriod();
         return info;
     }
 

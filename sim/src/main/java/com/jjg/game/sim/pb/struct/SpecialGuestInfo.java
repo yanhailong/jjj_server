@@ -35,4 +35,6 @@ public class SpecialGuestInfo {
     public int purchaseCount;
     @ProtoDesc("本次刷新购买次数上限，0表示不限")
     public int maxPurchasePerRefresh;
+    @ProtoDesc("每个时间段手动刷新的次数上限")
+    public int maxManualRefreshPerPeriod;
 }
