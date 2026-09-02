@@ -16,10 +16,12 @@ import static org.junit.jupiter.api.Assertions.*;
 class MiningIntegrationContractTest {
     @Test void jsonHotReloadUsesRealBeanPropertiesAndRetainsDefaults() {
         MiningConfig live = new MiningConfig();
-        MiningConfig parsed = JSON.parseObject("{\"enabled\":false,\"adTicketSeconds\":300,\"dailyTasks\":[{\"id\":1,\"kind\":1,\"target\":50,\"rewards\":{\"1024034\":5}}]}", MiningConfig.class);
+        MiningConfig parsed = JSON.parseObject("{\"enabled\":false,\"adTicketSeconds\":300,\"dailyTasks\":[{\"id\":1,\"kind\":1,\"target\":50,\"nameLanguageId\":400800061,\"descLanguageId\":400800062,\"rewards\":{\"1024034\":5}}]}", MiningConfig.class);
         BeanUtils.copyProperties(parsed, live);
         assertFalse(live.enabled); assertEquals(300, live.adTicketSeconds);
         assertEquals(5L, live.dailyTasks.getFirst().rewards.get(1024034));
+        assertEquals(400800061, live.dailyTasks.getFirst().nameLanguageId);
+        assertEquals(400800062, live.dailyTasks.getFirst().descLanguageId);
     }
 
     @Test void requestsAndFullStateRoundTripThroughProductionSerializer() {
@@ -48,6 +50,15 @@ class MiningIntegrationContractTest {
         shop.goods = List.of(good); shop.currencies = List.of(ore);
         ResMiningExchangeShop shopCopy = ProtostuffUtil.deserialize(ProtostuffUtil.serialize(shop), ResMiningExchangeShop.class);
         assertEquals(125, shopCopy.version); assertEquals(5001, shopCopy.goods.getFirst().id);
+
+        ResMiningAchievements achievements = new ResMiningAchievements(Code.SUCCESS);
+        MiningTaskInfo task = new MiningTaskInfo(); task.id = 1;
+        task.nameLanguageId = 400800052; task.descLanguageId = 400800057;
+        achievements.achievements = List.of(task);
+        ResMiningAchievements achievementsCopy = ProtostuffUtil.deserialize(
+                ProtostuffUtil.serialize(achievements), ResMiningAchievements.class);
+        assertEquals(400800052, achievementsCopy.achievements.getFirst().nameLanguageId);
+        assertEquals(400800057, achievementsCopy.achievements.getFirst().descLanguageId);
     }
 
     @Test void seasonIntervalsAreExclusiveAndRankingRewardRangesHaveBoundaries() {

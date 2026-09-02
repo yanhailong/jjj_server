@@ -34,6 +34,8 @@ public class MiningConfig {
         public int itemId;
         public long target;
         public Map<Integer, Long> rewards = Map.of();
+        public int nameLanguageId;
+        public int descLanguageId;
     }
 
     public static class Season {

@@ -22,4 +22,8 @@ public class MiningTaskInfo {
     public int status;
     @ProtoDesc("奖励")
     public List<ItemInfo> rewards;
+    @ProtoDesc("名称多语言ID")
+    public int nameLanguageId;
+    @ProtoDesc("描述多语言ID")
+    public int descLanguageId;
 }

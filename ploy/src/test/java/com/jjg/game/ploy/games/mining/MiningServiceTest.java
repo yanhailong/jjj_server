@@ -79,11 +79,15 @@ class MiningServiceTest {
 
         ResMiningAchievements achievements = service.achievements(player);
         assertEquals(Code.SUCCESS, achievements.code); assertFalse(achievements.achievements.isEmpty());
+        assertTrue(achievements.achievements.stream().allMatch(info -> info.nameLanguageId > 0 && info.descLanguageId > 0));
 
         MiningConfig.DailyTask task = new MiningConfig.DailyTask(); task.id = 1; task.kind = 1;
+        task.nameLanguageId = 400800061; task.descLanguageId = 400800062;
         task.target = 1; task.rewards = Map.of(1024034, 1L); config.dailyTasks = List.of(task);
         ResMiningDailyTasks dailyTasks = service.dailyTasks(player);
         assertEquals(Code.SUCCESS, dailyTasks.code); assertEquals(1, dailyTasks.dailyTasks.size());
+        assertEquals(task.nameLanguageId, dailyTasks.dailyTasks.getFirst().nameLanguageId);
+        assertEquals(task.descLanguageId, dailyTasks.dailyTasks.getFirst().descLanguageId);
     }
 
     @Test void duplicateDigAndStaleMapDoNotConsumeAgain() {

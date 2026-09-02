@@ -468,6 +468,7 @@ public class MiningService implements OrderGenerate, StandalonePloyGame {
         return config.dailyTasks.stream().map(task -> {
             MiningTaskInfo info = new MiningTaskInfo(); info.id = task.id; info.target = task.target;
             info.kind = task.kind; info.itemId = task.itemId;
+            info.nameLanguageId = task.nameLanguageId; info.descLanguageId = task.descLanguageId;
             info.progress = Math.min(task.target, dailyProgress(state.daily, task));
             info.status = state.claimedDailyTasks.contains(task.id) ? 2 : info.progress >= info.target ? 1 : 0;
             info.rewards = ItemUtils.buildItemInfo(task.rewards); return info;
@@ -498,6 +499,7 @@ public class MiningService implements OrderGenerate, StandalonePloyGame {
         int subject = spec.intParameter(0);
         long progress = condition.evaluate(new ActionConditionEvent(type, subject, related, value, value, 0, false)).apply(0);
         MiningTaskInfo info = new MiningTaskInfo(); info.id = cfg.getId(); info.target = condition.target();
+        info.nameLanguageId = cfg.getAchievementName(); info.descLanguageId = cfg.getAchievementDescription();
         info.progress = Math.min(progress, info.target); info.rewards = ItemUtils.buildItemInfo(cfg.getReward());
         info.status = state.claimedAchievements.contains(cfg.getId()) ? 2 : progress >= info.target ? 1 : 0;
         return info;
