@@ -19,6 +19,60 @@ import static org.junit.jupiter.api.Assertions.*;
 import static org.mockito.Mockito.*;
 
 class SimEmployeeRedDotTest {
+    @Test void visitorEntryShowsNothingWithoutStarUpOrNewBondAndUsesCorrectPriority() {
+        SimEmployeeRedDotService service = new SimEmployeeRedDotService();
+        SimPlayerContextRegistry contexts = mock(SimPlayerContextRegistry.class);
+        SimPlayerContext ctx = new SimPlayerContext();
+        SimCasinoData casino = new SimCasinoData();
+        casino.setCasinoId(1);
+        GuestData guest = new GuestData();
+        guest.setId(1001);
+        guest.setStar(1);
+        casino.setGuestMap(Map.of(1001, guest));
+        ctx.setCurrentCasino(casino);
+        when(contexts.getContext(7L)).thenReturn(ctx);
+        Player player = mock(Player.class);
+        CorePlayerService players = mock(CorePlayerService.class);
+        when(players.get(7L)).thenReturn(player);
+        PlayerPackService packs = mock(PlayerPackService.class);
+        when(packs.findSatisfiedItemRequirements(eq(player), anyList()))
+                .thenReturn(Set.of(), Set.of(0), Set.of());
+        RedDotReadDao reads = mock(RedDotReadDao.class);
+        when(reads.unread(7L, "newBond:1")).thenReturn(Set.of(), Set.of(), Set.of(301));
+        SimConfigCacheService configs = mock(SimConfigCacheService.class);
+        VisitorStarCfg current = mock(VisitorStarCfg.class);
+        VisitorStarCfg next = mock(VisitorStarCfg.class);
+        when(current.getAscend()).thenReturn(20);
+        when(configs.getVisitorStarCfgByGuest(1001, 1)).thenReturn(current);
+        when(configs.getVisitorStarCfgByGuest(1001, 2)).thenReturn(next);
+        ReflectionTestUtils.setField(service, "contextRegistry", contexts);
+        ReflectionTestUtils.setField(service, "configCache", configs);
+        ReflectionTestUtils.setField(service, "corePlayerService", players);
+        ReflectionTestUtils.setField(service, "playerPackService", packs);
+        ReflectionTestUtils.setField(service, "redDotReadDao", reads);
+        ReflectionTestUtils.setField(service, "redDotManager", new RedDotManager(null, null, null));
+        VisitorQuestCfg visitor = mock(VisitorQuestCfg.class);
+        when(visitor.getDuplicatetoShard()).thenReturn(List.of(1025101, 1125101, 10));
+
+        try (var staticConfigs = mockStatic(GameDataManager.class)) {
+            staticConfigs.when(() -> GameDataManager.getVisitorQuestCfg(1001)).thenReturn(visitor);
+            var none = service.initialize(7L, SimConstant.Employee.RED_DOT_VISITOR_ENTRY).getFirst();
+            assertEquals(0, none.getCount());
+            assertEquals(com.jjg.game.core.pb.reddot.RedDotDetails.RedDotType.COMMON, none.getRedDotType());
+            assertTrue(none.getExtra().contains("\"starUpIds\":[]"));
+            assertTrue(none.getExtra().contains("\"newBondIds\":[]"));
+
+            var starUp = service.initialize(7L, SimConstant.Employee.RED_DOT_VISITOR_ENTRY).getFirst();
+            assertEquals(1, starUp.getCount());
+            assertEquals(com.jjg.game.core.pb.reddot.RedDotDetails.RedDotType.COUNT, starUp.getRedDotType());
+
+            var bondOnly = service.initialize(7L, SimConstant.Employee.RED_DOT_VISITOR_ENTRY).getFirst();
+            assertEquals(1, bondOnly.getCount());
+            assertEquals(com.jjg.game.core.pb.reddot.RedDotDetails.RedDotType.COMMON, bondOnly.getRedDotType());
+            assertTrue(bondOnly.getExtra().contains("301"));
+        }
+    }
+
     @Test void recruitPoolsExposeGuestAndEmployeeTabCountsSeparately() {
         SimEmployeeRedDotService service = new SimEmployeeRedDotService();
         SimPlayerContextRegistry contexts = mock(SimPlayerContextRegistry.class);
@@ -108,5 +162,27 @@ class SimEmployeeRedDotTest {
         assertTrue(service.markRead(1, 4, List.of(11)));
         verify(reads).read(1, "newEmployee", List.of(11));
         verifyNoMoreInteractions(reads);
+    }
+
+    @Test void readingNewBondClearsCurrentCasinoAndRefreshesVisitorEntry() {
+        SimEmployeeRedDotService service = new SimEmployeeRedDotService();
+        RedDotReadDao reads = mock(RedDotReadDao.class);
+        RedDotManager manager = mock(RedDotManager.class);
+        SimPlayerContextRegistry contexts = mock(SimPlayerContextRegistry.class);
+        SimPlayerContext ctx = new SimPlayerContext();
+        SimCasinoData casino = new SimCasinoData();
+        casino.setCasinoId(7);
+        ctx.setCurrentCasino(casino);
+        when(contexts.getContext(1L)).thenReturn(ctx);
+        ReflectionTestUtils.setField(service, "redDotReadDao", reads);
+        ReflectionTestUtils.setField(service, "redDotManager", manager);
+        ReflectionTestUtils.setField(service, "contextRegistry", contexts);
+
+        assertTrue(service.markRead(1L, SimEmployeeRedDotService.NEW_BOND, List.of(301)));
+
+        verify(reads).read(1L, "newBond:7", List.of(301));
+        verify(manager).updateRedDotByInitialize(
+                com.jjg.game.core.pb.reddot.RedDotDetails.RedDotModule.EMPLOYEE,
+                List.of(SimConstant.Employee.RED_DOT_VISITOR_ENTRY), 1L);
     }
 }

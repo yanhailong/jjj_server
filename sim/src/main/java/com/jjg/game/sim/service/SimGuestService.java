@@ -1106,7 +1106,7 @@ public class SimGuestService implements SimPlayerTickListener, ItemListener, Sim
      *
      * @param ctx
      */
-    public void onBonds(SimPlayerContext ctx) {
+    public List<Integer> onBonds(SimPlayerContext ctx) {
         ResGuestBonds res = new ResGuestBonds(Code.SUCCESS);
         try {
             if (ctx.getCurrentCasino().getGuestBondsSet() != null && !ctx.getCurrentCasino().getGuestBondsSet().isEmpty()) {
@@ -1135,6 +1135,8 @@ public class SimGuestService implements SimPlayerTickListener, ItemListener, Sim
             res.code = Code.EXCEPTION;
         }
         ctx.send(res);
+        // 只有成功返回给客户端的羁绊才可视为已经查看，供消息处理器清除对应未读红点。
+        return res.code == Code.SUCCESS && res.bonds != null ? List.copyOf(res.bonds) : List.of();
     }
 
     /**

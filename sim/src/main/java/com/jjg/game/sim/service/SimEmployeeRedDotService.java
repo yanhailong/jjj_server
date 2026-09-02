@@ -54,7 +54,8 @@ public class SimEmployeeRedDotService implements IRedDotService, ItemAddListener
     private static final List<Integer> RED_DOT_SUBMODULES = List.of(
             SimConstant.Employee.RED_DOT_RECRUIT_POOL,
             SimConstant.Employee.RED_DOT_GUEST_STAR_UP,
-            SimConstant.Employee.RED_DOT_EMPLOYEE_GROWTH, NEW_EMPLOYEE, NEW_BOND);
+            SimConstant.Employee.RED_DOT_EMPLOYEE_GROWTH, NEW_EMPLOYEE, NEW_BOND,
+            SimConstant.Employee.RED_DOT_VISITOR_ENTRY);
 
     @Autowired
     private SimPlayerContextRegistry contextRegistry;
@@ -102,6 +103,10 @@ public class SimEmployeeRedDotService implements IRedDotService, ItemAddListener
         ActivePoolSnapshot poolSnapshot = includesPool ? currentActivePools(System.currentTimeMillis()) : null;
         List<RedDotDetails> details = new ArrayList<>(submodules.size());
         for (int currentSubmodule : submodules) {
+            if (currentSubmodule == SimConstant.Employee.RED_DOT_VISITOR_ENTRY) {
+                details.add(buildVisitorEntryRedDot(playerId, ctx, player));
+                continue;
+            }
             if (currentSubmodule == NEW_EMPLOYEE || currentSubmodule == NEW_BOND) {
                 Set<Integer> ids = redDotReadDao.unread(playerId, readScope(playerId, ctx, currentSubmodule));
                 RedDotDetails dot = redDotManager.buildRedDotDetails(getModule(), currentSubmodule, ids.isEmpty() ? 0 : 1);
@@ -187,11 +192,14 @@ public class SimEmployeeRedDotService implements IRedDotService, ItemAddListener
     }
 
     public void updateRedDots(long playerId, int... submodules) {
-        List<Integer> updates = new ArrayList<>(submodules.length);
+        Set<Integer> updates = new LinkedHashSet<>(submodules.length + 1);
         for (int submodule : submodules) {
             updates.add(submodule);
         }
-        updateRedDots(playerId, updates);
+        if (updates.contains(SimConstant.Employee.RED_DOT_GUEST_STAR_UP) || updates.contains(NEW_BOND)) {
+            updates.add(SimConstant.Employee.RED_DOT_VISITOR_ENTRY);
+        }
+        updateRedDots(playerId, new ArrayList<>(updates));
     }
 
     private void updateRedDots(long playerId, List<Integer> submodules) {
@@ -218,11 +226,35 @@ public class SimEmployeeRedDotService implements IRedDotService, ItemAddListener
             VisitorStarCfg nextCfg = configCache.getVisitorStarCfgByGuest(guest.getId(), guest.getStar() + 1);
             VisitorQuestCfg guestCfg = GameDataManager.getVisitorQuestCfg(guest.getId());
             List<Integer> shard = guestCfg == null ? null : guestCfg.getDuplicatetoShard();
-            if (currentCfg != null && nextCfg != null && shard != null && shard.size() > 1) {
+            if (currentCfg != null && nextCfg != null && currentCfg.getAscend() > 0
+                    && shard != null && shard.size() > 1 && shard.get(1) != null && shard.get(1) > 0) {
                 requirements.add(new Requirement(guest.getId(), "starUpIds", Map.of(shard.get(1), (long) currentCfg.getAscend())));
             }
         }
         return requirements;
+    }
+
+    /** 游客入口只汇总游客升星与新羁绊，不能混入招募或雇员成长数字。 */
+    private RedDotDetails buildVisitorEntryRedDot(long playerId, SimPlayerContext ctx, Player player) {
+        List<Requirement> requirements = guestStarRequirements(playerId, ctx);
+        Set<Integer> satisfied = playerPackService.findSatisfiedItemRequirements(player,
+                requirements.stream().map(Requirement::cost).toList());
+        Set<Integer> starUpIds = new java.util.TreeSet<>();
+        for (int index : satisfied) {
+            if (index >= 0 && index < requirements.size()) {
+                starUpIds.add(requirements.get(index).id());
+            }
+        }
+        Set<Integer> newBondIds = redDotReadDao.unread(playerId, readScope(playerId, ctx, NEW_BOND));
+        RedDotDetails.RedDotType type = starUpIds.isEmpty()
+                ? RedDotDetails.RedDotType.COMMON : RedDotDetails.RedDotType.COUNT;
+        int count = starUpIds.isEmpty() ? (newBondIds.isEmpty() ? 0 : 1) : starUpIds.size();
+        RedDotDetails dot = redDotManager.buildRedDotDetails(getModule(),
+                SimConstant.Employee.RED_DOT_VISITOR_ENTRY, count, type);
+        dot.setExtra(com.alibaba.fastjson.JSON.toJSONString(Map.of(
+                "starUpIds", starUpIds,
+                "newBondIds", newBondIds.stream().sorted().toList())));
+        return dot;
     }
 
     private List<Requirement> employeeGrowthRequirements(long playerId, SimPlayerContext ctx) {
@@ -337,6 +369,9 @@ public class SimEmployeeRedDotService implements IRedDotService, ItemAddListener
     public boolean markRead(long playerId, int submodule, List<Integer> ids) {
         if (submodule != NEW_EMPLOYEE && submodule != NEW_BOND) return false;
         redDotReadDao.read(playerId, readScope(playerId, contextRegistry.getContext(playerId), submodule), ids);
+        if (submodule == NEW_BOND) {
+            updateRedDots(playerId, SimConstant.Employee.RED_DOT_VISITOR_ENTRY);
+        }
         return true;
     }
 

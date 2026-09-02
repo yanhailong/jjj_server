@@ -15,6 +15,8 @@ import com.jjg.game.core.constant.Code;
 import com.jjg.game.core.data.CommonResult;
 import com.jjg.game.core.data.PlayerController;
 import com.jjg.game.core.listener.GmListener;
+import com.jjg.game.core.manager.RedDotManager;
+import com.jjg.game.core.pb.reddot.RedDotDetails;
 import com.jjg.game.sampledata.GameDataManager;
 import com.jjg.game.sampledata.bean.CasinoStatsSheetCfg;
 import com.jjg.game.sim.bridge.ToSimBridge;
@@ -93,6 +95,8 @@ public class SimMessageHandler implements GmListener {
     private SimGuideService guideService;
     @Autowired
     private SimNodeService simNodeService;
+    @Autowired
+    private RedDotManager redDotManager;
     @ClusterRpcReference
     private ToSimBridge toSimBridge;
 
@@ -572,7 +576,12 @@ public class SimMessageHandler implements GmListener {
     @Command(SimConstant.MsgBean.REQ_UNLOCK_BONDS)
     public void reqUnlockBonds(PlayerController playerController, ReqGuestBonds req) {
         execute(playerController, ctx -> {
-            guestService.onBonds(ctx);
+            List<Integer> viewedBondIds = guestService.onBonds(ctx);
+            if (!viewedBondIds.isEmpty()) {
+                // 客户端请求并成功收到羁绊详情，即认为本次返回的羁绊已经查看。
+                redDotManager.markRead(playerController, RedDotDetails.RedDotModule.EMPLOYEE,
+                        SimEmployeeRedDotService.NEW_BOND, viewedBondIds);
+            }
         }, ReqGuestBonds.class);
     }
 

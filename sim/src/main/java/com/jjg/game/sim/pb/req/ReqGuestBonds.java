@@ -11,6 +11,6 @@ import com.jjg.game.sim.constant.SimConstant;
  * @date 2026/5/28
  */
 @ProtobufMessage(messageType = MessageConst.MessageTypeDef.SIM_GAME, cmd = SimConstant.MsgBean.REQ_UNLOCK_BONDS)
-@ProtoDesc("获取已解锁羁绊")
+@ProtoDesc("获取已解锁羁绊，成功返回后视为已查看并清除对应羁绊红点")
 public class ReqGuestBonds extends AbstractMessage {
 }
