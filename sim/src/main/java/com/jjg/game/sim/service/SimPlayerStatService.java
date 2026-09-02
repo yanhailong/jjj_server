@@ -63,6 +63,8 @@ public class SimPlayerStatService {
                     condition.spec().intParameter(0), condition.spec().intParameter(1)) == null ? 0 : 1;
             case PlayerStatService.SKILL_TOTAL_LEVEL -> skillLevel(ctx,
                     condition.spec().intParameter(0));
+            case PlayerStatService.SKILL_LEVEL -> skillLevel(ctx,
+                    condition.spec().intParameter(0), condition.spec().intParameter(1));
             default -> 0;
         };
     }
@@ -179,6 +181,15 @@ public class SimPlayerStatService {
         }
         SimSkillsData skillsData = ctx.getSkillData(gameType);
         return skillsData == null || skillsData.getSkillsMap() == null ? 0 : skillsData.allLevel();
+    }
+
+    private long skillLevel(SimPlayerContext ctx, int gameType, int skillId) {
+        SimSkillsData skillsData = ctx.getSkillData(gameType);
+        if (skillsData == null) {
+            return 0;
+        }
+        var skill = skillsData.findSkilLevelByPropId(skillId);
+        return skill == null ? 0 : skill.getLevel();
     }
 
     /**

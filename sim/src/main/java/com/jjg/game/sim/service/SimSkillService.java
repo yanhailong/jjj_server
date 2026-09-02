@@ -272,7 +272,8 @@ public class SimSkillService extends AbstractSkillService {
             super.changeSkillLevel(ctx, skillData, skillPropId, newLevelCfg.getGrade());
             refreshBuildOutput(skillData, skillPropId);
             //联盟任务: 技能研究次数 (param=游戏类型, 供 0=任意/指定游戏 过滤)
-            allianceEventService.onGameResearch(ctx.playerId(), gameType);
+            allianceEventService.onGameResearch(ctx.playerId(), gameType,
+                    skillPropId, newLevelCfg.getGrade());
 
             res.gameType = gameType;
             res.skillId = skillPropId;

@@ -178,9 +178,9 @@ public class AllianceEventService implements ItemConsumeListener {
                 0, 0, 0, count, 0, false));
     }
 
-    public void onGameResearch(long playerId, int gameType) {
+    public void onGameResearch(long playerId, int gameType, int skillId, int level) {
         onConditionEvent(playerId, new ActionConditionEvent(ActionConditionEvent.Type.GAME_RESEARCH,
-                gameType, 0, 0, 1, 0, false));
+                gameType, skillId, level, 1, 0, false));
     }
 
     public void onEmployeeRecruit(long playerId, int professionId, long count) {

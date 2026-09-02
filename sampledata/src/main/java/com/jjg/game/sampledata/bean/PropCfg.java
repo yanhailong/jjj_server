@@ -19,6 +19,8 @@ public class PropCfg extends BaseCfgBean {
   /** 配置表工作薄名 */
   public static final String SHEET_NAME = "prop";
 
+  /** 特效名称 */
+  protected String EffectName;
   /** 技能类型 */
   protected int SkillTypeId;
   /** 位置排序 */
@@ -35,6 +37,11 @@ public class PropCfg extends BaseCfgBean {
   protected Map<Integer,Integer> skillId;
   /** 类型 */
   protected int type;
+
+  /** 返回特效名称 */
+  public String getEffectName() {
+    return EffectName;
+  }
 
   /** 返回技能类型 */
   public int getSkillTypeId() {

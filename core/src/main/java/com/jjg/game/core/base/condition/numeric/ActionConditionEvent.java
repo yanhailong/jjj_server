@@ -38,7 +38,9 @@ public record ActionConditionEvent(Type type, int subjectId, int relatedId, long
         GRID_MINED,
         DEPTH_REACHED,
         ITEM_USE,
-        ITEM_EXCHANGE
+        ITEM_EXCHANGE,
+        SEASON_SHOP_BUY,
+        SEASON_GEM_EQUIP
     }
 
     public boolean matchesSubject(long expected) {

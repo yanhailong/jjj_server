@@ -157,8 +157,12 @@ final class DefaultConditionRules {
         rules.add(rule(12225, GameWinEvent.class, 3, 3, 2, ProgressMode.ADD,
                 (s, e) -> e.matchesGame(s.parameter(0)) && e.winItemId() == s.parameter(1),
                 (s, e) -> Math.max(0, e.win()), nonNegativeParameters()));
+        rules.add(action(12226, 1, 1, 0, ProgressMode.ADD, ActionConditionEvent.Type.SEASON_SHOP_BUY,
+                (s, e) -> true, (s, e) -> positiveCount(e)));
+        rules.add(action(12227, 1, 1, 0, ProgressMode.ADD, ActionConditionEvent.Type.SEASON_GEM_EQUIP,
+                (s, e) -> true, (s, e) -> positiveCount(e)));
 
-        //12251-12276 与上面的接取型条件判定口径一致，进度由玩家统计提供而非任务计数器。
+        //12251-12277 与上面的接取型条件判定口径一致，进度由玩家统计提供而非任务计数器。
         rules.add(game(12251, 3, 3, 2, ProgressMode.ADD,
                 (s, e) -> e.matchesGame(s.parameter(0)), (s, e) -> e.itemGain(s.intParameter(1))));
         rules.add(game(12252, 3, 3, 2, ProgressMode.ADD,
@@ -218,6 +222,9 @@ final class DefaultConditionRules {
                 (s, e) -> 1));
         rules.add(action(12276, 2, 2, 1, ProgressMode.SET, ActionConditionEvent.Type.GAME_RESEARCH,
                 (s, e) -> e.matchesSubject(s.parameter(0)), (s, e) -> e.value()));
+        rules.add(action(12277, 3, 3, 2, ProgressMode.SET, ActionConditionEvent.Type.GAME_RESEARCH,
+                (s, e) -> e.subjectId() == s.parameter(0) && e.relatedId() == s.parameter(1),
+                (s, e) -> e.value()));
     }
 
     private static void addAllianceRules(List<ConditionRule<?>> rules) {

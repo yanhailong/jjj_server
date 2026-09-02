@@ -68,7 +68,7 @@ public class SimTaskService implements IRedDotService {
             TaskConstant.ConditionType.PLAYER_BET_ALL,
             12201, 12202, 12203, 12204, 12205, 12206,
             12209, 12210, 12211, 12213, 12215, 12217, 12218,
-            12220, 12221, 12222, 12223, 12224, 12225);
+            12220, 12221, 12222, 12223, 12224, 12225, 12226, 12227);
 
     @Autowired
     private SimTaskConfigService taskConfig;
@@ -360,7 +360,7 @@ public class SimTaskService implements IRedDotService {
             SimTaskConfigService.TaskConditionDef def = taskConfig.conditionOf(cfg.getId());
             int conditionId = def.condition().spec().id();
             long target = def.condition().target();
-            node.getProgress().put(conditionId, target);
+            finalizeProgress(node, conditionId, target);
             node.setStatus(TaskConstant.TaskStatus.STATUS_COMPLETED);
             node.setCompleteTime(now);
             if (ctx.getSimBaseData() != null) {
@@ -697,7 +697,7 @@ public class SimTaskService implements IRedDotService {
         long target = def == null ? 0 : def.condition().target();
         long completedProgress = def == null ? 0 : currentProgress(ctx, player, node, cfg);
         if (def != null) {
-            node.getProgress().put(conditionId, completedProgress);
+            finalizeProgress(node, conditionId, completedProgress);
         }
         node.setStatus(TaskConstant.TaskStatus.STATUS_COMPLETED);
         node.setCompleteTime(now);
@@ -1090,14 +1090,26 @@ public class SimTaskService implements IRedDotService {
         c.setConfigParam(def == null ? cond.getLast() : def.condition().target());
         c.setProgress(node.getStatus() == TaskConstant.TaskStatus.STATUS_IN_PROGRESS
                 ? (progressOverride == null ? currentProgress(ctx, player, node, cfg) : progressOverride)
-                : completedProgress(node));
+                : completedProgress(node, def));
         c.setFinish(node.getStatus() != TaskConstant.TaskStatus.STATUS_IN_PROGRESS);
         task.getConditions().add(c);
         return task;
     }
 
-    private static long completedProgress(TaskDetail node) {
+    private static long completedProgress(TaskDetail node, SimTaskConfigService.TaskConditionDef def) {
+        if (def != null && TASK_DETAIL_PROGRESS_CONDITIONS.contains(def.condition().spec().id())) {
+            return def.condition().target();
+        }
         return node.getProgress().values().stream().findFirst().orElse(0L);
+    }
+
+    private static void finalizeProgress(TaskDetail node, int conditionId, long progress) {
+        if (TASK_DETAIL_PROGRESS_CONDITIONS.contains(conditionId)) {
+            node.getProgress().remove(conditionId);
+            node.getFinishConditionIds().remove(conditionId);
+        } else {
+            node.getProgress().put(conditionId, progress);
+        }
     }
 
     /**

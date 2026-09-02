@@ -1,5 +1,6 @@
 package com.jjg.game.season.service;
 
+import com.jjg.game.core.base.condition.numeric.ActionConditionEvent;
 import com.jjg.game.core.base.condition.numeric.GameConditionEvent;
 import com.jjg.game.core.constant.Code;
 import com.jjg.game.core.data.CommonResult;
@@ -19,6 +20,7 @@ import com.jjg.game.sim.data.SpinStatInfo;
 import com.jjg.game.sim.listener.SimPlayerTickListener;
 import com.jjg.game.sim.service.SimAutoSaveService;
 import com.jjg.game.sim.service.SimConfigCacheService;
+import com.jjg.game.sim.service.SimTaskService;
 import com.jjg.game.social.service.SocialSender;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -57,13 +59,15 @@ public class SeasonService implements SimPlayerTickListener {
     private final SocialSender socialSender;
     private final SeasonFreeGameService freeGameService;
     private final SimConfigCacheService simConfigCacheService;
+    private final SimTaskService simTaskService;
 
     public SeasonService(SeasonLifecycleService lifecycleService, SeasonConfigService configService,
                          SeasonShopService shopService, SeasonGemService gemService,
                          SeasonMatchService matchService, SeasonDropService dropService,
                          SeasonRankingService rankingService, PlayerPackService playerPackService,
                          SeasonTrialService trialService, SimAutoSaveService autoSaveService,
-                         SocialSender socialSender, SeasonFreeGameService freeGameService, SimConfigCacheService simConfigCacheService) {
+                         SocialSender socialSender, SeasonFreeGameService freeGameService,
+                         SimConfigCacheService simConfigCacheService, SimTaskService simTaskService) {
         this.lifecycleService = lifecycleService;
         this.configService = configService;
         this.shopService = shopService;
@@ -77,6 +81,7 @@ public class SeasonService implements SimPlayerTickListener {
         this.socialSender = socialSender;
         this.freeGameService = freeGameService;
         this.simConfigCacheService = simConfigCacheService;
+        this.simTaskService = simTaskService;
     }
 
     public ResSeasonInfo info(SimPlayerContext ctx, int reqType) {
@@ -168,6 +173,9 @@ public class SeasonService implements SimPlayerTickListener {
     public ResSeasonBuy buy(SimPlayerContext ctx, int shopId, int count) {
         lifecycleService.ensureCurrent(ctx, System.currentTimeMillis());
         CommonResult<Map<Integer, Long>> result = shopService.buy(ctx, shopId, count);
+        if (result.success()) {
+            onTaskEvent(ctx, ActionConditionEvent.Type.SEASON_SHOP_BUY);
+        }
         ResSeasonBuy response = new ResSeasonBuy(result.code);
         if (result.data != null && !result.data.isEmpty()) {
             response.goods = ItemUtils.buildItemInfo(result.data);
@@ -219,9 +227,21 @@ public class SeasonService implements SimPlayerTickListener {
     public ResSeasonEquipGem equip(SimPlayerContext ctx, int slot, int itemId) {
         lifecycleService.ensureCurrent(ctx, System.currentTimeMillis());
         CommonResult<Map<Integer, Integer>> result = gemService.equip(ctx, slot, itemId);
+        if (itemId > 0 && result.success()) {
+            onTaskEvent(ctx, ActionConditionEvent.Type.SEASON_GEM_EQUIP);
+        }
         ResSeasonEquipGem response = new ResSeasonEquipGem(result.code);
         response.slots = slots(result.data == null ? ctx.getSeasonPlayerData().getEquippedGems() : result.data);
         return response;
+    }
+
+    private void onTaskEvent(SimPlayerContext ctx, ActionConditionEvent.Type type) {
+        try {
+            simTaskService.onConditionEvent(ctx,
+                    new ActionConditionEvent(type, 0, 0, 0, 1, 0, false));
+        } catch (RuntimeException e) {
+            log.error("赛季任务事件处理失败 playerId={},eventType={}", ctx.playerId(), type, e);
+        }
     }
 
     /** 发起并完成一次宝石合成。 */
