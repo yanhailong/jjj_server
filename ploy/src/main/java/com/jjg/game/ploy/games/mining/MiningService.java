@@ -14,6 +14,7 @@ import com.jjg.game.core.pb.ReqGenerateOrder;
 import com.jjg.game.core.service.PlayerPackService;
 import com.jjg.game.core.utils.ItemUtils;
 import com.jjg.game.ploy.games.mining.message.*;
+import com.jjg.game.ploy.manager.StandalonePloyGame;
 import com.jjg.game.sampledata.GameDataManager;
 import com.jjg.game.sampledata.bean.*;
 import org.redisson.api.RLock;
@@ -31,7 +32,7 @@ import java.util.function.Function;
 
 /** 服务端权威挖矿。所有写操作使用玩家分布式锁和背包存档CAS。 */
 @Service
-public class MiningService implements OrderGenerate {
+public class MiningService implements OrderGenerate, StandalonePloyGame {
     private static final Logger log = LoggerFactory.getLogger(MiningService.class);
     private static final SecureRandom SEEDS = new SecureRandom();
     private final MiningConfig config;
@@ -325,6 +326,8 @@ public class MiningService implements OrderGenerate {
     }
 
     @Override public RechargeType getRechargeType() { return RechargeType.MINING_BUNDLE; }
+
+    @Override public int gameType() { return MiningConstant.GAME_ID; }
 
     @Override
     public void onOrderCreationFailed(Player player, ReqGenerateOrder request) {

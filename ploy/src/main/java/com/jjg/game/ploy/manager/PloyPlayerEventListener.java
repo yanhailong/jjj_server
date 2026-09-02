@@ -43,6 +43,8 @@ public class PloyPlayerEventListener implements SessionEnterListener, SessionClo
     private RechargeService rechargeService;
     @Autowired
     private PloyFactoryManager ployFactoryManager;
+    @Autowired
+    private StandalonePloyGameRegistry standaloneGameRegistry;
 
     @Override
     public void sessionClose(PFSession session) {
@@ -66,9 +68,10 @@ public class PloyPlayerEventListener implements SessionEnterListener, SessionClo
                 return;
             }
 
-            //检查slots游戏管理器
+            // 下注类策略游戏使用控制器；挖矿等独立游戏只需要建立 Ploy 玩家会话。
             AbstractPloyController gameManager = ployFactoryManager.getGameController(info.getGameType(), info.getRoomCfgId());
-            if (gameManager == null) {
+            StandalonePloyGame standaloneGame = standaloneGameRegistry.get(info.getGameType());
+            if (gameManager == null && standaloneGame == null) {
                 log.debug("sessionEnter时，获取游戏管理器失败 playerId = {},gameType = {}", playerId, info.getGameType());
                 return;
             }
@@ -85,7 +88,9 @@ public class PloyPlayerEventListener implements SessionEnterListener, SessionClo
             PlayerController playerController = new PlayerController(session, player);
             session.setReference(playerController);
 
-            if (player.getRoomId() < 1) {
+            if (standaloneGame != null) {
+                enterStandaloneGame(session, player, playerController);
+            } else if (player.getRoomId() < 1) {
                 enterGame(session, player, playerController, info, gameManager);
             }
         } catch (Exception e) {
@@ -119,6 +124,19 @@ public class PloyPlayerEventListener implements SessionEnterListener, SessionClo
         log.debug("玩家进入ploy 游戏 playerId = {},gameType = {}", player.getId(), player.getGameType());
     }
 
+    private void enterStandaloneGame(PFSession session, Player player, PlayerController playerController) {
+        PlayerExecutorGroupDisruptor.getDefaultExecutor().tryPublish(session.getWorkId(), 0, new BaseHandler<String>() {
+            @Override
+            public void action() throws Exception {
+                taskManager.loadTaskData(player.getId());
+                rechargeService.loadOfflineRecharge(player.getId());
+            }
+        });
+        PlayerSessionToken playerSessionToken = playerSessionTokenDao.getByPlayerId(player.getId());
+        logger.enterGame(player, player.getGameType(), player.getRoomCfgId(), playerSessionToken.getDevice());
+        log.debug("玩家进入独立Ploy游戏 playerId = {},gameType = {}", player.getId(), player.getGameType());
+    }
+
     /**
      * 退出游戏
      *
@@ -135,6 +153,14 @@ public class PloyPlayerEventListener implements SessionEnterListener, SessionClo
 
         AbstractPloyController gameController = ployFactoryManager.getGameController(playerController.getPlayer().getGameType(), playerController.getPlayer().getRoomCfgId());
         if (gameController == null) {
+            if (standaloneGameRegistry.get(playerController.getPlayer().getGameType()) != null) {
+                playerSessionService.offline(playerController.getPlayer(), exitType == ExitType.DROPPED);
+                session.setReference(null);
+                logger.exitGame(playerController.getPlayer(), 0, playerController.getPlayer().getDeviceType());
+                log.debug("玩家退出独立Ploy游戏 playerId = {},gameType = {}", playerController.playerId(),
+                        playerController.getPlayer().getGameType());
+                return Code.SUCCESS;
+            }
             log.debug("退出游戏时，获取游戏管理器失败 playerId = {},gameType = {}", playerController.playerId(), playerController.getPlayer().getGameType());
             return Code.SUCCESS;
         }
