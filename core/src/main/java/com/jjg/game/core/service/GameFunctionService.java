@@ -197,6 +197,11 @@ public class GameFunctionService implements GameEventListener {
 
     @Override
     public List<EGameEventType> needMonitorEvents() {
+        // 只有实际负责功能开放推送的节点才需要解析并监听功能开放条件。
+        // 例如 Ploy 节点不依赖 Sim 模块，无法也无需解析 simAllLevel 等 Sim 专属条件。
+        if (gameFunctionListeners.isEmpty()) {
+            return Collections.emptyList();
+        }
         List<EGameEventType> needMonitorEvents = new ArrayList<>();
         if (this.gameTypeOfFuncCache.isEmpty()) {
             loadConfig();
