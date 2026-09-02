@@ -243,4 +243,9 @@ public interface Code {
     int ROOM_BEGIN = 4058265;
     //需要当前游戏技能等级达到%s级
     int SKILL_LEVEL_NOT_ENOUGHT = 4012009;
+
+    //邀请失败，请刷新后再试
+    int PLEASR_REFRESH = 4053117;
+    //此时段刷新次数达到上限
+    int REFRESH_MAX = 4053118;
 }

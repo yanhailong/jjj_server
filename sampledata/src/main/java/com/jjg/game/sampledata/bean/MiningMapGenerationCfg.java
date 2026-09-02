@@ -20,16 +20,16 @@ public class MiningMapGenerationCfg extends BaseCfgBean {
   public static final String SHEET_NAME = "MiningMapGeneration";
 
   /** 固定格子 */
-  protected List<List<Integer>> FixedGrid;
+  protected Map<Integer,Long> FixedGrid;
   /** 高度（米） */
   protected int Height;
   /** 随机生成 */
-  protected List<List<Integer>> Randomizedgrid;
+  protected Map<Integer,Long> Randomizedgrid;
   /** 总高度（米） */
   protected int TotalHeight;
 
   /** 返回固定格子 */
-  public List<List<Integer>> getFixedGrid() {
+  public Map<Integer,Long> getFixedGrid() {
     return FixedGrid;
   }
 
@@ -39,7 +39,7 @@ public class MiningMapGenerationCfg extends BaseCfgBean {
   }
 
   /** 返回随机生成 */
-  public List<List<Integer>> getRandomizedgrid() {
+  public Map<Integer,Long> getRandomizedgrid() {
     return Randomizedgrid;
   }
 

@@ -1292,7 +1292,7 @@ public class SimGuestService implements SimPlayerTickListener, ItemListener, Sim
             if (!canManualRefreshSpecialGuests(paidPoolCfg, refreshCount)) {
                 log.warn("刷新特殊游客被拒绝 playerId={},manualRefresh={},refreshCount={},maxManualRefreshPerPeriod={}",
                         ctx.playerId(), paidPoolCfg.getManualRefresh(), refreshCount, paidPoolCfg.getMaxManualRefreshPerPeriod());
-                res.code = Code.FAIL;
+                res.code = Code.REFRESH_MAX;
                 ctx.send(res);
                 return;
             }

@@ -1,7 +1,5 @@
 package com.jjg.game.sim.service;
 
-import com.jjg.game.alliance.data.AllianceData;
-import com.jjg.game.alliance.service.AllianceCacheService;
 import com.jjg.game.alliance.service.AllianceEventService;
 import com.jjg.game.common.cluster.ClusterSystem;
 import com.jjg.game.common.curator.MarsNode;
@@ -46,7 +44,6 @@ import com.jjg.game.sim.pb.struct.VisitCasinoInfo;
 import com.jjg.game.sim.pb.struct.VisitCommentInfo;
 import com.jjg.game.sim.pb.struct.VisitGameInfo;
 import com.jjg.game.sim.pb.struct.VisitRecordInfo;
-import com.jjg.game.social.dao.FriendDao;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -58,11 +55,9 @@ import java.util.Collection;
 import java.util.Comparator;
 import java.util.HashMap;
 import java.util.HashSet;
-import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
-import java.util.concurrent.ThreadLocalRandom;
 
 /**
  * 玩家拜访业务编排。
@@ -73,7 +68,7 @@ import java.util.concurrent.ThreadLocalRandom;
 @Service
 public class SimVisitService implements IRedDotService {
     private static final Logger log = LoggerFactory.getLogger(SimVisitService.class);
-    private static final int RANDOM_CANDIDATE_LIMIT = 40;
+    private static final int RANDOM_SAMPLE_SIZE = 3;
     private static final long RANDOM_VISIT_MIN_INTERVAL_MILLIS = 1000;
 
     @Autowired
@@ -98,10 +93,6 @@ public class SimVisitService implements IRedDotService {
     private SimConfigCacheService configCacheService;
     @Autowired
     private SimCasinoService simCasinoService;
-    @Autowired
-    private FriendDao friendDao;
-    @Autowired
-    private AllianceCacheService allianceCacheService;
     @Autowired
     private SnowflakeManager snowflakeManager;
     @Autowired
@@ -163,7 +154,7 @@ public class SimVisitService implements IRedDotService {
     }
 
     public ResVisitCasino randomVisit(SimPlayerContext ctx, long lastPlayerId) {
-        //切换按钮客户端无冷却, 服务端兜底限频, 避免连点放大候选查询链路 (玩家线程串行, 直接用 ctx 字段)
+        //切换按钮客户端无冷却, 服务端兜底限频, 避免连点放大随机拜访读链路 (玩家线程串行, 直接用 ctx 字段)
         long now = System.currentTimeMillis();
         if (now - ctx.getLastRandomVisitTime() < RANDOM_VISIT_MIN_INTERVAL_MILLIS) {
             return visitFailure(Code.FORBID);
@@ -174,54 +165,14 @@ public class SimVisitService implements IRedDotService {
         if (lastPlayerId > 0) {
             excludes.add(lastPlayerId);
         }
-        Set<Long> friends = friendDao.getFriendIds(ctx.playerId());
-        Set<Long> allianceMembers = allianceMembers(ctx.playerId());
-        LinkedHashSet<Long> ids = new LinkedHashSet<>();
-        addLimited(ids, friends, 20, excludes);
-        addLimited(ids, allianceMembers, 20, excludes);
-
-        long maxPlayerId = simPlayerGameDao.findVisitMaxPlayerId();
-        long cursor = maxPlayerId <= 1 ? 0 : ThreadLocalRandom.current().nextLong(maxPlayerId);
-        ids.addAll(simPlayerGameDao.findVisitCandidateIds(cursor, RANDOM_CANDIDATE_LIMIT, excludes));
-        if (ids.size() < RANDOM_CANDIDATE_LIMIT) {
-            ids.addAll(simPlayerGameDao.findVisitCandidateIds(0, RANDOM_CANDIDATE_LIMIT - ids.size(), excludes));
-        }
-        ids.removeAll(excludes);
-        if (ids.isEmpty()) {
-            return visitFailure(Code.NOT_FOUND);
-        }
-
-        Map<Long, SimBaseData> bases = new HashMap<>();
-        for (SimBaseData data : simPlayerGameDao.findVisitBriefs(ids)) {
-            bases.put(data.getPlayerId(), data);
-        }
-        Map<Long, Long> popularity = new HashMap<>();
-        for (SimVisitProfileData data : visitDao.findAllByPlayerIds(ids)) {
-            popularity.put(data.getPlayerId(), data.getTotalPopularity());
-        }
-        Map<Long, List<SimCasinoData>> casinos = new HashMap<>();
-        for (SimCasinoData casino : simCasinoDao.findVisitBriefs(ids)) {
-            casinos.computeIfAbsent(casino.getPlayerId(), ignored -> new ArrayList<>()).add(casino);
-        }
-        Set<Long> visited = quotaService.visitedTargets(ctx.playerId());
-        SimVisitProfileData selfProfile = visitDao.findBrief(ctx.playerId());
-        long selfPopularity = selfProfile == null ? 0 : selfProfile.getTotalPopularity();
-        int selfLevel = ctx.getSimBaseData() == null ? 0 : ctx.getSimBaseData().getAllLevel();
-
-        List<Long> ordered = ids.stream().filter(casinos::containsKey)
-                .sorted(Comparator
-                        .comparingInt((Long id) -> candidateTier(id, friends, allianceMembers, visited,
-                                popularity.getOrDefault(id, 0L), selfPopularity,
-                                bases.get(id), selfLevel))
-                        .thenComparingLong(id -> similarityDistance(popularity.getOrDefault(id, 0L), selfPopularity,
-                                bases.get(id), selfLevel)))
-                .toList();
-        for (Long id : ordered) {
-            List<SimCasinoData> owned = casinos.get(id);
-            SimCasinoData casino = owned.get(ThreadLocalRandom.current().nextInt(owned.size()));
-            ResVisitCasino result = visit(ctx, id, casino.getCasinoId());
+        for (SimBaseData candidate : simPlayerGameDao.findRandomVisitCandidates(RANDOM_SAMPLE_SIZE)) {
+            long playerId = candidate.getPlayerId();
+            if (excludes.contains(playerId) || candidate.getCurrentCasinoId() <= 0) {
+                continue;
+            }
+            ResVisitCasino result = visit(ctx, playerId, candidate.getCurrentCasinoId());
             if (result.code == Code.SUCCESS) {
-                log.info("玩家拜访 playerId={},targetPlayerId={}", ctx.playerId(), id);
+                log.info("玩家拜访 playerId={},targetPlayerId={}", ctx.playerId(), playerId);
                 return result;
             }
             if (result.code == Code.EXCEPTION) {
@@ -784,56 +735,6 @@ public class SimVisitService implements IRedDotService {
 
     private ResVisitCasino visitFailure(int code) {
         return new ResVisitCasino(code);
-    }
-
-    private Set<Long> allianceMembers(long playerId) {
-        long allianceId = allianceCacheService.getAllianceId(playerId);
-        AllianceData alliance = allianceCacheService.getAlliance(allianceId);
-        if (alliance == null || alliance.getMembers() == null) {
-            return Set.of();
-        }
-        return alliance.getMembers().keySet();
-    }
-
-    private void addLimited(Set<Long> target, Collection<Long> source, int limit, Set<Long> excludes) {
-        if (source == null || source.isEmpty()) {
-            return;
-        }
-        int count = 0;
-        for (Long id : source) {
-            if (id == null || excludes.contains(id)) {
-                continue;
-            }
-            target.add(id);
-            if (++count >= limit) {
-                return;
-            }
-        }
-    }
-
-    private int candidateTier(long playerId, Set<Long> friends, Set<Long> allianceMembers,
-                              Set<Long> visited, long popularity, long selfPopularity,
-                              SimBaseData base, int selfLevel) {
-        boolean unvisited = !visited.contains(playerId);
-        if (unvisited && friends.contains(playerId)) {
-            return 0;
-        }
-        if (unvisited && allianceMembers.contains(playerId)) {
-            return 1;
-        }
-        if (unvisited && Math.abs(popularity - selfPopularity) <= Math.max(20, selfPopularity / 5)) {
-            return 2;
-        }
-        if (unvisited && base != null && Math.abs(base.getAllLevel() - selfLevel) <= 5) {
-            return 3;
-        }
-        return unvisited ? 4 : 5;
-    }
-
-    private long similarityDistance(long popularity, long selfPopularity, SimBaseData base, int selfLevel) {
-        long popularityDistance = Math.abs(popularity - selfPopularity);
-        long levelDistance = base == null ? 1_000_000 : Math.abs((long) base.getAllLevel() - selfLevel);
-        return popularityDistance + levelDistance * 1000;
     }
 
     static <T> List<T> page(List<T> source, int offset, int limit, int maxLimit) {

@@ -21,10 +21,17 @@ public class DropTypeCfg extends BaseCfgBean {
 
   /** 掉落方式 */
   protected List<Integer> DropType;
+  /** 允许执行的模式 */
+  protected List<Integer> ExecutionMode;
 
   /** 返回掉落方式 */
   public List<Integer> getDropType() {
     return DropType;
+  }
+
+  /** 返回允许执行的模式 */
+  public List<Integer> getExecutionMode() {
+    return ExecutionMode;
   }
 
   @Override

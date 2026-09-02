@@ -111,8 +111,13 @@ public class RobotUtil {
     }
 
     public RobotCfg getRobotCfg(long robotId) {
+        int robotCfgCount = GameDataManager.getRobotCfgList().size();
+        if (robotCfgCount == 0 || robotId < 1 || !isRobot(robotId)) {
+            return null;
+        }
         long robotStartId = getRobotStartId();
-        int configId = (int) (robotId - robotStartId) / GameConstant.ROBOT_ID_PRIME_NUMBER;
+        long rawConfigId = (robotId - robotStartId) / GameConstant.ROBOT_ID_PRIME_NUMBER;
+        int configId = (int) Math.floorMod(rawConfigId - 1, robotCfgCount) + 1;
         return GameDataManager.getRobotCfg(configId);
     }
 

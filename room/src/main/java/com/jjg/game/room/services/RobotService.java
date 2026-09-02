@@ -53,7 +53,6 @@ public class RobotService implements IRoomStartListener, ConfigExcelChangeListen
     @Override
     public void initSampleCallbackCollector() {
         addInitSampleFileObserveWithCallBack(RobotCfg.EXCEL_NAME, this::initRobotPool);
-        addChangeSampleFileObserveWithCallBack(RobotCfg.EXCEL_NAME, this::initRobotPool);
     }
 
     /**

@@ -10,12 +10,7 @@ import org.springframework.data.mongodb.core.query.Criteria;
 import org.springframework.data.mongodb.core.query.Query;
 import org.springframework.stereotype.Repository;
 
-import java.util.ArrayList;
-import java.util.Collection;
-import java.util.Collections;
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
+import java.util.*;
 
 /**
  * @author 11
@@ -95,20 +90,6 @@ public class SimCasinoDao extends MongoBaseDao<SimCasinoData, String> {
     }
 
     /**
-     * 玩家已拥有的场景 id 列表 (只取 casinoId 字段, 用于下发拥有列表)
-     */
-    public List<Integer> findCasinoIdsByPlayerId(long playerId) {
-        Query query = new Query(Criteria.where("playerId").is(playerId));
-        query.fields().include("casinoId");
-        List<SimCasinoData> list = mongoTemplate.find(query, SimCasinoData.class);
-        List<Integer> ids = new ArrayList<>(list.size());
-        for (SimCasinoData data : list) {
-            ids.add(data.getCasinoId());
-        }
-        return ids;
-    }
-
-    /**
      * 批量查询玩家最高赌场等级，排行榜展示使用，避免逐玩家查询。
      */
     public Map<Long, Integer> findMaxCasinoLevel(Collection<Long> playerIds) {
@@ -122,18 +103,6 @@ public class SimCasinoDao extends MongoBaseDao<SimCasinoData, String> {
             result.merge(data.getPlayerId(), data.getCasinoLevel(), Math::max);
         }
         return result;
-    }
-
-    /**
-     * 批量读取随机候选的赌场简要数据，不拉建筑/游客等大字段。
-     */
-    public List<SimCasinoData> findVisitBriefs(Collection<Long> playerIds) {
-        if (playerIds == null || playerIds.isEmpty()) {
-            return Collections.emptyList();
-        }
-        Query query = Query.query(Criteria.where("playerId").in(playerIds));
-        query.fields().include("playerId", "casinoId", "casinoLevel");
-        return mongoTemplate.find(query, SimCasinoData.class);
     }
 
     public void saveAll(Collection<SimCasinoData> simCasinoDataList) {

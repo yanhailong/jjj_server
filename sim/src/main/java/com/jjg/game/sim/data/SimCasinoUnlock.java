@@ -74,4 +74,11 @@ public class SimCasinoUnlock {
         Set<Integer> gameIds = this.unlockedGameMap.get(casinoId);
         return gameIds != null && gameIds.contains(gameId);
     }
+
+    public boolean hasUnlockCasino(int casinoId) {
+        if (this.unlockedGameMap == null) {
+            this.unlockedGameMap = new HashMap<>();
+        }
+        return this.unlockedGameMap.containsKey(casinoId);
+    }
 }
