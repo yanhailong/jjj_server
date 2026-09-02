@@ -944,7 +944,8 @@ public class HallService implements ConfigExcelChangeListener, TimerListener {
 
     @Override
     public void initSampleCallbackCollector() {
-        addInitSampleFileObserveWithCallBack(WarehouseCfg.EXCEL_NAME, this::initWareHouseConfigData);
+        addInitSampleFileObserveWithCallBack(WarehouseCfg.EXCEL_NAME, this::initWareHouseConfigData)
+                .addChangeSampleFileObserveWithCallBack(WarehouseCfg.EXCEL_NAME, this::initWareHouseConfigData);
         addInitSampleFileObserveWithCallBack(GlobalConfigCfg.EXCEL_NAME, this::initGlobalConfig);
         addChangeSampleFileObserveWithCallBack(UndergarmentCfg.EXCEL_NAME, this::sortWesteGameList);
     }
