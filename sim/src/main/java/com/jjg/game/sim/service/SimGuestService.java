@@ -2116,6 +2116,7 @@ public class SimGuestService implements SimPlayerTickListener, ItemListener, Sim
             details.add(redDotManager.buildRedDotDetails(getModule(), currentSubmodule,
                     getSpecialGuestRedDotCount(playerId, baseData, casino, currentSubmodule, today, now),
                     currentSubmodule == SimConstant.SpecialGuest.RED_DOT_INVITE_ITEM
+                            || currentSubmodule == SimConstant.SpecialGuest.RED_DOT_DAILY_ENTRY
                             ? RedDotDetails.RedDotType.COUNT : RedDotDetails.RedDotType.COMMON));
         }
         return details;
