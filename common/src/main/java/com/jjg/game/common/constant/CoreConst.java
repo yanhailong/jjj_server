@@ -167,6 +167,8 @@ public class CoreConst {
         public static final int HILLO = 400500;
         //高低扑克
         public static final int HIGH_LOW_POKER = 400700;
+        //矿洞大冒险
+        public static final int MINING = 400800;
 
     }
 

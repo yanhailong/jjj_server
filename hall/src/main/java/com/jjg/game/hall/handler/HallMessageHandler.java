@@ -1285,6 +1285,18 @@ public class HallMessageHandler implements GmListener, ChooseWareListener, Choos
     public void onChooseWare(PlayerController playerController, ReqChooseWare req) {
         ResChooseWare res = new ResChooseWare(HallCode.SUCCESS);
         try {
+            if (req.gameType == CoreConst.GameType.MINING) {
+                if (!hallService.canJoinGame(req.gameType, req.enterType)) {
+                    res.code = Code.GAME_IS_MAINTAIN;
+                } else {
+                    res.code = hallRoomService.enterStandaloneGameNode(playerController, req.gameType, req.enterType);
+                }
+                log.info("玩家进入独立游戏，playerId = {},gameType={},code={}",
+                        playerController.playerId(), req.gameType, res.code);
+                playerController.send(res);
+                return;
+            }
+
             CommonResult<WareHouseConfigInfo> checkRes = checkBeforeJoinRoom(playerController, req.gameType, req.wareId, req.enterType);
             if (checkRes.code != Code.SUCCESS) {
                 res.code = checkRes.code;

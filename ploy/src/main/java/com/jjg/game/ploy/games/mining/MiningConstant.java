@@ -1,9 +1,11 @@
 package com.jjg.game.ploy.games.mining;
 
+import com.jjg.game.common.constant.CoreConst;
+
 import com.jjg.game.common.constant.MessageConst;
 
 public interface MiningConstant {
-    int GAME_ID = 400800;
+    int GAME_ID = CoreConst.GameType.MINING;
     int BASE = MessageConst.MessageTypeDef.MINIGAME << MessageConst.MessageCommon.RIGHT_MOVE;
     int REQ_INFO = BASE | 0x100;
     int REQ_ACTION = BASE | 0x101;
