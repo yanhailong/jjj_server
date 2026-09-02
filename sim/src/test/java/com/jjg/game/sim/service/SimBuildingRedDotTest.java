@@ -40,7 +40,7 @@ class SimBuildingRedDotTest {
         assertEquals(1, skillData.findSkilLevelByPropId(201).getLevel());
     }
 
-    @Test void buildingAndSkillAreDeduplicatedAndPackSnapshotIsCached() {
+    @Test void buildingAndSkillCountSeparatelyAndPackSnapshotIsCached() {
         SimBuildingRedDotService service = new SimBuildingRedDotService();
         SimPlayerContext ctx = new SimPlayerContext();
         PlayerController controller = mock(PlayerController.class); Player player = mock(Player.class);
@@ -64,7 +64,7 @@ class SimBuildingRedDotTest {
         try (var configs = mockStatic(GameDataManager.class)) {
             configs.when(() -> GameDataManager.getBuildingAreaTableCfg(101)).thenReturn(cfg);
             var dot = service.initialize(1, 1).getFirst();
-            assertEquals(1, dot.getCount());
+            assertEquals(2, dot.getCount());
             assertTrue(dot.getExtra().contains("buildingIds")); assertTrue(dot.getExtra().contains("201"));
             service.onTick(ctx, System.currentTimeMillis());
             verify(packs, times(1)).findSatisfiedItemRequirements(eq(player), anyList());
@@ -75,5 +75,57 @@ class SimBuildingRedDotTest {
         }
         verify(buildings, never()).onUpgradeBuilding(any(), anyInt());
         verify(skills, never()).onUpgradeSkill(any(), anyInt(), anyInt());
+    }
+
+    @Test void globalAndGameSpecificSkillUpgradesMergeIntoOneCount() {
+        SimBuildingRedDotService service = new SimBuildingRedDotService();
+        SimPlayerContext ctx = new SimPlayerContext();
+        PlayerController controller = mock(PlayerController.class);
+        Player player = mock(Player.class);
+        when(controller.playerId()).thenReturn(2L);
+        when(controller.getPlayer()).thenReturn(player);
+        ctx.setPlayerController(controller);
+        SimCasinoData casino = new SimCasinoData();
+        casino.setCasinoId(1);
+        casino.setBuildingData(Map.of(101, new BuildingData(), 102, new BuildingData()));
+        ctx.setCurrentCasino(casino);
+        SimSkillsData global = new SimSkillsData();
+        global.setGameType(0);
+        global.changeSkillLevel(201, 1);
+        SimSkillsData specific = new SimSkillsData();
+        specific.setGameType(10);
+        specific.changeSkillLevel(202, 1);
+        ctx.getSkillsDataMap().put(0, global);
+        ctx.getSkillsDataMap().put(10, specific);
+
+        SimPlayerContextRegistry contexts = mock(SimPlayerContextRegistry.class);
+        when(contexts.getContext(2L)).thenReturn(ctx);
+        SimBuildingService buildings = mock(SimBuildingService.class);
+        SimSkillService skills = mock(SimSkillService.class);
+        when(buildings.redDotUpgradeCost(ctx, 101)).thenReturn(null);
+        when(buildings.redDotUpgradeCost(ctx, 102)).thenReturn(null);
+        when(skills.redDotUpgradeCost(ctx, 0, 201)).thenReturn(Map.of(100, 1L));
+        when(skills.redDotUpgradeCost(ctx, 10, 202)).thenReturn(Map.of(100, 1L));
+        PlayerPackService packs = mock(PlayerPackService.class);
+        when(packs.findSatisfiedItemRequirements(eq(player), anyList())).thenReturn(Set.of(0, 1));
+        ReflectionTestUtils.setField(service, "contexts", contexts);
+        ReflectionTestUtils.setField(service, "buildings", buildings);
+        ReflectionTestUtils.setField(service, "skills", skills);
+        ReflectionTestUtils.setField(service, "packs", packs);
+        ReflectionTestUtils.setField(service, "manager", new RedDotManager(null, null, null));
+        BuildingAreaTableCfg globalCfg = mock(BuildingAreaTableCfg.class);
+        BuildingAreaTableCfg specificCfg = mock(BuildingAreaTableCfg.class);
+        when(globalCfg.getUnlockGameId()).thenReturn(0);
+        when(specificCfg.getUnlockGameId()).thenReturn(10);
+
+        try (var configs = mockStatic(GameDataManager.class)) {
+            configs.when(() -> GameDataManager.getBuildingAreaTableCfg(101)).thenReturn(globalCfg);
+            configs.when(() -> GameDataManager.getBuildingAreaTableCfg(102)).thenReturn(specificCfg);
+            var dot = service.initialize(2L, 1).getFirst();
+            assertEquals(1, dot.getCount());
+            assertTrue(dot.getExtra().contains("\"skillCount\":1"));
+            assertTrue(dot.getExtra().contains("201"));
+            assertTrue(dot.getExtra().contains("202"));
+        }
     }
 }

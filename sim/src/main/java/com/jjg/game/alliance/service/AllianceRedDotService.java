@@ -1,5 +1,6 @@
 package com.jjg.game.alliance.service;
 
+import com.alibaba.fastjson.JSON;
 import com.jjg.game.alliance.constant.AllianceConst;
 import com.jjg.game.alliance.dao.AllianceDao;
 import com.jjg.game.alliance.dao.AlliancePlayerDao;
@@ -25,7 +26,7 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
 
-/** 联盟免费捐献、待处理入盟申请及每日任务入口红点。 */
+/** 联盟总入口数字，以及免费捐献、待处理入盟申请、每日任务入口叶子红点。 */
 @Service
 public class AllianceRedDotService implements IRedDotService, SimPlayerTickListener {
     private static final Logger log = LoggerFactory.getLogger(AllianceRedDotService.class);
@@ -33,7 +34,8 @@ public class AllianceRedDotService implements IRedDotService, SimPlayerTickListe
     private static final List<Integer> RED_DOT_SUBMODULES = List.of(
             AllianceConst.RedDot.FREE_DONATE,
             AllianceConst.RedDot.APPLICATION,
-            AllianceConst.RedDot.TASK_DAILY_ENTRY);
+            AllianceConst.RedDot.TASK_DAILY_ENTRY,
+            AllianceConst.RedDot.ENTRANCE_TOTAL);
 
     @Autowired
     private AlliancePlayerDao alliancePlayerDao;
@@ -72,26 +74,49 @@ public class AllianceRedDotService implements IRedDotService, SimPlayerTickListe
                 ? null : allianceDao.findRedDotData(playerData.getAllianceId());
         long now = System.currentTimeMillis();
         int today = TimeHelper.getDayNumerical();
+        boolean needsTotal = submodules.contains(AllianceConst.RedDot.ENTRANCE_TOTAL);
+        boolean freeDonation = (needsTotal || submodules.contains(AllianceConst.RedDot.FREE_DONATE))
+                && hasFreeDonation(playerData, alliance, today);
+        ApplicationSnapshot applicationSnapshot = needsTotal || submodules.contains(AllianceConst.RedDot.APPLICATION)
+                ? applicationSnapshot(alliance, playerId, now) : ApplicationSnapshot.EMPTY;
+        boolean taskReminder = (needsTotal || submodules.contains(AllianceConst.RedDot.TASK_DAILY_ENTRY))
+                && playerData != null && playerData.getAllianceId() > 0
+                && !redDotReadDao.viewedToday(playerId, TASK_DAILY_ENTRY_SCOPE)
+                && allianceTaskService.hasAvailableTask(playerId);
         List<RedDotDetails> details = new ArrayList<>(submodules.size());
         for (int currentSubmodule : submodules) {
             if (currentSubmodule == AllianceConst.RedDot.FREE_DONATE) {
-                details.add(buildDetails(currentSubmodule,
-                        hasFreeDonation(playerData, alliance, today) ? 1 : 0,
+                details.add(buildDetails(currentSubmodule, freeDonation ? 1 : 0,
                         RedDotDetails.RedDotType.COMMON));
-                updateDonateDay(playerId, today);
             } else if (currentSubmodule == AllianceConst.RedDot.APPLICATION) {
-                ApplicationSnapshot applicationSnapshot = applicationSnapshot(alliance, playerId, now);
                 details.add(buildDetails(currentSubmodule, applicationSnapshot.count(),
                         RedDotDetails.RedDotType.COUNT));
-                updateApplicationExpireTime(playerId, applicationSnapshot.nextExpireTime());
             } else if (currentSubmodule == AllianceConst.RedDot.TASK_DAILY_ENTRY) {
-                boolean show = playerData != null && playerData.getAllianceId() > 0
-                        && !redDotReadDao.viewedToday(playerId, TASK_DAILY_ENTRY_SCOPE)
-                        && allianceTaskService.hasAvailableTask(playerId);
-                details.add(buildDetails(currentSubmodule, show ? 1 : 0,
+                details.add(buildDetails(currentSubmodule, taskReminder ? 1 : 0,
                         RedDotDetails.RedDotType.COMMON));
-                updateTaskDay(playerId, today);
+            } else if (currentSubmodule == AllianceConst.RedDot.ENTRANCE_TOTAL) {
+                int freeDonationCount = freeDonation ? 1 : 0;
+                int taskCount = taskReminder ? 1 : 0;
+                int total = freeDonationCount + taskCount + applicationSnapshot.count();
+                RedDotDetails totalDetails = buildDetails(currentSubmodule, total, RedDotDetails.RedDotType.COUNT);
+                totalDetails.setExtra(JSON.toJSONString(Map.of(
+                        "freeDonationCount", freeDonationCount,
+                        "taskCount", taskCount,
+                        "applicationCount", applicationSnapshot.count())));
+                details.add(totalDetails);
             }
+        }
+        if (submodules.contains(AllianceConst.RedDot.FREE_DONATE)
+                || submodules.contains(AllianceConst.RedDot.ENTRANCE_TOTAL)) {
+            updateDonateDay(playerId, today);
+        }
+        if (submodules.contains(AllianceConst.RedDot.APPLICATION)
+                || submodules.contains(AllianceConst.RedDot.ENTRANCE_TOTAL)) {
+            updateApplicationExpireTime(playerId, applicationSnapshot.nextExpireTime());
+        }
+        if (submodules.contains(AllianceConst.RedDot.TASK_DAILY_ENTRY)
+                || submodules.contains(AllianceConst.RedDot.ENTRANCE_TOTAL)) {
+            updateTaskDay(playerId, today);
         }
         return details;
     }
@@ -103,6 +128,7 @@ public class AllianceRedDotService implements IRedDotService, SimPlayerTickListe
         }
         redDotReadDao.viewToday(playerId, TASK_DAILY_ENTRY_SCOPE);
         updateTaskDay(playerId, TimeHelper.getDayNumerical());
+        refresh(playerId, AllianceConst.RedDot.ENTRANCE_TOTAL);
         return true;
     }
 
@@ -129,9 +155,7 @@ public class AllianceRedDotService implements IRedDotService, SimPlayerTickListe
     }
 
     public void clearFreeDonation(long playerId) {
-        updateDonateDay(playerId, TimeHelper.getDayNumerical());
-        push(playerId, List.of(buildDetails(AllianceConst.RedDot.FREE_DONATE, 0,
-                RedDotDetails.RedDotType.COMMON)));
+        refresh(playerId, AllianceConst.RedDot.FREE_DONATE);
     }
 
     public void refreshAll(long playerId) {
@@ -148,7 +172,8 @@ public class AllianceRedDotService implements IRedDotService, SimPlayerTickListe
         push(playerId, List.of(
                 buildDetails(AllianceConst.RedDot.FREE_DONATE, 0, RedDotDetails.RedDotType.COMMON),
                 buildDetails(AllianceConst.RedDot.APPLICATION, 0, RedDotDetails.RedDotType.COUNT),
-                buildDetails(AllianceConst.RedDot.TASK_DAILY_ENTRY, 0, RedDotDetails.RedDotType.COMMON)));
+                buildDetails(AllianceConst.RedDot.TASK_DAILY_ENTRY, 0, RedDotDetails.RedDotType.COMMON),
+                buildDetails(AllianceConst.RedDot.ENTRANCE_TOTAL, 0, RedDotDetails.RedDotType.COUNT)));
     }
 
     public void refreshApplications(long playerId) {
@@ -162,10 +187,7 @@ public class AllianceRedDotService implements IRedDotService, SimPlayerTickListe
                 return;
             }
             long leaderId = alliance.getLeaderId();
-            ApplicationSnapshot snapshot = applicationSnapshot(alliance, leaderId, System.currentTimeMillis());
-            updateApplicationExpireTime(leaderId, snapshot.nextExpireTime());
-            redDotManager.updateRedDot(List.of(buildDetails(AllianceConst.RedDot.APPLICATION, snapshot.count(),
-                    RedDotDetails.RedDotType.COUNT)), leaderId);
+            refresh(leaderId, AllianceConst.RedDot.APPLICATION);
         } catch (Exception e) {
             log.error("刷新联盟申请红点异常 allianceId={}", allianceId, e);
         }
@@ -173,7 +195,10 @@ public class AllianceRedDotService implements IRedDotService, SimPlayerTickListe
 
     private void refresh(long playerId, int submodule) {
         try {
-            redDotManager.updateRedDotByInitialize(getModule(), submodule, playerId);
+            List<Integer> refreshSubmodules = submodule == AllianceConst.RedDot.ENTRANCE_TOTAL
+                    ? List.of(submodule)
+                    : List.of(submodule, AllianceConst.RedDot.ENTRANCE_TOTAL);
+            redDotManager.updateRedDotByInitialize(getModule(), refreshSubmodules, playerId);
         } catch (Exception e) {
             log.error("刷新联盟红点异常 playerId={},submodule={}", playerId, submodule, e);
         }
