@@ -15,9 +15,6 @@ import com.jjg.game.hall.minigame.constant.MinigameConstant;
 import com.jjg.game.hall.minigame.game.luckytreasure.message.req.*;
 import com.jjg.game.hall.minigame.game.luckytreasure.message.res.*;
 import com.jjg.game.hall.minigame.game.luckytreasure.service.LuckyTreasureService;
-import com.jjg.game.hall.minigame.game.mining.MiningConstant;
-import com.jjg.game.hall.minigame.game.mining.MiningService;
-import com.jjg.game.hall.minigame.game.mining.message.*;
 import com.jjg.game.hall.minigame.message.req.ReqMinigameList;
 import com.jjg.game.hall.minigame.message.res.ResMinigameList;
 import org.slf4j.Logger;
@@ -37,14 +34,12 @@ public class MinigameMessageHandler {
     private final MinigameManager minigameManager;
     private final LuckyTreasureService luckyTreasureService;
     private final GameFunctionService gameFunctionService;
-    private final MiningService miningService;
 
     public MinigameMessageHandler(MinigameManager minigameManager, LuckyTreasureService luckyTreasureService,
-                                  GameFunctionService gameFunctionService, MiningService miningService) {
+                                  GameFunctionService gameFunctionService) {
         this.minigameManager = minigameManager;
         this.luckyTreasureService = luckyTreasureService;
         this.gameFunctionService = gameFunctionService;
-        this.miningService = miningService;
     }
 
     /**
@@ -132,41 +127,5 @@ public class MinigameMessageHandler {
         log.debug("请求查看夺宝奇兵所有的开奖历史记录 res = {}", JSON.toJSONString(response));
         playerController.send(response);
     }
-
-    @Command(MiningConstant.REQ_INFO)
-    public void miningInfo(PlayerController playerController, ReqMiningInfo msg) {
-        playerController.send(miningService.info(playerController.getPlayer()));
-    }
-
-    @Command(MiningConstant.REQ_ACTION)
-    public void miningAction(PlayerController playerController, ReqMiningAction msg) {
-        playerController.send(miningService.action(playerController.getPlayer(), msg));
-    }
-
-    @Command(MiningConstant.REQ_RANK)
-    public void miningRank(PlayerController playerController, ReqMiningRank msg) {
-        playerController.send(miningService.rank(playerController.getPlayer()));
-    }
-
-    @Command(MiningConstant.REQ_EXCHANGE_SHOP)
-    public void miningExchangeShop(PlayerController playerController, ReqMiningExchangeShop msg) {
-        playerController.send(miningService.exchangeShop(playerController.getPlayer()));
-    }
-
-    @Command(MiningConstant.REQ_BUNDLE_SHOP)
-    public void miningBundleShop(PlayerController playerController, ReqMiningBundleShop msg) {
-        playerController.send(miningService.bundleShop(playerController.getPlayer()));
-    }
-
-    @Command(MiningConstant.REQ_ACHIEVEMENTS)
-    public void miningAchievements(PlayerController playerController, ReqMiningAchievements msg) {
-        playerController.send(miningService.achievements(playerController.getPlayer()));
-    }
-
-    @Command(MiningConstant.REQ_DAILY_TASKS)
-    public void miningDailyTasks(PlayerController playerController, ReqMiningDailyTasks msg) {
-        playerController.send(miningService.dailyTasks(playerController.getPlayer()));
-    }
-
 
 }
