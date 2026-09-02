@@ -48,6 +48,8 @@ public class SimEmployeeRedDotService implements IRedDotService, ItemAddListener
         SimPlayerTickListener {
     public static final int NEW_EMPLOYEE = 4;
     public static final int NEW_BOND = 5;
+    private static final String GUEST_POOL_IDS = "guestPoolIds";
+    private static final String EMPLOYEE_POOL_IDS = "employeePoolIds";
     private static final Logger log = LoggerFactory.getLogger(SimEmployeeRedDotService.class);
     private static final List<Integer> RED_DOT_SUBMODULES = List.of(
             SimConstant.Employee.RED_DOT_RECRUIT_POOL,
@@ -126,8 +128,20 @@ public class SimEmployeeRedDotService implements IRedDotService, ItemAddListener
                 actions.computeIfAbsent(requirement.action(), key -> new java.util.TreeSet<>()).add(requirement.id());
             }
             RedDotDetails dot = redDotManager.buildRedDotDetails(getModule(), currentSubmodule, ids.size(), RedDotDetails.RedDotType.COUNT);
-            actions.put("ids", ids);
-            dot.setExtra(com.alibaba.fastjson.JSON.toJSONString(actions));
+            Map<String, Object> extra = new java.util.TreeMap<>();
+            extra.putAll(actions);
+            extra.put("ids", ids);
+            if (currentSubmodule == SimConstant.Employee.RED_DOT_RECRUIT_POOL) {
+                Set<Integer> guestPoolIds = actions.getOrDefault(GUEST_POOL_IDS, Set.of());
+                Set<Integer> employeePoolIds = actions.getOrDefault(EMPLOYEE_POOL_IDS, Set.of());
+                //保留旧字段兼容总入口；新增分组字段供游客/雇员页签分别显示。
+                extra.put("poolIds", ids);
+                extra.put(GUEST_POOL_IDS, guestPoolIds);
+                extra.put(EMPLOYEE_POOL_IDS, employeePoolIds);
+                extra.put("guestPoolCount", guestPoolIds.size());
+                extra.put("employeePoolCount", employeePoolIds.size());
+            }
+            dot.setExtra(com.alibaba.fastjson.JSON.toJSONString(extra));
             details.add(dot);
         }
         if (ctx != null && includesPool) {
@@ -280,13 +294,15 @@ public class SimEmployeeRedDotService implements IRedDotService, ItemAddListener
     }
 
     private void addOpenPoolRequirements(List<Requirement> requirements, int poolType) {
+        String action = poolType == SimConstant.PoolList.TYPE_GUEST ? GUEST_POOL_IDS : EMPLOYEE_POOL_IDS;
         for (RecruitPoolInfo poolInfo : configCache.getOpenPoolIds(poolType)) {
             PoolListCfg poolCfg = configCache.getOpenPoolCfg(poolInfo.id, poolType);
             boolean validDrop = poolCfg != null && (poolType == SimConstant.PoolList.TYPE_GUEST
                     ? configCache.getPoolRand(poolCfg.getDropItem()) != null
                     : configCache.getEmployeePoolRand(poolCfg.getDropItem()) != null);
             if (validDrop && poolCfg.getDrawCost() != null && !poolCfg.getDrawCost().isEmpty()) {
-                requirements.add(new Requirement(poolInfo.id, "poolIds", Collections.unmodifiableMap(new HashMap<>(poolCfg.getDrawCost()))));
+                requirements.add(new Requirement(poolInfo.id, action,
+                        Collections.unmodifiableMap(new HashMap<>(poolCfg.getDrawCost()))));
             }
         }
     }

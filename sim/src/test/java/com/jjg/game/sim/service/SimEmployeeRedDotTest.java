@@ -5,10 +5,13 @@ import com.jjg.game.core.data.Player;
 import com.jjg.game.core.manager.RedDotManager;
 import com.jjg.game.core.service.CorePlayerService;
 import com.jjg.game.core.service.PlayerPackService;
+import com.jjg.game.common.utils.WeightRandom;
 import com.jjg.game.sampledata.GameDataManager;
 import com.jjg.game.sampledata.bean.*;
+import com.jjg.game.sim.constant.SimConstant;
 import com.jjg.game.sim.data.*;
 import com.jjg.game.sim.manager.SimPlayerContextRegistry;
+import com.jjg.game.sim.pb.struct.RecruitPoolInfo;
 import org.junit.jupiter.api.Test;
 import org.springframework.test.util.ReflectionTestUtils;
 import java.util.*;
@@ -16,6 +19,46 @@ import static org.junit.jupiter.api.Assertions.*;
 import static org.mockito.Mockito.*;
 
 class SimEmployeeRedDotTest {
+    @Test void recruitPoolsExposeGuestAndEmployeeTabCountsSeparately() {
+        SimEmployeeRedDotService service = new SimEmployeeRedDotService();
+        SimPlayerContextRegistry contexts = mock(SimPlayerContextRegistry.class);
+        Player player = mock(Player.class);
+        CorePlayerService players = mock(CorePlayerService.class);
+        when(players.get(1L)).thenReturn(player);
+        PlayerPackService packs = mock(PlayerPackService.class);
+        when(packs.findSatisfiedItemRequirements(eq(player), anyList())).thenReturn(Set.of(0, 1));
+        SimConfigCacheService configs = mock(SimConfigCacheService.class);
+        RecruitPoolInfo guest = new RecruitPoolInfo();
+        guest.id = 11;
+        RecruitPoolInfo employee = new RecruitPoolInfo();
+        employee.id = 12;
+        when(configs.getOpenPoolIds(SimConstant.PoolList.TYPE_GUEST)).thenReturn(List.of(guest));
+        when(configs.getOpenPoolIds(SimConstant.PoolList.TYPE_EMPLOYEE)).thenReturn(List.of(employee));
+        PoolListCfg guestCfg = mock(PoolListCfg.class);
+        PoolListCfg employeeCfg = mock(PoolListCfg.class);
+        when(guestCfg.getDropItem()).thenReturn(101);
+        when(employeeCfg.getDropItem()).thenReturn(102);
+        when(guestCfg.getDrawCost()).thenReturn(Map.of(9001, 1L));
+        when(employeeCfg.getDrawCost()).thenReturn(Map.of(9002, 1L));
+        when(configs.getOpenPoolCfg(11, SimConstant.PoolList.TYPE_GUEST)).thenReturn(guestCfg);
+        when(configs.getOpenPoolCfg(12, SimConstant.PoolList.TYPE_EMPLOYEE)).thenReturn(employeeCfg);
+        when(configs.getPoolRand(101)).thenReturn(mock(WeightRandom.class));
+        when(configs.getEmployeePoolRand(102)).thenReturn(mock(WeightRandom.class));
+        ReflectionTestUtils.setField(service, "contextRegistry", contexts);
+        ReflectionTestUtils.setField(service, "configCache", configs);
+        ReflectionTestUtils.setField(service, "corePlayerService", players);
+        ReflectionTestUtils.setField(service, "playerPackService", packs);
+        ReflectionTestUtils.setField(service, "redDotManager", new RedDotManager(null, null, null));
+
+        var dot = service.initialize(1L, SimConstant.Employee.RED_DOT_RECRUIT_POOL).getFirst();
+        assertEquals(2, dot.getCount());
+        assertTrue(dot.getExtra().contains("\"guestPoolIds\":[11]"));
+        assertTrue(dot.getExtra().contains("\"guestPoolCount\":1"));
+        assertTrue(dot.getExtra().contains("\"employeePoolIds\":[12]"));
+        assertTrue(dot.getExtra().contains("\"employeePoolCount\":1"));
+        assertTrue(dot.getExtra().contains("\"poolIds\":[11,12]"));
+    }
+
     @Test void upgradeAndStarOnSameEmployeeOnlyCountOnce() {
         SimEmployeeRedDotService service = new SimEmployeeRedDotService();
         SimPlayerContextRegistry contexts = mock(SimPlayerContextRegistry.class);
