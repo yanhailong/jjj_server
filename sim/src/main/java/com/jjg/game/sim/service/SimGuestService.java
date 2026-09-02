@@ -328,8 +328,8 @@ public class SimGuestService implements SimPlayerTickListener, ItemListener, Sim
 
             //本次交互次数 (有奖励 + 无奖励)
             VisitorStarCfg starCfg = rewardService.getStarCfg(guestId, guest.getStar());
-            int rewardedCount = computeInteractionCount(visitorQuestCfg.getServiceCapacity(), casinoCfg.getProsperity(), starCfg);
-            int unrewardedCount = computeInteractionCount(visitorQuestCfg.getBaseServiceCapacity(), casinoCfg.getProsperity(), starCfg);
+            int rewardedCount = computeInteractionCount(ctx, visitorQuestCfg.getServiceCapacity(), casinoCfg.getProsperity(), starCfg);
+            int unrewardedCount = computeInteractionCount(ctx, visitorQuestCfg.getBaseServiceCapacity(), casinoCfg.getProsperity(), starCfg);
             if (rewardedCount + unrewardedCount <= 0) {
                 log.info("生成购买游客但交互次数为 0, 跳过 playerId={},guestId={}", ctx.playerId(), guestId);
                 continue;
@@ -509,8 +509,8 @@ public class SimGuestService implements SimPlayerTickListener, ItemListener, Sim
 
         //本次交互次数 (有奖励 + 无奖励)
         VisitorStarCfg starCfg = rewardService.getStarCfg(guest.getId(), guest.getStar());
-        int rewardedCount = computeInteractionCount(visitorQuestCfg.getServiceCapacity(), casinoCfg.getProsperity(), starCfg);
-        int unrewardedCount = computeInteractionCount(visitorQuestCfg.getBaseServiceCapacity(), casinoCfg.getProsperity(), starCfg);
+        int rewardedCount = computeInteractionCount(ctx, visitorQuestCfg.getServiceCapacity(), casinoCfg.getProsperity(), starCfg);
+        int unrewardedCount = computeInteractionCount(ctx, visitorQuestCfg.getBaseServiceCapacity(), casinoCfg.getProsperity(), starCfg);
         if (rewardedCount + unrewardedCount <= 0) {
             ctx.getCurrentCasino().setLastGenerateTime(now);
 //            log.info("生成游客但交互次数为 0, 跳过 playerId={},guestId={}", ctx.playerId(), visitorQuestCfg.getId());
@@ -602,7 +602,7 @@ public class SimGuestService implements SimPlayerTickListener, ItemListener, Sim
      * 1) 服务能力先按 VisitorStarCfg.Additioncoefficient (百分比) 加成
      * 2) floor(serviceCapacity / Prosperity) + 小数部分概率触发 +1
      */
-    private int computeInteractionCount(int serviceCapacity, int prosperity, VisitorStarCfg starCfg) {
+    private int computeInteractionCount(SimPlayerContext ctx, int serviceCapacity, int prosperity, VisitorStarCfg starCfg) {
         if (serviceCapacity <= 0 || prosperity <= 0) {
             return 0;
         }
@@ -611,6 +611,16 @@ public class SimGuestService implements SimPlayerTickListener, ItemListener, Sim
             coefficient = starCfg.getAdditioncoefficient();
         }
         double effective = (double) serviceCapacity * coefficient / SimConstant.Common.SERVICE_CAPACITY_COEFFICIENT_BASE;
+
+        //加上接待区的服务能力
+        BuildingData buildingData = ctx.getCurrentCasino().findBuilding(SimConstant.Building.ID_WELCOME_DEPART);
+        if (buildingData != null) {
+            BuildingUpgradeTableCfg buildingUpgradeTableCfg = configCache.getBuildingUpgradeCfg(buildingData.getId(), buildingData.getLevel());
+            if (buildingUpgradeTableCfg != null) {
+                effective += buildingUpgradeTableCfg.getUpgradeOutput();
+            }
+        }
+
         double ratio = effective / (double) prosperity;
         int floor = (int) Math.floor(ratio);
         double frac = ratio - floor;

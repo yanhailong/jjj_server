@@ -506,6 +506,8 @@ public interface SimConstant {
     }
 
     interface Building {
+        //接待区id
+        int ID_WELCOME_DEPART = 1301;
         //运营部id
         int ID_OPERATIONS_DEPART = 1303;
     }
