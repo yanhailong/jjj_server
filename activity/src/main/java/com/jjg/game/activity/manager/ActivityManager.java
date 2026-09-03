@@ -216,7 +216,7 @@ public class ActivityManager implements TimerListener<Long>, IPlayerLoginSuccess
             gameEventManager.registerEventListener(this);
         }
 
-        for(ActivityType activityType : ActivityType.values()){
+        for (ActivityType activityType : ActivityType.values()) {
             activityType.getController().init();
         }
     }
@@ -440,14 +440,17 @@ public class ActivityManager implements TimerListener<Long>, IPlayerLoginSuccess
         refreshOnlineRedDots(Set.of(data.getType().getType()));
     }
 
-    /** 活动开关/轮次变化后在各玩家线程重算；包括0，避免父入口残留旧数量。 */
+    /**
+     * 活动开关/轮次变化后在各玩家线程重算；包括0，避免父入口残留旧数量。
+     */
     private void refreshOnlineRedDots(Set<Integer> submodules) {
         for (PFSession session : clusterSystem.getAllOnlinePlayerPFSession()) {
             long playerId = session.playerId;
             if (playerId <= 0 || !(session.getReference() instanceof PlayerController)) continue;
             boolean published = PlayerExecutorGroupDisruptor.getDefaultExecutor().tryPublish(session.getWorkId(), 0,
                     new BaseHandler<String>() {
-                        @Override public void action() {
+                        @Override
+                        public void action() {
                             try {
                                 List<RedDotDetails> dots = new ArrayList<>();
                                 for (int submodule : submodules) dots.addAll(initialize(playerId, submodule));
@@ -615,7 +618,7 @@ public class ActivityManager implements TimerListener<Long>, IPlayerLoginSuccess
                 //同步一次活动状态
                 clusterSystem.sendToPlayer(res, playerId);
             }
-            log.debug("joinActivityResp = {}",JSON.toJSONString(res));
+            log.debug("joinActivityResp = {}", JSON.toJSONString(res));
         } catch (Exception e) {
             log.error("玩家参加活动失败 playerId:{} activityId:{} ", playerId, activityId, e);
         }
@@ -724,7 +727,7 @@ public class ActivityManager implements TimerListener<Long>, IPlayerLoginSuccess
                 //同步一次活动状态
                 clusterSystem.sendToPlayer(res, playerController.playerId());
             }
-            log.debug("res = {}",JSON.toJSONString(res));
+            log.debug("res = {}", JSON.toJSONString(res));
             return new CommonResult<>(Code.SUCCESS);
         }
 
@@ -1011,7 +1014,9 @@ public class ActivityManager implements TimerListener<Long>, IPlayerLoginSuccess
         return result;
     }
 
-    /** 展示通知失败只记日志，不能把已成功的领奖/进度操作变成异常。 */
+    /**
+     * 展示通知失败只记日志，不能把已成功的领奖/进度操作变成异常。
+     */
     public void refreshRedDots(long playerId, int submodule) {
         try {
             redDotManager.updateRedDot(initialize(playerId, submodule), playerId);

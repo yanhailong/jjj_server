@@ -750,12 +750,14 @@ public class GrandRouletteController extends BaseActivityController implements G
 
     @Override
     public void onActivityEnd(ActivityData activityData) {
+        super.onActivityEnd(activityData);
         playerActivityDao.clearActivityData(ActivityType.GRAND_ROULETTE, activityData.getId());
         grandRouletteDao.resetActivityData(activityData.getId(), PREFIX);
     }
 
     @Override
     public void onActivityStart(ActivityData activityData) {
+        super.onActivityStart(activityData);
         playerActivityDao.clearActivityData(ActivityType.GRAND_ROULETTE, activityData.getId());
         grandRouletteDao.resetActivityData(activityData.getId(), PREFIX);
     }

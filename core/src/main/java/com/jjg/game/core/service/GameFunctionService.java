@@ -60,6 +60,7 @@ public class GameFunctionService implements GameEventListener {
      * 游戏类型缓存功能配置
      */
     private Map<EGameEventType, List<GameFunctionCfg>> gameTypeOfFuncCache = Collections.emptyMap();
+    private Map<Integer, GameFunctionCfg> funcTypeCfgMap = Collections.emptyMap();
 
     /**
      * 获取开放的功能ID列表
@@ -242,6 +243,8 @@ public class GameFunctionService implements GameEventListener {
 
     private void loadConfig() {
         Map<EGameEventType, List<GameFunctionCfg>> tmpGameTypeOfFuncCache = new HashMap<>();
+        Map<Integer, GameFunctionCfg> tmpFuncTypeCfgMap = new HashMap<>();
+
         List<GameFunctionCfg> functionCfg = GameDataManager.getGameFunctionCfgList();
         for (GameFunctionCfg gameFunctionCfg : functionCfg) {
             if (!gameFunctionCfg.getIsOpen()) {
@@ -249,8 +252,13 @@ public class GameFunctionService implements GameEventListener {
             }
             ConditionNode node = conditionParser.parse(gameFunctionCfg.getShowCondition());
             analysisCondition(gameFunctionCfg, node, tmpGameTypeOfFuncCache);
+
+            if (gameFunctionCfg.getFunctionType() > 0) {
+                tmpFuncTypeCfgMap.put(gameFunctionCfg.getFunctionType(), gameFunctionCfg);
+            }
         }
         this.gameTypeOfFuncCache = tmpGameTypeOfFuncCache;
+        this.funcTypeCfgMap = tmpFuncTypeCfgMap;
     }
 
     private void analysisCondition(GameFunctionCfg gameFunctionCfg, ConditionNode node, Map<EGameEventType, List<GameFunctionCfg>> tmpGameTypeOfFuncCache) {
@@ -271,5 +279,9 @@ public class GameFunctionService implements GameEventListener {
             default -> {
             }
         }
+    }
+
+    public GameFunctionCfg getGameFunctionCfgByType(int funcType) {
+        return this.funcTypeCfgMap.get(funcType);
     }
 }

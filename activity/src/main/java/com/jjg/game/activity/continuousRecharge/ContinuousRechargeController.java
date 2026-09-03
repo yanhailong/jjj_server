@@ -1394,6 +1394,7 @@ public class ContinuousRechargeController extends BaseActivityController impleme
 
     @Override
     public void onActivityEnd(ActivityData activityData) {
+        super.onActivityEnd(activityData);
         playerActivityDao.clearActivityData(ActivityType.CONTINUOUS_RECHARGE, activityData.getId());
         log.info("执行批量删除连充活动的数据 activityId = {}", activityData.getId());
     }

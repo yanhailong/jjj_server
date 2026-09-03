@@ -1,6 +1,7 @@
 package com.jjg.game.common.cluster;
 
 import com.jjg.game.common.constant.MessageConst;
+import com.jjg.game.common.curator.NodeType;
 import com.jjg.game.common.gate.GateSession;
 import com.jjg.game.common.listener.*;
 import com.jjg.game.common.message.*;
@@ -185,6 +186,10 @@ public class ClusterMessageHandler {
      */
     @Command(MessageConst.SessionConst.BROADCAST_MSG)
     public void broadcast(BroadCastMessage broadCastMessage) {
+        if (NodeType.HALL.toString().equals(clusterSystem.nodeConfig.getType())) {
+            clusterSystem.broadcastToOnlinePlayer(broadCastMessage.msg);
+            return;
+        }
         // TODO GateSession过多时应批量分段分时进行广播，否则容易在同一时段拉满宽带阻塞其他正常逻辑的响应
         GateSession.getGateSessionMap().forEach((k, v) -> {
             //广播给已经认证的用户

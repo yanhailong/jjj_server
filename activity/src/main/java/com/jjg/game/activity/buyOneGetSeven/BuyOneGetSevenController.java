@@ -313,11 +313,13 @@ public class BuyOneGetSevenController extends BaseActivityController
 
     @Override
     public void onActivityStart(ActivityData activityData) {
+        super.onActivityStart(activityData);
         playerActivityDao.clearActivityData(ActivityType.BUY_ONE_GET_SEVEN, activityData.getId());
     }
 
     @Override
     public void onActivityEnd(ActivityData activityData) {
+        super.onActivityEnd(activityData);
         playerActivityDao.clearActivityData(ActivityType.BUY_ONE_GET_SEVEN, activityData.getId());
         scheduledRedDotRefresh.keySet().removeIf(key -> key.activityId() == activityData.getId());
     }
