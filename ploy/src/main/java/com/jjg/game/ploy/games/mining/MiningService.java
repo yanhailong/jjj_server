@@ -478,7 +478,7 @@ public class MiningService implements OrderGenerate, StandalonePloyGame {
     static MiningCellInfo cellInfo(MiningState.Cell c, MiningState state, MiningEngine engine) {
         MiningCellInfo info = new MiningCellInfo(); info.row = c.row; info.column = c.column; info.typeId = c.type;
         info.hp = c.hp; info.secretId = c.secretId;
-        info.connected = c.hp > 0 && !engine.isWallCell(c.type) && engine.connected(state, c.row, c.column);
+        info.connected = c.hp > 0 && engine.connected(state, c.row, c.column);
         return info;
     }
 

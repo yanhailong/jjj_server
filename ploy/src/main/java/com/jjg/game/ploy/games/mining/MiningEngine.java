@@ -144,7 +144,6 @@ public class MiningEngine {
         throw new IllegalStateException("Unreachable weight selection");
     }
 
-    boolean isWallCell(int typeId) { return catalog.isWallCell(typeId); }
     Set<Integer> toolItemIds() { return catalog.toolItemIds(); }
     Set<Integer> resourceItemIds() { return catalog.resourceItemIds(); }
     public static void merge(Map<Integer, Long> into, Map<Integer, Long> values) {
