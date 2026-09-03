@@ -433,7 +433,7 @@ public class SimTaskService implements IRedDotService, GameFunctionListener {
     // =====================================================================
 
     /**
-     * 本节点直接触发的旋转事件沿用完成/续接才推送、纯进度静默的行为。
+     * 本节点直接触发的旋转事件通过通用入口推送进度/状态变化。
      */
     public void onSpin(SimPlayerContext ctx, int gameType, SpinStatInfo statInfo) {
         try {
@@ -458,7 +458,7 @@ public class SimTaskService implements IRedDotService, GameFunctionListener {
      */
     public void onConditionEvent(SimPlayerContext ctx, ConditionEvent event) {
         List<Task> changed = new ArrayList<>();
-        if (tryAdvanceConditionEvent(ctx, event, changed, true, false)) {
+        if (tryAdvanceConditionEvent(ctx, event, changed, true, true)) {
             notifyChanged(ctx, changed);
         }
     }
