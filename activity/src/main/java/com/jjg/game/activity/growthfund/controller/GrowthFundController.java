@@ -74,7 +74,10 @@ public class GrowthFundController extends BaseActivityController implements Orde
         Map<Integer, Long> rewards = getBuyGetRewards(activityData);
 
         //获取场景总等级
-        int level = simPlayerContextListeners.stream().findFirst().get().allLevel(player);
+        int level = 0;
+        if (simPlayerContextListeners != null) {
+            level = simPlayerContextListeners.stream().findFirst().get().allLevel(player);
+        }
 
         //获取配置信息
         Map<Integer, GrowthFundCfg> baseCfgBeanMap = getDetailCfgBean(activityData);
