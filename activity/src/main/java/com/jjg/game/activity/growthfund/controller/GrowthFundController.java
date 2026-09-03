@@ -49,7 +49,7 @@ public class GrowthFundController extends BaseActivityController implements Orde
 
     private final Logger log = LoggerFactory.getLogger(GrowthFundController.class);
 
-    @Autowired
+    @Autowired(required = false)
     private List<SimPlayerContextListener> simPlayerContextListeners;
 
     /**
