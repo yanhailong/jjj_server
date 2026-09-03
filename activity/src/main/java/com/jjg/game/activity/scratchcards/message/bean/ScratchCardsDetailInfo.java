@@ -24,5 +24,8 @@ public class ScratchCardsDetailInfo extends BaseActivityDetailInfo {
     public String productId;
     @ProtoDesc("消耗道具列表")
     public List<ItemInfo> costItems;
-
+    @ProtoDesc("每日限购次数，0表示不可购买")
+    public int countLimit;
+    @ProtoDesc("今日已经购买的次数")
+    public int buyCount;
 }
