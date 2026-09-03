@@ -53,6 +53,15 @@ class MiningEngineTest {
         assertEquals(4, state.total.grids); assertEquals(9000, MiningFixtures.cell(state, 3, 1).hp);
     }
 
+    @Test void connectedOnlyDescribesReachabilityAndIncludesGranite() {
+        MiningEngine engine = new MiningEngine();
+        MiningState state = MiningFixtures.flat(9000, 1011);
+        MiningFixtures.cell(state, 1, 1).hp = 0;
+
+        assertTrue(MiningService.cellInfo(MiningFixtures.cell(state, 2, 1), state, engine).connected);
+        assertFalse(MiningService.cellInfo(MiningFixtures.cell(state, 2, 2), state, engine).connected);
+    }
+
     @Test void diggingBottomScrollsOnceRejectsOldCoordinatesAndNeverHitsPreGeneratedRows() {
         MiningEngine engine = new MiningEngine();
         MiningState state = MiningFixtures.flat(1, 1001);
