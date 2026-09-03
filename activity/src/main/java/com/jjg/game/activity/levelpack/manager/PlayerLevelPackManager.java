@@ -144,7 +144,7 @@ public class PlayerLevelPackManager implements GameEventListener, OrderGenerate,
         if (change) {
             NotifyPlayerLevelPackDetailInfo info = buildNotifyPlayerLevelPackDetailInfo(player, playerLevelPackData);
             clusterSystem.sendToPlayer(info, playerId);
-            updateRedDot(player.getId(), false);
+            updateRedDot(player.getId());
         }
     }
 
@@ -232,7 +232,7 @@ public class PlayerLevelPackManager implements GameEventListener, OrderGenerate,
             res.itemInfos = ItemUtils.buildItemInfo(packCfg.getLevelRewards());
             activityLogger.sendLevelPackClaimLog(playerController.getPlayer(), added.data, packCfg);
             // 当前礼包已经领取，立即重算红点；若没有其他可购买/可领取礼包则通知前端清除。
-            updateRedDot(playerId, true);
+            updateRedDot(playerId);
         }
         return res;
     }
@@ -306,7 +306,7 @@ public class PlayerLevelPackManager implements GameEventListener, OrderGenerate,
             activityLogger.sendLevelPackClaimLog(player, added.data, playerLevelPackCfg);
             activityLogger.sendLevelPackBuyLog(player, playerLevelPackCfg);
             // 购买完成后礼包状态已经变为已领取，立即刷新等级礼包红点。
-            updateRedDot(playerId, true);
+            updateRedDot(playerId);
             ResPlayerLevelClaimRewards res = new ResPlayerLevelClaimRewards(Code.SUCCESS);
             res.id = id;
             res.itemInfos = ItemUtils.buildItemInfo(playerLevelPackCfg.getLevelRewards());
@@ -417,39 +417,34 @@ public class PlayerLevelPackManager implements GameEventListener, OrderGenerate,
     /**
      * 更新红点
      */
-    public void updateRedDot(long playerId, boolean oldState) {
-        boolean hasRed = hasRedDot(playerId);
-        if (oldState != hasRed) {
-            List<RedDotDetails> list = new ArrayList<>();
-            RedDotDetails redDotDetailInfo = new RedDotDetails();
-            redDotDetailInfo.setRedDotModule(RedDotDetails.RedDotModule.LEVEL_PACK);
-            redDotDetailInfo.setRedDotType(RedDotDetails.RedDotType.COMMON);
-            redDotDetailInfo.setCount(hasRed ? 1 : 0);
-            list.add(redDotDetailInfo);
-            redDotManager.updateRedDot(list, playerId);
-        }
+    public void updateRedDot(long playerId) {
+        List<RedDotDetails> list = new ArrayList<>();
+        RedDotDetails redDotDetailInfo = new RedDotDetails();
+        redDotDetailInfo.setRedDotModule(RedDotDetails.RedDotModule.LEVEL_PACK);
+        redDotDetailInfo.setRedDotType(RedDotDetails.RedDotType.COUNT);
+        redDotDetailInfo.setCount(getRedDotCount(playerId));
+        list.add(redDotDetailInfo);
+        redDotManager.updateRedDot(list, playerId);
     }
 
     /**
-     * 是否有红点
+     * 获取当前有效且未领取的等级礼包数量
      */
-    private boolean hasRedDot(long playerId) {
+    private long getRedDotCount(long playerId) {
         Map<Integer, PlayerLevelPackData> playerLevelPackData = playerLevelDao.getPlayerLevelPackData(playerId);
         if (CollectionUtil.isEmpty(playerLevelPackData)) {
-            return false;
+            return 0;
         }
         long currentTimeMillis = System.currentTimeMillis();
+        long count = 0;
         for (PlayerLevelPackData packData : playerLevelPackData.values()) {
-            int claimStatus = packData.getClaimStatus();
-            // 未购买且仍在有效期内，或者已经购买后存在待领取奖励时显示普通红点。
-            // 已领取礼包即使尚未过期，也不能继续点亮入口。
-            if ((claimStatus == ActivityConstant.ClaimStatus.NOT_CLAIM
-                    && packData.getBuyEndTime() >= currentTimeMillis)
-                    || claimStatus == ActivityConstant.ClaimStatus.CAN_CLAIM) {
-                return true;
+            // 每个仍在有效期内且尚未领取的礼包计一个数字红点。
+            if (packData.getClaimStatus() != ActivityConstant.ClaimStatus.CLAIMED
+                    && packData.getBuyEndTime() >= currentTimeMillis) {
+                count++;
             }
         }
-        return false;
+        return count;
     }
 
     @Override
@@ -461,8 +456,8 @@ public class PlayerLevelPackManager implements GameEventListener, OrderGenerate,
     public List<RedDotDetails> initialize(long playerId, int submodule) {
         RedDotDetails redDotDetailInfo = new RedDotDetails();
         redDotDetailInfo.setRedDotModule(RedDotDetails.RedDotModule.LEVEL_PACK);
-        redDotDetailInfo.setRedDotType(RedDotDetails.RedDotType.COMMON);
-        redDotDetailInfo.setCount(hasRedDot(playerId) ? 1 : 0);
+        redDotDetailInfo.setRedDotType(RedDotDetails.RedDotType.COUNT);
+        redDotDetailInfo.setCount(getRedDotCount(playerId));
         return List.of(redDotDetailInfo);
     }
 }
