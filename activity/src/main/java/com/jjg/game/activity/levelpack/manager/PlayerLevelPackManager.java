@@ -231,6 +231,8 @@ public class PlayerLevelPackManager implements GameEventListener, OrderGenerate,
         if (added != null && added.success()) {
             res.itemInfos = ItemUtils.buildItemInfo(packCfg.getLevelRewards());
             activityLogger.sendLevelPackClaimLog(playerController.getPlayer(), added.data, packCfg);
+            // 当前礼包已经领取，立即重算红点；若没有其他可购买/可领取礼包则通知前端清除。
+            updateRedDot(playerId, true);
         }
         return res;
     }
@@ -303,6 +305,8 @@ public class PlayerLevelPackManager implements GameEventListener, OrderGenerate,
             }
             activityLogger.sendLevelPackClaimLog(player, added.data, playerLevelPackCfg);
             activityLogger.sendLevelPackBuyLog(player, playerLevelPackCfg);
+            // 购买完成后礼包状态已经变为已领取，立即刷新等级礼包红点。
+            updateRedDot(playerId, true);
             ResPlayerLevelClaimRewards res = new ResPlayerLevelClaimRewards(Code.SUCCESS);
             res.id = id;
             res.itemInfos = ItemUtils.buildItemInfo(playerLevelPackCfg.getLevelRewards());
@@ -436,7 +440,12 @@ public class PlayerLevelPackManager implements GameEventListener, OrderGenerate,
         }
         long currentTimeMillis = System.currentTimeMillis();
         for (PlayerLevelPackData packData : playerLevelPackData.values()) {
-            if (packData.getBuyEndTime() >= currentTimeMillis || packData.getClaimStatus() == ActivityConstant.ClaimStatus.CAN_CLAIM) {
+            int claimStatus = packData.getClaimStatus();
+            // 未购买且仍在有效期内，或者已经购买后存在待领取奖励时显示普通红点。
+            // 已领取礼包即使尚未过期，也不能继续点亮入口。
+            if ((claimStatus == ActivityConstant.ClaimStatus.NOT_CLAIM
+                    && packData.getBuyEndTime() >= currentTimeMillis)
+                    || claimStatus == ActivityConstant.ClaimStatus.CAN_CLAIM) {
                 return true;
             }
         }
