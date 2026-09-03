@@ -13,6 +13,10 @@ import com.jjg.game.activity.common.data.PlayerActivityData;
 import com.jjg.game.activity.common.message.bean.BaseActivityDetailInfo;
 import com.jjg.game.activity.constant.ActivityConstant;
 import com.jjg.game.common.pb.AbstractResponse;
+import com.jjg.game.common.timer.TimerCenter;
+import com.jjg.game.common.timer.TimerEvent;
+import com.jjg.game.common.timer.TimerListener;
+import com.jjg.game.core.base.player.IPlayerLoginSuccess;
 import com.jjg.game.core.constant.AddType;
 import com.jjg.game.core.constant.Code;
 import com.jjg.game.core.data.*;
@@ -32,12 +36,20 @@ import java.util.ArrayList;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.TimeUnit;
 
 @Component
-public class BuyOneGetSevenController extends BaseActivityController implements OrderGenerate {
+public class BuyOneGetSevenController extends BaseActivityController
+        implements OrderGenerate, TimerListener<BuyOneGetSevenRedDotTask>, IPlayerLoginSuccess {
     private static final int PURCHASE_DURATION_PARAM_INDEX = 0;
     private static final int UNLOCK_INTERVAL_PARAM_INDEX = 1;
+    private final TimerCenter timerCenter;
+    private final Map<BuyOneGetSevenRedDotKey, Long> scheduledRedDotRefresh = new ConcurrentHashMap<>();
+
+    public BuyOneGetSevenController(TimerCenter timerCenter) {
+        this.timerCenter = timerCenter;
+    }
 
     @Override
     public AbstractResponse joinActivity(Player player, ActivityData activityData, int detailId, int times) {
@@ -84,6 +96,7 @@ public class BuyOneGetSevenController extends BaseActivityController implements 
         res.detailId = detailId;
         res.infoList = ItemUtils.buildItemInfo(firstRewardCfg.getGetItem());
         res.activityData = buildDetails(player, activityData, cfgMap, playerData);
+        scheduleNextRedDotRefresh(playerId, activityData, playerData, now);
         log.info("买一送七购买成功 playerId:{} activityId:{}", playerId, activityData.getId());
         return res;
     }
@@ -135,6 +148,7 @@ public class BuyOneGetSevenController extends BaseActivityController implements 
         data.setClaimStatus(ActivityConstant.ClaimStatus.CLAIMED);
         unlockNextReward(activityData, playerData, rewardIndex, now);
         playerActivityDao.savePlayerActivityData(playerId, activityData.getType(), activityData.getId(), playerData);
+        scheduleNextRedDotRefresh(playerId, activityData, playerData, now);
 
         res.code = Code.SUCCESS;
         res.activityId = activityData.getId();
@@ -222,6 +236,33 @@ public class BuyOneGetSevenController extends BaseActivityController implements 
     }
 
     @Override
+    public void onPlayerLoginSuccess(PlayerController playerController, Player player, Account account,
+                                     boolean firstLogin) {
+        ActivityData activityData = activityManager.getOpenActivityData(player, ActivityType.BUY_ONE_GET_SEVEN);
+        if (activityData == null) {
+            return;
+        }
+        Map<Integer, BuyOneGetSevenPlayerData> playerData = playerActivityDao.getPlayerActivityData(
+                player.getId(), activityData.getType(), activityData.getId());
+        scheduleNextRedDotRefresh(player.getId(), activityData, playerData, System.currentTimeMillis());
+    }
+
+    @Override
+    public void onTimer(TimerEvent<BuyOneGetSevenRedDotTask> timerEvent) {
+        BuyOneGetSevenRedDotTask task = timerEvent.getParameter();
+        BuyOneGetSevenRedDotKey key = new BuyOneGetSevenRedDotKey(task.playerId(), task.activityId());
+        if (!scheduledRedDotRefresh.remove(key, task.unlockTime())) {
+            return;
+        }
+        ActivityData activityData = activityManager.getActivityData().get(task.activityId());
+        if (activityData == null || activityData.getType() != ActivityType.BUY_ONE_GET_SEVEN
+                || !activityData.canRun()) {
+            return;
+        }
+        updateRodDot(task.playerId(), activityData, false);
+    }
+
+    @Override
     public BigDecimal generateOrderDetailInfo(Player player, ReqGenerateOrder req) {
         ActivityData activityData = activityManager.getOpenActivityData(player, ActivityType.BUY_ONE_GET_SEVEN);
         Map<Integer, BuyOneGetSevenCfg> cfgMap = getDetailCfgBean(activityData);
@@ -278,6 +319,7 @@ public class BuyOneGetSevenController extends BaseActivityController implements 
     @Override
     public void onActivityEnd(ActivityData activityData) {
         playerActivityDao.clearActivityData(ActivityType.BUY_ONE_GET_SEVEN, activityData.getId());
+        scheduledRedDotRefresh.keySet().removeIf(key -> key.activityId() == activityData.getId());
     }
 
     private void initializePlayerData(ActivityData activityData,
@@ -357,6 +399,29 @@ public class BuyOneGetSevenController extends BaseActivityController implements 
                 : ActivityConstant.ClaimStatus.NOT_CLAIM);
     }
 
+    /** 为下一份尚未解锁的免费奖励预约红点刷新。 */
+    private void scheduleNextRedDotRefresh(long playerId, ActivityData activityData,
+                                           Map<Integer, BuyOneGetSevenPlayerData> playerData, long now) {
+        long nextUnlockTime = playerData.values().stream()
+                .filter(data -> data.getClaimStatus() != ActivityConstant.ClaimStatus.CLAIMED)
+                .mapToLong(BuyOneGetSevenPlayerData::getUnlockTime)
+                .filter(unlockTime -> unlockTime > now && unlockTime <= activityData.getTimeEnd())
+                .min()
+                .orElse(0L);
+        if (nextUnlockTime <= 0) {
+            return;
+        }
+
+        BuyOneGetSevenRedDotKey key = new BuyOneGetSevenRedDotKey(playerId, activityData.getId());
+        Long scheduledTime = scheduledRedDotRefresh.get(key);
+        if (scheduledTime != null && scheduledTime > now && scheduledTime <= nextUnlockTime) {
+            return;
+        }
+        scheduledRedDotRefresh.put(key, nextUnlockTime);
+        timerCenter.add(new TimerEvent<>(this, nextUnlockTime,
+                new BuyOneGetSevenRedDotTask(playerId, activityData.getId(), nextUnlockTime)));
+    }
+
     private boolean previousRewardClaimed(ActivityData activityData,
                                           Map<Integer, BuyOneGetSevenPlayerData> playerData, int rewardIndex) {
         if (rewardIndex == 0) {
@@ -409,4 +474,10 @@ public class BuyOneGetSevenController extends BaseActivityController implements 
     private String getChannelProductId(Player player, ShopRechargeListCfg shopCfg) {
         return player.getChannel() == ChannelType.APPLE ? shopCfg.getIosShopId() : shopCfg.getGoogleShopId();
     }
+}
+
+record BuyOneGetSevenRedDotKey(long playerId, long activityId) {
+}
+
+record BuyOneGetSevenRedDotTask(long playerId, long activityId, long unlockTime) {
 }
