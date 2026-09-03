@@ -1,9 +1,7 @@
 package com.jjg.game.sampledata.bean;
 
-import java.util.*;
-
-
 import javax.annotation.processing.Generated;
+import java.util.List;
 /**
  * 配置bean
  *
@@ -22,7 +20,7 @@ public class DropTypeCfg extends BaseCfgBean {
   /** 掉落方式 */
   protected List<Integer> DropType;
   /** 允许执行的模式 */
-  protected List<Integer> ExecutionMode;
+  protected int ExecutionMode;
 
   /** 返回掉落方式 */
   public List<Integer> getDropType() {
@@ -30,7 +28,7 @@ public class DropTypeCfg extends BaseCfgBean {
   }
 
   /** 返回允许执行的模式 */
-  public List<Integer> getExecutionMode() {
+  public int getExecutionMode() {
     return ExecutionMode;
   }
 

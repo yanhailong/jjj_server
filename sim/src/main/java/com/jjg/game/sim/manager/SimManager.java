@@ -394,12 +394,16 @@ public class SimManager {
         return guideService.finish(simPlayerContextRegistry.getContext(playerId), guideId);
     }
 
-    /** 完成引导并暂存新触发的引导组，由消息处理器控制响应与通知的发送顺序。 */
+    /**
+     * 完成引导并暂存新触发的引导组，由消息处理器控制响应与通知的发送顺序。
+     */
     public SimGuideService.FinishGuideResult onFinishGuideWithTriggers(long playerId, int guideId) {
         return guideService.finishWithTriggers(simPlayerContextRegistry.getContext(playerId), guideId);
     }
 
-    /** 跳过整个引导组，并返回可能由条件8触发的后续引导组。 */
+    /**
+     * 跳过整个引导组，并返回可能由条件8触发的后续引导组。
+     */
     public SimGuideService.SkipGuideGroupResult onSkipGuideGroup(long playerId, int guideGroupId) {
         return guideService.skipGroup(simPlayerContextRegistry.getContext(playerId), guideGroupId);
     }
@@ -533,7 +537,9 @@ public class SimManager {
         return ctx;
     }
 
-    /** 服务器关闭: 排空旧快照后让所有玩家按正常退出流程结算、落库并释放缓存。 */
+    /**
+     * 服务器关闭: 排空旧快照后让所有玩家按正常退出流程结算、落库并释放缓存。
+     */
     public void shutdown() {
         if (this.checkPlayerDataTimeout != null) {
             this.checkPlayerDataTimeout.cancel();
@@ -715,16 +721,17 @@ public class SimManager {
                 return cachedResult;
             }
 
-            boolean freeMode = statInfo != null && statInfo.isFreeMode();
-            //免费模式 / 赛季入口: 不消耗体力 (与 SimDropService 扣能逻辑一致)
-            int configuredSpinCostPower = (freeMode || enterType > 0) ? 0 : SimConstant.Common.SPIN_COST_POWER;
+            boolean normalMode = statInfo != null && statInfo.getSpecialModes() != null
+                    && statInfo.getSpecialModes().contains(1);
+            //仅普通模式且普通入口消耗体力，与 SimDropService 的实际扣能条件一致。
+            int configuredSpinCostPower = normalMode && enterType <= 0 ? SimConstant.Common.SPIN_COST_POWER : 0;
             //普通旋转沿用原语义：即使掉落失败也计入统计。试玩需要先通过 permit 幂等结算，避免 RPC 重试重复计数。
             if (!visitTrial) {
                 simStatsService.recordSpin(ctx.getSimBaseData(), gameType, statInfo);
             }
             CommonResult<SlotsSpinResult> result = visitTrial
                     ? simVisitService.settleTrialSpin(ctx, gameType, statInfo, trialPermit)
-                    : simDropService.onSpin(ctx, gameType, winTimes, freeMode, enterType);
+                    : simDropService.onSpin(ctx, gameType, winTimes, statInfo, enterType);
             int actualSpinCostPower = result.success() ? configuredSpinCostPower : 0;
             //须在掉落结算后构造: 本次到账的道具要计入 itemGains, 12202 等按道具计数的条件才能推进
             GameConditionEvent conditionEvent = SimConditionEventFactory.fromSpin(
