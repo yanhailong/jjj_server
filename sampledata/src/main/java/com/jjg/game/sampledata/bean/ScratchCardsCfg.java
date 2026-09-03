@@ -21,8 +21,10 @@ public class ScratchCardsCfg extends BaseCfgBean {
   /** 配置表工作薄名 */
   public static final String SHEET_NAME = "ScratchCards";
 
+  /** 礼包购买次数/天 */
+  protected int Count;
   /** 渠道商品ID */
-  protected Map<Integer,String> channelCommodity;
+  protected int channelCommodity;
   /** 礼包购买金额 */
   protected BigDecimal cost;
   /** 兑换消耗 */
@@ -36,8 +38,13 @@ public class ScratchCardsCfg extends BaseCfgBean {
   /** 中奖权重值 */
   protected int weight;
 
+  /** 返回礼包购买次数/天 */
+  public int getCount() {
+    return Count;
+  }
+
   /** 返回渠道商品ID */
-  public Map<Integer,String> getChannelCommodity() {
+  public int getChannelCommodity() {
     return channelCommodity;
   }
 

@@ -142,6 +142,8 @@ public class SimConfigCacheService implements ConfigExcelChangeListener {
     //buildingId -> list
     private Map<Integer, List<MedalBuffCfg>> buildMedalMap = null;
 
+    private Map<Integer, Map<Integer, DropItemCfg>> dropItemCfgMap = null;
+
     @Autowired
     public SimConfigCacheService(ConditionRuleRegistry conditionRules,
                                  ConditionParser conditionParser) {
@@ -185,6 +187,8 @@ public class SimConfigCacheService implements ConfigExcelChangeListener {
         loadItemConfig();
         loadSeasonSimulationDataConfig();
         loadMedalBuffConfig();
+
+        loadDropItemConfig();
     }
 
     /**
@@ -732,6 +736,15 @@ public class SimConfigCacheService implements ConfigExcelChangeListener {
         this.allLevelUnlockFunctionMap = tmpAllLevelUnlockFunctionMap;
     }
 
+    private void loadDropItemConfig() {
+        Map<Integer, Map<Integer, DropItemCfg>> tmpDropItemCfgMap = new HashMap<>();
+        for (DropItemCfg cfg : GameDataManager.getDropItemCfgList()) {
+            Map<Integer, DropItemCfg> tmpMap = tmpDropItemCfgMap.computeIfAbsent(cfg.getGameType(), k -> new HashMap<>());
+            tmpMap.put(cfg.getId(), cfg);
+        }
+        this.dropItemCfgMap = tmpDropItemCfgMap;
+    }
+
     @Override
     public void initSampleCallbackCollector() {
         addInitSampleFileObserveWithCallBack(CasinoStatsSheetCfg.EXCEL_NAME, this::loadCasinoStatsSheetCfg);
@@ -767,6 +780,8 @@ public class SimConfigCacheService implements ConfigExcelChangeListener {
 
         addInitSampleFileObserveWithCallBack(GameFunctionCfg.EXCEL_NAME, this::loadGameFunction);
         addInitSampleFileObserveWithCallBack(MedalBuffCfg.EXCEL_NAME, this::loadMedalBuffConfig);
+
+        addInitSampleFileObserveWithCallBack(DropItemCfg.EXCEL_NAME, this::loadDropItemConfig);
     }
 
     // ---------------------------------------------------------------------
@@ -1189,5 +1204,13 @@ public class SimConfigCacheService implements ConfigExcelChangeListener {
             return null;
         }
         return this.buildMedalMap.get(buildingId);
+    }
+
+    public Map<Integer, DropItemCfg> getDropItemCfgMap(int gameType) {
+        if (this.dropItemCfgMap == null || this.dropItemCfgMap.isEmpty()) {
+            return null;
+        }
+
+        return this.dropItemCfgMap.get(gameType);
     }
 }

@@ -17,6 +17,7 @@ import com.jjg.game.activity.scratchcards.message.res.ResScratchCardsExchange;
 import com.jjg.game.activity.scratchcards.message.res.ResScratchCardsJoinActivity;
 import com.jjg.game.activity.scratchcards.message.res.ResScratchCardsTypeInfo;
 import com.jjg.game.common.pb.AbstractResponse;
+import com.jjg.game.common.utils.TimeHelper;
 import com.jjg.game.common.utils.WeightRandom;
 import com.jjg.game.core.constant.AddType;
 import com.jjg.game.core.constant.Code;
@@ -29,6 +30,7 @@ import com.jjg.game.sampledata.GameDataManager;
 import com.jjg.game.sampledata.bean.BaseCfgBean;
 import com.jjg.game.sampledata.bean.GlobalConfigCfg;
 import com.jjg.game.sampledata.bean.ScratchCardsCfg;
+import com.jjg.game.sampledata.bean.ShopRechargeListCfg;
 import org.apache.commons.lang3.StringUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -59,6 +61,7 @@ import java.util.stream.Collectors;
 @Component
 public class ScratchCardsController extends BaseActivityController implements OrderGenerate {
     private final Logger log = LoggerFactory.getLogger(ScratchCardsController.class);
+    private static final long BUY_COUNT_EXPIRE_SECONDS = TimeHelper.DAY_SECOND * 2L;
 
     /**
      * 玩家参与刮刮乐活动
@@ -208,6 +211,14 @@ public class ScratchCardsController extends BaseActivityController implements Or
      */
     @Override
     public ScratchCardsDetailInfo buildPlayerActivityDetail(Player player, ActivityData activityData, BaseCfgBean baseCfgBean, PlayerActivityData data) {
+        int buyCount = 0;
+        if (baseCfgBean instanceof ScratchCardsCfg cfg && cfg.getType() == ActivityConstant.ScratchCards.GIFT_TYPE) {
+            buyCount = countDao.getCount(getBuyCountFeature(player.getId()), String.valueOf(cfg.getId())).intValue();
+        }
+        return buildPlayerActivityDetail(player, activityData, baseCfgBean, buyCount);
+    }
+
+    private ScratchCardsDetailInfo buildPlayerActivityDetail(Player player, ActivityData activityData, BaseCfgBean baseCfgBean, int buyCount) {
         if (baseCfgBean instanceof ScratchCardsCfg cfg) {
             ScratchCardsDetailInfo info = new ScratchCardsDetailInfo();
             info.activityId = activityData.getId();
@@ -216,16 +227,45 @@ public class ScratchCardsController extends BaseActivityController implements Or
             // 奖励信息
             info.rewardItems = ItemUtils.buildItemInfo(cfg.getGetItem());
             info.numOf7 = cfg.getIconNum();
-            if (CollectionUtil.isNotEmpty(cfg.getChannelCommodity())) {
-                info.productId = cfg.getChannelCommodity().get(player.getChannel().getValue());
-                info.buyPrice = cfg.getCost().toPlainString();
-            }
-            if (CollectionUtil.isNotEmpty(cfg.getCostItem())) {
-                info.costItems = ItemUtils.buildItemInfo(cfg.getCostItem());
+            info.countLimit = cfg.getCount();
+            info.buyCount = buyCount;
+
+            if (cfg.getChannelCommodity() > 0) {
+                ShopRechargeListCfg shopRechargeListCfg = GameDataManager.getShopRechargeListCfg(cfg.getChannelCommodity());
+                if (shopRechargeListCfg != null) {
+                    info.productId = shopRechargeListCfg.getGoogleShopId();
+                    if (player.getChannel() == ChannelType.APPLE) {
+                        info.productId = shopRechargeListCfg.getIosShopId();
+                    }
+                    info.buyPrice = shopRechargeListCfg.getPrice().toPlainString();
+                }
+            }else {
+                if (CollectionUtil.isNotEmpty(cfg.getCostItem())) {
+                    info.costItems = ItemUtils.buildItemInfo(cfg.getCostItem());
+                }
             }
             return info;
         }
         return null;
+    }
+
+    @Override
+    public List<BaseActivityDetailInfo> getBaseActivityDetailInfos(ActivityData activityData, Map<Integer, ? extends BaseCfgBean> baseCfgBeanMap,
+                                                                 Player player, Map<Integer, PlayerActivityData> playerActivityDataMap) {
+        List<String> giftIds = baseCfgBeanMap.values().stream()
+                .filter(bean -> bean instanceof ScratchCardsCfg cfg && cfg.getType() == ActivityConstant.ScratchCards.GIFT_TYPE)
+                .map(bean -> String.valueOf(bean.getId()))
+                .toList();
+        Map<String, BigDecimal> buyCounts = countDao.getCounts(getBuyCountFeature(player.getId()), giftIds);
+        List<BaseActivityDetailInfo> details = new ArrayList<>(activityData.getValue().size());
+        for (Integer id : activityData.getValue()) {
+            ScratchCardsDetailInfo detail = buildPlayerActivityDetail(player, activityData, baseCfgBeanMap.get(id),
+                    buyCounts.getOrDefault(String.valueOf(id), BigDecimal.ZERO).intValue());
+            if (detail != null) {
+                details.add(detail);
+            }
+        }
+        return details;
     }
 
     /**
@@ -269,12 +309,13 @@ public class ScratchCardsController extends BaseActivityController implements Or
     @Override
     public BigDecimal generateOrderDetailInfo(Player player, ReqGenerateOrder req) {
         BaseCfgBean cfgBean = getOrderGenerateBean(player, req.productId);
-        if (cfgBean instanceof ScratchCardsCfg cfg) {
-            String channelCommodity = cfg.getChannelCommodity().get(player.getChannel().getValue());
-            if (channelCommodity == null) {
+        if (cfgBean instanceof ScratchCardsCfg cfg && cfg.getType() == ActivityConstant.ScratchCards.GIFT_TYPE
+                && cfg.getChannelCommodity() > 0 && CollectionUtil.isNotEmpty(cfg.getGetItem())) {
+            if (cfg.getCount() <= 0 || countDao.getCount(getBuyCountFeature(player.getId()), String.valueOf(cfg.getId())).intValue() >= cfg.getCount()) {
                 return null;
             }
-            return cfg.getCost();
+            ShopRechargeListCfg shopRechargeListCfg = GameDataManager.getShopRechargeListCfg(cfg.getChannelCommodity());
+            return shopRechargeListCfg == null ? null : shopRechargeListCfg.getPrice();
         }
         return null;
     }
@@ -308,6 +349,8 @@ public class ScratchCardsController extends BaseActivityController implements Or
             log.error("刮刮乐购买礼包自动领奖失败 playerId:{} activityId:{} giftId:{} code:{}", player.getId(), activityData.getId(), giftId, addItems.code);
             return new ResActivityBuyGift(addItems.code);
         }
+        // 已支付订单正常履约，发奖成功后计入到账当天的购买次数。
+        addBuyCount(getBuyCountFeature(player.getId()), giftId);
         ResActivityBuyGift res = new ResActivityBuyGift(Code.SUCCESS);
         res.activityId = activityData.getId();
         res.itemInfos = ItemUtils.buildItemInfo(cfg.getGetItem());
@@ -340,7 +383,7 @@ public class ScratchCardsController extends BaseActivityController implements Or
         Map<Integer, ScratchCardsCfg> detailCfgBean = getDetailCfgBean(activityData);
         ScratchCardsCfg cfg = detailCfgBean.get(req.goodsId);
         if (cfg == null || cfg.getType() != ActivityConstant.ScratchCards.GIFT_TYPE
-                || CollectionUtil.isNotEmpty(cfg.getChannelCommodity())
+                || cfg.getChannelCommodity() > 0
                 || CollectionUtil.isEmpty(cfg.getCostItem())) {
             msg.code = Code.PARAM_ERROR;
             return msg;
@@ -348,6 +391,11 @@ public class ScratchCardsController extends BaseActivityController implements Or
         Map<Integer, Long> getItem = cfg.getGetItem();
         if (CollectionUtil.isEmpty(getItem)) {
             msg.code = Code.SAMPLE_ERROR;
+            return msg;
+        }
+        String countFeature = getBuyCountFeature(player.getId());
+        if (cfg.getCount() <= 0 || countDao.getCount(countFeature, String.valueOf(cfg.getId())).intValue() >= cfg.getCount()) {
+            msg.code = Code.DAILY_LIMIT;
             return msg;
         }
         player = corePlayerService.get(player.getId());
@@ -368,8 +416,17 @@ public class ScratchCardsController extends BaseActivityController implements Or
             msg.code = Code.FAIL;
             return msg;
         }
+        addBuyCount(countFeature, cfg.getId());
         msg.rewardList = ItemUtils.buildItemInfo(getItem);
         activityLogger.sendActivityGift(player, activityData, addItems.data, getItem, cfg.getCostItem(), cfg.getId());
         return msg;
+    }
+
+    private String getBuyCountFeature(long playerId) {
+        return "scratchCards:buy:%d:%d".formatted(playerId, TimeHelper.getDayNumerical());
+    }
+
+    private void addBuyCount(String countFeature, int giftId) {
+        countDao.incrementWithoutExpireRefresh(countFeature, String.valueOf(giftId), BigDecimal.ONE, BUY_COUNT_EXPIRE_SECONDS);
     }
 }
