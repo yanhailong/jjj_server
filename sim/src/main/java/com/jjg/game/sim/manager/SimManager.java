@@ -470,11 +470,19 @@ public class SimManager {
     private SimPlayerContext createContextByPlayerId(long playerId, PlayerController playerController) {
         SimPlayerContext ctx = this.simPlayerContextRegistry.getContext(playerId);
         if (ctx != null) {
+            if (playerController != null) {
+                ctx.setPlayerController(playerController);
+                simTaskService.onLogin(ctx);
+            }
             return ctx;
         }
         //登出落库还在队列中: 复活内存 ctx 或等落库完成, 避免读到未落地的旧库数据
         ctx = tryReviveExitingContext(playerId);
         if (ctx != null) {
+            if (playerController != null) {
+                ctx.setPlayerController(playerController);
+                simTaskService.onLogin(ctx);
+            }
             return ctx;
         }
         //装配 ctx
@@ -502,7 +510,7 @@ public class SimManager {
         simCasinoService.loadCasinoData(ctx, baseData);
         //加载雇员数据
         employeeService.loadEmployeeData(ctx);
-        //加载主线/成就任务数据 (首登接取主线首节点+全部独立成就任务)
+        //加载主线/成就任务数据，并补接全局成就分组
         simTaskService.initTaskData(ctx);
         //徽章档位由已完成成就任务决定，必须在任务数据就绪后刷新
         simMedalService.refreshMedalBonusCache(ctx);

@@ -12,7 +12,7 @@ import java.util.Map;
 /**
  * 玩家 sim 任务数据 (主线 + 成就)。
  * <p>
- * 主线只保存线性链当前节点；成就任务彼此独立，同时保存每个任务的进度与状态。
+ * 主线保存线性链当前节点；成就按 group 保存各条线性链的当前节点。
  * 复用 core {@link TaskDetail} 作进度单元。
  *
  * @author 11
@@ -29,7 +29,7 @@ public class SimTaskData extends AbstractData {
     private TaskDetail mainTask;
 
     /**
-     * 成就任务: taskId -> 任务进度与状态
+     * 成就任务: group -> 当前节点，末节点领取后保留，表示该组已全部完成。
      */
     private Map<Integer, TaskDetail> achievementTasks = new HashMap<>();
 

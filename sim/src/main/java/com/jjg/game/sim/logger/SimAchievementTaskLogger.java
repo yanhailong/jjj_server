@@ -9,7 +9,7 @@ import org.springframework.stereotype.Component;
 import java.util.Collections;
 import java.util.List;
 
-/** 模拟经营独立成就任务生命周期 Kafka 日志。 */
+/** 模拟经营成就任务生命周期 Kafka 日志。 */
 @Component
 public class SimAchievementTaskLogger extends BaseLogger {
     public static final String TOPIC = "simAchievementTask";

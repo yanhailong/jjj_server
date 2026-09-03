@@ -21,7 +21,7 @@ import java.util.List;
 public class ResSimTaskReward extends AbstractResponse {
     @ProtoDesc("已领取的任务配置id")
     public int taskId;
-    @ProtoDesc("主线领奖后新激活的下一节点 (成就任务或主线结束时为空)")
+    @ProtoDesc("主线或成就组领奖后续接的当前节点，任务链结束时为空")
     public Task nextTask;
     @ProtoDesc("任务奖励道具")
     public List<ItemInfo> rewards;

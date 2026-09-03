@@ -376,6 +376,7 @@ public class SimBuildingService implements SimPlayerTickListener, SimTaskStateRe
             }
 
             unlockAndUpdateBuildData(ctx, buildingId, cfg);
+            simTaskService.onBuildingUnlocked(ctx, buildingId);
             log.info("解锁建筑成功 playerId={},buildingId={}", ctx.playerId(), buildingId);
         } catch (Exception e) {
             log.error("", e);

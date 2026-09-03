@@ -191,9 +191,17 @@ public class SimMedalService {
 
     private int completedCount(SimTaskData data, SimTaskConfigService.AchievementBadgeDef badge) {
         int count = 0;
-        for (Integer taskId : badge.taskIds()) {
-            TaskDetail task = data.getAchievementTasks().get(taskId);
-            if (task != null && task.getStatus() != TaskConstant.TaskStatus.STATUS_IN_PROGRESS) {
+        for (int groupId : taskConfig.achievementGroups(badge.badgeId())) {
+            TaskDetail task = data.getAchievementTasks().get(groupId);
+            if (task == null) {
+                continue;
+            }
+            int preceding = taskConfig.achievementGroup(groupId).precedingTaskCount(task.getConfigId());
+            if (preceding < 0) {
+                continue;
+            }
+            count += preceding;
+            if (task.getStatus() != TaskConstant.TaskStatus.STATUS_IN_PROGRESS) {
                 count++;
             }
         }

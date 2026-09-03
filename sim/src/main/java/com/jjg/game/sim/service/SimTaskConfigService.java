@@ -21,6 +21,7 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Component;
 
 import java.util.ArrayList;
+import java.util.Collection;
 import java.util.Collections;
 import java.util.Comparator;
 import java.util.EnumMap;
@@ -28,11 +29,12 @@ import java.util.HashMap;
 import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 
 /**
  * sim 主线与成就任务配置索引。
  * <p>
- * 主线(taskType=2)继续按 id 升序组成单链；成就(taskType=7)全部独立生效，通过
+ * 主线(taskType=2)按 id 升序组成单链；成就(taskType=7)按 group 分组后按 id 升序续接，通过
  * {@link TaskCfg#getBadgeID()} 归属 {@link MedalBuffCfg#getMedalType()}。游戏专属徽章再由
  * MedalBuff.buildID -> BuildingAreaTable.UnlockGameId 得到游戏归属。
  */
@@ -43,11 +45,11 @@ public class SimTaskConfigService implements ConfigExcelChangeListener {
     private volatile List<Integer> mainChain = List.of();
     private volatile Map<Integer, Integer> nextIndex = Map.of();
     private volatile Map<Integer, TaskConditionDef> conditions = Map.of();
-    private volatile List<Integer> achievementTaskIds = List.of();
-    private volatile Map<Integer, List<Integer>> achievementTasksByBadge = Map.of();
-    private volatile Map<Integer, List<Integer>> achievementTasksByGame = Map.of();
-    private volatile Map<Class<? extends ConditionEvent>, List<Integer>> achievementTasksByEvent = Map.of();
-    private volatile List<Integer> achievementStateTaskIds = List.of();
+    private volatile Map<Integer, AchievementGroupDef> achievementGroups = Map.of();
+    private volatile List<Integer> globalAchievementGroups = List.of();
+    private volatile Map<Integer, List<Integer>> achievementGroupsByBadge = Map.of();
+    private volatile Map<Integer, List<Integer>> achievementGroupsByGame = Map.of();
+    private volatile Map<Class<? extends ConditionEvent>, List<Integer>> achievementGroupsByEvent = Map.of();
     private volatile Map<Integer, AchievementBadgeDef> badgeDefinitions = Map.of();
 
     private final ConditionRuleRegistry conditionRules;
@@ -91,11 +93,8 @@ public class SimTaskConfigService implements ConfigExcelChangeListener {
 
         Map<Integer, BadgeSeed> badgeSeeds = loadBadgeSeeds();
         List<TaskCfg> mains = new ArrayList<>();
-        List<Integer> achievements = new ArrayList<>();
+        Map<Integer, List<TaskCfg>> groupedAchievements = new HashMap<>();
         Map<Integer, List<Integer>> tasksByBadge = new HashMap<>();
-        Map<Integer, List<Integer>> tasksByGame = new HashMap<>();
-        Map<Class<? extends ConditionEvent>, List<Integer>> tasksByEvent = new HashMap<>();
-        List<Integer> stateTasks = new ArrayList<>();
         Map<Integer, TaskConditionDef> tmpConditions = new HashMap<>();
 
         for (TaskCfg cfg : all) {
@@ -145,15 +144,7 @@ public class SimTaskConfigService implements ConfigExcelChangeListener {
                 continue;
             }
 
-            achievements.add(cfg.getId());
-            tasksByBadge.computeIfAbsent(cfg.getBadgeID(), ignored -> new ArrayList<>()).add(cfg.getId());
-            if (badge.gameId() > 0) {
-                tasksByGame.computeIfAbsent(badge.gameId(), ignored -> new ArrayList<>()).add(cfg.getId());
-            }
-            tasksByEvent.computeIfAbsent(prepared.eventType(), ignored -> new ArrayList<>()).add(cfg.getId());
-            if (prepared.eventType() == StateConditionEvent.class) {
-                stateTasks.add(cfg.getId());
-            }
+            groupedAchievements.computeIfAbsent(cfg.getGroup(), ignored -> new ArrayList<>()).add(cfg);
         }
 
         mains.sort(Comparator.comparingInt(TaskCfg::getId));
@@ -164,8 +155,42 @@ public class SimTaskConfigService implements ConfigExcelChangeListener {
             tmpMain.add(id);
             tmpNext.put(id, i + 1 < mains.size() ? mains.get(i + 1).getId() : 0);
         }
-        achievements.sort(Integer::compareTo);
-        stateTasks.sort(Integer::compareTo);
+        Map<Integer, AchievementGroupDef> tmpGroups = new HashMap<>();
+        List<Integer> globalGroups = new ArrayList<>();
+        Map<Integer, Set<Integer>> groupsByBadge = new HashMap<>();
+        Map<Integer, Set<Integer>> groupsByGame = new HashMap<>();
+        Map<Class<? extends ConditionEvent>, Set<Integer>> groupsByEvent = new HashMap<>();
+        for (Map.Entry<Integer, List<TaskCfg>> entry : groupedAchievements.entrySet()) {
+            List<TaskCfg> chain = entry.getValue();
+            chain.sort(Comparator.comparingInt(TaskCfg::getId));
+            TaskCfg first = chain.getFirst();
+            if ((first.getQuality() != 0 && first.getQuality() != 1)
+                    || chain.stream().anyMatch(cfg -> cfg.getQuality() != first.getQuality()
+                    || cfg.getBadgeID() != first.getBadgeID())) {
+                log.warn("成就任务组的 Quality 或 BadgeID 配置不一致或无效, 不加载 group={}", entry.getKey());
+                chain.forEach(cfg -> tmpConditions.remove(cfg.getId()));
+                continue;
+            }
+            int groupId = entry.getKey();
+            List<Integer> ids = chain.stream().map(TaskCfg::getId).toList();
+            tmpGroups.put(groupId, new AchievementGroupDef(groupId, first.getBadgeID(), first.getQuality(), ids));
+            if (first.getQuality() == 0) {
+                globalGroups.add(groupId);
+            }
+            groupsByBadge.computeIfAbsent(first.getBadgeID(), ignored -> new LinkedHashSet<>()).add(groupId);
+            tasksByBadge.computeIfAbsent(first.getBadgeID(), ignored -> new ArrayList<>()).addAll(ids);
+            int gameId = badgeSeeds.get(first.getBadgeID()).gameId();
+            if (gameId > 0) {
+                groupsByGame.computeIfAbsent(gameId, ignored -> new LinkedHashSet<>()).add(groupId);
+            }
+            for (int i = 0; i < ids.size(); i++) {
+                int taskId = ids.get(i);
+                tmpNext.put(taskId, i + 1 < ids.size() ? ids.get(i + 1) : 0);
+                groupsByEvent.computeIfAbsent(tmpConditions.get(taskId).condition().eventType(),
+                        ignored -> new LinkedHashSet<>()).add(groupId);
+            }
+        }
+        globalGroups.sort(Integer::compareTo);
 
         Map<Integer, AchievementBadgeDef> tmpBadges = new HashMap<>();
         for (BadgeSeed seed : badgeSeeds.values()) {
@@ -180,14 +205,14 @@ public class SimTaskConfigService implements ConfigExcelChangeListener {
         this.mainChain = List.copyOf(tmpMain);
         this.nextIndex = Map.copyOf(tmpNext);
         this.conditions = Map.copyOf(tmpConditions);
-        this.achievementTaskIds = List.copyOf(achievements);
-        this.achievementTasksByBadge = immutableListMap(tasksByBadge);
-        this.achievementTasksByGame = immutableListMap(tasksByGame);
-        this.achievementTasksByEvent = immutableEventMap(tasksByEvent);
-        this.achievementStateTaskIds = List.copyOf(stateTasks);
+        this.achievementGroups = Map.copyOf(tmpGroups);
+        this.globalAchievementGroups = List.copyOf(globalGroups);
+        this.achievementGroupsByBadge = immutableGroupMap(groupsByBadge);
+        this.achievementGroupsByGame = immutableGroupMap(groupsByGame);
+        this.achievementGroupsByEvent = immutableGroupMap(groupsByEvent);
         this.badgeDefinitions = Map.copyOf(tmpBadges);
-        log.info("加载 sim 任务配置: 主线 {} 条, 成就 {} 条, 徽章 {} 个, 主线节点={}",
-                tmpMain.size(), achievements.size(), tmpBadges.size(), tmpMain);
+        log.info("加载 sim 任务配置: 主线 {} 条, 成就 {} 组, 徽章 {} 个, 主线节点={}",
+                tmpMain.size(), tmpGroups.size(), tmpBadges.size(), tmpMain);
     }
 
     private Map<Integer, BadgeSeed> loadBadgeSeeds() {
@@ -250,22 +275,9 @@ public class SimTaskConfigService implements ConfigExcelChangeListener {
         return result;
     }
 
-    private static Map<Integer, List<Integer>> immutableListMap(Map<Integer, List<Integer>> source) {
-        Map<Integer, List<Integer>> result = new HashMap<>(source.size());
-        source.forEach((key, value) -> {
-            value.sort(Integer::compareTo);
-            result.put(key, List.copyOf(value));
-        });
-        return Map.copyOf(result);
-    }
-
-    private static Map<Class<? extends ConditionEvent>, List<Integer>> immutableEventMap(
-            Map<Class<? extends ConditionEvent>, List<Integer>> source) {
-        Map<Class<? extends ConditionEvent>, List<Integer>> result = new HashMap<>(source.size());
-        source.forEach((key, value) -> {
-            value.sort(Integer::compareTo);
-            result.put(key, List.copyOf(value));
-        });
+    private static <K> Map<K, List<Integer>> immutableGroupMap(Map<K, Set<Integer>> source) {
+        Map<K, List<Integer>> result = new HashMap<>(source.size());
+        source.forEach((key, value) -> result.put(key, value.stream().sorted().toList()));
         return Map.copyOf(result);
     }
 
@@ -282,39 +294,46 @@ public class SimTaskConfigService implements ConfigExcelChangeListener {
         return conditions.get(taskId);
     }
 
-    public List<Integer> achievementTaskIds() {
-        return achievementTaskIds;
+    public Collection<AchievementGroupDef> achievementGroups() {
+        return achievementGroups.values();
     }
 
-    public List<Integer> achievementTaskIds(int badgeId) {
-        return badgeId <= 0 ? achievementTaskIds
-                : achievementTasksByBadge.getOrDefault(badgeId, List.of());
+    public AchievementGroupDef achievementGroup(int groupId) {
+        return achievementGroups.get(groupId);
     }
 
-    public List<Integer> achievementStateTaskIds() {
-        return achievementStateTaskIds;
+    public List<Integer> globalAchievementGroups() {
+        return globalAchievementGroups;
+    }
+
+    public List<Integer> achievementGroups(int badgeId) {
+        return achievementGroupsByBadge.getOrDefault(badgeId, List.of());
     }
 
     /**
      * 高频游戏事件只检查所属游戏的成就；其他事件按条件事件类型取候选。
      */
-    public List<Integer> achievementTaskIdsFor(ConditionEvent event) {
+    public List<Integer> achievementGroupsFor(ConditionEvent event) {
         if (event instanceof GameConditionEvent gameEvent) {
+            List<Integer> gameGroups = achievementGroupsByGame.getOrDefault(gameEvent.gameId(), List.of());
+            if (gameEvent.gameId() == gameEvent.gameType()) {
+                return gameGroups;
+            }
             LinkedHashSet<Integer> ids = new LinkedHashSet<>();
-            ids.addAll(achievementTasksByGame.getOrDefault(gameEvent.gameId(), List.of()));
-            ids.addAll(achievementTasksByGame.getOrDefault(gameEvent.gameType(), List.of()));
+            ids.addAll(gameGroups);
+            ids.addAll(achievementGroupsByGame.getOrDefault(gameEvent.gameType(), List.of()));
             return ids.isEmpty() ? List.of() : List.copyOf(ids);
         }
         if (event instanceof GameWinEvent gameEvent) {
-            return achievementTasksByGame.getOrDefault(gameEvent.gameId(), List.of());
+            return achievementGroupsByGame.getOrDefault(gameEvent.gameId(), List.of());
         }
         if (event == null) {
             return List.of();
         }
         LinkedHashSet<Integer> ids = new LinkedHashSet<>();
-        achievementTasksByEvent.forEach((type, taskIds) -> {
+        achievementGroupsByEvent.forEach((type, groupIds) -> {
             if (type.isInstance(event)) {
-                ids.addAll(taskIds);
+                ids.addAll(groupIds);
             }
         });
         return ids.isEmpty() ? List.of() : List.copyOf(ids);
@@ -334,6 +353,13 @@ public class SimTaskConfigService implements ConfigExcelChangeListener {
      * 配置加载后不可变，可被玩家热路径无锁复用。
      */
     public record TaskConditionDef(PreparedCondition condition, String counterType) {
+    }
+
+    public record AchievementGroupDef(int groupId, int badgeId, int quality, List<Integer> taskIds) {
+        /** 当前节点之前的任务均已领取，无需为玩家保存历史节点。 */
+        public int precedingTaskCount(int taskId) {
+            return Collections.binarySearch(taskIds, taskId);
+        }
     }
 
     public record BadgeBuffTier(int cfgId, int collectNum, Map<BuildingOutputType, Integer> buffs) {

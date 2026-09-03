@@ -53,7 +53,7 @@ import java.util.*;
  * 条件判定复用 core 数值条件规则：配置加载时完成解析校验，事件热路径只做 O(1) 规则求值。
  * 普通条件进度由本功能累计；玩家统计条件直接读取玩家级统计。主线相邻节点可能复用同一条件 id 但过滤参数不同
  * (如 12303 分别指定游客卡池与雇员卡池)，必须按节点隔离，否则前一节点的进度会漏给后一节点。
- * 成就任务全部独立接取，事件进度保存在任务节点内；游戏事件只扫描该游戏徽章下的任务。
+ * 成就按 group 线性接取，只保存各组当前节点；游戏事件只扫描该游戏徽章下的任务组。
  * 生命周期与持久化由本服务在 sim 内自管；旋转和经营动作都通过统一事实事件推进。
  *
  * @author 11
@@ -113,7 +113,7 @@ public class SimTaskService implements IRedDotService, GameFunctionListener {
     // =====================================================================
 
     /**
-     * 登录加载任务数据: 无则新建并接取主线首节点及全部独立成就任务；已有则补齐新增配置。
+     * 加载任务数据后接取主线及全局成就分组。
      */
     public void initTaskData(SimPlayerContext ctx) {
         long playerId = ctx.playerId();
@@ -123,7 +123,19 @@ public class SimTaskService implements IRedDotService, GameFunctionListener {
             data.setPlayerId(playerId);
         }
         ctx.setSimTaskData(data);
-        ensureActive(playerId, data);
+        onLogin(ctx);
+    }
+
+    /** 每次登录补接全局分组，复用内存上下文时同样执行。 */
+    public void onLogin(SimPlayerContext ctx) {
+        SimTaskData data = ctx.getSimTaskData();
+        ensureMainActive(ctx.playerId(), data);
+        for (int groupId : taskConfig.globalAchievementGroups()) {
+            acceptAchievementGroup(ctx, groupId);
+        }
+        for (TaskDetail node : data.getAchievementTasks().values()) {
+            advanceIfRewardedTail(ctx.playerId(), data, node);
+        }
         //任务数据就绪后补一次状态: 场景/建筑/雇员/游客在本方法之前加载, 那时的上报会被任务侧丢弃;
         //玩家等级等状态型条件同理, 不补则要等下一次事件或开界面才结算
         settleState(ctx, true);
@@ -203,9 +215,9 @@ public class SimTaskService implements IRedDotService, GameFunctionListener {
     }
 
     /**
-     * 保证主线有当前节点，并为全部有效成就配置创建独立任务节点。
+     * 保证主线有当前节点。
      */
-    private void ensureActive(long playerId, SimTaskData data) {
+    private void ensureMainActive(long playerId, SimTaskData data) {
         if (data.getMainTask() == null) {
             int firstMain = taskConfig.firstMain();
             if (firstMain > 0) {
@@ -216,12 +228,41 @@ public class SimTaskService implements IRedDotService, GameFunctionListener {
         } else {
             advanceIfRewardedTail(playerId, data, data.getMainTask());
         }
-        for (int taskId : taskConfig.achievementTaskIds()) {
-            if (data.getAchievementTasks().containsKey(taskId)) {
+    }
+
+    private boolean acceptAchievementGroup(SimPlayerContext ctx, int groupId) {
+        SimTaskData data = ctx.getSimTaskData();
+        if (data.getAchievementTasks().containsKey(groupId)) {
+            return false;
+        }
+        int firstId = taskConfig.achievementGroup(groupId).taskIds().getFirst();
+        data.getAchievementTasks().put(groupId, createNode(ctx.playerId(), firstId));
+        ctx.setLastSaveTime(0);
+        return true;
+    }
+
+    /** 建筑成功解锁后，仅接取对应徽章下 Quality=1 的任务组。 */
+    public void onBuildingUnlocked(SimPlayerContext ctx, int buildingId) {
+        List<MedalBuffCfg> medals = simConfigCacheService.getMedalBuffCfgs(buildingId);
+        if (medals == null || medals.isEmpty()) {
+            return;
+        }
+        Player player = resolvePlayer(ctx);
+        List<Task> changed = new ArrayList<>();
+        Set<Integer> badgeIds = new HashSet<>();
+        for (MedalBuffCfg medal : medals) {
+            if (!badgeIds.add(medal.getMedalType())) {
                 continue;
             }
-            data.getAchievementTasks().put(taskId, createNode(playerId, taskId));
+            for (int groupId : taskConfig.achievementGroups(medal.getMedalType())) {
+                SimTaskConfigService.AchievementGroupDef group = taskConfig.achievementGroup(groupId);
+                if (group.quality() == 1 && acceptAchievementGroup(ctx, groupId)) {
+                    TaskCfg first = GameDataManager.getTaskCfg(group.taskIds().getFirst());
+                    changed.add(settleAdvancedChain(ctx, player, ctx.getSimTaskData(), first));
+                }
+            }
         }
+        notifyChanged(ctx, changed);
     }
 
     /**
@@ -235,8 +276,11 @@ public class SimTaskService implements IRedDotService, GameFunctionListener {
                 return;
             }
             TaskDetail next = createNode(playerId, nextId);
-            data.setMainTask(next);
-            logMainActivated(playerId, next, cur.getConfigId());
+            TaskCfg cfg = GameDataManager.getTaskCfg(cur.getConfigId());
+            setActiveNode(data, cfg, next);
+            if (cfg.getTaskType() == TaskConstant.TaskType.MAIN_LINE) {
+                logMainActivated(playerId, next, cur.getConfigId());
+            }
             cur = next;
         }
     }
@@ -251,7 +295,7 @@ public class SimTaskService implements IRedDotService, GameFunctionListener {
     }
 
     /**
-     * GM 将主线向前跳到指定任务。独立成就不存在链路跳转。
+     * GM 将主线向前跳到指定任务。
      */
     public CommonResult<String> jumpTask(SimPlayerContext ctx, int taskId) {
         if (ctx == null || ctx.getSimTaskData() == null) {
@@ -263,7 +307,7 @@ public class SimTaskService implements IRedDotService, GameFunctionListener {
         }
 
         SimTaskData data = ctx.getSimTaskData();
-        TaskDetail current = findActiveNode(data, targetCfg, taskId);
+        TaskDetail current = findActiveNode(data, targetCfg);
         if (current == null) {
             return new CommonResult<>(Code.FAIL, "目标任务所属任务链尚未接取：" + taskId);
         }
@@ -288,7 +332,7 @@ public class SimTaskService implements IRedDotService, GameFunctionListener {
     }
 
     /**
-     * GM 强制完成主线/成就任务。指定 null 表示完成主线末节点及全部独立成就任务。
+     * GM 强制完成主线/成就任务。指定 null 表示完成主线及各成就组的末节点。
      */
     public List<Integer> gmFinishTasks(SimPlayerContext ctx, Collection<Integer> specifiedTaskIds) {
         if (ctx == null || ctx.getSimTaskData() == null) {
@@ -298,22 +342,12 @@ public class SimTaskService implements IRedDotService, GameFunctionListener {
         }
         List<TaskCfg> targets;
         if (specifiedTaskIds == null) {
-            TaskCfg mainTail = null;
             targets = new ArrayList<>();
-            for (TaskCfg cfg : GameDataManager.getTaskCfgList()) {
-                if (!isSimTaskCfg(cfg) || taskConfig.conditionOf(cfg.getId()) == null) {
-                    continue;
-                }
-                if (cfg.getTaskType() == TaskConstant.TaskType.MAIN_LINE) {
-                    if (mainTail == null || cfg.getId() > mainTail.getId()) {
-                        mainTail = cfg;
-                    }
-                } else {
-                    targets.add(cfg);
-                }
+            for (SimTaskConfigService.AchievementGroupDef group : taskConfig.achievementGroups()) {
+                targets.add(GameDataManager.getTaskCfg(group.taskIds().getLast()));
             }
-            if (mainTail != null) {
-                targets.add(mainTail);
+            if (!taskConfig.getMainChain().isEmpty()) {
+                targets.add(GameDataManager.getTaskCfg(taskConfig.getMainChain().getLast()));
             }
             targets.sort(Comparator.comparingInt(TaskCfg::getId));
         } else {
@@ -332,6 +366,7 @@ public class SimTaskService implements IRedDotService, GameFunctionListener {
                 }
                 targets.add(cfg);
             }
+            targets.sort(Comparator.comparingInt(TaskCfg::getId));
         }
 
         Player player = resolvePlayer(ctx);
@@ -345,9 +380,8 @@ public class SimTaskService implements IRedDotService, GameFunctionListener {
         boolean achievementCompleted = false;
         long now = System.currentTimeMillis();
         for (TaskCfg cfg : targets) {
-            TaskDetail current = findActiveNode(data, cfg, cfg.getId());
-            if (cfg.getTaskType() == TaskConstant.TaskType.MAIN_LINE
-                    && current != null && current.getConfigId() > cfg.getId()) {
+            TaskDetail current = findActiveNode(data, cfg);
+            if (current != null && current.getConfigId() > cfg.getId()) {
                 continue;
             }
             TaskDetail node = current != null && current.getConfigId() == cfg.getId()
@@ -355,11 +389,7 @@ public class SimTaskService implements IRedDotService, GameFunctionListener {
             if (node.getStatus() != TaskConstant.TaskStatus.STATUS_IN_PROGRESS) {
                 continue;
             }
-            if (cfg.getTaskType() == TaskConstant.TaskType.MAIN_LINE) {
-                data.setMainTask(node);
-            } else {
-                data.getAchievementTasks().put(cfg.getId(), node);
-            }
+            setActiveNode(data, cfg, node);
             SimTaskConfigService.TaskConditionDef def = taskConfig.conditionOf(cfg.getId());
             int conditionId = def.condition().spec().id();
             long target = def.condition().target();
@@ -475,9 +505,9 @@ public class SimTaskService implements IRedDotService, GameFunctionListener {
         int changedFrom = changed.size();
         evaluateOnEvent(ctx, player, data, ctx.getSimBaseData(), data.getMainTask(), event, changed,
                 includeProgressChanges);
-        for (Integer taskId : taskConfig.achievementTaskIdsFor(event)) {
+        for (Integer groupId : taskConfig.achievementGroupsFor(event)) {
             evaluateOnEvent(ctx, player, data, ctx.getSimBaseData(),
-                    data.getAchievementTasks().get(taskId), event, changed, includeProgressChanges);
+                    data.getAchievementTasks().get(groupId), event, changed, includeProgressChanges);
         }
         //状态型条件(玩家等级)没有对应的事实事件: 玩家在 slots 节点下注升级, sim 侧收不到升级事件,
         //借任意一次 sim 事件顺带结算, 玩家不必重开任务界面
@@ -651,16 +681,13 @@ public class SimTaskService implements IRedDotService, GameFunctionListener {
     }
 
     /**
-     * 轮询主线及需要轮询的独立成就任务。打开界面/登录时包含玩家累计统计，普通事件只轮询状态条件。
+     * 只轮询已接取的当前节点。打开界面/登录时包含玩家累计统计，普通事件只轮询状态条件。
      */
     private void pollStates(SimPlayerContext ctx, Player player, SimTaskData data,
                             SimBaseData baseData, List<Task> changed, boolean includePlayerStats) {
         pollState(ctx, player, data, baseData, data.getMainTask(), changed, includePlayerStats);
-        List<Integer> taskIds = includePlayerStats
-                ? taskConfig.achievementTaskIds() : taskConfig.achievementStateTaskIds();
-        for (Integer taskId : taskIds) {
-            pollState(ctx, player, data, baseData, data.getAchievementTasks().get(taskId),
-                    changed, includePlayerStats);
+        for (TaskDetail node : data.getAchievementTasks().values()) {
+            pollState(ctx, player, data, baseData, node, changed, includePlayerStats);
         }
     }
 
@@ -740,13 +767,13 @@ public class SimTaskService implements IRedDotService, GameFunctionListener {
                 if (nextTaskId <= 0) {
                     mainTaskLogger.allCompleted(player.getId(), player.getNickName(), cfg.getId(), now);
                 }
-                Task next = advance(ctx, player, data, node, cfg);
-                if (next != null) {
-                    changed.add(next);
-                }
             } else if (cfg.getTaskType() == TaskConstant.TaskType.ACHIEVEMENT) {
                 achievementTaskLogger.rewarded(player.getId(), player.getNickName(), cfg.getId(),
                         cfg.getBadgeID(), Collections.emptyList(), now);
+            }
+            Task next = advance(ctx, player, data, node, cfg);
+            if (next != null) {
+                changed.add(next);
             }
         } else {
             taskLogger.receiveTaskAward(player.getId(), node.getConfigId(), null,
@@ -773,7 +800,7 @@ public class SimTaskService implements IRedDotService, GameFunctionListener {
             log.warn("领取 sim 任务奖励失败,配置不存在 playerId={},taskId={}", playerId, taskId);
             return res;
         }
-        TaskDetail node = findActiveNode(data, cfg, taskId);
+        TaskDetail node = findActiveNode(data, cfg);
         if (node == null || node.getConfigId() != taskId) {
             res.code = Code.NOT_FOUND;
             log.warn("领取 sim 任务奖励失败,非当前节点 playerId={},taskId={}", playerId, taskId);
@@ -818,10 +845,8 @@ public class SimTaskService implements IRedDotService, GameFunctionListener {
             onConditionEvent(ctx, new ActionConditionEvent(
                     ActionConditionEvent.Type.ACHIEVEMENT_REWARD, 0, 0, 0, 1, 0, false));
         }
-        if (cfg.getTaskType() == TaskConstant.TaskType.MAIN_LINE) {
-            res.nextTask = advance(ctx, player, data, node, cfg);
-        }
-        if (cfg.getTaskType() == TaskConstant.TaskType.MAIN_LINE && res.nextTask != null) {
+        res.nextTask = advance(ctx, player, data, node, cfg);
+        if (res.nextTask != null) {
             res.nextTask = settleAdvancedChain(ctx, player, data, cfg);
         }
         res.rewards = ItemUtils.buildItemInfosByItem(rewardItems);
@@ -834,7 +859,7 @@ public class SimTaskService implements IRedDotService, GameFunctionListener {
     }
 
     /**
-     * 主线链推进: 末节点保持已领取态，否则新建并激活下一节点。
+     * 主线及成就组推进: 末节点保持已领取态，否则新建并激活下一节点。
      *
      * @return 新激活的下一节点协议体, 无后置返回 null
      */
@@ -845,8 +870,10 @@ public class SimTaskService implements IRedDotService, GameFunctionListener {
             return null;
         }
         TaskDetail next = createNode(player.getId(), nextId);
-        data.setMainTask(next);
-        logMainActivated(player.getId(), next, node.getConfigId());
+        setActiveNode(data, cfg, next);
+        if (cfg.getTaskType() == TaskConstant.TaskType.MAIN_LINE) {
+            logMainActivated(player.getId(), next, node.getConfigId());
+        }
         TaskCfg nextCfg = GameDataManager.getTaskCfg(nextId);
         return nextCfg == null ? null : assemble(ctx, player, next, nextCfg);
     }
@@ -860,7 +887,7 @@ public class SimTaskService implements IRedDotService, GameFunctionListener {
         SimBaseData baseData = ctx.getSimBaseData();
         TaskDetail node;
         do {
-            node = findActiveNode(data, chainCfg, chainCfg.getId());
+            node = findActiveNode(data, chainCfg);
             if (node == null) {
                 return null;
             }
@@ -889,9 +916,12 @@ public class SimTaskService implements IRedDotService, GameFunctionListener {
                     onComplete(ctx, player, data, baseData, activatedNode, activatedCfg, changed);
                 }
             }
-        } while (node != findActiveNode(data, chainCfg, chainCfg.getId()));
+        } while (node != findActiveNode(data, chainCfg));
 
-        TaskDetail active = findActiveNode(data, chainCfg, chainCfg.getId());
+        if (containsAchievementCompletion(changed, 0)) {
+            simMedalService.refreshAchievementState(ctx);
+        }
+        TaskDetail active = findActiveNode(data, chainCfg);
         TaskCfg activeCfg = active == null ? null : GameDataManager.getTaskCfg(active.getConfigId());
         return activeCfg == null ? null : assemble(ctx, player, active, activeCfg);
     }
@@ -923,16 +953,24 @@ public class SimTaskService implements IRedDotService, GameFunctionListener {
     }
 
     /**
-     * 定位主线当前节点或指定的独立成就任务。
+     * 定位主线或成就组的当前节点。
      */
-    private TaskDetail findActiveNode(SimTaskData data, TaskCfg cfg, int taskId) {
+    private TaskDetail findActiveNode(SimTaskData data, TaskCfg cfg) {
         if (cfg.getTaskType() == TaskConstant.TaskType.MAIN_LINE) {
             return data.getMainTask();
         }
         if (cfg.getTaskType() == TaskConstant.TaskType.ACHIEVEMENT) {
-            return data.getAchievementTasks().get(taskId);
+            return data.getAchievementTasks().get(cfg.getGroup());
         }
         return null;
+    }
+
+    private void setActiveNode(SimTaskData data, TaskCfg cfg, TaskDetail node) {
+        if (cfg.getTaskType() == TaskConstant.TaskType.MAIN_LINE) {
+            data.setMainTask(node);
+        } else {
+            data.getAchievementTasks().put(cfg.getGroup(), node);
+        }
     }
 
     // =====================================================================
@@ -992,18 +1030,14 @@ public class SimTaskService implements IRedDotService, GameFunctionListener {
         }
         prepareTaskList(ctx);
 
-        List<Integer> achievementTaskIds = taskConfig.achievementTaskIds(badgeId);
-        List<Task> achievements = new ArrayList<>(achievementTaskIds.size());
-        for (Integer taskId : achievementTaskIds) {
-            TaskDetail node = data.getAchievementTasks().get(taskId);
-            if (node == null) {
-                continue;
-            }
+        List<Task> achievements = new ArrayList<>();
+        for (TaskDetail node : data.getAchievementTasks().values()) {
             TaskCfg cfg = GameDataManager.getTaskCfg(node.getConfigId());
-            if (cfg != null) {
+            if (cfg != null && (badgeId == 0 || cfg.getBadgeID() == badgeId)) {
                 achievements.add(assemble(ctx, player, node, cfg));
             }
         }
+        achievements.sort(Comparator.comparingInt(Task::getConfigId));
         res.achievementTasks = achievements;
         return res;
     }
@@ -1012,7 +1046,7 @@ public class SimTaskService implements IRedDotService, GameFunctionListener {
      * 复用列表查询前的任务补齐、状态结算与红点更新。
      */
     private void prepareTaskList(SimPlayerContext ctx) {
-        ensureActive(ctx.playerId(), ctx.getSimTaskData());
+        ensureMainActive(ctx.playerId(), ctx.getSimTaskData());
         if (settleState(ctx, false)) {
             updateTaskRedDot(ctx);
         }
