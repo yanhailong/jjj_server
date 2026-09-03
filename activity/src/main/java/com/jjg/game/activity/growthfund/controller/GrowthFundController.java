@@ -75,7 +75,7 @@ public class GrowthFundController extends BaseActivityController implements Orde
 
         //获取场景总等级
         int level = 0;
-        if (simPlayerContextListeners != null) {
+        if (simPlayerContextListeners != null && !simPlayerContextListeners.isEmpty()) {
             level = simPlayerContextListeners.stream().findFirst().get().allLevel(player);
         }
 
