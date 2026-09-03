@@ -2,7 +2,9 @@ package com.jjg.game.core.service;
 
 import com.jjg.game.common.baselogic.function.SystemInterfaceHolder;
 import com.jjg.game.common.cluster.ClusterSystem;
+import com.jjg.game.common.config.NodeConfig;
 import com.jjg.game.common.constant.EFunctionType;
+import com.jjg.game.common.curator.NodeType;
 import com.jjg.game.common.protostuff.PFSession;
 import com.jjg.game.core.base.condition.ConditionNode;
 import com.jjg.game.core.base.condition.ConditionParser;
@@ -42,13 +44,15 @@ public class GameFunctionService implements GameEventListener {
     private final ConditionManager conditionManager;
     private final ConditionParser conditionParser;
     private final ClusterSystem clusterSystem;
+    private final NodeConfig nodeConfig;
 
 
     public GameFunctionService(ConditionManager conditionManager, ConditionParser conditionParser,
-                               ClusterSystem clusterSystem) {
+                               ClusterSystem clusterSystem, NodeConfig nodeConfig) {
         this.conditionManager = conditionManager;
         this.conditionParser = conditionParser;
         this.clusterSystem = clusterSystem;
+        this.nodeConfig = nodeConfig;
     }
 
     /**
@@ -215,8 +219,11 @@ public class GameFunctionService implements GameEventListener {
 
     @Override
     public List<EGameEventType> needMonitorEvents() {
-        // 只有实际负责功能开放推送的节点才需要解析并监听功能开放条件。
-        // 例如 Ploy 节点不依赖 Sim 模块，无法也无需解析 simAllLevel 等 Sim 专属条件。
+        // 功能开放变化由 Hall 统一推送。GAME 节点（Ploy/Slots/Table 等）不加载 Sim 条件处理器，
+        // 也不应解析包含 simAllLevel 等 Sim 专属条件的整张 GameFunction 表。
+        if (nodeConfig == null || !NodeType.HALL.name().equalsIgnoreCase(nodeConfig.getType())) {
+            return Collections.emptyList();
+        }
 
         List<GameFunctionListener> listeners =
                 SystemInterfaceHolder.getGameSysInterface(GameFunctionListener.class);
