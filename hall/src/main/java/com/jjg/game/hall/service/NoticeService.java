@@ -105,11 +105,12 @@ public class NoticeService implements IRedDotService {
         Set<Long> set = noticeDao.getPlayerReadNotice(playerId);
         RedDotDetails redDotDetailInfo = new RedDotDetails();
         redDotDetailInfo.setRedDotModule(RedDotDetails.RedDotModule.NOTICE);
-        redDotDetailInfo.setRedDotType(RedDotDetails.RedDotType.COMMON);
-        boolean match = this.notices.stream().anyMatch(notice -> !set.contains(notice.getId()));
-        if (match) {
-            redDotDetailInfo.setCount(1);
-        }
+        redDotDetailInfo.setRedDotType(RedDotDetails.RedDotType.COUNT);
+        // 公告入口展示全部未读数量，普通公告和活动公告都参与统计。
+        long unreadCount = getNotices().stream()
+                .filter(notice -> !set.contains(notice.getId()))
+                .count();
+        redDotDetailInfo.setCount(unreadCount);
         return List.of(redDotDetailInfo);
     }
 
