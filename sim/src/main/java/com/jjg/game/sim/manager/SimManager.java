@@ -16,6 +16,7 @@ import com.jjg.game.core.data.PlayerController;
 import com.jjg.game.core.service.CorePlayerService;
 import com.jjg.game.core.service.GameFunctionService;
 import com.jjg.game.core.service.PlayerPackService;
+import com.jjg.game.core.service.PlayerStatService;
 import com.jjg.game.sampledata.GameDataManager;
 import com.jjg.game.sampledata.bean.ItemCfg;
 import com.jjg.game.sampledata.bean.VisitorQuestCfg;
@@ -36,6 +37,7 @@ import com.jjg.game.season.service.SeasonLifecycleService;
 import com.jjg.game.season.service.SeasonService;
 import com.jjg.game.sim.service.*;
 import com.jjg.game.core.base.condition.numeric.GameConditionEvent;
+import com.jjg.game.core.base.condition.numeric.ActionConditionEvent;
 import io.netty.util.Timeout;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -121,6 +123,8 @@ public class SimManager {
     private SimDropService simDropService;
     @Autowired
     private SimStatsService simStatsService;
+    @Autowired
+    private PlayerStatService playerStatService;
     @Autowired
     private ClusterSystem clusterSystem;
     @Autowired
@@ -741,8 +745,21 @@ public class SimManager {
             //联盟联动: 消耗体力/中奖倍数 -> 任务进度 + 对决积分掉落 (内部吞异常, 不影响主流程)
             allianceEventService.onSpin(playerId, actualSpinCostPower, conditionEvent);
 
+            boolean visitSlotSpin = enterType == EnterGameType.VISIT.getValue();
+            if (visitSlotSpin) {
+                playerStatService.recordVisitSlotSpin(playerId, gameType);
+            }
             //主线/成就任务联动: 变化随现有 RPC 结果返回，由持有会话的 slots 节点通知客户端
             var taskUpdates = simTaskService.collectConditionEventUpdates(ctx, conditionEvent);
+            if (visitSlotSpin) {
+                var visitUpdates = simTaskService.collectConditionEventUpdates(ctx,
+                        new ActionConditionEvent(ActionConditionEvent.Type.VISIT_SLOT_SPIN,
+                                gameType, 0, 0, 1, 0, false));
+                if (!visitUpdates.isEmpty()) {
+                    taskUpdates = new ArrayList<>(taskUpdates);
+                    taskUpdates.addAll(visitUpdates);
+                }
+            }
             if (!taskUpdates.isEmpty()) {
                 if (result.data == null) {
                     result.data = new SlotsSpinResult();

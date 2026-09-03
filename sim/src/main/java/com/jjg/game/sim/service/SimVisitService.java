@@ -308,6 +308,7 @@ public class SimVisitService implements IRedDotService {
             return actionFailure(Code.EXCEPTION);
         }
         addRankPopularity(playerId, popularity);
+        allianceEventService.onVisitGift(ctx.playerId());
         long diamond = deduct.data == null ? 0 : deduct.data.getDiamond();
         return actionSuccess(profile, popularity, 0, ownerRemaining, diamond);
     }

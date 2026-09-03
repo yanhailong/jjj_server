@@ -24,6 +24,8 @@ public record ActionConditionEvent(Type type, int subjectId, int relatedId, long
         GAME_RESEARCH,
         GAME_UNLOCK,
         VISIT,
+        VISIT_GIFT,
+        VISIT_SLOT_SPIN,
         LOGIN,
         CASINO_UNLOCK,
         SCENE_TOTAL_LEVEL,
@@ -41,7 +43,8 @@ public record ActionConditionEvent(Type type, int subjectId, int relatedId, long
         ITEM_USE,
         ITEM_EXCHANGE,
         SEASON_SHOP_BUY,
-        SEASON_GEM_EQUIP
+        SEASON_GEM_EQUIP,
+        SEASON_GEM_CRAFT
     }
 
     public boolean matchesSubject(long expected) {

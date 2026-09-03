@@ -7,6 +7,7 @@ import com.jjg.game.common.rpc.GameRpcContext;
 import com.jjg.game.common.rpc.RpcReqParameterBuilder;
 import com.jjg.game.core.constant.Code;
 import com.jjg.game.core.data.CommonResult;
+import com.jjg.game.core.service.PlayerStatService;
 import com.jjg.game.sim.bridge.ToSimBridge;
 import com.jjg.game.sim.service.SimNodeService;
 import org.slf4j.Logger;
@@ -33,6 +34,8 @@ public class PokerRPCLinkManager {
     private ClusterSystem clusterSystem;
     @Autowired
     private SimNodeService simNodeService;
+    @Autowired
+    private PlayerStatService playerStatService;
 
     /**
      * 为已确认使用赛季币的房间创建账户并同步余额。
@@ -84,6 +87,10 @@ public class PokerRPCLinkManager {
 
     /** 斗仙牌大结算完成后按所属 SIM 节点批量通知，不阻塞牌桌收尾。 */
     public void notifyDouXianSettled(Map<Long, String> players) {
+        if (players == null || players.isEmpty()) {
+            return;
+        }
+        players.keySet().forEach(playerStatService::recordDouXianSettlement);
         for (SimPlayerBatch batch : groupBySimNode(players)) {
             notifyDouXianSettled(batch.client(), List.copyOf(batch.playerIds()));
         }

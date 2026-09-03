@@ -16,6 +16,7 @@ import com.jjg.game.core.base.gameevent.GameEventListener;
 import com.jjg.game.core.base.gameevent.PlayerEvent;
 import com.jjg.game.core.data.Player;
 import com.jjg.game.core.data.PlayerController;
+import com.jjg.game.core.listener.ActivityOpenListener;
 import com.jjg.game.core.listener.GameFunctionListener;
 import com.jjg.game.core.manager.ConditionManager;
 import com.jjg.game.core.pb.NotifyOpenFunction;
@@ -76,7 +77,7 @@ public class GameFunctionService implements GameEventListener {
         for (GameFunctionCfg functionCfg : GameDataManager.getGameFunctionCfgList()) {
             if (checkGameFunctionOpen(player, functionCfg, false, false)) {
                 functionIdList.add(functionCfg.getId());
-            } else if (functionCfg.getIsOpen() && functionIdSet.contains(functionCfg.getId())) {
+            } else if (functionIdSet.contains(functionCfg.getId()) && checkGameFunctionOpen(functionCfg)) {
                 functionIdList.add(functionCfg.getId());
             }
         }
@@ -186,7 +187,12 @@ public class GameFunctionService implements GameEventListener {
      * 检查游戏功能开放
      */
     public boolean checkGameFunctionOpen(GameFunctionCfg functionCfg) {
-        return functionCfg != null && functionCfg.getIsOpen();
+        if (functionCfg == null || !functionCfg.getIsOpen()) {
+            return false;
+        }
+        int activityType = functionCfg.getFunctionType();
+        return activityType <= 0 || SystemInterfaceHolder.getGameSysInterface(ActivityOpenListener.class)
+                .stream().anyMatch(listener -> listener.isActivityOpen(activityType));
     }
 
     /**
@@ -197,15 +203,10 @@ public class GameFunctionService implements GameEventListener {
             return false;
         }
 
-        if (!functionCfg.getIsOpen()) {
+        if (!checkGameFunctionOpen(functionCfg)) {
             return false;
         }
 
-        for (GameFunctionListener listener : SystemInterfaceHolder.getGameSysInterface(GameFunctionListener.class)) {
-            if (!listener.isFunctionOpen(player, functionCfg.getId())) {
-                return false;
-            }
-        }
         String check = join ? functionCfg.getCondition() : functionCfg.getShowCondition();
         if (notify) {
             return conditionManager.isAchievementAndNotify(player, "", check);

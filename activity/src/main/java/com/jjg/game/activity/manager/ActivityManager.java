@@ -45,6 +45,7 @@ import com.jjg.game.core.data.Account;
 import com.jjg.game.core.data.CommonResult;
 import com.jjg.game.core.data.Player;
 import com.jjg.game.core.data.PlayerController;
+import com.jjg.game.core.listener.ActivityOpenListener;
 import com.jjg.game.core.listener.ConfigExcelChangeListener;
 import com.jjg.game.core.listener.DropItemListener;
 import com.jjg.game.core.listener.GmListener;
@@ -76,7 +77,7 @@ import java.util.concurrent.ConcurrentHashMap;
  */
 @Component
 public class ActivityManager implements TimerListener<Long>, IPlayerLoginSuccess, GmListener, GameEventListener,
-        ConfigExcelChangeListener, IRedDotService, DropItemListener {
+        ConfigExcelChangeListener, IRedDotService, DropItemListener, ActivityOpenListener {
     private static final Logger log = LoggerFactory.getLogger(ActivityManager.class);
     /**
      * 定时器中心，用于添加活动开始/结束的定时任务
@@ -301,6 +302,16 @@ public class ActivityManager implements TimerListener<Long>, IPlayerLoginSuccess
         if (data.getTimeEnd() > timeMillis) {
             timerList.add(Pair.newPair(data.getTimeEnd(), activityInfoId));
         }
+    }
+
+    @Override
+    public boolean isActivityOpen(int activityType) {
+        ActivityType type = ActivityType.fromType(activityType);
+        if (type == null) {
+            return false;
+        }
+        return activityTypeData.getOrDefault(type, Map.of()).values().stream()
+                .anyMatch(ActivityData::canRun);
     }
 
     /**

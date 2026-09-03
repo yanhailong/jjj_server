@@ -16,7 +16,6 @@ import com.jjg.game.common.pb.AbstractResponse;
 import com.jjg.game.core.constant.AddType;
 import com.jjg.game.core.constant.Code;
 import com.jjg.game.core.data.*;
-import com.jjg.game.core.listener.GameFunctionListener;
 import com.jjg.game.core.listener.OrderGenerate;
 import com.jjg.game.core.pb.RechargeType;
 import com.jjg.game.core.pb.ReqGenerateOrder;
@@ -36,8 +35,7 @@ import java.util.Map;
 import java.util.concurrent.TimeUnit;
 
 @Component
-public class BuyOneGetSevenController extends BaseActivityController implements OrderGenerate, GameFunctionListener {
-    private static final int GAME_FUNCTION_ID = 5012;
+public class BuyOneGetSevenController extends BaseActivityController implements OrderGenerate {
     private static final int PURCHASE_DURATION_PARAM_INDEX = 0;
     private static final int UNLOCK_INTERVAL_PARAM_INDEX = 1;
 
@@ -248,12 +246,6 @@ public class BuyOneGetSevenController extends BaseActivityController implements 
     @Override
     public RechargeType getRechargeType() {
         return RechargeType.BUY_ONE_GET_SEVEN;
-    }
-
-    @Override
-    public boolean isFunctionOpen(Player player, int functionId) {
-        return functionId != GAME_FUNCTION_ID
-                || activityManager.getOpenActivityData(player, ActivityType.BUY_ONE_GET_SEVEN) != null;
     }
 
     @Override
