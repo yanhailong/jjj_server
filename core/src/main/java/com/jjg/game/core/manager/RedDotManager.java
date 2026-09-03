@@ -19,6 +19,8 @@ import org.springframework.stereotype.Component;
 
 import java.util.*;
 import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
 
 /**
  * 红点管理器
@@ -426,6 +428,26 @@ public class RedDotManager {
             updateRedDot(updateList, playerId);
         } else {
             sendRedDots(updateList, recipient);
+        }
+    }
+
+    /**
+     * 按每个在线玩家的业务数据重新计算红点并分别推送。
+     * 适用于公告等包含玩家个人已读状态、无法使用统一数量广播的模块。
+     */
+    public void updateRedDotByInitializeForOnlinePlayers(RedDotDetails.RedDotModule module, int submodule) {
+        Map<Long, PlayerSessionInfo> onlinePlayers = playerSessionService.getAll();
+        if (CollectionUtil.isEmpty(onlinePlayers)) {
+            return;
+        }
+        try (ExecutorService executor = Executors.newVirtualThreadPerTaskExecutor()) {
+            onlinePlayers.keySet().forEach(playerId -> executor.submit(() -> {
+                try {
+                    updateRedDotByInitialize(module, submodule, playerId);
+                } catch (Exception e) {
+                    log.error("按玩家刷新红点失败 module={},submodule={},playerId={}", module, submodule, playerId, e);
+                }
+            }));
         }
     }
 
