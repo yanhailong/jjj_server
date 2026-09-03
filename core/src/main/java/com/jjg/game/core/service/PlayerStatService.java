@@ -44,6 +44,12 @@ public class PlayerStatService {
     public static final int WEALTH_GOD_MODE = 12275;
     public static final int SKILL_TOTAL_LEVEL = 12276;
     public static final int SKILL_LEVEL = 12277;
+    public static final int ALLIANCE_DONATE = 12278;
+    public static final int VISIT_GIFT = 12279;
+    public static final int VISIT_SLOT_SPIN = 12280;
+    public static final int DOUXIAN_SETTLEMENT = 12281;
+    public static final int SEASON_GEM_CRAFT = 12282;
+    public static final int CARD_POOL_DRAW = 12283;
 
     public static final int GOLD_ITEM_ID = 1990000;
     public static final int DIAMOND_ITEM_ID = 1980000;
@@ -56,7 +62,7 @@ public class PlayerStatService {
 
     public static boolean supports(int conditionId) {
         return conditionId == BUILDING_LEVEL
-                || conditionId >= SLOT_ITEM && conditionId <= SKILL_LEVEL && conditionId != 12258;
+                || conditionId >= SLOT_ITEM && conditionId <= CARD_POOL_DRAW && conditionId != 12258;
     }
 
     public static boolean recorded(int conditionId) {
@@ -64,7 +70,8 @@ public class PlayerStatService {
             case SLOT_ITEM, BIG_SHOW, JACKPOT, FREE_MODE, BUILDING_UPGRADE, AD_WATCH,
                     GUEST_RECRUIT, BUSINESS_INCOME, GAME_UNLOCK, VISIT, LOGIN_DAYS,
                     CURRENCY_CONSUME, GUEST_POOL_DRAW, EMPLOYEE_POOL_DRAW, SLOT_BET,
-                    SLOT_WIN, WEALTH_GOD_MODE -> true;
+                    SLOT_WIN, WEALTH_GOD_MODE, ALLIANCE_DONATE, VISIT_GIFT, VISIT_SLOT_SPIN,
+                    DOUXIAN_SETTLEMENT, SEASON_GEM_CRAFT, CARD_POOL_DRAW -> true;
             default -> false;
         };
     }
@@ -188,6 +195,38 @@ public class PlayerStatService {
         incrementPlayer(VISIT, playerId, 1);
     }
 
+    public void recordAllianceDonate(long playerId) {
+        incrementPlayer(ALLIANCE_DONATE, playerId, 1);
+    }
+
+    public void recordVisitGift(long playerId) {
+        incrementPlayer(VISIT_GIFT, playerId, 1);
+    }
+
+    public void recordVisitSlotSpin(long playerId, int gameType) {
+        incrementDimensionPlayer(VISIT_SLOT_SPIN, gameType, playerId, 1);
+        if (gameType != 0) {
+            incrementDimensionPlayer(VISIT_SLOT_SPIN, 0, playerId, 1);
+        }
+    }
+
+    public void recordDouXianSettlement(long playerId) {
+        incrementPlayer(DOUXIAN_SETTLEMENT, playerId, 1);
+    }
+
+    public void recordSeasonGemCraft(long playerId, int quality) {
+        incrementPlayer(SEASON_GEM_CRAFT, playerId, 1);
+        if (quality > 0) {
+            incrementDimensionPlayer(SEASON_GEM_CRAFT, quality, playerId, 1);
+        }
+    }
+
+    public void recordCardPoolDraw(long playerId, long count) {
+        if (count > 0) {
+            incrementPlayer(CARD_POOL_DRAW, playerId, count);
+        }
+    }
+
     public void recordLoginDay(long playerId) {
         String player = String.valueOf(playerId);
         String dayMarker = feature(LOGIN_DAYS, "login", TimeHelper.getDayNumerical());
@@ -235,6 +274,13 @@ public class PlayerStatService {
             case SLOT_WIN -> getDimensionsPlayer(SLOT_WIN, condition.spec().intParameter(0),
                     condition.spec().intParameter(1), playerId);
             case WEALTH_GOD_MODE -> getPlayer(WEALTH_GOD_MODE, playerId);
+            case ALLIANCE_DONATE, VISIT_GIFT, DOUXIAN_SETTLEMENT, CARD_POOL_DRAW ->
+                    getPlayer(conditionId, playerId);
+            case VISIT_SLOT_SPIN -> getDimensionPlayer(VISIT_SLOT_SPIN,
+                    condition.spec().intParameter(0), playerId);
+            case SEASON_GEM_CRAFT -> condition.spec().intParameter(0) == 0
+                    ? getPlayer(SEASON_GEM_CRAFT, playerId)
+                    : getDimensionPlayer(SEASON_GEM_CRAFT, condition.spec().intParameter(0), playerId);
             default -> 0;
         };
     }

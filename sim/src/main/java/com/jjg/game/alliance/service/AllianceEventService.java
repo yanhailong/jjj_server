@@ -90,6 +90,12 @@ public class AllianceEventService implements ItemConsumeListener {
         onSimOperation(playerId, SimConditionEventFactory.visit());
     }
 
+    public void onVisitGift(long playerId) {
+        playerStatService.recordVisitGift(playerId);
+        onSimOperation(playerId, new ActionConditionEvent(ActionConditionEvent.Type.VISIT_GIFT,
+                0, 0, 0, 1, 0, false));
+    }
+
     /** 一次经营金币收益 (自产 / 离线 / 游客产出): 推进 12215。 */
     public void onBusinessIncome(long playerId, long gold) {
         if (gold > 0) {
@@ -156,6 +162,10 @@ public class AllianceEventService implements ItemConsumeListener {
     }
 
     public void onCardPoolDraw(long playerId, int poolId, long count) {
+        if (count <= 0) {
+            return;
+        }
+        playerStatService.recordCardPoolDraw(playerId, count);
         onConditionEvent(playerId, new ActionConditionEvent(ActionConditionEvent.Type.CARD_POOL_DRAW,
                 poolId, 0, 0, count, 0, false));
     }
@@ -204,6 +214,7 @@ public class AllianceEventService implements ItemConsumeListener {
     }
 
     public void onDonate(long playerId) {
+        playerStatService.recordAllianceDonate(playerId);
         onConditionEvent(playerId, new ActionConditionEvent(ActionConditionEvent.Type.ALLIANCE_DONATE,
                 0, 0, 0, 1, 0, false));
     }
