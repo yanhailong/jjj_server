@@ -15,12 +15,8 @@ import com.jjg.game.activity.constant.ActivityConstant;
 import com.jjg.game.common.pb.AbstractResponse;
 import com.jjg.game.core.constant.AddType;
 import com.jjg.game.core.constant.Code;
-import com.jjg.game.core.data.ChannelType;
-import com.jjg.game.core.data.CommonResult;
-import com.jjg.game.core.data.ItemOperationResult;
-import com.jjg.game.core.data.Order;
-import com.jjg.game.core.data.Player;
-import com.jjg.game.core.listener.GameFunctionOpenChecker;
+import com.jjg.game.core.data.*;
+import com.jjg.game.core.listener.GameFunctionListener;
 import com.jjg.game.core.listener.OrderGenerate;
 import com.jjg.game.core.pb.RechargeType;
 import com.jjg.game.core.pb.ReqGenerateOrder;
@@ -40,7 +36,7 @@ import java.util.Map;
 import java.util.concurrent.TimeUnit;
 
 @Component
-public class BuyOneGetSevenController extends BaseActivityController implements OrderGenerate, GameFunctionOpenChecker {
+public class BuyOneGetSevenController extends BaseActivityController implements OrderGenerate, GameFunctionListener {
     private static final int GAME_FUNCTION_ID = 5012;
     private static final int PURCHASE_DURATION_PARAM_INDEX = 0;
     private static final int UNLOCK_INTERVAL_PARAM_INDEX = 1;

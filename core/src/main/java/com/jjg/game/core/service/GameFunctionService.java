@@ -17,7 +17,6 @@ import com.jjg.game.core.base.gameevent.PlayerEvent;
 import com.jjg.game.core.data.Player;
 import com.jjg.game.core.data.PlayerController;
 import com.jjg.game.core.listener.GameFunctionListener;
-import com.jjg.game.core.listener.GameFunctionOpenChecker;
 import com.jjg.game.core.manager.ConditionManager;
 import com.jjg.game.core.pb.NotifyOpenFunction;
 import com.jjg.game.sampledata.GameDataManager;
@@ -201,8 +200,9 @@ public class GameFunctionService implements GameEventListener {
         if (!functionCfg.getIsOpen()) {
             return false;
         }
-        for (GameFunctionOpenChecker checker : SystemInterfaceHolder.getGameSysInterface(GameFunctionOpenChecker.class)) {
-            if (!checker.isFunctionOpen(player, functionCfg.getId())) {
+
+        for (GameFunctionListener listener : SystemInterfaceHolder.getGameSysInterface(GameFunctionListener.class)) {
+            if (!listener.isFunctionOpen(player, functionCfg.getId())) {
                 return false;
             }
         }

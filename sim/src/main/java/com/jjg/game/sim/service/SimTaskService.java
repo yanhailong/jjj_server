@@ -1196,12 +1196,21 @@ public class SimTaskService implements IRedDotService, GameFunctionListener {
         }
 
         Set<Integer> set = new HashSet<>();
-        for (TaskCfg cfg : GameDataManager.getTaskCfgList()) {
-            if (cfg.getTaskType() != TaskConstant.TaskType.MAIN_LINE || cfg.getFunctionId() < 1) {
+        for (int id : taskConfig.getMainChain()) {
+            TaskCfg cfg = GameDataManager.getTaskCfg(id);
+            if (cfg == null || cfg.getFunctionId() < 1) {
                 continue;
             }
 
-            if (cfg.getId() < data.getMainTask().getConfigId() || data.getMainTask().getStatus() >= TaskConstant.TaskStatus.STATUS_COMPLETED) {
+            if(cfg.getId() > data.getMainTask().getConfigId()){
+                break;
+            }
+
+            if(cfg.getId() == data.getMainTask().getConfigId()){
+                if(data.getMainTask().getStatus() >= TaskConstant.TaskStatus.STATUS_COMPLETED){
+                    set.add(cfg.getFunctionId());
+                }
+            }else {
                 set.add(cfg.getFunctionId());
             }
         }

@@ -364,4 +364,8 @@ public class SimTaskConfigService implements ConfigExcelChangeListener {
 
     private record BadgeSeed(int badgeId, int buildingId, int gameId, List<BadgeBuffTier> tiers) {
     }
+
+    public List<Integer> getMainChain() {
+        return mainChain;
+    }
 }

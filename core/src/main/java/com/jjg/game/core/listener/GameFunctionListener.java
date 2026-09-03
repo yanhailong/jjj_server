@@ -19,4 +19,8 @@ public interface GameFunctionListener extends IGameSysFuncInterface {
     default Set<Integer> checkOpenFunction(Player player){
         return Collections.emptySet();
     }
+
+    default boolean isFunctionOpen(Player player, int functionId){
+        return false;
+    }
 }

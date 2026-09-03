@@ -251,7 +251,9 @@ public class SimConfigCacheService implements ConfigExcelChangeListener {
         visitorTargetListCfgMap = configs;
     }
 
-    /** 加载VisitorQuestCfg。 */
+    /**
+     * 加载VisitorQuestCfg。
+     */
     private void loadVisitorQuestConfig() {
         Map<Integer, List<VisitorQuestCfg>> tmpVisitorQuestCfgMap = new HashMap<>();
         Map<Integer, VisitorQuestCfg> tmpVisitorQuestItemCfgMap = new HashMap<>();
@@ -623,18 +625,11 @@ public class SimConfigCacheService implements ConfigExcelChangeListener {
     }
 
     private void loadAllianceTasks() {
-        List<TaskCfg> all = GameDataManager.getTaskCfgList();
-        if (all == null || all.isEmpty()) {
-            allianceTasks = Collections.emptyList();
-            allianceTaskMap = Collections.emptyMap();
-            allianceTaskConditionMap = Collections.emptyMap();
-            return;
-        }
         List<TaskCfg> tasks = new ArrayList<>();
         Map<Integer, TaskCfg> map = new HashMap<>();
         Map<Integer, PreparedCondition> conditionMap = new HashMap<>();
-        for (TaskCfg cfg : all) {
-            if (cfg != null && cfg.getTaskType() == TaskConstant.TaskType.ALLIANCE) {
+        for (TaskCfg cfg : GameDataManager.getTaskCfgList()) {
+            if (cfg.getTaskType() == TaskConstant.TaskType.ALLIANCE) {
                 PreparedCondition condition;
                 try {
                     condition = conditionRules.prepare(ConditionSpec.from(cfg.getTaskConditionId()));
@@ -700,7 +695,7 @@ public class SimConfigCacheService implements ConfigExcelChangeListener {
                 continue;
             }
 
-            if(!cfg.getPosition().contains(5) && !cfg.getPosition().contains(3)){
+            if (!cfg.getPosition().contains(5) && !cfg.getPosition().contains(3)) {
                 continue;
             }
 
@@ -1190,7 +1185,7 @@ public class SimConfigCacheService implements ConfigExcelChangeListener {
     }
 
     public List<MedalBuffCfg> getMedalBuffCfgs(int buildingId) {
-        if(this.buildMedalMap == null){
+        if (this.buildMedalMap == null) {
             return null;
         }
         return this.buildMedalMap.get(buildingId);

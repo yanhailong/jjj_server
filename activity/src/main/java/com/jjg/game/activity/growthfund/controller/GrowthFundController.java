@@ -22,6 +22,7 @@ import com.jjg.game.core.constant.Code;
 import com.jjg.game.core.dao.CountDao;
 import com.jjg.game.core.data.*;
 import com.jjg.game.core.listener.OrderGenerate;
+import com.jjg.game.core.listener.SimPlayerContextListener;
 import com.jjg.game.core.pb.RechargeType;
 import com.jjg.game.core.pb.ReqGenerateOrder;
 import com.jjg.game.core.utils.ItemUtils;
@@ -32,6 +33,7 @@ import com.jjg.game.sampledata.bean.GrowthFundCfg;
 import com.jjg.game.sampledata.bean.ShopRechargeListCfg;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Component;
 
 import java.math.BigDecimal;
@@ -46,6 +48,9 @@ import java.util.stream.Collectors;
 public class GrowthFundController extends BaseActivityController implements OrderGenerate {
 
     private final Logger log = LoggerFactory.getLogger(GrowthFundController.class);
+
+    @Autowired
+    private List<SimPlayerContextListener> simPlayerContextListeners;
 
     /**
      * 玩家加入成长基金活动
@@ -67,9 +72,10 @@ public class GrowthFundController extends BaseActivityController implements Orde
         }
         //购买道具奖励
         Map<Integer, Long> rewards = getBuyGetRewards(activityData);
-        //获取最新的玩家等级数据
-        Player newPlayer = corePlayerService.get(playerId);
-        int level = newPlayer.getLevel();
+
+        //获取场景总等级
+        int level = simPlayerContextListeners.stream().findFirst().get().allLevel(player);
+
         //获取配置信息
         Map<Integer, GrowthFundCfg> baseCfgBeanMap = getDetailCfgBean(activityData);
         //需要更新的详情信息
@@ -344,11 +350,11 @@ public class GrowthFundController extends BaseActivityController implements Orde
             ActivityData activityData = activityManager.getActivityData().get(entry.getKey());
             if (activityData != null) {
                 ShopRechargeListCfg shopRechargeListCfg = GameDataManager.getShopRechargeListCfg(activityData.getChannelCommodity());
-                if(shopRechargeListCfg != null){
+                if (shopRechargeListCfg != null) {
                     activityInfo.sellingPrice = shopRechargeListCfg.getPrice().toPlainString();
-                    if(player.getChannel() == ChannelType.APPLE){
+                    if (player.getChannel() == ChannelType.APPLE) {
                         activityInfo.productId = shopRechargeListCfg.getIosShopId();
-                    }else {
+                    } else {
                         activityInfo.productId = shopRechargeListCfg.getGoogleShopId();
                     }
                 }
@@ -436,7 +442,7 @@ public class GrowthFundController extends BaseActivityController implements Orde
             return null;
         }
         ShopRechargeListCfg shopRechargeListCfg = GameDataManager.getShopRechargeListCfg(activityData.getChannelCommodity());
-        if(shopRechargeListCfg == null){
+        if (shopRechargeListCfg == null) {
             return null;
         }
         return shopRechargeListCfg.getPrice();
