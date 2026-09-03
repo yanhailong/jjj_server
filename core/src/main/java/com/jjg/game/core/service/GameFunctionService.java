@@ -14,15 +14,12 @@ import com.jjg.game.core.base.gameevent.EGameEventType;
 import com.jjg.game.core.base.gameevent.GameEvent;
 import com.jjg.game.core.base.gameevent.GameEventListener;
 import com.jjg.game.core.base.gameevent.PlayerEvent;
-import com.jjg.game.core.constant.TaskConstant;
 import com.jjg.game.core.data.Player;
 import com.jjg.game.core.data.PlayerController;
 import com.jjg.game.core.listener.GameFunctionListener;
 import com.jjg.game.core.listener.GameFunctionOpenChecker;
 import com.jjg.game.core.manager.ConditionManager;
 import com.jjg.game.core.pb.NotifyOpenFunction;
-import com.jjg.game.core.task.db.TaskData;
-import com.jjg.game.core.task.db.TaskDataDao;
 import com.jjg.game.sampledata.GameDataManager;
 import com.jjg.game.sampledata.bean.GameFunctionCfg;
 import org.slf4j.Logger;
@@ -46,17 +43,13 @@ public class GameFunctionService implements GameEventListener {
     private final ConditionManager conditionManager;
     private final ConditionParser conditionParser;
     private final ClusterSystem clusterSystem;
-    private final List<GameFunctionListener> gameFunctionListeners;
-    private final TaskDataDao taskDataDao;
 
 
     public GameFunctionService(ConditionManager conditionManager, ConditionParser conditionParser,
-                               ClusterSystem clusterSystem, List<GameFunctionListener> gameFunctionListeners, TaskDataDao taskDataDao) {
+                               ClusterSystem clusterSystem) {
         this.conditionManager = conditionManager;
         this.conditionParser = conditionParser;
         this.clusterSystem = clusterSystem;
-        this.gameFunctionListeners = gameFunctionListeners;
-        this.taskDataDao = taskDataDao;
     }
 
     /**
@@ -70,15 +63,16 @@ public class GameFunctionService implements GameEventListener {
     public List<Integer> getOpenedFuncIdList(Player player) {
         List<Integer> functionIdList = new ArrayList<>();
 
-        TaskData taskData = taskDataDao.findByPlayerId(player.getId());
         Set<Integer> functionIdSet = new HashSet<>();
-        if (taskData != null && taskData.getTaskDetails() != null && !taskData.getTaskDetails().isEmpty()) {
-            taskData.getTaskDetails().entrySet().stream().forEach(en -> {
-                if (en.getValue().getStatus() >= TaskConstant.TaskStatus.STATUS_COMPLETED) {
-                    functionIdSet.add(en.getKey());
-                }
-            });
-        }
+
+        List<GameFunctionListener> listeners =
+                SystemInterfaceHolder.getGameSysInterface(GameFunctionListener.class);
+        listeners.forEach(gameFunctionListener -> {
+            Set<Integer> tmpSet = gameFunctionListener.checkOpenFunction(player);
+            if (tmpSet != null && !tmpSet.isEmpty()) {
+                functionIdSet.addAll(tmpSet);
+            }
+        });
 
         for (GameFunctionCfg functionCfg : GameDataManager.getGameFunctionCfgList()) {
             if (checkGameFunctionOpen(player, functionCfg, false, false)) {
@@ -147,7 +141,10 @@ public class GameFunctionService implements GameEventListener {
             }
         }
         List<Integer> openedFuncIdList = getOpenedFuncIdList(player);
-        gameFunctionListeners.forEach(gameFunctionListener -> {
+
+        List<GameFunctionListener> listeners =
+                SystemInterfaceHolder.getGameSysInterface(GameFunctionListener.class);
+        listeners.forEach(gameFunctionListener -> {
             gameFunctionListener.notifyAllFunction(session, openedFuncIdList);
         });
     }
@@ -220,7 +217,11 @@ public class GameFunctionService implements GameEventListener {
     public List<EGameEventType> needMonitorEvents() {
         // 只有实际负责功能开放推送的节点才需要解析并监听功能开放条件。
         // 例如 Ploy 节点不依赖 Sim 模块，无法也无需解析 simAllLevel 等 Sim 专属条件。
-        if (gameFunctionListeners.isEmpty()) {
+
+        List<GameFunctionListener> listeners =
+                SystemInterfaceHolder.getGameSysInterface(GameFunctionListener.class);
+
+        if (listeners.isEmpty()) {
             return Collections.emptyList();
         }
         List<EGameEventType> needMonitorEvents = new ArrayList<>();

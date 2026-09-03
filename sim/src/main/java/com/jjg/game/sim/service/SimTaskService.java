@@ -8,6 +8,7 @@ import com.jjg.game.core.constant.Code;
 import com.jjg.game.core.constant.TaskConstant;
 import com.jjg.game.core.dao.CountDao;
 import com.jjg.game.core.data.*;
+import com.jjg.game.core.listener.GameFunctionListener;
 import com.jjg.game.core.logger.TaskLogger;
 import com.jjg.game.core.manager.RedDotManager;
 import com.jjg.game.core.pb.reddot.RedDotDetails;
@@ -59,7 +60,7 @@ import java.util.*;
  * @date 2026/6/25
  */
 @Service
-public class SimTaskService implements IRedDotService {
+public class SimTaskService implements IRedDotService, GameFunctionListener {
     private static final Logger log = LoggerFactory.getLogger(SimTaskService.class);
 
     //主线计数 prefix: 每个节点一个 (featureId = 条件type + prefix)
@@ -249,7 +250,9 @@ public class SimTaskService implements IRedDotService {
         return node;
     }
 
-    /** GM 将主线向前跳到指定任务。独立成就不存在链路跳转。 */
+    /**
+     * GM 将主线向前跳到指定任务。独立成就不存在链路跳转。
+     */
     public CommonResult<String> jumpTask(SimPlayerContext ctx, int taskId) {
         if (ctx == null || ctx.getSimTaskData() == null) {
             return new CommonResult<>(Code.FAIL, "玩家模拟经营任务数据未加载");
@@ -399,7 +402,9 @@ public class SimTaskService implements IRedDotService {
     // 进度 (旋转事件驱动)
     // =====================================================================
 
-    /** 本节点直接触发的旋转事件沿用完成/续接才推送、纯进度静默的行为。 */
+    /**
+     * 本节点直接触发的旋转事件沿用完成/续接才推送、纯进度静默的行为。
+     */
     public void onSpin(SimPlayerContext ctx, int gameType, SpinStatInfo statInfo) {
         try {
             SimTaskData data = ctx.getSimTaskData();
@@ -594,7 +599,9 @@ public class SimTaskService implements IRedDotService {
         }
     }
 
-    /** 12001 沿用旧任务条件的任务内进度，只累计当前已接取节点收到的有效下注事件。 */
+    /**
+     * 12001 沿用旧任务条件的任务内进度，只累计当前已接取节点收到的有效下注事件。
+     */
     private void evaluateEffectiveBet(SimPlayerContext ctx, Player player, SimTaskData data,
                                       SimBaseData baseData, TaskDetail node, TaskCfg cfg,
                                       ConditionEvent event, List<Task> changed,
@@ -616,7 +623,9 @@ public class SimTaskService implements IRedDotService {
         }
     }
 
-    /** 接取后累计型条件直接保存在当前任务节点中，不继承接取前的任何历史进度。 */
+    /**
+     * 接取后累计型条件直接保存在当前任务节点中，不继承接取前的任何历史进度。
+     */
     private void evaluateTaskDetailProgress(SimPlayerContext ctx, Player player, SimTaskData data,
                                             SimBaseData baseData, TaskDetail node, TaskCfg cfg,
                                             PreparedCondition condition, ConditionEvent event,
@@ -913,7 +922,9 @@ public class SimTaskService implements IRedDotService {
                         : "count:" + def.counterType() + prefixOf(cfg) + ":" + player.getId());
     }
 
-    /** 定位主线当前节点或指定的独立成就任务。 */
+    /**
+     * 定位主线当前节点或指定的独立成就任务。
+     */
     private TaskDetail findActiveNode(SimTaskData data, TaskCfg cfg, int taskId) {
         if (cfg.getTaskType() == TaskConstant.TaskType.MAIN_LINE) {
             return data.getMainTask();
@@ -955,7 +966,9 @@ public class SimTaskService implements IRedDotService {
         return res;
     }
 
-    /** 成就任务列表：沿用建筑到徽章的配置映射，buildingId=0 时返回全部成就。 */
+    /**
+     * 成就任务列表：沿用建筑到徽章的配置映射，buildingId=0 时返回全部成就。
+     */
     public ResSimAchievementTaskList buildAchievementTaskList(SimPlayerContext ctx, int buildingId) {
         ResSimAchievementTaskList res = new ResSimAchievementTaskList(Code.SUCCESS);
         SimTaskData data = ctx.getSimTaskData();
@@ -995,7 +1008,9 @@ public class SimTaskService implements IRedDotService {
         return res;
     }
 
-    /** 复用列表查询前的任务补齐、状态结算与红点更新。 */
+    /**
+     * 复用列表查询前的任务补齐、状态结算与红点更新。
+     */
     private void prepareTaskList(SimPlayerContext ctx) {
         ensureActive(ctx.playerId(), ctx.getSimTaskData());
         if (settleState(ctx, false)) {
@@ -1075,7 +1090,9 @@ public class SimTaskService implements IRedDotService {
         return assemble(ctx, player, node, cfg, null);
     }
 
-    /** 复用事件推进时已取得的进度，避免跨节点通知为组装协议再读一次 Redis。 */
+    /**
+     * 复用事件推进时已取得的进度，避免跨节点通知为组装协议再读一次 Redis。
+     */
     private Task assemble(SimPlayerContext ctx, Player player, TaskDetail node, TaskCfg cfg,
                           Long progressOverride) {
         Task task = new Task();
@@ -1140,7 +1157,9 @@ public class SimTaskService implements IRedDotService {
     // 工具
     // =====================================================================
 
-    /** 主线计数按节点隔离。成就事件进度直接保存在各自任务节点。 */
+    /**
+     * 主线计数按节点隔离。成就事件进度直接保存在各自任务节点。
+     */
     private String prefixOf(TaskCfg cfg) {
         return PREFIX_MAIN + cfg.getId();
     }
@@ -1162,5 +1181,30 @@ public class SimTaskService implements IRedDotService {
             return pc.getPlayer();
         }
         return corePlayerService.get(ctx.playerId());
+    }
+
+    @Override
+    public Set<Integer> checkOpenFunction(Player player) {
+        SimPlayerContext ctx = contextRegistry.getContext(player.getId());
+        if (ctx == null) {
+            return Collections.emptySet();
+        }
+
+        SimTaskData data = ctx.getSimTaskData();
+        if (data == null || data.getMainTask() == null) {
+            return Collections.emptySet();
+        }
+
+        Set<Integer> set = new HashSet<>();
+        for (TaskCfg cfg : GameDataManager.getTaskCfgList()) {
+            if (cfg.getTaskType() != TaskConstant.TaskType.MAIN_LINE || cfg.getFunctionId() < 1) {
+                continue;
+            }
+
+            if (cfg.getId() < data.getMainTask().getConfigId() || data.getMainTask().getStatus() >= TaskConstant.TaskStatus.STATUS_COMPLETED) {
+                set.add(cfg.getFunctionId());
+            }
+        }
+        return set;
     }
 }

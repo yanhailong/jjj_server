@@ -2007,7 +2007,7 @@ public class SimGuestService implements SimPlayerTickListener, ItemListener, Sim
             }
         }
 
-        VisitorTargetListCfg poolCfg = getSpecialGuestPoolCfg(ctx.getCurrentCasino(), SimConstant.SpecialGuest.POOL_AD);
+        VisitorTargetListCfg poolCfg = getSpecialGuestPoolCfg(ctx.getCurrentCasino(), SimConstant.SpecialGuest.POOL_PAID);
         res.maxPurchasePerRefresh = poolCfg.getMaxPurchasePerRefresh();
         res.maxManualRefreshPerPeriod = poolCfg.getMaxManualRefreshPerPeriod();
     }
