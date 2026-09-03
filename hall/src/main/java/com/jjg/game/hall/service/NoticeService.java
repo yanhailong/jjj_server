@@ -1,5 +1,6 @@
 package com.jjg.game.hall.service;
 
+import com.jjg.game.common.curator.NodeType;
 import com.jjg.game.common.utils.TimeHelper;
 import com.jjg.game.core.base.reddot.IRedDotService;
 import com.jjg.game.core.dao.NoticeDao;
@@ -11,7 +12,6 @@ import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 
-import java.util.ArrayList;
 import java.util.Comparator;
 import java.util.List;
 import java.util.Set;
@@ -30,7 +30,7 @@ public class NoticeService implements IRedDotService {
     @Autowired
     private RedDotManager redDotManager;
 
-    private List<Notice> notices = new ArrayList<>();
+    private volatile List<Notice> notices = List.of();
 
     public void init() {
         loadNotice(true);
@@ -59,7 +59,8 @@ public class NoticeService implements IRedDotService {
 
         //如果有新增的公告，则要发送红点通知给玩家
         if (newNotices) {
-            redDotManager.updateRedDot(RedDotDetails.RedDotModule.NOTICE, 0);
+            // 公告红点与玩家已读记录有关，不能广播固定数量，必须逐个玩家重新计算。
+            redDotManager.updateRedDotByInitializeForOnlinePlayers(RedDotDetails.RedDotModule.NOTICE, 0);
         }
     }
 
@@ -71,9 +72,10 @@ public class NoticeService implements IRedDotService {
     public List<Notice> getNotices() {
         int now = TimeHelper.nowInt();
 
-        //移除未开启的公告
-        this.notices.removeIf(notice -> !notice.isOpen() || notice.getStartTime() > now || notice.getEndTime() < now);
-        return this.notices;
+        // 返回当前有效公告快照，避免逐玩家并发刷新红点时修改共享列表。
+        return this.notices.stream()
+                .filter(notice -> notice.isOpen() && notice.getStartTime() <= now && notice.getEndTime() >= now)
+                .toList();
     }
 
     public Set<Long> getPlayerReadNotice(long playerId) {
@@ -101,15 +103,21 @@ public class NoticeService implements IRedDotService {
     }
 
     @Override
+    public Set<NodeType> getSupportedNodeTypes() {
+        return Set.of(NodeType.HALL, NodeType.GAME);
+    }
+
+    @Override
     public List<RedDotDetails> initialize(long playerId, int submodule) {
         Set<Long> set = noticeDao.getPlayerReadNotice(playerId);
         RedDotDetails redDotDetailInfo = new RedDotDetails();
         redDotDetailInfo.setRedDotModule(RedDotDetails.RedDotModule.NOTICE);
-        redDotDetailInfo.setRedDotType(RedDotDetails.RedDotType.COMMON);
-        boolean match = this.notices.stream().anyMatch(notice -> !set.contains(notice.getId()));
-        if (match) {
-            redDotDetailInfo.setCount(1);
-        }
+        redDotDetailInfo.setRedDotType(RedDotDetails.RedDotType.COUNT);
+        // 公告入口展示全部未读数量，普通公告和活动公告都参与统计。
+        long unreadCount = getNotices().stream()
+                .filter(notice -> !set.contains(notice.getId()))
+                .count();
+        redDotDetailInfo.setCount(unreadCount);
         return List.of(redDotDetailInfo);
     }
 
