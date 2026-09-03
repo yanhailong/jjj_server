@@ -96,7 +96,7 @@ public class RedDotDetails {
          * 等级礼包
          */
         @ProtoDesc("等级礼包")
-        LEVEL_PACK(6, RedDotType.COMMON, false),
+        LEVEL_PACK(6, RedDotType.COUNT, false),
         /**
          * 公告
          */

@@ -380,7 +380,7 @@ public class ActivityMessageHandler {
         AbstractResponse res = playerLevelPackManager.reqPlayerLevelPackDetailInfo(playerController);
         playerController.send(res);
         if (res.code == Code.SUCCESS) {
-            playerLevelPackManager.updateRedDot(playerController.playerId(), false);
+            playerLevelPackManager.updateRedDot(playerController.playerId());
         }
     }
 
