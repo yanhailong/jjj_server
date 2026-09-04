@@ -2040,20 +2040,23 @@ public class SimGuestService implements SimPlayerTickListener, ItemListener, Sim
 
     private ItemInfo nextSpecialGuestRefreshCost(SimCasinoData casino) {
         VisitorTargetListCfg paidPoolCfg = getSpecialGuestPoolCfg(casino, SimConstant.SpecialGuest.POOL_PAID);
-        if (!canManualRefreshSpecialGuests(paidPoolCfg, casino.getSpecialGuestRefreshCount())) {
+        if (paidPoolCfg == null || !paidPoolCfg.getManualRefresh()) {
             return null;
         }
         return getSpecialGuestRefreshCost(paidPoolCfg, casino.getSpecialGuestRefreshCount());
     }
 
     /**
-     * 刷新次数超过费用档位数量时，持续使用最后一个已配置档位。
+     * 刷新次数超过费用档位数量或对应档位为空时，使用最后一个已配置档位。
      */
     private ItemInfo getSpecialGuestRefreshCost(VisitorTargetListCfg poolCfg, int refreshCount) {
         if (poolCfg == null || poolCfg.getRefreshCost() == null || poolCfg.getRefreshCost().isEmpty()) {
             return null;
         }
         List<Integer> costCfg = poolCfg.getRefreshCost().get(Math.min(refreshCount, poolCfg.getRefreshCost().size() - 1));
+        if (costCfg == null || costCfg.isEmpty()) {
+            costCfg = poolCfg.getRefreshCost().getLast();
+        }
         if (costCfg == null || costCfg.size() < 2 || costCfg.getFirst() <= 0 || costCfg.get(1) < 0) {
             return null;
         }

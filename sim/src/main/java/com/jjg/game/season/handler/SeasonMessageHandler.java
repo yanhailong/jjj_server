@@ -81,6 +81,16 @@ public class SeasonMessageHandler implements GmListener {
         execute(playerController, ctx -> ctx.send(seasonService.craftBatch(ctx, req.qualities)));
     }
 
+    @Command(SeasonConstant.MsgBean.REQ_SEASON_PASS_LIST)
+    public void reqSeasonPassList(PlayerController playerController, ReqSeasonPassList req) {
+        execute(playerController, ctx -> ctx.send(seasonService.passes(ctx)));
+    }
+
+    @Command(SeasonConstant.MsgBean.REQ_SEASON_PASS_CLAIM)
+    public void reqSeasonPassClaim(PlayerController playerController, ReqSeasonPassClaim req) {
+        execute(playerController, ctx -> ctx.send(seasonService.claimPassRewards(ctx, req.passId)));
+    }
+
     @Command(SeasonConstant.MsgBean.REQ_SEASON_MATCH)
     public void reqSeasonMatch(PlayerController playerController, ReqSeasonMatch req) {
         long playerId = playerController.playerId();

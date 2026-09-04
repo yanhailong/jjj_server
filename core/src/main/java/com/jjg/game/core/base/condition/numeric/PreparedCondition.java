@@ -1,5 +1,7 @@
 package com.jjg.game.core.base.condition.numeric;
 
+import java.util.List;
+
 /**
  * 已校验的条件。配置加载时创建一次，热路径可直接 O(1) 求值，避免重复解析和临时对象。
  */
@@ -26,6 +28,10 @@ public final class PreparedCondition {
 
     public Class<? extends ConditionEvent> eventType() {
         return rule.eventType();
+    }
+
+    public List<Long> progressParameters() {
+        return rule.progressParameters(spec);
     }
 
     /**

@@ -31,6 +31,7 @@ import com.jjg.game.sim.data.SimPlayerContext;
 import com.jjg.game.sim.data.SimTaskData;
 import com.jjg.game.sim.data.SpinStatInfo;
 import com.jjg.game.sim.listener.SimTaskStateReporter;
+import com.jjg.game.sim.listener.SimConditionEventListener;
 import com.jjg.game.sim.logger.SimAchievementTaskLogger;
 import com.jjg.game.sim.logger.SimMainTaskLogger;
 import com.jjg.game.sim.manager.SimPlayerContextRegistry;
@@ -105,6 +106,9 @@ public class SimTaskService implements IRedDotService, GameFunctionListener {
     @Lazy
     @Autowired(required = false)
     private List<SimTaskStateReporter> stateReporters = Collections.emptyList();
+    @Lazy
+    @Autowired(required = false)
+    private List<SimConditionEventListener> conditionEventListeners = Collections.emptyList();
     @Autowired
     private SimConfigCacheService simConfigCacheService;
 
@@ -478,13 +482,29 @@ public class SimTaskService implements IRedDotService, GameFunctionListener {
     private boolean tryAdvanceConditionEvent(SimPlayerContext ctx, ConditionEvent event,
                                              List<Task> changed, boolean pollState,
                                              boolean includeProgressChanges) {
+        boolean success = true;
         try {
             advanceConditionEvent(ctx, event, changed, pollState, includeProgressChanges);
-            return true;
         } catch (Exception e) {
+            success = false;
             log.error("sim 任务条件事件异常 playerId={},event={}",
                     ctx == null ? 0 : ctx.playerId(), event, e);
-            return false;
+        }
+        notifyConditionListeners(ctx, event);
+        return success;
+    }
+
+    private void notifyConditionListeners(SimPlayerContext ctx, ConditionEvent event) {
+        if (ctx == null || event == null) {
+            return;
+        }
+        for (SimConditionEventListener listener : conditionEventListeners) {
+            try {
+                listener.onConditionEvent(ctx, event);
+            } catch (Exception e) {
+                log.error("sim 条件事件监听器异常 listener={},playerId={},event={}",
+                        listener.getClass().getSimpleName(), ctx.playerId(), event, e);
+            }
         }
     }
 

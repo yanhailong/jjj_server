@@ -41,6 +41,8 @@ public class SeasonStartCfg extends BaseCfgBean {
   protected int SeasonDuration;
   /** 赛季名称多语言 */
   protected int SeasonName;
+  /** 赛季通行证 */
+  protected List<Integer> SeasonPass;
 
   /** 返回赛季开启的游戏 */
   public int getAvailableGames() {
@@ -95,6 +97,11 @@ public class SeasonStartCfg extends BaseCfgBean {
   /** 返回赛季名称多语言 */
   public int getSeasonName() {
     return SeasonName;
+  }
+
+  /** 返回赛季通行证 */
+  public List<Integer> getSeasonPass() {
+    return SeasonPass;
   }
 
   @Override

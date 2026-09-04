@@ -67,6 +67,9 @@ public class SimBaseData extends AbstractData {
     private int onlineRewardDiamondCount;
     //视频冷却结束时间 (ms)，跨日与领取次数一并重置
     private long onlineRewardAdCdEndTime;
+    //不跟随赛季的通行证只保存付费轨和领奖状态，进度直接读取玩家当前状态
+    private Map<Integer, Integer> nonSeasonPassPurchasedTracks;
+    private Map<Integer, Integer> nonSeasonPassClaimedTracks;
 
     public void resetOnlineRewardDay(int today) {
         if (onlineRewardDay != today) {
@@ -107,6 +110,24 @@ public class SimBaseData extends AbstractData {
 
     public void setOnlineRewardAdCdEndTime(long onlineRewardAdCdEndTime) {
         this.onlineRewardAdCdEndTime = onlineRewardAdCdEndTime;
+    }
+
+    public Map<Integer, Integer> getNonSeasonPassPurchasedTracks() {
+        if (nonSeasonPassPurchasedTracks == null) nonSeasonPassPurchasedTracks = new HashMap<>();
+        return nonSeasonPassPurchasedTracks;
+    }
+
+    public void setNonSeasonPassPurchasedTracks(Map<Integer, Integer> value) {
+        this.nonSeasonPassPurchasedTracks = value == null ? new HashMap<>() : value;
+    }
+
+    public Map<Integer, Integer> getNonSeasonPassClaimedTracks() {
+        if (nonSeasonPassClaimedTracks == null) nonSeasonPassClaimedTracks = new HashMap<>();
+        return nonSeasonPassClaimedTracks;
+    }
+
+    public void setNonSeasonPassClaimedTracks(Map<Integer, Integer> value) {
+        this.nonSeasonPassClaimedTracks = value == null ? new HashMap<>() : value;
     }
 
     public long getPlayerId() {

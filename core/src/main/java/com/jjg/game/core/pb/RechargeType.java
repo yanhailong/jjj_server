@@ -67,6 +67,10 @@ public enum RechargeType {
      * 挖矿付费礼包
      */
     MINING_BUNDLE(14),
+    /**
+     * 赛季通行证
+     */
+    SEASON_PASS(15),
     ;
     private final int type;
 

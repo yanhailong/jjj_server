@@ -50,6 +50,10 @@ public class SeasonPlayerData extends AbstractData {
     private Map<Integer, Integer> shopPurchases = new HashMap<>();
     private Map<Integer, Integer> dailyShopPurchases = new HashMap<>();
     private Map<Integer, Integer> trialStars = new HashMap<>();
+    //跟随赛季的通行证进度、付费轨解锁和奖励领取状态
+    private Map<String, Long> passProgress = new HashMap<>();
+    private Map<Integer, Integer> passPurchasedTracks = new HashMap<>();
+    private Map<Integer, Integer> passClaimedTracks = new HashMap<>();
     private SeasonTrialSession activeTrial;
     private List<Long> representativeSpinWins = new ArrayList<>();
     private long representativeStake;
@@ -98,6 +102,9 @@ public class SeasonPlayerData extends AbstractData {
         getShopPurchases().clear();
         getDailyShopPurchases().clear();
         getTrialStars().clear();
+        getPassProgress().clear();
+        getPassPurchasedTracks().clear();
+        getPassClaimedTracks().clear();
         activeTrial = null;
         getRepresentativeSpinWins().clear();
         representativeStake = 0;
@@ -241,6 +248,21 @@ public class SeasonPlayerData extends AbstractData {
         return trialStars;
     }
     public void setTrialStars(Map<Integer, Integer> trialStars) { this.trialStars = trialStars == null ? new HashMap<>() : trialStars; }
+    public Map<String, Long> getPassProgress() {
+        if (passProgress == null) passProgress = new HashMap<>();
+        return passProgress;
+    }
+    public void setPassProgress(Map<String, Long> passProgress) { this.passProgress = passProgress == null ? new HashMap<>() : passProgress; }
+    public Map<Integer, Integer> getPassPurchasedTracks() {
+        if (passPurchasedTracks == null) passPurchasedTracks = new HashMap<>();
+        return passPurchasedTracks;
+    }
+    public void setPassPurchasedTracks(Map<Integer, Integer> passPurchasedTracks) { this.passPurchasedTracks = passPurchasedTracks == null ? new HashMap<>() : passPurchasedTracks; }
+    public Map<Integer, Integer> getPassClaimedTracks() {
+        if (passClaimedTracks == null) passClaimedTracks = new HashMap<>();
+        return passClaimedTracks;
+    }
+    public void setPassClaimedTracks(Map<Integer, Integer> passClaimedTracks) { this.passClaimedTracks = passClaimedTracks == null ? new HashMap<>() : passClaimedTracks; }
     public SeasonTrialSession getActiveTrial() { return activeTrial; }
     public void setActiveTrial(SeasonTrialSession activeTrial) { this.activeTrial = activeTrial; }
     public List<Long> getRepresentativeSpinWins() {
