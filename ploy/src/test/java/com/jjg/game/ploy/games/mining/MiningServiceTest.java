@@ -235,7 +235,9 @@ class MiningServiceTest {
 
     @Test void paymentQuoteLocksPriceRewardsAndDuplicateCallbackCannotGrantAgain() {
         ReqGenerateOrder req = new ReqGenerateOrder(); req.productId = "6003"; req.desc = "client supplied";
-        assertEquals(new BigDecimal("6"), service.generateOrderDetailInfo(player, req));
+        CommonResult<BigDecimal> orderResult = service.generateOrderDetailInfo(player, req);
+        assertTrue(orderResult.success());
+        assertEquals(new BigDecimal("6"), orderResult.data);
         assertNotEquals("client supplied", req.desc);
         Order order = new Order(); order.setId("paid-order-1"); order.setPlayerId(player.getId());
         order.setRechargeType(RechargeType.MINING_BUNDLE); order.setProductId("6003"); order.setDesc(req.desc);
@@ -250,7 +252,7 @@ class MiningServiceTest {
 
     @Test void failedOrderCreationReleasesReservationExactlyOnce() {
         ReqGenerateOrder req = new ReqGenerateOrder(); req.productId = "6003";
-        assertNotNull(service.generateOrderDetailInfo(player, req));
+        assertTrue(service.generateOrderDetailInfo(player, req).success());
         assertEquals(1, state().dailyPurchases.get(6003));
         service.onOrderCreationFailed(player, req); service.onOrderCreationFailed(player, req);
         assertEquals(0, state().dailyPurchases.get(6003)); assertEquals(0, state().permanentPurchases.get(6003));

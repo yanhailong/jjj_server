@@ -53,10 +53,7 @@ import org.springframework.stereotype.Component;
 import java.lang.invoke.MethodHandles;
 import java.lang.invoke.VarHandle;
 import java.math.BigDecimal;
-import java.util.ArrayList;
-import java.util.List;
-import java.util.Map;
-import java.util.Set;
+import java.util.*;
 
 /**
  * @author 11
@@ -96,6 +93,8 @@ public class CoreMessageHandler {
 
     public Map<String, ChooseWareListener> chooseWareListenerMap;
     public Map<String, ChooseSimListener> chooseSimListenerMap;
+
+    private Map<RechargeType, OrderGenerate> orderGenerateMap = new HashMap<>();
     //奖池本地缓存
     private final Cache<String, Class<? extends BaseCfgBean>> configCache = Caffeine.newBuilder()
             .build();
@@ -103,6 +102,13 @@ public class CoreMessageHandler {
     public void init() {
         chooseWareListenerMap = CommonUtil.getContext().getBeansOfType(ChooseWareListener.class);
         chooseSimListenerMap = CommonUtil.getContext().getBeansOfType(ChooseSimListener.class);
+
+
+        SystemInterfaceHolder.getGameSysInterface(OrderGenerate.class).forEach(orderGenerate -> {
+            if (orderGenerate.getRechargeType() != null) {
+                orderGenerateMap.put(orderGenerate.getRechargeType(), orderGenerate);
+            }
+        });
     }
 
     /**
@@ -550,26 +556,24 @@ public class CoreMessageHandler {
                 playerController.send(res);
                 return;
             }
-            BigDecimal price = null;
-            for (OrderGenerate generate : SystemInterfaceHolder.getGameSysInterface(OrderGenerate.class)) {
-                try {
-                    if (generate.getRechargeType() == rechargeType) {
-                        matchedGenerate = generate;
-                        price = generate.generateOrderDetailInfo(playerController.getPlayer(), req);
-                        break;
-                    }
-                } catch (Exception e) {
-                    log.error("预下单获取 价格失败 playerId = {},req = {}", playerController.playerId(), JSON.toJSONString(req), e);
-                }
-            }
-            if (price == null) {
-                notifyOrderCreationFailed(matchedGenerate, playerController, req);
-                log.debug("预下单失败 playerId = {},req = {}", playerController.playerId(), JSON.toJSONString(req));
+
+            matchedGenerate = orderGenerateMap.get(rechargeType);
+            if (matchedGenerate == null) {
+                log.debug("预下单失败,未找到对应的OrderGenerate接口 playerId = {},req = {}", playerController.playerId(), JSON.toJSONString(req));
                 res.code = Code.FAIL;
                 playerController.send(res);
                 return;
             }
-            Order order = orderService.generateOrder(playerController.getPlayer(), payType, req.productId, price, rechargeType, req.desc);
+
+            CommonResult<BigDecimal> priceResult = matchedGenerate.generateOrderDetailInfo(playerController.getPlayer(), req);
+            if (!priceResult.success()) {
+                notifyOrderCreationFailed(matchedGenerate, playerController, req);
+                log.debug("预下单失败 playerId = {},code={},req = {}", playerController.playerId(), priceResult.code, JSON.toJSONString(req));
+                res.code = priceResult.code;
+                playerController.send(res);
+                return;
+            }
+            Order order = orderService.generateOrder(playerController.getPlayer(), payType, req.productId, priceResult.data, rechargeType, req.desc);
             if (order == null) {
                 notifyOrderCreationFailed(matchedGenerate, playerController, req);
                 log.debug("预下单失败11 playerId = {},req = {}", playerController.playerId(), JSON.toJSONString(req));

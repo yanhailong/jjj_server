@@ -388,17 +388,23 @@ public class PlayerLevelPackManager implements GameEventListener, OrderGenerate,
     }
 
     @Override
-    public BigDecimal generateOrderDetailInfo(Player player, ReqGenerateOrder req) {
+    public CommonResult<BigDecimal> generateOrderDetailInfo(Player player, ReqGenerateOrder req) {
+        CommonResult<BigDecimal> result = new CommonResult<>(Code.FAIL);
         int id = Integer.parseInt(req.productId);
         PlayerLevelPackCfg cfg = GameDataManager.getPlayerLevelPackCfg(id);
         if (cfg == null) {
-            return null;
+            return result;
         }
         String channelCommodity = cfg.getChannelCommodity().get(player.getChannel().getValue());
         if (channelCommodity == null) {
-            return null;
+            return result;
         }
-        return cfg.getPay();
+        if (cfg.getPay() == null) {
+            return result;
+        }
+        result.code = Code.SUCCESS;
+        result.data = cfg.getPay();
+        return result;
     }
 
     @Override

@@ -1,6 +1,7 @@
 package com.jjg.game.core.listener;
 
 import com.jjg.game.common.baselogic.IGameSysFuncInterface;
+import com.jjg.game.core.data.CommonResult;
 import com.jjg.game.core.data.Order;
 import com.jjg.game.core.data.Player;
 import com.jjg.game.core.pb.RechargeType;
@@ -20,7 +21,7 @@ public interface OrderGenerate extends IGameSysFuncInterface {
      * @param req    请求
      * @return 商品id,配置价格
      */
-    BigDecimal generateOrderDetailInfo(Player player, ReqGenerateOrder req);
+    CommonResult<BigDecimal> generateOrderDetailInfo(Player player, ReqGenerateOrder req);
 
     /**
      * 预下单业务校验成功、但订单最终未创建时的补偿回调。

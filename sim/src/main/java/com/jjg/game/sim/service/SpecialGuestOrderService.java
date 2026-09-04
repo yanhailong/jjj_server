@@ -1,6 +1,7 @@
 package com.jjg.game.sim.service;
 
 import com.jjg.game.core.constant.Code;
+import com.jjg.game.core.data.CommonResult;
 import com.jjg.game.core.data.Order;
 import com.jjg.game.core.data.Player;
 import com.jjg.game.core.listener.OrderGenerate;
@@ -41,11 +42,11 @@ public class SpecialGuestOrderService implements OrderGenerate {
     }
 
     @Override
-    public BigDecimal generateOrderDetailInfo(Player player, ReqGenerateOrder req) {
+    public CommonResult<BigDecimal> generateOrderDetailInfo(Player player, ReqGenerateOrder req) {
         // 特殊游客必须先经过模拟经营购买接口校验当前展示商品，禁止通用下单接口绕过游客列表。
         log.warn("通用下单接口禁止创建特殊游客订单 playerId={},productId={}",
                 player.getId(), req.productId);
-        return null;
+        return new CommonResult<>(Code.FAIL);
     }
 
     @Override

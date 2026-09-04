@@ -434,16 +434,21 @@ public class PiggyBankController extends BaseActivityController implements Order
     }
 
     @Override
-    public BigDecimal generateOrderDetailInfo(Player player, ReqGenerateOrder req) {
+    public CommonResult<BigDecimal> generateOrderDetailInfo(Player player, ReqGenerateOrder req) {
+        CommonResult<BigDecimal> result = new CommonResult<>(Code.FAIL);
         BaseCfgBean cfgBean = getOrderGenerateBean(player, req.productId);
         if (cfgBean instanceof PiggyBankCfg cfg) {
             String channelCommodity = cfg.getChannelCommodity().get(player.getChannel().getValue());
             if (channelCommodity == null) {
-                return null;
+                return result;
             }
-            return cfg.getPay();
+            if (cfg.getPay() == null) {
+                return result;
+            }
+            result.code = Code.SUCCESS;
+            result.data = cfg.getPay();
         }
-        return null;
+        return result;
     }
 
     @Override

@@ -282,25 +282,60 @@ public class BuyOneGetSevenController extends BaseActivityController
     }
 
     @Override
-    public BigDecimal generateOrderDetailInfo(Player player, ReqGenerateOrder req) {
+    public CommonResult<BigDecimal> generateOrderDetailInfo(Player player, ReqGenerateOrder req) {
+        CommonResult<BigDecimal> result = new CommonResult<>(Code.FAIL);
         ActivityData activityData = activityManager.getOpenActivityData(player, ActivityType.BUY_ONE_GET_SEVEN);
+        if (activityData == null) {
+            log.warn("买一送七下单失败，未获取到可参与的活动 playerId={},productId={}",
+                    player.getId(), req.productId);
+            return result;
+        }
         Map<Integer, BuyOneGetSevenCfg> cfgMap = getDetailCfgBean(activityData);
-        if (!validConfig(activityData, cfgMap) || !activityManager.playerCanJoinActivity(activityData, player)
-                || !canPurchase(activityData, System.currentTimeMillis())) {
-            return null;
+        if (!validConfig(activityData, cfgMap)) {
+            log.warn("买一送七下单失败，活动配置无效 playerId={},productId={},activityId={},value={},valueParam={},cfgIds={}",
+                    player.getId(), req.productId, activityData.getId(), activityData.getValue(),
+                    activityData.getValueParam(), cfgMap.keySet());
+            return result;
+        }
+        if (!activityManager.playerCanJoinActivity(activityData, player)) {
+            log.warn("买一送七下单失败，玩家不满足活动参与条件 playerId={},productId={},activityId={}",
+                    player.getId(), req.productId, activityData.getId());
+            return result;
+        }
+        long now = System.currentTimeMillis();
+        if (!canPurchase(activityData, now)) {
+            log.warn("买一送七下单失败，不在可购买时间内 playerId={},productId={},activityId={},canRun={},now={},timeStart={},timeEnd={},buyEndTime={}",
+                    player.getId(), req.productId, activityData.getId(), activityData.canRun(), now,
+                    activityData.getTimeStart(), activityData.getTimeEnd(), getBuyEndTime(activityData));
+            return result;
         }
         Map<Integer, BuyOneGetSevenPlayerData> playerData = playerActivityDao.getPlayerActivityData(
                 player.getId(), activityData.getType(), activityData.getId());
         if (CollectionUtil.isNotEmpty(playerData)) {
-            log.warn("玩家已经购买过该礼包 playerId={},activityType={},activityId={}", player.getId(), activityData.getType(), activityData.getId());
-            return null;
+            log.warn("买一送七下单失败，玩家已经购买过该礼包 playerId={},productId={},activityType={},activityId={}",
+                    player.getId(), req.productId, activityData.getType(), activityData.getId());
+            return result;
         }
         ShopRechargeListCfg shopCfg = getShopCfg(activityData);
-        if (shopCfg == null || shopCfg.getPrice() == null
-                || StringUtils.isBlank(getChannelProductId(player, shopCfg))) {
-            return null;
+        if (shopCfg == null) {
+            log.warn("买一送七下单失败，未找到充值商品配置 playerId={},productId={},activityId={},channelCommodity={}",
+                    player.getId(), req.productId, activityData.getId(), activityData.getChannelCommodity());
+            return result;
         }
-        return shopCfg.getPrice();
+        if (shopCfg.getPrice() == null) {
+            log.warn("买一送七下单失败，充值商品价格为空 playerId={},productId={},activityId={},channelCommodity={}",
+                    player.getId(), req.productId, activityData.getId(), activityData.getChannelCommodity());
+            return result;
+        }
+        if (StringUtils.isBlank(getChannelProductId(player, shopCfg))) {
+            log.warn("买一送七下单失败，渠道商品ID为空 playerId={},productId={},activityId={},channel={},channelCommodity={}",
+                    player.getId(), req.productId, activityData.getId(), player.getChannel(),
+                    activityData.getChannelCommodity());
+            return result;
+        }
+        result.code = Code.SUCCESS;
+        result.data = shopCfg.getPrice();
+        return result;
     }
 
     @Override

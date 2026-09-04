@@ -246,16 +246,21 @@ public class FirstPaymentController extends BaseActivityController implements Or
     }
 
     @Override
-    public BigDecimal generateOrderDetailInfo(Player player, ReqGenerateOrder req) {
+    public CommonResult<BigDecimal> generateOrderDetailInfo(Player player, ReqGenerateOrder req) {
+        CommonResult<BigDecimal> result = new CommonResult<>(Code.FAIL);
         BaseCfgBean cfgBean = getOrderGenerateBean(player, req.productId);
         if (cfgBean instanceof FirstpaymentCfg cfg) {
             String channelCommodity = cfg.getChannelCommodity().get(player.getChannel().getValue());
             if (channelCommodity == null) {
-                return null;
+                return result;
             }
-            return cfg.getMoney();
+            if (cfg.getMoney() == null) {
+                return result;
+            }
+            result.code = Code.SUCCESS;
+            result.data = cfg.getMoney();
         }
-        return null;
+        return result;
     }
 
     @Override

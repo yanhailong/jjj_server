@@ -1,5 +1,7 @@
 package com.jjg.game.season.service;
 
+import com.jjg.game.core.constant.Code;
+import com.jjg.game.core.data.CommonResult;
 import com.jjg.game.core.data.Order;
 import com.jjg.game.core.data.Player;
 import com.jjg.game.core.listener.OrderGenerate;
@@ -38,10 +40,11 @@ public class SeasonPassOrderService implements OrderGenerate {
     }
 
     @Override
-    public BigDecimal generateOrderDetailInfo(Player player, ReqGenerateOrder req) {
+    public CommonResult<BigDecimal> generateOrderDetailInfo(Player player, ReqGenerateOrder req) {
+        CommonResult<BigDecimal> result = new CommonResult<>(Code.FAIL);
         SimPlayerContext ctx = contextRegistry.getContext(player.getId());
         if (ctx == null) {
-            return null;
+            return result;
         }
         lifecycleService.ensureCurrent(ctx, System.currentTimeMillis());
         SeasonPlayerData data = ctx.getSeasonPlayerData();
@@ -49,22 +52,24 @@ public class SeasonPassOrderService implements OrderGenerate {
         SeasonPassConfigService.PassDefinition pass = target == null ? null
                 : passConfig.activePass(data.getSeasonId(), target.passId());
         if (pass == null || !passService.hasTrackRewards(pass, target.track())) {
-            return null;
+            return result;
         }
         int purchased = pass.followsSeason()
                 ? data.getPassPurchasedTracks().getOrDefault(pass.id(), 0)
                 : ctx.getSimBaseData().getNonSeasonPassPurchasedTracks().getOrDefault(pass.id(), 0);
         if ((purchased & SeasonPassService.trackBit(target.track())) != 0) {
-            return null;
+            return result;
         }
         ShopRechargeListCfg shop = passConfig.shop(pass, target.track());
         String channelProductId = shop == null ? null : SeasonPassService.channelProductId(player, shop);
         if (shop == null || shop.getPrice() == null || shop.getPrice().signum() <= 0
                 || channelProductId == null || channelProductId.isBlank()) {
-            return null;
+            return result;
         }
         req.productId = passService.orderToken(data, pass, target.track());
-        return shop.getPrice();
+        result.code = Code.SUCCESS;
+        result.data = shop.getPrice();
+        return result;
     }
 
     @Override
