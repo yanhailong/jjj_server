@@ -307,17 +307,22 @@ public class ScratchCardsController extends BaseActivityController implements Or
 
 
     @Override
-    public BigDecimal generateOrderDetailInfo(Player player, ReqGenerateOrder req) {
+    public CommonResult<BigDecimal> generateOrderDetailInfo(Player player, ReqGenerateOrder req) {
+        CommonResult<BigDecimal> result = new CommonResult<>(Code.FAIL);
         BaseCfgBean cfgBean = getOrderGenerateBean(player, req.productId);
         if (cfgBean instanceof ScratchCardsCfg cfg && cfg.getType() == ActivityConstant.ScratchCards.GIFT_TYPE
                 && cfg.getChannelCommodity() > 0 && CollectionUtil.isNotEmpty(cfg.getGetItem())) {
             if (cfg.getCount() <= 0 || countDao.getCount(getBuyCountFeature(player.getId()), String.valueOf(cfg.getId())).intValue() >= cfg.getCount()) {
-                return null;
+                return result;
             }
             ShopRechargeListCfg shopRechargeListCfg = GameDataManager.getShopRechargeListCfg(cfg.getChannelCommodity());
-            return shopRechargeListCfg == null ? null : shopRechargeListCfg.getPrice();
+            if (shopRechargeListCfg == null || shopRechargeListCfg.getPrice() == null) {
+                return result;
+            }
+            result.code = Code.SUCCESS;
+            result.data = shopRechargeListCfg.getPrice();
         }
-        return null;
+        return result;
     }
 
 

@@ -263,16 +263,21 @@ public class DailyRechargeController extends BaseActivityController implements O
     }
 
     @Override
-    public BigDecimal generateOrderDetailInfo(Player player, ReqGenerateOrder req) {
+    public CommonResult<BigDecimal> generateOrderDetailInfo(Player player, ReqGenerateOrder req) {
+        CommonResult<BigDecimal> result = new CommonResult<>(Code.FAIL);
         BaseCfgBean cfgBean = getOrderGenerateBean(player, req.productId);
         if (cfgBean instanceof DailyRechargeCfg cfg && cfg.getType() == ActivityConstant.DailyRecharge.GIFT) {
             String channelCommodity = cfg.getChannelCommodity().get(player.getChannel().getValue());
             if (channelCommodity == null) {
-                return null;
+                return result;
             }
-            return cfg.getCost();
+            if (cfg.getCost() == null) {
+                return result;
+            }
+            result.code = Code.SUCCESS;
+            result.data = cfg.getCost();
         }
-        return null;
+        return result;
     }
 
     @Override

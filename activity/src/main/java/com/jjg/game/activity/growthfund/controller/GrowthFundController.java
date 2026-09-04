@@ -438,17 +438,20 @@ public class GrowthFundController extends BaseActivityController implements Orde
     }
 
     @Override
-    public BigDecimal generateOrderDetailInfo(Player player, ReqGenerateOrder req) {
+    public CommonResult<BigDecimal> generateOrderDetailInfo(Player player, ReqGenerateOrder req) {
+        CommonResult<BigDecimal> result = new CommonResult<>(Code.FAIL);
         long activityId = Long.parseLong(req.productId);
         ActivityData activityData = activityManager.getActivityData().get(activityId);
         if (activityData == null || !checkPlayerCanJoinActivity(player, activityData)) {
-            return null;
+            return result;
         }
         ShopRechargeListCfg shopRechargeListCfg = GameDataManager.getShopRechargeListCfg(activityData.getChannelCommodity());
-        if (shopRechargeListCfg == null) {
-            return null;
+        if (shopRechargeListCfg == null || shopRechargeListCfg.getPrice() == null) {
+            return result;
         }
-        return shopRechargeListCfg.getPrice();
+        result.code = Code.SUCCESS;
+        result.data = shopRechargeListCfg.getPrice();
+        return result;
     }
 
     @Override

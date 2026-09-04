@@ -337,16 +337,21 @@ public class PrivilegeCardController extends BaseActivityController implements O
 
 
     @Override
-    public BigDecimal generateOrderDetailInfo(Player player, ReqGenerateOrder req) {
+    public CommonResult<BigDecimal> generateOrderDetailInfo(Player player, ReqGenerateOrder req) {
+        CommonResult<BigDecimal> result = new CommonResult<>(Code.FAIL);
         BaseCfgBean cfgBean = getOrderGenerateBean(player, req.productId);
         if (cfgBean instanceof PrivilegeCardCfg cfg) {
             String channelCommodity = cfg.getChannelCommodity().get(player.getChannel().getValue());
             if (channelCommodity == null) {
-                return null;
+                return result;
             }
-            return cfg.getPurchasecost();
+            if (cfg.getPurchasecost() == null) {
+                return result;
+            }
+            result.code = Code.SUCCESS;
+            result.data = cfg.getPurchasecost();
         }
-        return null;
+        return result;
     }
 
     @Override

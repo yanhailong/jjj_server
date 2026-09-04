@@ -212,29 +212,35 @@ public class ShopService implements OrderGenerate {
     }
 
     @Override
-    public BigDecimal generateOrderDetailInfo(Player player, ReqGenerateOrder req) {
+    public CommonResult<BigDecimal> generateOrderDetailInfo(Player player, ReqGenerateOrder req) {
+        CommonResult<BigDecimal> result = new CommonResult<>(Code.FAIL);
         long shopProductId = Long.parseLong(req.productId);
         ShopProduct shopProduct = shopProductMap.get(shopProductId);
         if (shopProduct == null) {
             log.debug("获取商品为空 playerId = {}, shopProductId = {}", player.getId(), shopProductId);
-            return null;
+            return result;
         }
 
         if (!checkProductOpen(player, shopProduct)) {
             log.debug("商品未开启 playerId = {}, shopProductId = {}", player.getId(), shopProductId);
-            return null;
+            return result;
         }
         ChannelType channel = player.getChannel();
         if (channel == null) {
             log.error("玩家channel为空 playerId = {}, shopProductId = {}", player.getId(), shopProductId);
-            return null;
+            return result;
         }
         String channelProductId = shopProduct.channelProductId(player.getChannel().getValue());
         if (channelProductId == null) {
             log.debug("获取商品的渠道商品id为空 playerId = {}, shopProductId = {}", player.getId(), shopProductId);
-            return null;
+            return result;
         }
-        return shopProduct.getMoney();
+        if (shopProduct.getMoney() == null) {
+            return result;
+        }
+        result.code = Code.SUCCESS;
+        result.data = shopProduct.getMoney();
+        return result;
     }
 
     /**

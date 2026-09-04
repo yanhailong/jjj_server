@@ -364,17 +364,18 @@ public class MiningService implements OrderGenerate, StandalonePloyGame {
     }
 
     @Override
-    public BigDecimal generateOrderDetailInfo(Player player, ReqGenerateOrder request) {
+    public CommonResult<BigDecimal> generateOrderDetailInfo(Player player, ReqGenerateOrder request) {
+        CommonResult<BigDecimal> result = new CommonResult<>(Code.FAIL);
         try { return inSeason(player, season -> {
             MiningBundleShopCfg good = GameDataManager.getMiningBundleShopCfg(Integer.parseInt(request.productId));
-            if (good == null || bundleMode(good) != 3) return null;
+            if (good == null || bundleMode(good) != 3) return result;
             BigDecimal price = price(good);
-            if (price.signum() <= 0) return null;
+            if (price.signum() <= 0) return result;
             Map<Integer, Long> goods = MiningCatalog.itemPair(good.getGoods());
             validateItems(goods);
-            if (goods.isEmpty() || goods.keySet().stream().anyMatch(id -> !ordinaryItem(id))) return null;
+            if (goods.isEmpty() || goods.keySet().stream().anyMatch(id -> !ordinaryItem(id))) return result;
             Snapshot snapshot = load(player, season);
-            if (snapshot.state.delivery != null) return null;
+            if (snapshot.state.delivery != null) return result;
             checkLimit(snapshot.state, good.getId(), good.getDailyPurchaseLimit(), 1);
             MiningState.Quote quote = new MiningState.Quote();
             quote.id = UUID.randomUUID().toString(); quote.goodId = good.getId(); quote.day = snapshot.state.day;
@@ -384,8 +385,10 @@ public class MiningService implements OrderGenerate, StandalonePloyGame {
             purchase(snapshot.state, good.getId(), 1);
             commit(player, snapshot.json, snapshot.state, Map.of(), Map.of(), AddType.MINING_BUNDLE);
             request.desc = quote.id;
-            return price;
-        }); } catch (Exception e) { log.warn("挖矿礼包预下单拒绝 playerId={} productId={}", player.getId(), request.productId, e); return null; }
+            result.code = Code.SUCCESS;
+            result.data = price;
+            return result;
+        }); } catch (Exception e) { log.warn("挖矿礼包预下单拒绝 playerId={} productId={}", player.getId(), request.productId, e); return result; }
     }
 
     @Override

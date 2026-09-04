@@ -190,50 +190,53 @@ public class BundleGiftPackController extends BaseActivityController implements 
     }
 
     @Override
-    public BigDecimal generateOrderDetailInfo(Player player, ReqGenerateOrder req) {
+    public CommonResult<BigDecimal> generateOrderDetailInfo(Player player, ReqGenerateOrder req) {
+        CommonResult<BigDecimal> result = new CommonResult<>(Code.FAIL);
         Integer giftId = parseRequestedGiftId(req.productId);
         if (giftId == null) {
             log.warn("集合礼包下单时获取数据失败 playerId={},productId={}", player.getId(), req.productId);
-            return null;
+            return result;
         }
         ActivityData activityData = activityManager.getOpenActivityData(player, ActivityType.BUNDLE_GIFT_PACK);
         if (activityData == null) {
             log.warn("集合礼包下单时获取活动数据失败 playerId={}", player.getId());
-            return null;
+            return result;
         }
         if (!isAllGift(giftId) && !activityData.getValue().contains(giftId)) {
             log.warn("集合礼包下单时该礼包id不合法 playerId={},value={},giftId={}", player.getId(), activityData.getValue(), giftId);
-            return null;
+            return result;
         }
 
         PurchaseTarget target = new PurchaseTarget(activityData.getId(), giftId);
         Map<Integer, BundleGiftPackCfg> cfgMap = getDetailCfgBean(activityData);
         ShopRechargeListCfg shopCfg = getPurchaseShopCfg(activityData, cfgMap, target);
         if (!isValidShopCfg(player, shopCfg)) {
-            return null;
+            return result;
         }
         Map<Integer, PlayerActivityData> playerData = playerActivityDao.getPlayerActivityData(
                 player.getId(), activityData.getType(), activityData.getId());
         if (target.isAllGift()) {
             if (cfgMap.size() != activityData.getValue().size()
                     || !hasConfiguredRewards(cfgMap, cfgMap.keySet()) || CollectionUtil.isNotEmpty(playerData)) {
-                return null;
+                return result;
             }
         } else {
             BundleGiftPackCfg cfg = cfgMap.get(target.giftId());
             if (cfg == null || CollectionUtil.isEmpty(cfg.getGetItem())) {
-                return null;
+                return result;
             }
 
             PlayerActivityData playerActivityData = playerData.get(target.giftId());
-            if(isPurchased(playerActivityData)){
+            if (isPurchased(playerActivityData)) {
                 log.warn("集合礼包下单时发现该礼包状态错误 playerId={},value={},giftId={},status={}", player.getId(), activityData.getValue(), giftId, playerActivityData == null ? null : playerActivityData.getClaimStatus());
-                return null;
+                return result;
             }
         }
         req.productId = target.isAllGift()
                 ? String.valueOf(target.activityId()) : target.activityId() + "_" + target.giftId();
-        return shopCfg.getPrice();
+        result.code = Code.SUCCESS;
+        result.data = shopCfg.getPrice();
+        return result;
     }
 
     @Override
