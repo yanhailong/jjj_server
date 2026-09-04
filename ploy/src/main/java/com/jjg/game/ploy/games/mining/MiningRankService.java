@@ -48,6 +48,7 @@ public class MiningRankService {
         public long playerId;
         public String nickName;
         public int headImgId;
+        public int headFrameId;
         public int depth;
         public long reachedAt;
     }
@@ -70,7 +71,13 @@ public class MiningRankService {
         Query query = Query.query(Criteria.where("_id").is(seasonId + ":" + player.getId()));
         mongo.upsert(query, new Update().setOnInsert("seasonId", seasonId).setOnInsert("playerId", player.getId())
                 .setOnInsert("depth", 0).setOnInsert("reachedAt", 0)
-                .set("nickName", player.getNickName()).set("headImgId", player.getHeadImgId()), Entry.class);
+                .set("nickName", player.getNickName()).set("headImgId", player.getHeadImgId())
+                .set("headFrameId", player.getHeadFrameId()), Entry.class);
+    }
+
+    public void sync(Player player, MiningState state) {
+        register(player, state.seasonId);
+        sync(player.getId(), state);
     }
 
     public void sync(long playerId, MiningState state) {
@@ -92,6 +99,7 @@ public class MiningRankService {
         if (self == null || self.depth <= 0) {
             res.self = new MiningRankInfo(); res.self.playerId = player.getId(); res.self.rank = 0;
             res.self.nickName = player.getNickName(); res.self.headImgId = player.getHeadImgId();
+            res.self.headFrameId = player.getHeadFrameId();
         } else {
             Criteria ahead = new Criteria().orOperator(Criteria.where("depth").gt(self.depth),
                     new Criteria().andOperator(Criteria.where("depth").is(self.depth), Criteria.where("reachedAt").lt(self.reachedAt)),
@@ -111,7 +119,7 @@ public class MiningRankService {
     private MiningRankInfo info(Entry entry, int rank, MiningConfig.Season season) {
         MiningRankInfo info = new MiningRankInfo();
         info.rank = rank; info.playerId = entry.playerId; info.nickName = entry.nickName;
-        info.headImgId = entry.headImgId; info.depth = entry.depth;
+        info.headImgId = entry.headImgId; info.headFrameId = entry.headFrameId; info.depth = entry.depth;
         info.rewards = ItemUtils.buildItemInfo(reward(season, rank));
         return info;
     }

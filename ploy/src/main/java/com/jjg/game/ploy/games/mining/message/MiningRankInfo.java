@@ -20,4 +20,6 @@ public class MiningRankInfo {
     public int depth;
     @ProtoDesc("该名次的奖励")
     public List<ItemInfo> rewards;
+    @ProtoDesc("头像框id")
+    public int headFrameId;
 }

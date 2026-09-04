@@ -45,6 +45,10 @@ class MiningIntegrationContractTest {
         assertEquals(1024037, result.rewardCells.getFirst().rewards.getFirst().itemId);
         assertEquals(1024034, result.info.tools.getFirst().itemId); assertEquals(1024037, result.info.ores.getFirst().itemId);
 
+        MiningRankInfo rank = new MiningRankInfo(); rank.playerId = 1; rank.headFrameId = 2003;
+        MiningRankInfo rankCopy = ProtostuffUtil.deserialize(ProtostuffUtil.serialize(rank), MiningRankInfo.class);
+        assertEquals(2003, rankCopy.headFrameId);
+
         ResMiningExchangeShop shop = new ResMiningExchangeShop(Code.SUCCESS); shop.version = 125;
         MiningExchangeInfo good = new MiningExchangeInfo(); good.id = 5001; good.goods = List.of(tool); good.cost = List.of(ore);
         shop.goods = List.of(good); shop.currencies = List.of(ore);

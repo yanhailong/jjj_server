@@ -148,7 +148,7 @@ public class MiningService implements OrderGenerate, StandalonePloyGame {
                             player.getId(), request.action, request.id, state.depth, state.version, rewards);
                 }
                 // 投影失败不反转已提交的背包操作；下次请求/赛季结算会从存档恢复。
-                try { ranks.sync(player.getId(), state); }
+                try { ranks.sync(player, state); }
                 catch (Exception e) { log.error("挖矿排行投影失败 playerId={}", player.getId(), e); }
                 response.info = buildInfo(player, state, season, engine);
                 return response;
@@ -165,7 +165,7 @@ public class MiningService implements OrderGenerate, StandalonePloyGame {
     public ResMiningRank rank(Player player) {
         try { return inSeason(player, season -> {
             Snapshot snapshot = load(player, season);
-            ranks.sync(player.getId(), snapshot.state);
+            ranks.sync(player, snapshot.state);
             ResMiningRank response = ranks.rank(player, season);
             response.version = snapshot.state.version;
             return response;

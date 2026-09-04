@@ -1,6 +1,7 @@
 package com.jjg.game.ploy.games.mining;
 
 import com.alibaba.fastjson.JSON;
+import com.jjg.game.core.data.Player;
 import com.jjg.game.core.data.PlayerPack;
 import com.jjg.game.core.service.MailService;
 import com.jjg.game.core.service.PlayerPackService;
@@ -20,6 +21,22 @@ import static org.mockito.ArgumentMatchers.*;
 import static org.mockito.Mockito.*;
 
 class MiningRankSettlementTest {
+    @Test void rankResponseIncludesStoredFrameAndCurrentSelfFrame() {
+        MongoTemplate mongo = mock(MongoTemplate.class);
+        MiningRankService.Entry entry = new MiningRankService.Entry();
+        entry.playerId = 11; entry.seasonId = "s1"; entry.depth = 10; entry.headFrameId = 2002;
+        when(mongo.find(any(Query.class), eq(MiningRankService.Entry.class))).thenReturn(List.of(entry));
+
+        Player player = new Player(); player.setId(22); player.setHeadFrameId(2003);
+        MiningConfig.Season season = new MiningConfig.Season(); season.id = "s1"; season.rewards = List.of();
+        MiningRankService service = new MiningRankService(mongo, mock(RedissonClient.class),
+                mock(PlayerPackService.class), mock(MailService.class), new MiningConfig());
+
+        var response = service.rank(player, season);
+        assertEquals(2002, response.ranks.getFirst().headFrameId);
+        assertEquals(2003, response.self.headFrameId);
+    }
+
     @Test void mailFailureRetriesFrozenAwardsAndCompletedSeasonIsNotPaidAgain() {
         MongoTemplate mongo = mock(MongoTemplate.class); RedissonClient redis = mock(RedissonClient.class);
         PlayerPackService packs = mock(PlayerPackService.class); MailService mail = mock(MailService.class);
