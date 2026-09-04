@@ -76,6 +76,8 @@ class MiningServiceTest {
 
         ResMiningBundleShop bundles = service.bundleShop(player);
         assertEquals(Code.SUCCESS, bundles.code); assertFalse(bundles.bundles.isEmpty()); assertEquals(state().version, bundles.version);
+        assertTrue(bundles.bundles.stream().allMatch(bundle -> bundle.nameLanguageId > 0));
+        assertTrue(bundles.bundles.stream().allMatch(bundle -> bundle.adCdEndTime == 0));
 
         ResMiningAchievements achievements = service.achievements(player);
         assertEquals(Code.SUCCESS, achievements.code); assertFalse(achievements.achievements.isEmpty());
@@ -191,6 +193,21 @@ class MiningServiceTest {
         assertEquals(Code.FORBID, service.action(player, req).code);
         assertEquals(1, state().total.ads);
         assertEquals("PAYMENT_REQUIRED", service.action(player, request(MiningConstant.BUNDLE, 6003)).reason);
+    }
+
+    @Test void exhaustedAdBundleReturnsDailyResetAsCooldownEndTime() {
+        when(ads.valid(eq(player.getId()), eq(TimeHelper.getDayNumerical()), anyString())).thenReturn(true);
+        for (int i = 1; i <= 3; i++) {
+            ReqMiningAction request = request(MiningConstant.BUNDLE, 6002);
+            request.adTicket = "ticket-" + i;
+            assertEquals(Code.SUCCESS, service.action(player, request).code);
+        }
+
+        ResMiningBundleShop response = service.bundleShop(player);
+        MiningBundleInfo adBundle = response.bundles.stream().filter(bundle -> bundle.id == 6002).findFirst().orElseThrow();
+        assertEquals(400800040, adBundle.nameLanguageId);
+        assertEquals(0, adBundle.remaining);
+        assertEquals(response.nextDailyReset, adBundle.adCdEndTime);
     }
 
     @Test void achievementCountsFullDestroyedCellsAndCanBeClaimedOnlyOnce() {

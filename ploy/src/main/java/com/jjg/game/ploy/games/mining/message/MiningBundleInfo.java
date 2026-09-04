@@ -27,4 +27,8 @@ public class MiningBundleInfo {
     public List<ItemInfo> goods;
     @ProtoDesc("支付金额十进制字符串")
     public String price;
+    @ProtoDesc("礼包名称多语言ID")
+    public int nameLanguageId;
+    @ProtoDesc("广告冷却结束时间，毫秒时间戳，0表示当前无冷却")
+    public long adCdEndTime;
 }

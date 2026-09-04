@@ -197,8 +197,10 @@ public class MiningService implements OrderGenerate, StandalonePloyGame {
             MiningState state = snapshot.state;
             ResMiningBundleShop response = new ResMiningBundleShop(Code.SUCCESS);
             response.seasonId = state.seasonId; response.version = state.version;
-            response.nextDailyReset = nextDailyReset();
-            response.bundles = GameDataManager.getMiningBundleShopCfgList().stream().map(good -> bundleInfo(state, good))
+            long nextDailyReset = nextDailyReset();
+            response.nextDailyReset = nextDailyReset;
+            response.bundles = GameDataManager.getMiningBundleShopCfgList().stream()
+                    .map(good -> bundleInfo(state, good, nextDailyReset))
                     .sorted(Comparator.comparingInt((MiningBundleInfo good) -> good.order).thenComparingInt(good -> good.id)).toList();
             return response;
         }); } catch (MiningException e) { return new ResMiningBundleShop(e.code); }
@@ -450,13 +452,15 @@ public class MiningService implements OrderGenerate, StandalonePloyGame {
         return info;
     }
 
-    private MiningBundleInfo bundleInfo(MiningState state, MiningBundleShopCfg good) {
+    private MiningBundleInfo bundleInfo(MiningState state, MiningBundleShopCfg good, long nextDailyReset) {
         ProductView product = productView(state, good.getId(), good.getDailyPurchaseLimit(), good.getGoods(), good.getOrder());
         MiningBundleInfo info = new MiningBundleInfo();
         info.available = product.available; info.disabledReason = product.disabledReason;
         info.id = product.id; info.order = product.order; info.boughtToday = product.boughtToday;
         info.remaining = product.remaining; info.goods = product.goods;
         info.mode = bundleMode(good); info.price = price(good).toPlainString();
+        info.nameLanguageId = good.getBundleName();
+        info.adCdEndTime = info.mode == 2 && info.remaining == 0 ? nextDailyReset : 0;
         return info;
     }
 
