@@ -22,6 +22,51 @@ public class MiningEngine {
         return state;
     }
 
+    boolean matchesConfig(MiningState state) {
+        return state.width == catalog.width() && state.visibleRows == catalog.visibleRows();
+    }
+
+    /** 配置宽高变化时重建地图，并保留旧地图中仍有效坐标的开采状态。 */
+    boolean alignToConfig(MiningState state) {
+        if (matchesConfig(state)) return false;
+        int oldTopRow = Math.max(1, state.topRow);
+        int oldGeneratedRows = Math.max(state.generatedRows,
+                Math.addExact(oldTopRow, catalog.visibleRows() - 1));
+        Map<Long, MiningState.Cell> oldCells = new HashMap<>();
+        if (state.cells != null) {
+            for (MiningState.Cell cell : state.cells) {
+                if (cell != null && cell.row >= oldTopRow && cell.column >= 1
+                        && cell.column <= catalog.width() && catalog.cell(cell.type) != null && cell.hp >= 0) {
+                    oldCells.put(cellKey(cell.row, cell.column), cell);
+                }
+            }
+        }
+
+        MiningState rebuilt = create(state.seasonId, state.seed);
+        ensureRows(rebuilt, oldGeneratedRows);
+        for (MiningState.Cell cell : rebuilt.cells) {
+            MiningState.Cell old = oldCells.get(cellKey(cell.row, cell.column));
+            if (old == null) continue;
+            cell.type = old.type;
+            cell.hp = old.hp;
+            cell.secretId = old.secretId;
+        }
+        rebuilt.cells.removeIf(cell -> cell.row < oldTopRow);
+
+        state.width = rebuilt.width;
+        state.visibleRows = rebuilt.visibleRows;
+        state.topRow = oldTopRow;
+        state.generatedRows = rebuilt.generatedRows;
+        state.cells = rebuilt.cells;
+        if (state.secrets == null) state.secrets = new HashMap<>();
+        else state.secrets.keySet().removeIf(id -> state.cells.stream().noneMatch(cell -> cell.secretId == id));
+        return true;
+    }
+
+    private static long cellKey(int row, int column) {
+        return ((long) row << 32) ^ (column & 0xffffffffL);
+    }
+
     public record CellReward(MiningState.Cell cell, Map<Integer, Long> rewards) { }
     public record DigResult(int itemId, Map<Integer, Long> rewards, List<CellReward> rewardCells,
                             List<MiningState.Cell> changed, int scrollRows) { }

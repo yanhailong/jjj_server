@@ -83,11 +83,11 @@ final class MiningCatalog {
             if (stage.getHeight() <= 0 || stage.getHeight() > 64 || stage.getTotalHeight() <= 0) {
                 throw new MiningException("INVALID_STAGE_HEIGHT");
             }
+            if (stage.getWidth() <= 0) throw new MiningException("MISSING_MAP_WIDTH");
+            if (configuredWidth == 0) configuredWidth = stage.getWidth();
+            else if (stage.getWidth() != configuredWidth) throw new MiningException("INCONSISTENT_MAP_WIDTH");
             expectedTotalHeight = Math.addExact(expectedTotalHeight, stage.getHeight());
             if (stage.getTotalHeight() != expectedTotalHeight) throw new MiningException("INVALID_STAGE_RANGE");
-            for (List<Integer> entry : entries(stage.getFixedGrid())) {
-                configuredWidth = Math.max(configuredWidth, entry.get(2));
-            }
             for (List<Integer> entry : entries(stage.getRandomizedgrid())) {
                 if (!cells.containsKey(entry.get(0)) || entry.get(1) <= 0 || entry.get(2) < 0) {
                     throw new MiningException("INVALID_RANDOM_GRID");

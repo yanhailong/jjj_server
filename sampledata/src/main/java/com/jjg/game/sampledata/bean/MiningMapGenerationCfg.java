@@ -27,6 +27,8 @@ public class MiningMapGenerationCfg extends BaseCfgBean {
   protected List<List<Integer>> Randomizedgrid;
   /** 总高度（米） */
   protected int TotalHeight;
+  /** 宽度（格） */
+  protected int Width;
 
   /** 返回固定格子 */
   public List<List<Integer>> getFixedGrid() {
@@ -46,6 +48,11 @@ public class MiningMapGenerationCfg extends BaseCfgBean {
   /** 返回总高度（米） */
   public int getTotalHeight() {
     return TotalHeight;
+  }
+
+  /** 返回宽度（格） */
+  public int getWidth() {
+    return Width;
   }
 
   @Override

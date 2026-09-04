@@ -250,6 +250,7 @@ public class MiningService implements OrderGenerate, StandalonePloyGame {
         if (pack == null) throw new MiningException(Code.NOT_FOUND, "PLAYER_PACK_MISSING");
         String json = pack.getMiningState();
         MiningState state = json == null ? null : JSON.parseObject(json, MiningState.class);
+        MiningEngine engine = new MiningEngine();
         boolean changed = state == null;
         if (state == null || !season.id.equals(state.seasonId)) {
             MiningState previous = state;
@@ -258,7 +259,7 @@ public class MiningService implements OrderGenerate, StandalonePloyGame {
                 // 归档前必须保存上一赛季最终深度，否则新存档会覆盖结算恢复源。
                 ranks.sync(player.getId(), previous);
             }
-            state = new MiningEngine().create(season.id, SEEDS.nextLong());
+            state = engine.create(season.id, SEEDS.nextLong());
             if (previous != null) {
                 state.version = previous.version;
                 state.total = previous.total; state.claimedAchievements = previous.claimedAchievements;
@@ -271,6 +272,10 @@ public class MiningService implements OrderGenerate, StandalonePloyGame {
             ranks.register(player, season.id);
             changed = true;
         }
+        if (state.delivery != null && !engine.matchesConfig(state)) {
+            throw new MiningException(Code.FAIL, "DELIVERY_REQUIRES_RECONCILIATION");
+        }
+        changed |= engine.alignToConfig(state);
         if (state.delivery == null && state.day != TimeHelper.getDayNumerical()) {
             state.refreshDay(TimeHelper.getDayNumerical()); changed = true;
         }

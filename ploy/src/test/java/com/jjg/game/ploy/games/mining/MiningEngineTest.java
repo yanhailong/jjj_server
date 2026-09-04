@@ -14,9 +14,10 @@ class MiningEngineTest {
 
     @Test void actualMapTableLoadsAllTriplesWithoutCollapsingRepeatedTypeIds() {
         var stage = GameDataManager.getMiningMapGenerationCfg(10001);
-        assertEquals(9, stage.getFixedGrid().size());
-        assertEquals(7, stage.getFixedGrid().stream().filter(e -> e.getFirst() == 1011).count());
+        assertEquals(8, stage.getFixedGrid().size());
+        assertEquals(6, stage.getFixedGrid().stream().filter(e -> e.getFirst() == 1011).count());
         assertEquals(List.of(1001, 90, 50), stage.getRandomizedgrid().getFirst());
+        assertEquals(6, stage.getWidth());
         assertEquals(24, GameDataManager.getMiningMapGenerationCfgList().size());
     }
 
@@ -109,5 +110,19 @@ class MiningEngineTest {
         }
         assertTrue(one.depth > 192);
         assertTrue(one.cells.stream().allMatch(c -> GameDataManager.getMiningCellTypeCfg(c.type) != null));
+    }
+
+    @Test void mapConfigChangeWidensExistingStateAndKeepsOpenedCells() {
+        MiningEngine engine = new MiningEngine();
+        MiningState state = engine.create("practice", 12345);
+        MiningFixtures.cell(state, 1, 1).hp = 0;
+        state.width = 2;
+        state.cells.removeIf(cell -> cell.column > 2);
+
+        assertTrue(engine.alignToConfig(state));
+        assertEquals(6, state.width);
+        assertEquals(48, state.cells.stream().filter(cell -> cell.row <= 8).count());
+        assertEquals(0, MiningFixtures.cell(state, 1, 1).hp);
+        assertFalse(engine.alignToConfig(state));
     }
 }

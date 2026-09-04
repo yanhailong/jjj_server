@@ -90,6 +90,23 @@ class MiningServiceTest {
         assertEquals(task.descLanguageId, dailyTasks.dailyTasks.getFirst().descLanguageId);
     }
 
+    @Test void loadingOldTwoColumnStateMigratesItToConfiguredWidth() {
+        MiningState old = state();
+        old.width = 2;
+        old.cells.removeIf(cell -> cell.column > 2);
+        old.cells.getFirst().hp = 0;
+        long version = old.version;
+        saved = JSON.toJSONString(old);
+
+        ResMiningState response = service.info(player);
+        assertEquals(Code.SUCCESS, response.code);
+        assertEquals(6, response.info.width);
+        assertEquals(48, response.info.cells.size());
+        assertEquals(0, response.info.cells.stream()
+                .filter(cell -> cell.row == 1 && cell.column == 1).findFirst().orElseThrow().hp);
+        assertEquals(version + 1, state().version);
+    }
+
     @Test void duplicateDigAndStaleMapDoNotConsumeAgain() {
         ReqMiningAction request = request(MiningConstant.DIG, 101);
         ResMiningState first = service.action(player, request); assertEquals(Code.SUCCESS, first.code);
