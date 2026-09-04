@@ -503,7 +503,7 @@ public class SeasonService implements SimPlayerTickListener {
         SeasonTrialSession session = data == null ? null : data.getActiveTrial();
         if (session != null) {
             response.spinCount = session.getSpinCount();
-            response.progress = session.getProgress();
+            response.progress = trialService.activeProgress(ctx.playerId(), session);
         }
         return response;
     }

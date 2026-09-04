@@ -1,6 +1,5 @@
 package com.jjg.game.season.service;
 
-import com.jjg.game.core.service.PlayerPackService;
 import com.jjg.game.core.base.condition.numeric.GameConditionEvent;
 import com.jjg.game.core.constant.AddType;
 import com.jjg.game.core.constant.Code;
@@ -9,7 +8,9 @@ import com.jjg.game.core.data.CommonResult;
 import com.jjg.game.core.data.Item;
 import com.jjg.game.core.dao.PlayerRechargeFlowDao;
 import com.jjg.game.core.logger.TaskLogger;
+import com.jjg.game.core.service.AcceptedConditionProgressService;
 import com.jjg.game.core.service.GameFunctionService;
+import com.jjg.game.core.service.PlayerPackService;
 import com.jjg.game.sampledata.bean.TaskCfg;
 import com.jjg.game.season.config.SeasonTrialDef;
 import com.jjg.game.season.data.SeasonPlayerData;
@@ -35,7 +36,7 @@ import java.util.Map;
  * 新手赛季试炼关卡 (task 表 taskType=6)。
  * <p>
  * 挑战型条件 (12601-12606) 为 "N局窗口内达成目标": 发起挑战建立会话,
- * 会话状态全程驻留 {@link SeasonPlayerData} 内存 (旋转热路径零查库/零Redis),
+ * 窗口局数由 {@link SeasonPlayerData} 保存，数值进度按接取实例保存在 Redis，
  * 窗口结束或满星提前结算, 按 1/2/3 星达标线发奖 (奖励自动发放, 只发新突破的星级)。
  * 挑战免费且可无限重试, 发起新挑战直接替换旧会话。
  * 被动型条件 (11002 累计充值) 无挑战会话, 开面板时按赛季时间窗查充值流水惰性判定。
@@ -43,6 +44,9 @@ import java.util.Map;
 @Service
 public class SeasonTrialService {
     private static final Logger log = LoggerFactory.getLogger(SeasonTrialService.class);
+    private static final String PROGRESS_FUNCTION = "seasonTrial";
+    private static final int CONDITION_MIN = 12601;
+    private static final int CONDITION_MAX = 12610;
 
     private final SeasonTrialConfigService trialConfigService;
     private final SeasonConfigService configService;
@@ -52,11 +56,13 @@ public class SeasonTrialService {
     private final PlayerRechargeFlowDao playerRechargeFlowDao;
     private final TaskLogger taskLogger;
     private final GameFunctionService gameFunctionService;
+    private final AcceptedConditionProgressService conditionProgressService;
 
     public SeasonTrialService(SeasonTrialConfigService trialConfigService, SeasonConfigService configService,
                               SeasonEconomyService economyService, PlayerPackService playerPackService,
                               SimAutoSaveService autoSaveService, PlayerRechargeFlowDao playerRechargeFlowDao,
-                              TaskLogger taskLogger, GameFunctionService gameFunctionService) {
+                              TaskLogger taskLogger, GameFunctionService gameFunctionService,
+                              AcceptedConditionProgressService conditionProgressService) {
         this.trialConfigService = trialConfigService;
         this.configService = configService;
         this.economyService = economyService;
@@ -65,6 +71,7 @@ public class SeasonTrialService {
         this.playerRechargeFlowDao = playerRechargeFlowDao;
         this.taskLogger = taskLogger;
         this.gameFunctionService = gameFunctionService;
+        this.conditionProgressService = conditionProgressService;
     }
 
     /**
@@ -98,7 +105,7 @@ public class SeasonTrialService {
             } else if (session != null && session.getTrialId() == def.trialId()) {
                 status.setActive(true);
                 status.setSpinCount(session.getSpinCount());
-                status.setProgress(session.getProgress());
+                status.setProgress(progress(ctx.playerId(), def));
             }
             status.setStars(starsOf(data, def.trialId()));
             statuses.add(status);
@@ -154,7 +161,11 @@ public class SeasonTrialService {
         if (old != null) {
             log.info("玩家[{}]发起试炼挑战替换旧会话 oldTrialId={},oldSpins={}",
                     ctx.playerId(), old.getTrialId(), old.getSpinCount());
+            if (old.getTrialId() != trialId) {
+                clearProgress(ctx.playerId(), old.getTrialId());
+            }
         }
+        conditionProgressService.begin(ctx.playerId(), def.condition(), scope(trialId));
         SeasonTrialSession session = new SeasonTrialSession();
         session.setTrialId(trialId);
         session.setStartedAt(now);
@@ -193,6 +204,7 @@ public class SeasonTrialService {
         if (def == null || def.passive()) {
             //配置热更导致会话失效: 丢弃会话
             log.warn("试炼会话对应配置失效, 丢弃 playerId={},trialId={}", ctx.playerId(), session.getTrialId());
+            clearProgress(ctx.playerId(), session.getTrialId());
             data.setActiveTrial(null);
             autoSaveService.enqueueSave(data);
             return null;
@@ -201,11 +213,12 @@ public class SeasonTrialService {
             //其他机台的旋转不计入窗口
             return null;
         }
+        long progress = conditionProgressService.advance(
+                ctx.playerId(), def.condition(), scope(def.trialId()), event).progress();
         session.setSpinCount(session.getSpinCount() + 1);
-        session.setProgress(def.condition().evaluate(event).apply(session.getProgress()));
-        int achieved = def.starsOf(session.getProgress());
+        int achieved = def.starsOf(progress);
         if (achieved >= SeasonTrialDef.STAR_COUNT || session.getSpinCount() >= def.windowSpins()) {
-            return settle(ctx, data, def, session, achieved);
+            return settle(ctx, data, def, session, progress, achieved);
         }
         return null;
     }
@@ -215,16 +228,18 @@ public class SeasonTrialService {
     // =====================================================================
 
     private SeasonTrialResult settle(SimPlayerContext ctx, SeasonPlayerData data,
-                                     SeasonTrialDef def, SeasonTrialSession session, int achieved) {
+                                     SeasonTrialDef def, SeasonTrialSession session,
+                                     long progress, int achieved) {
         int prevBest = starsOf(data, def.trialId());
         Map<Integer, Long> rewards = grantStarRewards(ctx, def, prevBest, achieved);
         if (achieved > prevBest) {
             data.getTrialStars().put(def.trialId(), achieved);
         }
+        conditionProgressService.clear(ctx.playerId(), def.condition(), scope(def.trialId()));
         data.setActiveTrial(null);
         autoSaveService.enqueueSave(data);
         log.info("玩家[{}]试炼挑战结算 trialId={},spins={},progress={},achieved={},prevBest={}",
-                ctx.playerId(), def.trialId(), session.getSpinCount(), session.getProgress(), achieved, prevBest);
+                ctx.playerId(), def.trialId(), session.getSpinCount(), progress, achieved, prevBest);
 
         SeasonTrialResult result = new SeasonTrialResult();
         result.setTrialId(def.trialId());
@@ -232,9 +247,44 @@ public class SeasonTrialService {
         result.setBestStars(Math.max(prevBest, achieved));
         result.setRewards(rewards);
         result.setSpinCount(session.getSpinCount());
-        result.setProgress(session.getProgress());
+        result.setProgress(progress);
         result.setSeasonCoin(data.getSeasonCoin());
         return result;
+    }
+
+    public long activeProgress(long playerId, SeasonTrialSession session) {
+        if (session == null) {
+            return 0;
+        }
+        SeasonTrialDef def = trialConfigService.trial(session.getTrialId());
+        return def == null || def.passive() ? 0 : progress(playerId, def);
+    }
+
+    /** 切季前清理仍在进行中的试炼进度。 */
+    public void clearActiveProgress(long playerId, SeasonTrialSession session) {
+        if (session != null) {
+            clearProgress(playerId, session.getTrialId());
+        }
+    }
+
+    private long progress(long playerId, SeasonTrialDef def) {
+        return conditionProgressService.progress(playerId, def.condition(), scope(def.trialId()));
+    }
+
+    private void clearProgress(long playerId, int trialId) {
+        SeasonTrialDef def = trialConfigService.trial(trialId);
+        if (def != null && !def.passive()) {
+            conditionProgressService.clear(playerId, def.condition(), scope(trialId));
+            return;
+        }
+        //配置热更删除关卡时无法再反查 conditionId，清理该接取实例下全部新赛季条件。
+        for (int conditionId = CONDITION_MIN; conditionId <= CONDITION_MAX; conditionId++) {
+            conditionProgressService.clear(playerId, conditionId, scope(trialId));
+        }
+    }
+
+    private static AcceptedConditionProgressService.Scope scope(int trialId) {
+        return AcceptedConditionProgressService.Scope.of(PROGRESS_FUNCTION, trialId);
     }
 
     /**

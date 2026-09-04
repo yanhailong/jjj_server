@@ -247,6 +247,41 @@ public class CountDao {
         return value;
     }
 
+    public void setHashLong(long playerId, String featureId, String customId, long value) {
+        String hashKey = getHashKey(featureId);
+        redissonClient.<String, Long>getMap(hashKey, LongCodec.INSTANCE).fastPut(customId, value);
+        playerKeyIndex.addHash(playerId, hashKey, customId);
+    }
+
+    public long maxHashLong(long playerId, String featureId, String customId, long candidate) {
+        String hashKey = getHashKey(featureId);
+        RMap<String, Long> map = redissonClient.getMap(hashKey, LongCodec.INSTANCE);
+        Long current = map.get(customId);
+        while (current == null || candidate > current) {
+            if (current == null) {
+                Long existing = map.putIfAbsent(customId, candidate);
+                if (existing == null) {
+                    current = candidate;
+                    break;
+                }
+                current = existing;
+            } else if (map.replace(customId, current, candidate)) {
+                current = candidate;
+                break;
+            } else {
+                current = map.get(customId);
+            }
+        }
+        playerKeyIndex.addHash(playerId, hashKey, customId);
+        return current == null ? 0 : current;
+    }
+
+    public void resetHashLong(long playerId, String featureId, String customId) {
+        String hashKey = getHashKey(featureId);
+        redissonClient.<String, Long>getMap(hashKey, LongCodec.INSTANCE).fastRemove(customId);
+        playerKeyIndex.removeHash(playerId, hashKey, customId);
+    }
+
     /**
      * 原子自增（两位小数）
      *
