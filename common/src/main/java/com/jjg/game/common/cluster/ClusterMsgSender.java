@@ -1,5 +1,6 @@
 package com.jjg.game.common.cluster;
 
+import com.jjg.game.common.curator.NodeType;
 import com.jjg.game.common.message.BroadCastMessage;
 import com.jjg.game.common.protostuff.MessageUtil;
 import com.jjg.game.common.protostuff.PFMessage;
@@ -21,6 +22,21 @@ public class ClusterMsgSender {
     ClusterSystem clusterSystem;
 
     Logger log = LoggerFactory.getLogger(getClass());
+
+    /**
+     * 先广播给本地大厅玩家，再通知其他大厅节点广播给各自的玩家。
+     */
+    public void broadcast2Halls(Object msg) {
+        PFMessage pfMessage = MessageUtil.getPFMessage(msg);
+        if (pfMessage == null) {
+            return;
+        }
+        if (NodeType.HALL.toString().equals(clusterSystem.nodeConfig.getType())) {
+            clusterSystem.broadcastToOnlinePlayer(pfMessage);
+        }
+        clusterSystem.notifyNode(MessageUtil.getPFMessage(new BroadCastMessage(pfMessage)),
+                NodeType.HALL.toString()::equals);
+    }
 
     /**
      * 向所有网关广播消息

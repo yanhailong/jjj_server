@@ -13,6 +13,7 @@ import com.jjg.game.activity.common.message.bean.ActivityInfo;
 import com.jjg.game.activity.common.message.bean.BaseActivityDetailInfo;
 import com.jjg.game.activity.constant.ActivityConstant;
 import com.jjg.game.activity.manager.ActivityManager;
+import com.jjg.game.common.cluster.ClusterMsgSender;
 import com.jjg.game.common.pb.AbstractResponse;
 import com.jjg.game.common.redis.RedisLock;
 import com.jjg.game.core.base.condition.event.TimeEvent;
@@ -25,10 +26,13 @@ import com.jjg.game.core.data.Order;
 import com.jjg.game.core.data.Player;
 import com.jjg.game.core.manager.ConditionManager;
 import com.jjg.game.core.manager.RedDotManager;
+import com.jjg.game.core.pb.NotifyOpenFunction;
 import com.jjg.game.core.service.CorePlayerService;
+import com.jjg.game.core.service.GameFunctionService;
 import com.jjg.game.core.service.PlayerPackService;
 import com.jjg.game.core.utils.TipUtils;
 import com.jjg.game.sampledata.bean.BaseCfgBean;
+import com.jjg.game.sampledata.bean.GameFunctionCfg;
 import org.apache.commons.lang3.StringUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -117,6 +121,12 @@ public abstract class BaseActivityController {
      */
     @Autowired
     protected CountDao countDao;
+
+    @Autowired
+    protected GameFunctionService gameFunctionService;
+
+    @Autowired
+    private ClusterMsgSender clusterMsgSender;
 
     /**
      * 初始化逻辑
@@ -207,7 +217,9 @@ public abstract class BaseActivityController {
         activityManager.refreshRedDots(playerId, data.getType().getType());
     }
 
-    /** 默认保持普通红点，需要数量的活动单独覆盖。 */
+    /**
+     * 默认保持普通红点，需要数量的活动单独覆盖。
+     */
     public long getRedDotCount(long playerId, ActivityData data) {
         return hasRedDot(playerId, data) ? 1 : 0;
     }
@@ -245,6 +257,14 @@ public abstract class BaseActivityController {
      * @param activityData 活动数据
      */
     public void onActivityEnd(ActivityData activityData) {
+        int activityType = activityData.getType().getType();
+        GameFunctionCfg cfg = gameFunctionService.getGameFunctionCfgByType(activityType);
+        if (cfg != null && cfg.getIsOpen()
+                && !activityManager.isActivityOpen(activityType)) {
+            NotifyOpenFunction notify = new NotifyOpenFunction();
+            notify.closeFunctionIdList = List.of(cfg.getId());
+            clusterMsgSender.broadcast2Halls(notify);
+        }
     }
 
 
@@ -254,6 +274,12 @@ public abstract class BaseActivityController {
      * @param activityData 活动数据
      */
     public void onActivityStart(ActivityData activityData) {
+        GameFunctionCfg cfg = gameFunctionService.getGameFunctionCfgByType(activityData.getType().getType());
+        if (cfg != null && cfg.getIsOpen()) {
+            NotifyOpenFunction notify = new NotifyOpenFunction();
+            notify.functionIdList = List.of(cfg.getId());
+            clusterMsgSender.broadcast2Halls(notify);
+        }
     }
 
     /**

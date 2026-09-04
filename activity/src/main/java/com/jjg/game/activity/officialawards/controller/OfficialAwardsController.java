@@ -268,6 +268,7 @@ public class OfficialAwardsController extends BaseActivityController {
 
     @Override
     public void onActivityStart(ActivityData activityData) {
+        super.onActivityStart(activityData);
         //开启时清除数据
         clearData(activityData.getId());
         //设置初始奖池
@@ -283,6 +284,7 @@ public class OfficialAwardsController extends BaseActivityController {
     @Override
     public void onActivityEnd(ActivityData activityData) {
         try {
+            super.onActivityEnd(activityData);
             clearData(activityData.getId());
         } catch (Exception e) {
             log.error("官方派奖活动结算，数据清除异常", e);

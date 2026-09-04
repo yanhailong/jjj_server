@@ -17,9 +17,10 @@ import java.util.List;
     cmd = MessageConst.CoreMessage.NOTIFY_FUNC_OPEN,
     resp = true
 )
-@ProtoDesc("通知功能开放，通过游戏中的某些操作触发了功能的开放")
+@ProtoDesc("通知功能开放，通过游戏中的某些操作触发了功能的开启或关闭")
 public class NotifyOpenFunction extends AbstractNotice {
-
     @ProtoDesc("新增开放的功能ID列表")
     public List<Integer> functionIdList;
+    @ProtoDesc("当前需要关闭的功能ID列表")
+    public List<Integer> closeFunctionIdList;
 }
