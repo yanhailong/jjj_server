@@ -60,6 +60,7 @@ public class SeasonService implements SimPlayerTickListener {
     private final SeasonFreeGameService freeGameService;
     private final SimConfigCacheService simConfigCacheService;
     private final SimTaskService simTaskService;
+    private final SeasonPassService passService;
 
     public SeasonService(SeasonLifecycleService lifecycleService, SeasonConfigService configService,
                          SeasonShopService shopService, SeasonGemService gemService,
@@ -67,7 +68,8 @@ public class SeasonService implements SimPlayerTickListener {
                          SeasonRankingService rankingService, PlayerPackService playerPackService,
                          SeasonTrialService trialService, SimAutoSaveService autoSaveService,
                          SocialSender socialSender, SeasonFreeGameService freeGameService,
-                         SimConfigCacheService simConfigCacheService, SimTaskService simTaskService) {
+                         SimConfigCacheService simConfigCacheService, SimTaskService simTaskService,
+                         SeasonPassService passService) {
         this.lifecycleService = lifecycleService;
         this.configService = configService;
         this.shopService = shopService;
@@ -82,6 +84,17 @@ public class SeasonService implements SimPlayerTickListener {
         this.freeGameService = freeGameService;
         this.simConfigCacheService = simConfigCacheService;
         this.simTaskService = simTaskService;
+        this.passService = passService;
+    }
+
+    public ResSeasonPassList passes(SimPlayerContext ctx) {
+        lifecycleService.ensureCurrent(ctx, System.currentTimeMillis());
+        return passService.list(ctx);
+    }
+
+    public ResSeasonPassClaim claimPassRewards(SimPlayerContext ctx, int passId) {
+        lifecycleService.ensureCurrent(ctx, System.currentTimeMillis());
+        return passService.claim(ctx, passId);
     }
 
     public ResSeasonInfo info(SimPlayerContext ctx, int reqType) {
@@ -503,7 +516,7 @@ public class SeasonService implements SimPlayerTickListener {
         SeasonTrialSession session = data == null ? null : data.getActiveTrial();
         if (session != null) {
             response.spinCount = session.getSpinCount();
-            response.progress = session.getProgress();
+            response.progress = trialService.activeProgress(ctx.playerId(), session);
         }
         return response;
     }

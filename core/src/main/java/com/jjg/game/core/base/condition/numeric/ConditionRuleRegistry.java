@@ -53,6 +53,10 @@ public class ConditionRuleRegistry {
                 && spec.parameter(0) > 0 && spec.parameter(1) == 0) {
             return new ConditionSpec(11002, List.of(0L, spec.parameter(0)));
         }
+        //赛季匹配/宝石掉落条件允许只填写累计目标，缺省主体维度按 0=任意主体处理。
+        if ((spec.id() == 12607 || spec.id() == 12608) && spec.parameters().size() == 1) {
+            return new ConditionSpec(spec.id(), List.of(0L, spec.parameter(0)));
+        }
         return spec;
     }
 

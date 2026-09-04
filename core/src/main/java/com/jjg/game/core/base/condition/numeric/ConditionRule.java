@@ -1,5 +1,7 @@
 package com.jjg.game.core.base.condition.numeric;
 
+import java.util.List;
+
 /**
  * 单个 condition id 的扩展点。
  * <p>
@@ -16,6 +18,13 @@ public interface ConditionRule<E extends ConditionEvent> {
 
     /** 获取该配置的达标目标。 */
     long target(ConditionSpec spec);
+
+    /**
+     * 返回排除达标目标后的进度维度。多个只改变目标值的配置可据此共享同一个计数器。
+     */
+    default List<Long> progressParameters(ConditionSpec spec) {
+        return spec.parameters();
+    }
 
     /** 对单次事件进行纯计算。 */
     ConditionUpdate evaluate(ConditionSpec spec, E event);

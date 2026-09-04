@@ -431,6 +431,16 @@ final class DefaultConditionRules {
         }
 
         @Override
+        public List<Long> progressParameters(ConditionSpec spec) {
+            if (targetIndex == FIXED_TARGET_ONE) {
+                return spec.parameters();
+            }
+            List<Long> parameters = new ArrayList<>(spec.parameters());
+            parameters.remove(targetIndex);
+            return List.copyOf(parameters);
+        }
+
+        @Override
         public ConditionUpdate evaluate(ConditionSpec spec, E event) {
             long target = target(spec);
             if (!predicate.test(spec, event)) {

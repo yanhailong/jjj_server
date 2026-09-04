@@ -56,13 +56,16 @@ public class SeasonLifecycleService implements SimPlayerTickListener {
     private final SimAutoSaveService autoSaveService;
     private final SimConfigCacheService simConfigCacheService;
     private final ServerOpenTimeService serverOpenTimeService;
+    private final SeasonTrialService trialService;
+    private final SeasonPassService passService;
 
     public SeasonLifecycleService(SeasonConfigService configService, CorePlayerService corePlayerService,
                                   SeasonPlayerDao seasonPlayerDao, SeasonRankingService rankingService,
                                   PlayerPackService playerPackService, SeasonEconomyService economyService,
                                   SeasonGemService gemService, MailService mailService, SimAutoSaveService autoSaveService,
                                   SimConfigCacheService simConfigCacheService,
-                                  ServerOpenTimeService serverOpenTimeService) {
+                                  ServerOpenTimeService serverOpenTimeService,
+                                  SeasonTrialService trialService, SeasonPassService passService) {
         this.configService = configService;
         this.corePlayerService = corePlayerService;
         this.seasonPlayerDao = seasonPlayerDao;
@@ -74,6 +77,8 @@ public class SeasonLifecycleService implements SimPlayerTickListener {
         this.autoSaveService = autoSaveService;
         this.simConfigCacheService = simConfigCacheService;
         this.serverOpenTimeService = serverOpenTimeService;
+        this.trialService = trialService;
+        this.passService = passService;
     }
 
     /**
@@ -138,6 +143,7 @@ public class SeasonLifecycleService implements SimPlayerTickListener {
             }
             //开局段位取该阶段累计币为 0 所处的档: 进阶/循环段位表 id 段不同, 不能硬编码
             SeasonTierCfg initialTier = configService.tierFor(snapshot.phase(), 0);
+            trialService.clearActiveProgress(ctx.playerId(), data.getActiveTrial());
             data.startSeason(snapshot, initialCoin, initialTier == null ? 0 : initialTier.getId());
             log.info("玩家赛季切换 playerId={},oldSeasonKey={},seasonId={},seasonKey={},initialCoin={}",
                     ctx.playerId(), oldSeasonKey, snapshot.seasonId(), snapshot.seasonKey(), initialCoin);
@@ -290,6 +296,7 @@ public class SeasonLifecycleService implements SimPlayerTickListener {
         if (data.getSeasonId() == 0 || data.seasonPhase() == null) {
             return 0;
         }
+        passService.settleUnclaimed(ctx, data);
         Map<Integer, Long> rewards = new HashMap<>();
         //发奖名次必须实时, 不能用展示缓存
         int rank = rankingService.freshRankOf(data);

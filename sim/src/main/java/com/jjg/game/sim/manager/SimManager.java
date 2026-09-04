@@ -518,12 +518,6 @@ public class SimManager {
         simCasinoService.loadCasinoData(ctx, baseData);
         //加载雇员数据
         employeeService.loadEmployeeData(ctx);
-        //加载主线/成就任务数据，并补接全局成就分组
-        simTaskService.initTaskData(ctx);
-        //徽章档位由已完成成就任务决定，必须在任务数据就绪后刷新
-        simMedalService.refreshMedalBonusCache(ctx);
-        //加载多人协作任务数据 (每日池懒重置)
-        simCoopTaskService.initData(ctx);
         SeasonPlayerData seasonData = seasonPlayerDao.findById(playerId).orElse(null);
         if (seasonData == null) {
             seasonData = new SeasonPlayerData();
@@ -531,6 +525,12 @@ public class SimManager {
         }
         ctx.setSeasonPlayerData(seasonData);
         seasonLifecycleService.ensureCurrent(ctx, System.currentTimeMillis());
+        //赛季数据须先就绪，随后任务登录补报产生的事实事件才能同步推进通行证
+        simTaskService.initTaskData(ctx);
+        //徽章档位由已完成成就任务决定，必须在任务数据就绪后刷新
+        simMedalService.refreshMedalBonusCache(ctx);
+        //加载多人协作任务数据 (每日池懒重置)
+        simCoopTaskService.initData(ctx);
 
         this.simPlayerContextRegistry.putContext(ctx);
         simNodeService.save(playerId, clusterSystem.getNodePath());

@@ -63,5 +63,28 @@ public interface SeasonConstant {
         //批量合成宝石
         int REQ_SEASON_CRAFT_BATCH_GEM = BASE_MSG_PREFIX | 0x22;
         int RES_SEASON_CRAFT_BATCH_GEM = BASE_MSG_PREFIX | 0x23;
+
+        int REQ_SEASON_PASS_LIST = BASE_MSG_PREFIX | 0x24;
+        int RES_SEASON_PASS_LIST = BASE_MSG_PREFIX | 0x25;
+
+        int REQ_SEASON_PASS_CLAIM = BASE_MSG_PREFIX | 0x26;
+        int RES_SEASON_PASS_CLAIM = BASE_MSG_PREFIX | 0x27;
+    }
+
+    interface PassTrack {
+        int BASIC = 1;
+        int PREMIUM = 2;
+    }
+
+    interface PassClaim {
+        int FREE = 1;
+        int BASIC = 1 << 1;
+        int PREMIUM = 1 << 2;
+    }
+
+    interface PassRewardStatus {
+        int LOCKED = 0;
+        int UNLOCKED = 1;
+        int CLAIMED = 2;
     }
 }
