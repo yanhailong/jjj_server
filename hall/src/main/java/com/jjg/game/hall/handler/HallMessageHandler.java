@@ -1255,13 +1255,8 @@ public class HallMessageHandler implements GmListener, ChooseWareListener, Choos
                 ReqChooseGame req = new ReqChooseGame();
                 req.gameType = Integer.parseInt(gmOrders[1]);
                 reqChooseGame(playerController, req);
-            } else if ("addAvatar".equalsIgnoreCase(gmOrders[0])) {
-                int id = Integer.parseInt(gmOrders[1]);
-                hallService.addPlayerAvatar(playerController.playerId(), id);
             } else if ("newGameNextDay".equalsIgnoreCase(gmOrders[0])) {
                 hallService.newGameExpectDao.clearPlayerData();
-            } else if ("enterSim".equalsIgnoreCase(gmOrders[0])) {
-                onChooseSim(playerController, null);
             } else if ("useItem".equalsIgnoreCase(gmOrders[0])) {
                 ReqUseItem req = new ReqUseItem();
                 req.itemId = Integer.parseInt(gmOrders[1]);

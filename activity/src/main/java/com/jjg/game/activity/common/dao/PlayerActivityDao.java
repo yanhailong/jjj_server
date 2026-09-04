@@ -6,6 +6,7 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import com.jjg.game.activity.common.data.ActivityType;
 import com.jjg.game.activity.common.data.PlayerActivityData;
 import com.jjg.game.common.redis.PlayerRedis;
+import com.jjg.game.common.redis.RedisLock;
 import com.jjg.game.common.utils.ObjectMapperUtil;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -16,6 +17,7 @@ import java.nio.charset.StandardCharsets;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.concurrent.TimeUnit;
+import java.util.function.BiPredicate;
 
 /**
  * 玩家活动数据 DAO
@@ -51,11 +53,13 @@ public class PlayerActivityDao {
 
     private final RedisTemplate<String, String> redisTemplate;
     private final PlayerRedis playerRedis;
+    private final RedisLock redisLock;
     private final ObjectMapper mapper;
 
-    public PlayerActivityDao(RedisTemplate<String, String> redisTemplate, PlayerRedis playerRedis) {
+    public PlayerActivityDao(RedisTemplate<String, String> redisTemplate, PlayerRedis playerRedis, RedisLock redisLock) {
         this.redisTemplate = redisTemplate;
         this.playerRedis = playerRedis;
+        this.redisLock = redisLock;
         this.mapper = ObjectMapperUtil.getDefualtConfigObjectMapper();
     }
 
@@ -245,6 +249,14 @@ public class PlayerActivityDao {
      * 用于不进入影子索引、但在活动开始/结束时必须整期回收的活动类型。
      */
     public void clearActivityData(ActivityType activityType, long activityId) {
+        clearActivityData(activityType, activityId, null);
+    }
+
+    /**
+     * 清理前在玩家活动锁内处理数据；返回 false 或处理异常时保留该玩家的数据。
+     */
+    public <T extends PlayerActivityData> void clearActivityData(
+            ActivityType activityType, long activityId, BiPredicate<Long, Map<Integer, T>> beforeClear) {
         String pattern = "activity:player:*:%d".formatted(activityType.getType());
         byte[] activityField = String.valueOf(activityId).getBytes(StandardCharsets.UTF_8);
         try {
@@ -253,11 +265,34 @@ public class PlayerActivityDao {
                         ScanOptions.scanOptions().match(pattern).count(1000).build())) {
                     while (cursor.hasNext()) {
                         byte[] key = cursor.next();
-                        connection.hashCommands().hDel(key, activityField);
-                        Long hashSize = connection.hashCommands().hLen(key);
-                        if (hashSize != null && hashSize == 0) {
-                            // 当前活动字段删空后直接删除整个 hash，避免留下无意义空 key。
-                            connection.keyCommands().del(key);
+                        if (beforeClear == null) {
+                            connection.hashCommands().hDel(key, activityField);
+                            continue;
+                        }
+                        String redisKey = new String(key, StandardCharsets.UTF_8);
+                        long playerId = Long.parseLong(redisKey.substring(
+                                "activity:player:".length(), redisKey.lastIndexOf(':')));
+                        Boolean cleared = redisLock.lockAndGet(getLockKey(playerId, activityId), 5, () -> {
+                            try {
+                                byte[] jsonData = connection.hashCommands().hGet(key, activityField);
+                                if (jsonData == null) {
+                                    return true;
+                                }
+                                Map<Integer, T> playerData = mapper.readValue(jsonData, new TypeReference<>() {
+                                });
+                                if (beforeClear.test(playerId, playerData)) {
+                                    connection.hashCommands().hDel(key, activityField);
+                                }
+                                return true;
+                            } catch (Exception e) {
+                                log.error("活动数据清理前处理失败 playerId:{} activityType:{} activityId:{}",
+                                        playerId, activityType, activityId, e);
+                                return false;
+                            }
+                        });
+                        if (cleared == null) {
+                            log.error("活动数据清理未获取锁 playerId:{} activityType:{} activityId:{}",
+                                    playerId, activityType, activityId);
                         }
                     }
                 } catch (Exception e) {
