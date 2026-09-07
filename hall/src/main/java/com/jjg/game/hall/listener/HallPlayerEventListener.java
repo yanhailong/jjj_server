@@ -255,7 +255,7 @@ public class HallPlayerEventListener implements SessionCloseListener, SessionEnt
 
             res.safeBoxGold = player.getSafeBoxGold();
             res.safeBoxDiamond = player.getSafeBoxDiamond();
-            res.level = player.getLevel();
+            res.level = simManager.createContextByPlayerId(player.getId()).getSimBaseData().getAllLevel();
             res.exp = player.getExp();
             res.gameTypeList = likeGameDao.getLikeGames(player.getId());
             res.createTime = player.getCreateTime();

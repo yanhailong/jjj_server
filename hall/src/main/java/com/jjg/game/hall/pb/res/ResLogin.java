@@ -52,7 +52,7 @@ public class ResLogin extends AbstractResponse {
     public long safeBoxGold;
     @ProtoDesc("保险箱钻石")
     public long safeBoxDiamond;
-    @ProtoDesc("玩家等级")
+    @ProtoDesc("模拟经营所有场景等级之和")
     public int level;
     @ProtoDesc("经验")
     public long exp;
