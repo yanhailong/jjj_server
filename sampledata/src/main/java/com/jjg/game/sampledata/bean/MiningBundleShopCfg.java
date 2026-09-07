@@ -21,6 +21,8 @@ public class MiningBundleShopCfg extends BaseCfgBean {
 
   /** 礼包名称 */
   protected int BundleName;
+  /** 礼包类型 */
+  protected int BundleType;
   /** 每日限购次数 */
   protected int DailyPurchaseLimit;
   /** 商品 */
@@ -39,6 +41,11 @@ public class MiningBundleShopCfg extends BaseCfgBean {
   /** 返回礼包名称 */
   public int getBundleName() {
     return BundleName;
+  }
+
+  /** 返回礼包类型 */
+  public int getBundleType() {
+    return BundleType;
   }
 
   /** 返回每日限购次数 */

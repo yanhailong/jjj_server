@@ -108,10 +108,9 @@ public class MiningService implements OrderGenerate, StandalonePloyGame {
                             if (good == null) throw new MiningException("UNKNOWN_PRODUCT");
                             checkLimit(state, good.getId(), good.getDailyPurchaseLimit(), 1);
                             int mode = bundleMode(good);
-                            if (mode == 3)
+                            if (mode == MiningConstant.BUNDLE_PAID)
                                 throw new MiningException(Code.FORBID, "PAYMENT_REQUIRED");
-                            if (price(good).signum() != 0) throw new MiningException(Code.SAMPLE_ERROR, "FREE_BUNDLE_HAS_PRICE");
-                            if (mode == 2) {
+                            if (mode == MiningConstant.BUNDLE_AD) {
                                 if (!ads.valid(player.getId(), state.day, request.adTicket) || state.usedAdTickets.contains(request.adTicket))
                                     throw new MiningException(Code.FORBID, "INVALID_AD_TICKET");
                                 state.usedAdTickets.add(request.adTicket);
@@ -371,7 +370,7 @@ public class MiningService implements OrderGenerate, StandalonePloyGame {
         CommonResult<BigDecimal> result = new CommonResult<>(Code.FAIL);
         try { return inSeason(player, season -> {
             MiningBundleShopCfg good = GameDataManager.getMiningBundleShopCfg(Integer.parseInt(request.productId));
-            if (good == null || bundleMode(good) != 3) return result;
+            if (good == null || bundleMode(good) != MiningConstant.BUNDLE_PAID) return result;
             BigDecimal price = price(good);
             if (price.signum() <= 0) return result;
             Map<Integer, Long> goods = MiningCatalog.itemPair(good.getGoods());
@@ -464,7 +463,7 @@ public class MiningService implements OrderGenerate, StandalonePloyGame {
         info.remaining = product.remaining; info.goods = product.goods;
         info.mode = bundleMode(good); info.price = price(good).toPlainString();
         info.nameLanguageId = good.getBundleName();
-        info.adCdEndTime = info.mode == 2 && info.remaining == 0 ? nextDailyReset : 0;
+        info.adCdEndTime = info.mode == MiningConstant.BUNDLE_AD && info.remaining == 0 ? nextDailyReset : 0;
         return info;
     }
 
@@ -564,15 +563,17 @@ public class MiningService implements OrderGenerate, StandalonePloyGame {
         if (count <= 0) throw new MiningException("INVALID_COUNT");
         Map<Integer, Long> result = new HashMap<>(); values.forEach((id, value) -> result.put(id, Math.multiplyExact(value, count))); return result;
     }
-    /** 零元礼包按表内序列区分：第一项为免费领取，其余为广告领取；有价格的由支付回调发货。 */
+    /** 礼包领取方式直接取配置表 BundleType：1免费、2广告、3付费。 */
     private static int bundleMode(MiningBundleShopCfg good) {
-        if (price(good).signum() > 0) return 3;
-        int freeId = GameDataManager.getMiningBundleShopCfgList().stream()
-                .filter(cfg -> price(cfg).signum() == 0)
-                .min(Comparator.comparingInt(MiningBundleShopCfg::getOrder).thenComparingInt(MiningBundleShopCfg::getId))
-                .orElseThrow(() -> new MiningException(Code.SAMPLE_ERROR, "MISSING_FREE_BUNDLE"))
-                .getId();
-        return good.getId() == freeId ? 1 : 2;
+        int mode = good.getBundleType();
+        if (mode < MiningConstant.BUNDLE_FREE || mode > MiningConstant.BUNDLE_PAID)
+            throw new MiningException(Code.SAMPLE_ERROR, "INVALID_BUNDLE_TYPE");
+        int priceSign = price(good).signum();
+        if (mode == MiningConstant.BUNDLE_PAID && priceSign <= 0)
+            throw new MiningException(Code.SAMPLE_ERROR, "PAID_BUNDLE_REQUIRES_PRICE");
+        if (mode != MiningConstant.BUNDLE_PAID && priceSign != 0)
+            throw new MiningException(Code.SAMPLE_ERROR, "FREE_OR_AD_BUNDLE_HAS_PRICE");
+        return mode;
     }
     private static BigDecimal price(MiningBundleShopCfg good) {
         List<Integer> cost = good.getCost();
