@@ -246,7 +246,7 @@ public class SimManager {
             buildingService.applyPendingSpeedup(ctx, ctx.getCurrentCasino(), System.currentTimeMillis());
 
             //添加建筑数据
-            res.buildings = SimPbConverter.toBuildingInfos(ctx.getCurrentCasino());
+            res.buildings = SimPbConverter.toBuildingInfos(ctx, simConfigCacheService);
 
             //添加主管信息
             res.managerEmployInfos = SimPbConverter.toManagerInfos(ctx.getCurrentCasino());

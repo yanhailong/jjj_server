@@ -168,7 +168,7 @@ public class SimCasinoService implements SimTaskStateReporter {
 
             SimCasinoData casino = ctx.getCurrentCasino();
             res.currentCasinoId = casino.getCasinoId();
-            res.buildings = SimPbConverter.toBuildingInfos(casino);
+            res.buildings = SimPbConverter.toBuildingInfos(ctx,configCacheService);
             res.managerEmployInfos = SimPbConverter.toManagerInfos(casino);
             res.awareness = casino.getAwareness();
 
@@ -415,7 +415,7 @@ public class SimCasinoService implements SimTaskStateReporter {
     }
 
     public void notifyCasinoUpgrade(SimPlayerContext ctx, SimCasinoData casino,
-                                     CasinoStatsSheetCfg currentCfg, CasinoStatsSheetCfg nextCfg, int oldAllLevel, int newAllLevel) {
+                                    CasinoStatsSheetCfg currentCfg, CasinoStatsSheetCfg nextCfg, int oldAllLevel, int newAllLevel) {
         NotifyCasinoUpgrade notify = new NotifyCasinoUpgrade();
         notify.level = casino.getCasinoLevel();
         notify.exp = casino.getExp();
