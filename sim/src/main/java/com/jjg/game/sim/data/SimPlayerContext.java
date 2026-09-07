@@ -8,6 +8,7 @@ import com.jjg.game.season.data.SeasonPlayerData;
 import com.jjg.game.sim.constant.BuildingOutputType;
 
 import java.util.*;
+import java.util.concurrent.atomic.AtomicBoolean;
 
 /**
  * 单玩家模拟经营会话上下文
@@ -63,21 +64,56 @@ public class SimPlayerContext {
     //雇员卡池红点已检查的有效卡池版本 (内存态; 仅在开放卡池变化时重算)
     private long employeePoolRedDotVersion = -1;
     private boolean employeeRedDotDirty;
-    public boolean isEmployeeRedDotDirty() { return employeeRedDotDirty; }
-    public void setEmployeeRedDotDirty(boolean value) { employeeRedDotDirty = value; }
+
+    public boolean isEmployeeRedDotDirty() {
+        return employeeRedDotDirty;
+    }
+
+    public void setEmployeeRedDotDirty(boolean value) {
+        employeeRedDotDirty = value;
+    }
+
     // 建筑红点会话缓存，退出即释放；道具变更置脏，tick在业务变更结束后刷新。
     private boolean buildingRedDotDirty = true;
     private long buildingRedDotCheckTime;
     private String buildingRedDotInput;
     private String buildingRedDotSnapshot;
-    public boolean isBuildingRedDotDirty() { return buildingRedDotDirty; }
-    public void setBuildingRedDotDirty(boolean value) { buildingRedDotDirty = value; }
-    public long getBuildingRedDotCheckTime() { return buildingRedDotCheckTime; }
-    public void setBuildingRedDotCheckTime(long value) { buildingRedDotCheckTime = value; }
-    public String getBuildingRedDotInput() { return buildingRedDotInput; }
-    public void setBuildingRedDotInput(String value) { buildingRedDotInput = value; }
-    public String getBuildingRedDotSnapshot() { return buildingRedDotSnapshot; }
-    public void setBuildingRedDotSnapshot(String value) { buildingRedDotSnapshot = value; }
+
+    //是否在模拟游戏场景中
+    private AtomicBoolean inCasino = new AtomicBoolean(true);
+
+    public boolean isBuildingRedDotDirty() {
+        return buildingRedDotDirty;
+    }
+
+    public void setBuildingRedDotDirty(boolean value) {
+        buildingRedDotDirty = value;
+    }
+
+    public long getBuildingRedDotCheckTime() {
+        return buildingRedDotCheckTime;
+    }
+
+    public void setBuildingRedDotCheckTime(long value) {
+        buildingRedDotCheckTime = value;
+    }
+
+    public String getBuildingRedDotInput() {
+        return buildingRedDotInput;
+    }
+
+    public void setBuildingRedDotInput(String value) {
+        buildingRedDotInput = value;
+    }
+
+    public String getBuildingRedDotSnapshot() {
+        return buildingRedDotSnapshot;
+    }
+
+    public void setBuildingRedDotSnapshot(String value) {
+        buildingRedDotSnapshot = value;
+    }
+
     //联盟免费捐献红点已检查的自然日 (内存态)
     private int allianceDonateRedDotDay;
     //下一条有效入盟申请的过期时间 (ms; -1 表示尚未初始化)
@@ -125,7 +161,9 @@ public class SimPlayerContext {
         this.playerController = playerController;
     }
 
-    /** 扣除道具需要传 Player, 统一从会话上取 */
+    /**
+     * 扣除道具需要传 Player, 统一从会话上取
+     */
     public Player getPlayer() {
         return playerController == null ? null : playerController.getPlayer();
     }
@@ -252,12 +290,16 @@ public class SimPlayerContext {
         }
     }
 
-    /** 返回近期同一旋转 RPC 已提交的结果；spinId=0 不参与幂等。 */
+    /**
+     * 返回近期同一旋转 RPC 已提交的结果；spinId=0 不参与幂等。
+     */
     public CommonResult<SlotsSpinResult> spinResult(long spinId) {
         return spinId == 0 ? null : recentSpinResults.get(spinId);
     }
 
-    /** 记录旋转 RPC 的最终结果，供 slots 超时重试时原样返回。 */
+    /**
+     * 记录旋转 RPC 的最终结果，供 slots 超时重试时原样返回。
+     */
     public void recordSpinResult(long spinId, CommonResult<SlotsSpinResult> result) {
         if (spinId == 0 || result == null) {
             return;
@@ -385,5 +427,13 @@ public class SimPlayerContext {
             this.skillsDataMap = new HashMap<>();
         }
         this.skillsDataMap.put(data.getGameType(), data);
+    }
+
+    public AtomicBoolean getInCasino() {
+        return inCasino;
+    }
+
+    public void setInCasino(AtomicBoolean inCasino) {
+        this.inCasino = inCasino;
     }
 }

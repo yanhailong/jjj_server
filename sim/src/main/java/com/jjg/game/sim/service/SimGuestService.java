@@ -462,19 +462,34 @@ public class SimGuestService implements SimPlayerTickListener, ItemListener, Sim
         notify.guests = new ArrayList<>();
 
         WeightRandom<GuestData> guestDataWeightRandom = weightRandomGuest(ctx.getCurrentCasino());
+
+        int cacheSize = 0;
+
         for (int i = 0; i < num; i++) {
             //生成单个游客
-            GuestInfo guestInfo = generateOneGuest(ctx, guestDataWeightRandom, casinoCfg, now, specifyGuest);
-            if (guestInfo != null) {
-                //将游客信息放入列表
-                notify.guests.add(guestInfo);
+            if (ctx.getInCasino().get() || ctx.getCurrentCasino().cacheGuestInfoListSize() > SimConstant.Global.cache_guest_size) {
+                GuestInfo guestInfo = generateOneGuest(ctx, guestDataWeightRandom, casinoCfg, now, specifyGuest);
+                if (guestInfo != null) {
+                    //将游客信息放入列表
+                    notify.guests.add(guestInfo);
+                }
+            } else {
+                GuestInfo guestInfo = generateOneGuest(ctx, guestDataWeightRandom, casinoCfg, now, specifyGuest, false);
+                if (guestInfo != null) {
+                    ctx.getCurrentCasino().addCacheGuestInfo(guestInfo);
+                    cacheSize++;
+                }
             }
         }
 
         if (!notify.guests.isEmpty()) {
             ctx.send(notify);
         }
-        return notify.guests.size();
+        return notify.guests.size() + cacheSize;
+    }
+
+    private GuestInfo generateOneGuest(SimPlayerContext ctx, WeightRandom<GuestData> guestDataWeightRandom, CasinoStatsSheetCfg casinoCfg, long now, GuestData specifyGuest) {
+        return generateOneGuest(ctx, guestDataWeightRandom, casinoCfg, now, specifyGuest, true);
     }
 
     /**
@@ -487,7 +502,7 @@ public class SimGuestService implements SimPlayerTickListener, ItemListener, Sim
      * @param specifyGuest
      * @return
      */
-    private GuestInfo generateOneGuest(SimPlayerContext ctx, WeightRandom<GuestData> guestDataWeightRandom, CasinoStatsSheetCfg casinoCfg, long now, GuestData specifyGuest) {
+    private GuestInfo generateOneGuest(SimPlayerContext ctx, WeightRandom<GuestData> guestDataWeightRandom, CasinoStatsSheetCfg casinoCfg, long now, GuestData specifyGuest, boolean addItems) {
         //加权随机选一个已解锁的游客
         GuestData guest = specifyGuest;
         if (guest == null) {
@@ -535,7 +550,7 @@ public class SimGuestService implements SimPlayerTickListener, ItemListener, Sim
                 rewardsMap.merge(itemInfo.itemId, itemInfo.count, Long::sum);
             }
         }
-        if (!rewardsMap.isEmpty()) {
+        if (!rewardsMap.isEmpty() && addItems) {
             //添加道具
             CommonResult<ItemOperationResult> addResult = playerPackService.addItems(
                     ctx.playerId(), rewardsMap, AddType.SIM_GUEST_REWARDS, null, false);
@@ -544,10 +559,7 @@ public class SimGuestService implements SimPlayerTickListener, ItemListener, Sim
                         addResult == null ? Code.FAIL : addResult.code);
                 return null;
             }
-        }
 
-        //经营信息: 普通游客不计入高级游客人次; 游客交互产出金币计入玩家经营总收益
-        if (!rewardsMap.isEmpty()) {
             long guestGold = rewardsMap.getOrDefault(ItemUtils.getGoldItemId(), 0L);
             ctx.getSimBaseData().addBusinessIncome(guestGold);
             allianceEventService.onBusinessIncome(ctx.playerId(), rewardsMap);
@@ -2278,6 +2290,38 @@ public class SimGuestService implements SimPlayerTickListener, ItemListener, Sim
             }
         } catch (Exception e) {
             log.error("", e);
+        }
+    }
+
+    public void handCacheGuest(SimPlayerContext ctx, GuestInfo guestInfo) {
+        if (guestInfo.destinations == null || guestInfo.destinations.isEmpty()) {
+            return;
+        }
+
+        Map<Integer, Long> rewardsMap = new HashMap<>();
+        for (DestinationInfo info : guestInfo.destinations) {
+            if (info.rewards == null || info.rewards.isEmpty()) {
+                continue;
+            }
+
+            for (ItemInfo itemInfo : info.rewards) {
+                rewardsMap.merge(itemInfo.itemId, itemInfo.count, Long::sum);
+            }
+        }
+
+        if (!rewardsMap.isEmpty()) {
+            //添加道具
+            CommonResult<ItemOperationResult> addResult = playerPackService.addItems(
+                    ctx.playerId(), rewardsMap, AddType.SIM_GUEST_REWARDS, null, false);
+            if (addResult == null || !addResult.success()) {
+                log.warn("缓存游客奖励入账失败 playerId={},guestId={},code={}", ctx.playerId(), guestInfo.id,
+                        addResult == null ? Code.FAIL : addResult.code);
+                return;
+            }
+
+            long guestGold = rewardsMap.getOrDefault(ItemUtils.getGoldItemId(), 0L);
+            ctx.getSimBaseData().addBusinessIncome(guestGold);
+            allianceEventService.onBusinessIncome(ctx.playerId(), rewardsMap);
         }
     }
 }
