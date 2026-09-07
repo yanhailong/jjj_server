@@ -156,7 +156,7 @@ public class SimBuildingService implements SimPlayerTickListener, SimTaskStateRe
             long now = System.currentTimeMillis();
             applyAllianceSpeedup(ctx.playerId(), buildingData, now);
             if (buildingData.isUpgradeReady(now) && completeBuildingUpgradeAndReport(ctx, ctx.getCurrentCasino(), buildingData, now) == Code.SUCCESS) {
-                completeRes = completeBuildingUpgradeResponse(buildingData);
+                completeRes = completeBuildingUpgradeResponse(ctx, buildingData, now);
             }
 
             BuildingAreaTableCfg areaCfg = GameDataManager.getBuildingAreaTableCfg(buildingData.getId());
@@ -554,7 +554,6 @@ public class SimBuildingService implements SimPlayerTickListener, SimTaskStateRe
      */
     public void onCompleteBuildingUpgrade(SimPlayerContext ctx, int buildingId) {
         ResCompleteBuildingUpgrade res = new ResCompleteBuildingUpgrade(Code.SUCCESS);
-        res.id = buildingId;
         try {
             SimCasinoData casino = ctx.getCurrentCasino();
             if (casino == null) {
@@ -575,7 +574,9 @@ public class SimBuildingService implements SimPlayerTickListener, SimTaskStateRe
             applyAllianceSpeedup(ctx.playerId(), data, now);
             res.code = completeBuildingUpgradeAndReport(ctx, casino, data, now);
             if (res.code == Code.SUCCESS) {
-                res.level = data.getLevel();
+                BuildingAreaTableCfg buildingAreaTableCfg = GameDataManager.getBuildingAreaTableCfg(data.getId());
+                BuildingUpgradeTableCfg buildingUpgradeTableCfg = configCache.getBuildingUpgradeCfg(data.getId(), data.getLevel());
+                res.buildingInfo = SimPbConverter.toBuildingInfo(ctx, data, buildingUpgradeTableCfg, buildingAreaTableCfg.getUnlockGameId(), now);
             }
         } catch (Exception e) {
             log.error("", e);
@@ -666,7 +667,7 @@ public class SimBuildingService implements SimPlayerTickListener, SimTaskStateRe
             if (data.isUpgradeReady(now)) {
                 res.code = completeBuildingUpgradeAndReport(ctx, casino, data, now);
                 if (res.code == Code.SUCCESS) {
-                    completeRes = completeBuildingUpgradeResponse(data);
+                    completeRes = completeBuildingUpgradeResponse(ctx, data, now);
                 }
             }
 
@@ -1347,10 +1348,11 @@ public class SimBuildingService implements SimPlayerTickListener, SimTaskStateRe
         return code;
     }
 
-    private ResCompleteBuildingUpgrade completeBuildingUpgradeResponse(BuildingData data) {
+    private ResCompleteBuildingUpgrade completeBuildingUpgradeResponse(SimPlayerContext ctx, BuildingData data, long now) {
         ResCompleteBuildingUpgrade res = new ResCompleteBuildingUpgrade(Code.SUCCESS);
-        res.id = data.getId();
-        res.level = data.getLevel();
+        BuildingAreaTableCfg buildingAreaTableCfg = GameDataManager.getBuildingAreaTableCfg(data.getId());
+        BuildingUpgradeTableCfg buildingUpgradeTableCfg = configCache.getBuildingUpgradeCfg(data.getId(), data.getLevel());
+        res.buildingInfo = SimPbConverter.toBuildingInfo(ctx, data, buildingUpgradeTableCfg, buildingAreaTableCfg.getUnlockGameId(), now);
         return res;
     }
 
@@ -1384,8 +1386,9 @@ public class SimBuildingService implements SimPlayerTickListener, SimTaskStateRe
         }
         long now = System.currentTimeMillis();
         applyAllianceSpeedup(ctx.playerId(), data, now);
+
         if (data.isUpgradeReady(now) && completeBuildingUpgradeAndReport(ctx, casino, data, now) == Code.SUCCESS) {
-            ctx.send(completeBuildingUpgradeResponse(data));
+            ctx.send(completeBuildingUpgradeResponse(ctx, data, now));
         }
     }
 

@@ -6,6 +6,7 @@ import com.jjg.game.common.pb.ItemInfo;
 import com.jjg.game.common.proto.ProtoDesc;
 import com.jjg.game.common.proto.ProtobufMessage;
 import com.jjg.game.sim.constant.SimConstant;
+import com.jjg.game.sim.pb.struct.BuildingInfo;
 
 import java.util.List;
 
@@ -16,10 +17,8 @@ import java.util.List;
 @ProtobufMessage(messageType = MessageConst.MessageTypeDef.SIM_GAME, cmd = SimConstant.MsgBean.RES_COMPLETE_BUILDING_UPGRADE, resp = true)
 @ProtoDesc("完成建筑升级返回")
 public class ResCompleteBuildingUpgrade extends AbstractResponse {
-    @ProtoDesc("建筑id")
-    public int id;
-    @ProtoDesc("新等级")
-    public int level;
+    @ProtoDesc("建筑信息")
+    public BuildingInfo buildingInfo;
     @ProtoDesc("升级奖励")
     public List<ItemInfo> rewards;
 
