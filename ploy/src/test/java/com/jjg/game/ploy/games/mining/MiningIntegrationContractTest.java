@@ -16,12 +16,13 @@ import static org.junit.jupiter.api.Assertions.*;
 class MiningIntegrationContractTest {
     @Test void jsonHotReloadUsesRealBeanPropertiesAndRetainsDefaults() {
         MiningConfig live = new MiningConfig();
-        MiningConfig parsed = JSON.parseObject("{\"enabled\":false,\"adTicketSeconds\":300,\"dailyTasks\":[{\"id\":1,\"kind\":1,\"target\":50,\"nameLanguageId\":400800061,\"descLanguageId\":400800062,\"rewards\":{\"1024034\":5}}]}", MiningConfig.class);
+        MiningConfig parsed = JSON.parseObject("{\"enabled\":false,\"dailyTasks\":[{\"id\":1,\"kind\":1,\"target\":50,\"nameLanguageId\":400800061,\"descLanguageId\":400800062,\"rewards\":{\"1024034\":5}}]}", MiningConfig.class);
         BeanUtils.copyProperties(parsed, live);
-        assertFalse(live.enabled); assertEquals(300, live.adTicketSeconds);
+        assertFalse(live.enabled);
         assertEquals(5L, live.dailyTasks.getFirst().rewards.get(1024034));
         assertEquals(400800061, live.dailyTasks.getFirst().nameLanguageId);
         assertEquals(400800062, live.dailyTasks.getFirst().descLanguageId);
+        assertNotNull(JSON.parseObject("{\"usedAdTickets\":[\"legacy-ticket\"]}", MiningState.class));
     }
 
     @Test void requestsAndFullStateRoundTripThroughProductionSerializer() {

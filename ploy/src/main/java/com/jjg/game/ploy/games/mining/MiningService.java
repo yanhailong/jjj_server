@@ -39,11 +39,10 @@ public class MiningService implements OrderGenerate, StandalonePloyGame {
     private final PlayerPackService packs;
     private final RedissonClient redis;
     private final MiningRankService ranks;
-    private final MiningAdTicketService ads;
 
     public MiningService(MiningConfig config, PlayerPackService packs, RedissonClient redis,
-                         MiningRankService ranks, MiningAdTicketService ads) {
-        this.config = config; this.packs = packs; this.redis = redis; this.ranks = ranks; this.ads = ads;
+                         MiningRankService ranks) {
+        this.config = config; this.packs = packs; this.redis = redis; this.ranks = ranks;
     }
 
     private record Snapshot(String json, MiningState state) { }
@@ -111,9 +110,6 @@ public class MiningService implements OrderGenerate, StandalonePloyGame {
                             if (mode == MiningConstant.BUNDLE_PAID)
                                 throw new MiningException(Code.FORBID, "PAYMENT_REQUIRED");
                             if (mode == MiningConstant.BUNDLE_AD) {
-                                if (!ads.valid(player.getId(), state.day, request.adTicket) || state.usedAdTickets.contains(request.adTicket))
-                                    throw new MiningException(Code.FORBID, "INVALID_AD_TICKET");
-                                state.usedAdTickets.add(request.adTicket);
                                 state.total.ads++; state.daily.ads++;
                             }
                             purchase(state, good.getId(), 1);
@@ -268,7 +264,6 @@ public class MiningService implements OrderGenerate, StandalonePloyGame {
                 state.paymentQuotes = previous.paymentQuotes; state.paidOrders = previous.paidOrders;
                 state.day = previous.day; state.daily = previous.daily;
                 state.dailyPurchases = previous.dailyPurchases; state.claimedDailyTasks = previous.claimedDailyTasks;
-                state.usedAdTickets = previous.usedAdTickets;
             }
             ranks.register(player, season.id);
             changed = true;

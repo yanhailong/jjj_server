@@ -23,6 +23,4 @@ public class ReqMiningAction extends AbstractMessage {
     public int column;
     @ProtoDesc("兑换份数，必须正数；其他操作填1")
     public int count;
-    @ProtoDesc("广告平台服务端验证成功后签发的票据，不接受客户端观看完成标记")
-    public String adTicket;
 }

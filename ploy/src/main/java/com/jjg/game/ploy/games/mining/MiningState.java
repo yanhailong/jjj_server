@@ -26,7 +26,6 @@ public class MiningState {
     public Map<Long, Secret> secrets = new HashMap<>();
     public Map<String, Long> paidOrders = new HashMap<>();
     public Map<String, Quote> paymentQuotes = new HashMap<>();
-    public Set<String> usedAdTickets = new HashSet<>();
     /** 特殊道具的跨系统发奖日志。崩溃后的不确定结果禁止自动重发。 */
     public Delivery delivery;
 
@@ -86,6 +85,5 @@ public class MiningState {
         daily = new Stats();
         dailyPurchases.clear();
         claimedDailyTasks.clear();
-        usedAdTickets.clear();
     }
 }
