@@ -278,6 +278,7 @@ public class MiningService implements OrderGenerate, StandalonePloyGame {
             throw new MiningException(Code.FAIL, "DELIVERY_REQUIRES_RECONCILIATION");
         }
         changed |= engine.alignToConfig(state);
+        changed |= engine.alignConnectivity(state);
         if (state.delivery == null && state.day != TimeHelper.getDayNumerical()) {
             state.refreshDay(TimeHelper.getDayNumerical()); changed = true;
         }

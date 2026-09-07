@@ -14,6 +14,7 @@ public class MiningState {
     public long depthReachedAt;
     public int generatedRows;
     public int lastToolRow;
+    public int connectivityVersion;
     public List<Cell> cells = new ArrayList<>();
     public Stats total = new Stats();
     public Stats daily = new Stats();
@@ -35,6 +36,8 @@ public class MiningState {
         public int type;
         public int hp;
         public long secretId;
+        /** 已打开且能够沿打开格连到地表；用于滚屏后保留连通来源。 */
+        public boolean reachable;
 
         public Cell() { }
         public Cell(int row, int column, int type, int hp) {

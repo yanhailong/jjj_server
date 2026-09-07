@@ -18,6 +18,7 @@ public class MiningEngine {
         state.seed = seed;
         state.width = catalog.width();
         state.visibleRows = catalog.visibleRows();
+        state.connectivityVersion = 1;
         ensureRows(state, state.visibleRows);
         return state;
     }
@@ -50,6 +51,7 @@ public class MiningEngine {
             cell.type = old.type;
             cell.hp = old.hp;
             cell.secretId = old.secretId;
+            cell.reachable = old.reachable;
         }
         rebuilt.cells.removeIf(cell -> cell.row < oldTopRow);
 
@@ -60,6 +62,19 @@ public class MiningEngine {
         state.cells = rebuilt.cells;
         if (state.secrets == null) state.secrets = new HashMap<>();
         else state.secrets.keySet().removeIf(id -> state.cells.stream().noneMatch(cell -> cell.secretId == id));
+        return true;
+    }
+
+    /** 兼容旧存档：首屏可从真实地表精确恢复；已滚屏存档以顶行已打开区域作为历史连通前沿。 */
+    boolean alignConnectivity(MiningState state) {
+        if (state.connectivityVersion >= 1) return false;
+        if (state.cells == null) state.cells = new ArrayList<>();
+        state.cells.forEach(cell -> cell.reachable = false);
+        int rootRow = state.topRow <= 1 ? 1 : state.topRow;
+        state.cells.stream().filter(cell -> cell.row == rootRow && cell.hp == 0)
+                .forEach(cell -> cell.reachable = true);
+        refreshReachability(state);
+        state.connectivityVersion = 1;
         return true;
     }
 
@@ -108,6 +123,7 @@ public class MiningEngine {
             if (c.row > state.depth) { state.depth = c.row; state.depthReachedAt = now; }
             scroll |= c.row == bottom;
         }
+        refreshReachability(state);
         state.total.tools.merge(tool.getItemid(), 1L, Long::sum);
         state.daily.tools.merge(tool.getItemid(), 1L, Long::sum);
         for (Map.Entry<Integer, Long> e : rewards.entrySet()) {
@@ -126,10 +142,34 @@ public class MiningEngine {
     }
 
     public boolean connected(MiningState state, int row, int column) {
-        // 初始地表开放，滚屏后不能把新的顶行误当作地表。
+        // 未挖的第一行直接暴露在地表；其他格必须邻接真正连到地表的开放格。
         if (row == 1) return true;
-        return state.cells.stream().anyMatch(c -> c.hp == 0 && c.row >= state.topRow
+        return state.cells.stream().anyMatch(c -> c.hp == 0 && c.reachable && c.row >= state.topRow
                 && Math.abs(c.row - row) + Math.abs(c.column - column) == 1);
+    }
+
+    private void refreshReachability(MiningState state) {
+        ArrayDeque<MiningState.Cell> queue = new ArrayDeque<>();
+        Set<Long> visited = new HashSet<>();
+        for (MiningState.Cell cell : state.cells) {
+            if (cell.hp == 0 && (cell.reachable || cell.row == 1)) {
+                cell.reachable = true;
+                if (visited.add(cellKey(cell.row, cell.column))) queue.add(cell);
+            }
+        }
+        Map<Long, MiningState.Cell> opened = new HashMap<>();
+        state.cells.stream().filter(cell -> cell.hp == 0)
+                .forEach(cell -> opened.put(cellKey(cell.row, cell.column), cell));
+        int[][] directions = {{-1, 0}, {1, 0}, {0, -1}, {0, 1}};
+        while (!queue.isEmpty()) {
+            MiningState.Cell current = queue.removeFirst();
+            for (int[] direction : directions) {
+                MiningState.Cell neighbor = opened.get(cellKey(current.row + direction[0], current.column + direction[1]));
+                if (neighbor == null || !visited.add(cellKey(neighbor.row, neighbor.column))) continue;
+                neighbor.reachable = true;
+                queue.addLast(neighbor);
+            }
+        }
     }
 
     private MiningState.Cell cell(MiningState state, int row, int column) {

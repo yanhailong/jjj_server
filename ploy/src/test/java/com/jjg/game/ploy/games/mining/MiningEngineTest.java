@@ -58,9 +58,39 @@ class MiningEngineTest {
         MiningEngine engine = new MiningEngine();
         MiningState state = MiningFixtures.flat(9000, 1011);
         MiningFixtures.cell(state, 1, 1).hp = 0;
+        MiningFixtures.cell(state, 1, 1).reachable = true;
 
         assertTrue(MiningService.cellInfo(MiningFixtures.cell(state, 2, 1), state, engine).connected);
         assertFalse(MiningService.cellInfo(MiningFixtures.cell(state, 2, 2), state, engine).connected);
+    }
+
+    @Test void isolatedOpenAreaDoesNotMakeAdjacentCellsConnected() {
+        MiningEngine engine = new MiningEngine();
+        MiningState state = MiningFixtures.flat(1, 1001);
+        MiningFixtures.cell(state, 1, 1).hp = 0;
+        MiningFixtures.cell(state, 1, 1).reachable = true;
+
+        engine.dig(state, 5, 5, 103, 1);
+
+        assertTrue(engine.connected(state, 2, 1));
+        assertFalse(engine.connected(state, 7, 5));
+        assertTrue(state.cells.stream().filter(cell -> cell.row >= 4 && cell.row <= 6
+                && cell.column >= 4 && cell.column <= 6).noneMatch(cell -> cell.reachable));
+    }
+
+    @Test void oldFirstScreenStateRestoresOnlySurfaceConnectedOpenArea() {
+        MiningEngine engine = new MiningEngine();
+        MiningState state = MiningFixtures.flat(1, 1001);
+        state.connectivityVersion = 0;
+        MiningFixtures.cell(state, 1, 1).hp = 0;
+        MiningFixtures.cell(state, 2, 1).hp = 0;
+        MiningFixtures.cell(state, 7, 3).hp = 0;
+
+        assertTrue(engine.alignConnectivity(state));
+        assertTrue(MiningFixtures.cell(state, 2, 1).reachable);
+        assertFalse(MiningFixtures.cell(state, 7, 3).reachable);
+        assertFalse(engine.connected(state, 7, 4));
+        assertFalse(engine.alignConnectivity(state));
     }
 
     @Test void diggingBottomScrollsOnceRejectsOldCoordinatesAndNeverHitsPreGeneratedRows() {
@@ -90,6 +120,7 @@ class MiningEngineTest {
         assertEquals(1, state.total.grids);
         MiningFixtures.cell(state, 8, 1).hp = 2;
         MiningFixtures.cell(state, 7, 1).hp = 0;
+        MiningFixtures.cell(state, 7, 1).reachable = true;
         engine.dig(state, 8, 1, 101, 8);
         assertEquals(1, state.topRow); assertEquals(1, state.depth);
     }
