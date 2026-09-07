@@ -703,11 +703,7 @@ public class SimManager {
             boolean visitTrial = trialPermit != null && trialPermit.isTrial();
             ctx = this.simPlayerContextRegistry.getContext(playerId);
             if (ctx == null) {
-                // 已授权的试玩结果必须完成结算；即使异步回调到达前上下文已被清理，也要恢复后继续发放房主抽成。
-                if (changeNode || visitTrial) {
-                    ctx = createContextByPlayerId(playerId);
-                }
-
+                ctx = createContextByPlayerId(playerId);
                 if (ctx == null) {
                     //玩家未在 sim 在线: 跳过联动, 不影响 slots 旋转
                     log.warn("slots 联动跳过, 玩家未在 sim 在线 playerId={},gameType={},winTimes={}", playerId, gameType, winTimes);

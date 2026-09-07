@@ -13,6 +13,7 @@ import com.jjg.game.core.data.PlayerSessionInfo;
 import com.jjg.game.core.manager.RedDotManager;
 import com.jjg.game.core.pb.reddot.RedDotDetails;
 import com.jjg.game.core.service.CorePlayerService;
+import com.jjg.game.core.utils.RobotUtil;
 import com.jjg.game.core.utils.TipUtils;
 import com.jjg.game.sim.service.SimConfigCacheService;
 import com.jjg.game.social.constant.SocialConst;
@@ -193,54 +194,88 @@ public class FriendService implements IRedDotService {
                 log.warn("发起好友申请失败,targetId错误, selfId={},targetId={}", selfId, targetId);
                 return res;
             }
-            Player target = corePlayerService.get(targetId);
-            if (target == null) {
-                res.code = Code.NOT_FOUND;
-                log.warn("发起好友申请失败，未找到该玩家， selfId={},targetId={}", selfId, targetId);
-                return res;
-            }
-            FriendData selfData = friendDao.getOrEmpty(selfId);
-            if (selfData.isFriend(targetId)) {
-                res.code = Code.FORBID;
-                log.warn("发起好友申请失败，该玩家已经是好友， selfId={},targetId={}", selfId, targetId);
-                return res;
-            }
-            if (selfData.friendCount() >= SocialConst.Cfg.FRIEND_LIMIT) {
-                res.code = Code.FORBID;
-                log.warn("发起好友申请失败，好友数量达到上限， selfId={},targetId={},friendCount={}", selfId, targetId, selfData.friendCount());
-                return res;
-            }
 
-            int today = today();
-            int sentToday = selfData.currentDailyRequestCount(today);
-            if (sentToday >= SocialConst.Cfg.DAILY_REQUEST_LIMIT) {
-                res.code = Code.FORBID;
-                log.warn("发起好友申请失败，进入申请达到上限， selfId={},targetId={},sentToday={}", selfId, targetId, sentToday);
-                return res;
-            }
+            if (RobotUtil.isRobot(targetId)) {
+                FriendData selfData = friendDao.getOrEmpty(selfId);
+                if (selfData.isFriend(targetId)) {
+                    res.code = Code.FORBID;
+                    log.warn("发起好友申请失败，该玩家已经是好友， selfId={},targetId={}", selfId, targetId);
+                    return res;
+                }
+                if (selfData.friendCount() >= SocialConst.Cfg.FRIEND_LIMIT) {
+                    res.code = Code.FORBID;
+                    log.warn("发起好友申请失败，好友数量达到上限， selfId={},targetId={},friendCount={}", selfId, targetId, selfData.friendCount());
+                    return res;
+                }
 
-            //对方待处理申请封顶, 防止热门玩家 pendingRequests 无界膨胀 (聚合只回传计数)
-            if (friendDao.pendingRequestCount(targetId) >= SocialConst.Cfg.PENDING_REQUEST_LIMIT) {
-                res.code = Code.FORBID;
-                log.warn("发起好友申请失败，对方待处理申请已达上限 selfId={},targetId={}", selfId, targetId);
-                return res;
-            }
+                int today = today();
+                int sentToday = selfData.currentDailyRequestCount(today);
+                if (sentToday >= SocialConst.Cfg.DAILY_REQUEST_LIMIT) {
+                    res.code = Code.FORBID;
+                    log.warn("发起好友申请失败，进入申请达到上限， selfId={},targetId={},sentToday={}", selfId, targetId, sentToday);
+                    return res;
+                }
 
-            long now = System.currentTimeMillis();
-            //条件 upsert 原子判重+写入, 替代"先查重(hasPendingRequest)再写"的两次往返
-            if (!friendDao.addRequestIfAbsent(targetId, selfId, now)) {
-                res.code = Code.FORBID;
-                log.warn("发起好友申请失败，已经申请过添加该好友， selfId={},targetId={}", selfId, targetId);
-                return res;
-            }
-            updateFriendRequestRedDot(targetId);
-            friendDao.setDailyRequest(selfId, today, sentToday + 1);
 
-            //通知在线目标
-            NotifyFriendRequest notify = new NotifyFriendRequest(Code.SUCCESS);
-            notify.request = SocialPbConverter.toRequestInfo(self, now);
-            sender.sendTo(targetId, notify);
-            log.info("发起好友申请 playerId={},targetId={}", selfId, targetId);
+                long now = System.currentTimeMillis();
+                //条件 upsert 原子判重+写入, 替代"先查重(hasPendingRequest)再写"的两次往返
+                if (!friendDao.addRequestIfAbsent(targetId, selfId, now)) {
+                    res.code = Code.FORBID;
+                    log.warn("发起好友申请失败，已经申请过添加该好友， selfId={},targetId={}", selfId, targetId);
+                    return res;
+                }
+
+                friendDao.setDailyRequest(selfId, today, sentToday + 1);
+            } else {
+                Player target = corePlayerService.get(targetId);
+                if (target == null) {
+                    res.code = Code.NOT_FOUND;
+                    log.warn("发起好友申请失败，未找到该玩家， selfId={},targetId={}", selfId, targetId);
+                    return res;
+                }
+                FriendData selfData = friendDao.getOrEmpty(selfId);
+                if (selfData.isFriend(targetId)) {
+                    res.code = Code.FORBID;
+                    log.warn("发起好友申请失败，该玩家已经是好友， selfId={},targetId={}", selfId, targetId);
+                    return res;
+                }
+                if (selfData.friendCount() >= SocialConst.Cfg.FRIEND_LIMIT) {
+                    res.code = Code.FORBID;
+                    log.warn("发起好友申请失败，好友数量达到上限， selfId={},targetId={},friendCount={}", selfId, targetId, selfData.friendCount());
+                    return res;
+                }
+
+                int today = today();
+                int sentToday = selfData.currentDailyRequestCount(today);
+                if (sentToday >= SocialConst.Cfg.DAILY_REQUEST_LIMIT) {
+                    res.code = Code.FORBID;
+                    log.warn("发起好友申请失败，进入申请达到上限， selfId={},targetId={},sentToday={}", selfId, targetId, sentToday);
+                    return res;
+                }
+
+                //对方待处理申请封顶, 防止热门玩家 pendingRequests 无界膨胀 (聚合只回传计数)
+                if (friendDao.pendingRequestCount(targetId) >= SocialConst.Cfg.PENDING_REQUEST_LIMIT) {
+                    res.code = Code.FORBID;
+                    log.warn("发起好友申请失败，对方待处理申请已达上限 selfId={},targetId={}", selfId, targetId);
+                    return res;
+                }
+
+                long now = System.currentTimeMillis();
+                //条件 upsert 原子判重+写入, 替代"先查重(hasPendingRequest)再写"的两次往返
+                if (!friendDao.addRequestIfAbsent(targetId, selfId, now)) {
+                    res.code = Code.FORBID;
+                    log.warn("发起好友申请失败，已经申请过添加该好友， selfId={},targetId={}", selfId, targetId);
+                    return res;
+                }
+                updateFriendRequestRedDot(targetId);
+                friendDao.setDailyRequest(selfId, today, sentToday + 1);
+
+                //通知在线目标
+                NotifyFriendRequest notify = new NotifyFriendRequest(Code.SUCCESS);
+                notify.request = SocialPbConverter.toRequestInfo(self, now);
+                sender.sendTo(targetId, notify);
+                log.info("发起好友申请 playerId={},targetId={}", selfId, targetId);
+            }
         } catch (Exception e) {
             log.error("", e);
             res.code = Code.EXCEPTION;
