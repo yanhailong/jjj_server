@@ -1,7 +1,6 @@
 package com.jjg.game.ploy.games.mining;
 
 import com.alibaba.fastjson.JSON;
-import com.jjg.game.common.utils.TimeHelper;
 import com.jjg.game.core.constant.Code;
 import com.jjg.game.core.data.*;
 import com.jjg.game.core.pb.RechargeType;
@@ -25,7 +24,6 @@ import static org.mockito.Mockito.*;
 class MiningServiceTest {
     private MiningService service;
     private PlayerPackService packs;
-    private MiningAdTicketService ads;
     private MiningRankService ranks;
     private MiningConfig config;
     private final Player player = new Player();
@@ -36,7 +34,7 @@ class MiningServiceTest {
     @BeforeEach void setup() {
         player.setId(10001L); saved = null; wallet = new HashMap<>();
         wallet.put(1024034, 100L); wallet.put(1024035, 20L); wallet.put(1024036, 20L); wallet.put(1024037, 1000L);
-        config = new MiningConfig(); packs = mock(PlayerPackService.class); ads = mock(MiningAdTicketService.class);
+        config = new MiningConfig(); packs = mock(PlayerPackService.class);
         ranks = mock(MiningRankService.class); RedissonClient redis = mock(RedissonClient.class); RLock lock = mock(RLock.class);
         when(lock.tryLock()).thenReturn(true); when(redis.getLock(anyString())).thenReturn(lock);
         when(ranks.seasonReadLock(anyString())).thenReturn(lock);
@@ -51,7 +49,7 @@ class MiningServiceTest {
                     costs.forEach((id, n) -> wallet.merge(id, -n, Long::sum)); rewards.forEach((id, n) -> wallet.merge(id, n, Long::sum));
                     saved = inv.getArgument(6); return new CommonResult<ItemOperationResult>(Code.SUCCESS);
                 });
-        service = new MiningService(config, packs, redis, ranks, ads);
+        service = new MiningService(config, packs, redis, ranks);
         assertEquals(Code.SUCCESS, service.info(player).code);
     }
 
@@ -78,6 +76,9 @@ class MiningServiceTest {
         assertEquals(Code.SUCCESS, bundles.code); assertFalse(bundles.bundles.isEmpty()); assertEquals(state().version, bundles.version);
         assertTrue(bundles.bundles.stream().allMatch(bundle -> bundle.nameLanguageId > 0));
         assertTrue(bundles.bundles.stream().allMatch(bundle -> bundle.adCdEndTime == 0));
+        assertEquals(1, bundles.bundles.stream().filter(bundle -> bundle.id == 6001).findFirst().orElseThrow().mode);
+        assertEquals(2, bundles.bundles.stream().filter(bundle -> bundle.id == 6002).findFirst().orElseThrow().mode);
+        assertEquals(3, bundles.bundles.stream().filter(bundle -> bundle.id == 6003).findFirst().orElseThrow().mode);
 
         ResMiningAchievements achievements = service.achievements(player);
         assertEquals(Code.SUCCESS, achievements.code); assertFalse(achievements.achievements.isEmpty());
@@ -184,23 +185,15 @@ class MiningServiceTest {
         assertEquals(before, wallet); assertEquals(old, saved);
     }
 
-    @Test void adRequiresVerifiedSingleUseTicketAndPaidBundleCannotUseFreeClaim() {
-        assertEquals(Code.FORBID, service.action(player, request(MiningConstant.BUNDLE, 6002)).code);
-        ReqMiningAction req = request(MiningConstant.BUNDLE, 6002); req.adTicket = "verified";
-        when(ads.valid(player.getId(), TimeHelper.getDayNumerical(), "verified")).thenReturn(true);
-        assertEquals(Code.SUCCESS, service.action(player, req).code);
-        req = request(MiningConstant.BUNDLE, 6002); req.adTicket = "verified";
-        assertEquals(Code.FORBID, service.action(player, req).code);
+    @Test void adBundleClaimsDirectlyAndPaidBundleCannotUseFreeClaim() {
+        assertEquals(Code.SUCCESS, service.action(player, request(MiningConstant.BUNDLE, 6002)).code);
         assertEquals(1, state().total.ads);
         assertEquals("PAYMENT_REQUIRED", service.action(player, request(MiningConstant.BUNDLE, 6003)).reason);
     }
 
     @Test void exhaustedAdBundleReturnsDailyResetAsCooldownEndTime() {
-        when(ads.valid(eq(player.getId()), eq(TimeHelper.getDayNumerical()), anyString())).thenReturn(true);
         for (int i = 1; i <= 3; i++) {
-            ReqMiningAction request = request(MiningConstant.BUNDLE, 6002);
-            request.adTicket = "ticket-" + i;
-            assertEquals(Code.SUCCESS, service.action(player, request).code);
+            assertEquals(Code.SUCCESS, service.action(player, request(MiningConstant.BUNDLE, 6002)).code);
         }
 
         ResMiningBundleShop response = service.bundleShop(player);

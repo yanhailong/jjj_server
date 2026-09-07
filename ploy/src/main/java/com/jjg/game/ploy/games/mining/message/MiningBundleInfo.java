@@ -21,7 +21,7 @@ public class MiningBundleInfo {
     public int boughtToday;
     @ProtoDesc("剩余可购数量，-1不限购")
     public int remaining;
-    @ProtoDesc("1免费 2广告 3支付")
+    @ProtoDesc("礼包类型，取MiningBundleShop.BundleType：1免费 2广告 3付费")
     public int mode;
     @ProtoDesc("礼包内容")
     public List<ItemInfo> goods;

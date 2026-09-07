@@ -1,6 +1,5 @@
 {
   "enabled": true,
-  "adTicketSeconds": 600,
   "permanentLimits": {},
   "dailyTasks": [
     {"id": 1, "kind": 1, "itemId": 0, "target": 50, "rewards": {"1024034": 5}},

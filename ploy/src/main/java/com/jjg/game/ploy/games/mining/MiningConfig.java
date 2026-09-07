@@ -11,15 +11,12 @@ import java.util.Comparator;
 @Component
 public class MiningConfig {
     public boolean enabled = true;
-    public int adTicketSeconds = 600;
     public Map<Integer, Integer> permanentLimits = Map.of();
     public List<DailyTask> dailyTasks = List.of();
     public List<Season> seasons = List.of();
 
     public boolean isEnabled() { return enabled; }
     public void setEnabled(boolean value) { enabled = value; }
-    public int getAdTicketSeconds() { return adTicketSeconds; }
-    public void setAdTicketSeconds(int value) { adTicketSeconds = value; }
     public Map<Integer, Integer> getPermanentLimits() { return permanentLimits; }
     public void setPermanentLimits(Map<Integer, Integer> value) { permanentLimits = value; }
     public List<DailyTask> getDailyTasks() { return dailyTasks; }

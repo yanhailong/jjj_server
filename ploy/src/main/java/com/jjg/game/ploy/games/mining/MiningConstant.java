@@ -21,4 +21,5 @@ public interface MiningConstant {
     int REQ_DAILY_TASKS = BASE | 0x10B;
     int RES_DAILY_TASKS = BASE | 0x10C;
     int DIG = 1, EXCHANGE = 2, BUNDLE = 3, ACHIEVEMENT = 4, DAILY_TASK = 5;
+    int BUNDLE_FREE = 1, BUNDLE_AD = 2, BUNDLE_PAID = 3;
 }
