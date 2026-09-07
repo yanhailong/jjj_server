@@ -166,6 +166,7 @@ public class FriendData {
 
     /**
      * 获取排除黑名单的好友
+     *
      * @return
      */
     public Map<Long, FriendEntry> friendsExcludeBlacklist() {
@@ -178,5 +179,12 @@ public class FriendData {
         Map<Long, FriendEntry> tmpFriends = new HashMap<>(this.friends);
         this.blacklist.keySet().forEach(tmpFriends::remove);
         return tmpFriends;
+    }
+
+    public boolean pending(long targetId) {
+        if(this.pendingRequests == null || this.pendingRequests.isEmpty()) {
+            return false;
+        }
+        return this.pendingRequests.containsKey(targetId);
     }
 }

@@ -122,9 +122,9 @@ public class PlayerCardInfoService {
             }
 
             SimBaseData baseData = simPlayerGameDao.findById(targetId).orElse(null);
-            if(baseData != null){
+            if (baseData != null) {
                 card.level = baseData.getAllLevel();
-            }else {
+            } else {
                 card.level = p.getLevel();
             }
 
@@ -138,9 +138,19 @@ public class PlayerCardInfoService {
             card.displayedMedalIds = simTaskDao.findDisplayedMedalIds(targetId);
 
             FriendData selfData = friendDao.getOrEmpty(selfId);
-            card.relation = selfData.isFriend(targetId) ? 1 : 0;
-            card.inBlacklist = selfData.isBlacklisted(targetId);
 
+            //是否为好友
+            if (selfData.isFriend(targetId)) {
+                card.relation = 1;
+            } else {
+                FriendData friendData = friendDao.getOrEmpty(targetId);
+                //是否在申请列表中
+                if(selfData.pending(targetId) || friendData.pending(selfId)) {
+                    card.relation = 2;
+                }
+            }
+
+            card.inBlacklist = selfData.isBlacklisted(targetId);
             res.card = card;
         } catch (Exception e) {
             log.error("", e);
@@ -154,7 +164,7 @@ public class PlayerCardInfoService {
      */
     private List<CasinoIconInfo> buildCasinoIcons(long targetId) {
         SimCasinoUnlock casinoUnlock = simCasinoService.getCasinoUnlock(targetId);
-        if(casinoUnlock == null){
+        if (casinoUnlock == null) {
             return Collections.emptyList();
         }
 
