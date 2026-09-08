@@ -41,7 +41,7 @@ public class VisitorQuestCfg extends BaseCfgBean {
   protected int ServiceCapacity;
   /** 指定区域 */
   protected List<Integer> TargetArea;
-  /** 服务要求值 */
+  /** 知名度要求值 */
   protected int awareness;
   /** 类型 */
   protected int type;
@@ -101,7 +101,7 @@ public class VisitorQuestCfg extends BaseCfgBean {
     return TargetArea;
   }
 
-  /** 返回服务要求值 */
+  /** 返回知名度要求值 */
   public int getAwareness() {
     return awareness;
   }

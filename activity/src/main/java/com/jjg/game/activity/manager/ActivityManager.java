@@ -314,6 +314,16 @@ public class ActivityManager implements TimerListener<Long>, IPlayerLoginSuccess
                 .anyMatch(ActivityData::canRun);
     }
 
+    @Override
+    public boolean isActivityOpen(Player player, int activityType) {
+        ActivityType type = ActivityType.fromType(activityType);
+        if (player == null || type == null) {
+            return false;
+        }
+        return activityTypeData.getOrDefault(type, Map.of()).values().stream()
+                .anyMatch(data -> playerCanJoinActivity(data, player));
+    }
+
     /**
      * 通过类型获取玩家能参加的活动数据
      *

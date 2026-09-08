@@ -19,9 +19,11 @@ import com.jjg.game.core.constant.Code;
 import com.jjg.game.core.data.CommonResult;
 import com.jjg.game.core.data.ItemOperationResult;
 import com.jjg.game.core.data.Player;
+import com.jjg.game.core.pb.NotifyOpenFunction;
 import com.jjg.game.core.utils.ItemUtils;
 import com.jjg.game.sampledata.GameDataManager;
 import com.jjg.game.sampledata.bean.BaseCfgBean;
+import com.jjg.game.sampledata.bean.GameFunctionCfg;
 import com.jjg.game.sampledata.bean.VideoRewardCfg;
 import org.springframework.stereotype.Component;
 
@@ -108,7 +110,7 @@ public class AdsRewardController extends BaseActivityController {
             }
 
             CommonResult<ItemOperationResult> added = playerPackService.addItems(
-                    playerId, cfg.getRewards(), AddType.ACTIVITY_ADS_REWARD,false);
+                    playerId, cfg.getRewards(), AddType.ACTIVITY_ADS_REWARD, false);
             if (!added.success()) {
                 res.code = added.code;
                 return res;
@@ -123,6 +125,16 @@ public class AdsRewardController extends BaseActivityController {
             res.activityInfo = buildActivityInfo(activityData, cfgMap, claimedData, day, watchCount);
             log.info("视频福利领取成功 playerId:{} activityId:{} detailId:{} watchCount:{} rewards:{}",
                     playerId, activityData.getId(), detailId, watchCount, cfg.getRewards());
+            if (res.activityInfo.detailInfos.stream()
+                    .allMatch(detail -> detail.claimStatus == ActivityConstant.ClaimStatus.CLAIMED)) {
+
+                GameFunctionCfg gameFuncCfg = gameFunctionService.getGameFunctionCfgByType(activityData.getType().getType());
+                if (gameFuncCfg != null) {
+                    NotifyOpenFunction notify = new NotifyOpenFunction();
+                    notify.closeFunctionIdList = List.of(gameFuncCfg.getId());
+                    activityManager.sendToPlayer(playerId, notify);
+                }
+            }
         } catch (Exception e) {
             res.code = Code.EXCEPTION;
             log.error("视频福利领取异常 playerId:{} activityId:{} detailId:{}",
@@ -133,7 +145,7 @@ public class AdsRewardController extends BaseActivityController {
 
     @Override
     public AdsRewardDetailInfo buildPlayerActivityDetail(Player player, ActivityData activityData,
-                                                          BaseCfgBean baseCfgBean, PlayerActivityData data) {
+                                                         BaseCfgBean baseCfgBean, PlayerActivityData data) {
         if (!(baseCfgBean instanceof VideoRewardCfg cfg)) {
             return null;
         }
@@ -233,14 +245,14 @@ public class AdsRewardController extends BaseActivityController {
     }
 
     private AdsRewardActivityInfo buildActivityInfo(long playerId, ActivityData activityData,
-                                                     Map<Integer, VideoRewardCfg> cfgMap, int day, int watchCount) {
+                                                    Map<Integer, VideoRewardCfg> cfgMap, int day, int watchCount) {
         Map<Integer, PlayerActivityData> claimedData = getTodayClaimedData(playerId, activityData, day);
         return buildActivityInfo(activityData, cfgMap, claimedData, day, watchCount);
     }
 
     private AdsRewardActivityInfo buildActivityInfo(ActivityData activityData, Map<Integer, VideoRewardCfg> cfgMap,
-                                                     Map<Integer, PlayerActivityData> claimedData,
-                                                     int day, int watchCount) {
+                                                    Map<Integer, PlayerActivityData> claimedData,
+                                                    int day, int watchCount) {
         AdsRewardActivityInfo info = new AdsRewardActivityInfo();
         info.activityInfo = super.buildActivityInfo(activityData);
         info.startTime = activityData.getTimeStart();
@@ -254,8 +266,8 @@ public class AdsRewardController extends BaseActivityController {
     }
 
     private List<AdsRewardDetailInfo> buildDetails(ActivityData activityData, Map<Integer, VideoRewardCfg> cfgMap,
-                                                    Map<Integer, PlayerActivityData> claimedData,
-                                                    int day, int watchCount) {
+                                                   Map<Integer, PlayerActivityData> claimedData,
+                                                   int day, int watchCount) {
         List<AdsRewardDetailInfo> details = new ArrayList<>(cfgMap.size());
         for (VideoRewardCfg cfg : cfgMap.values()) {
             details.add(buildDetail(activityData, cfg, claimedData.get(cfg.getId()), day, watchCount));
@@ -264,7 +276,7 @@ public class AdsRewardController extends BaseActivityController {
     }
 
     private AdsRewardDetailInfo buildDetail(ActivityData activityData, VideoRewardCfg cfg,
-                                             PlayerActivityData data, int day, int watchCount) {
+                                            PlayerActivityData data, int day, int watchCount) {
         AdsRewardDetailInfo info = new AdsRewardDetailInfo();
         info.activityId = activityData.getId();
         info.detailId = cfg.getId();
@@ -338,5 +350,43 @@ public class AdsRewardController extends BaseActivityController {
     private boolean isClaimed(PlayerActivityData data, int day) {
         return data != null && data.getRound() == day
                 && data.getClaimStatus() == ActivityConstant.ClaimStatus.CLAIMED;
+    }
+
+    @Override
+    public void checkPlayerDataAndResetOnLogin(Player player, ActivityData activityData) {
+        GameFunctionCfg cfg = gameFunctionService.getGameFunctionCfgByType(activityData.getType().getType());
+        if (cfg == null) {
+            return;
+        }
+
+        if (!gameFunctionService.checkGameFunctionOpen(player, cfg, false, false)) {
+            return;
+        }
+
+        NotifyOpenFunction notify = new NotifyOpenFunction();
+        notify.functionIdList = List.of(cfg.getId());
+        activityManager.sendToPlayer(player.getId(), notify);
+    }
+
+    @Override
+    public boolean checkPlayerCanJoinActivity(Player player, ActivityData activityData) {
+        boolean checked = super.checkPlayerCanJoinActivity(player, activityData);
+        if (!checked) {
+            return false;
+        }
+
+        Map<Integer, PlayerActivityData> stored = playerActivityDao.getPlayerActivityData(
+                player.getId(), activityData.getType(), activityData.getId());
+        if (CollectionUtil.isEmpty(stored)) {
+            return true;
+        }
+
+        int day = TimeHelper.getDayNumerical();
+        for (Integer detailId : activityData.getValue()) {
+            if (!isClaimed(stored.get(detailId), day)) {
+                return true;
+            }
+        }
+        return false;
     }
 }

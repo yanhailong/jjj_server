@@ -55,6 +55,7 @@ public class SimPlayerStatService {
             case PlayerStatService.GUEST_COUNT -> guestCount(ctx,
                     condition.spec().intParameter(1));
             case PlayerStatService.CASINO_UNLOCK -> unlockedCasinoCount(ctx);
+            case PlayerStatService.ALL_SCENE_LEVEL -> sceneLevel(ctx, 0);
             case PlayerStatService.SCENE_TOTAL_LEVEL -> sceneLevel(ctx,
                     condition.spec().intParameter(0));
             case PlayerStatService.SKILL_COMBAT_POWER -> combatPower(ctx,

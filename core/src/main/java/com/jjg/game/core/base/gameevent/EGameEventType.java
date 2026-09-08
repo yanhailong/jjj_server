@@ -25,6 +25,8 @@ public enum EGameEventType {
     CLOCK_EVENT(""),
     // 货币变化事件（主要用于在对战类游戏中更新游戏数据）
     CURRENCY_CHANGE(""),
+    //每日签到奖励领取成功
+    DAILY_SIGN_IN(""),
     ;
 
     // 配置表中的类型

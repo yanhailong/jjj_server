@@ -44,7 +44,8 @@ public record ActionConditionEvent(Type type, int subjectId, int relatedId, long
         ITEM_EXCHANGE,
         SEASON_SHOP_BUY,
         SEASON_GEM_EQUIP,
-        SEASON_GEM_CRAFT
+        SEASON_GEM_CRAFT,
+        DAILY_SIGN_IN
     }
 
     public boolean matchesSubject(long expected) {

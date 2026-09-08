@@ -161,6 +161,10 @@ final class DefaultConditionRules {
                 (s, e) -> true, (s, e) -> positiveCount(e)));
         rules.add(action(12227, 1, 1, 0, ProgressMode.ADD, ActionConditionEvent.Type.SEASON_GEM_EQUIP,
                 (s, e) -> true, (s, e) -> positiveCount(e)));
+        rules.add(action(12228, 1, 1, 0, ProgressMode.ADD, ActionConditionEvent.Type.DAILY_SIGN_IN,
+                (s, e) -> true, (s, e) -> positiveCount(e)));
+        rules.add(action(12229, 1, 1, 0, ProgressMode.SET, ActionConditionEvent.Type.SCENE_TOTAL_LEVEL,
+                (s, e) -> true, (s, e) -> e.value()));
 
         //12251-12283 与上面的接取型条件判定口径一致，进度由玩家统计提供而非任务计数器。
         rules.add(game(12251, 3, 3, 2, ProgressMode.ADD,

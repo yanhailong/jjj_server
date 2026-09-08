@@ -17,6 +17,9 @@ import com.jjg.game.activity.privilegecard.data.PlayerPrivilegeCard;
 import com.jjg.game.common.pb.AbstractResponse;
 import com.jjg.game.common.proto.Pair;
 import com.jjg.game.common.utils.TimeHelper;
+import com.jjg.game.core.base.gameevent.EGameEventType;
+import com.jjg.game.core.base.gameevent.GameEventManager;
+import com.jjg.game.core.base.gameevent.PlayerEvent;
 import com.jjg.game.core.constant.AddType;
 import com.jjg.game.core.constant.Code;
 import com.jjg.game.core.data.CommonResult;
@@ -71,9 +74,11 @@ public class DailyLoginController extends BaseActivityController {
 
     private final Logger log = LoggerFactory.getLogger(DailyLoginController.class);
     private final DailyLoginDao dailyLoginDao;
+    private final GameEventManager gameEventManager;
 
-    public DailyLoginController(DailyLoginDao dailyLoginDao) {
+    public DailyLoginController(DailyLoginDao dailyLoginDao, GameEventManager gameEventManager) {
         this.dailyLoginDao = dailyLoginDao;
+        this.gameEventManager = gameEventManager;
     }
 
     /**
@@ -220,6 +225,7 @@ public class DailyLoginController extends BaseActivityController {
             if (cfg.getType() == ActivityConstant.DailyLogin.CONTINUE_TYPE) {
                 dailyLoginDao.updateClaimTime(activityId, playerId);
                 dailyLoginDao.addContinuousLoginDay(activityId, playerId);
+                gameEventManager.syncTriggerEvent(new PlayerEvent(player, EGameEventType.DAILY_SIGN_IN, 1L, null));
             }
             //日志
             activityLogger.sendDailyLoginRewards(player, activityData, detailId, cfg.getType(), cfg.getGetItem(),

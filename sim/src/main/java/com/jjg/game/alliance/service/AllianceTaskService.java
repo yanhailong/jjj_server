@@ -20,6 +20,7 @@ import com.jjg.game.core.constant.AddType;
 import com.jjg.game.core.constant.Code;
 import com.jjg.game.core.data.PlayerController;
 import com.jjg.game.core.pb.NotifyOpenFunction;
+import com.jjg.game.core.service.CorePlayerService;
 import com.jjg.game.core.service.GameFunctionService;
 import com.jjg.game.core.service.PlayerPackService;
 import com.jjg.game.sampledata.GameDataManager;
@@ -119,6 +120,8 @@ public class AllianceTaskService {
     private PlayerPackService playerPackService;
     @Autowired
     private GameFunctionService gameFunctionService;
+    @Autowired
+    private CorePlayerService corePlayerService;
     @Autowired
     private SimPlayerContextRegistry simPlayerContextRegistry;
     @Autowired
@@ -591,7 +594,7 @@ public class AllianceTaskService {
         notify.cfgId = taken.getCfgId();
         socialSender.sendTo(playerId, notify);
         NotifyOpenFunction functionNotify = gameFunctionService.buildTaskFunctionOpenNotify(
-                List.of(cfg.getFunctionId()));
+                corePlayerService.get(playerId), List.of(cfg.getFunctionId()));
         if (functionNotify != null) {
             socialSender.sendTo(playerId, functionNotify);
         }

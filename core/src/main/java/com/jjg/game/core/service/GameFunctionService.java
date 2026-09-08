@@ -80,9 +80,11 @@ public class GameFunctionService implements GameEventListener {
         });
 
         for (GameFunctionCfg functionCfg : GameDataManager.getGameFunctionCfgList()) {
-            if (checkGameFunctionOpen(player, functionCfg, false, false)) {
-                functionIdList.add(functionCfg.getId());
-            } else if (functionIdSet.contains(functionCfg.getId()) && checkGameFunctionOpen(functionCfg)) {
+            if (!checkGameFunctionOpen(player, functionCfg)) {
+                continue;
+            }
+            if (conditionManager.isAchievement(player, "", functionCfg.getShowCondition())
+                    || functionIdSet.contains(functionCfg.getId())) {
                 functionIdList.add(functionCfg.getId());
             }
         }
@@ -92,7 +94,7 @@ public class GameFunctionService implements GameEventListener {
     /**
      * 根据任务配置的功能 ID 构建增量开放通知，未配置或功能未开发时不通知。
      */
-    public NotifyOpenFunction buildTaskFunctionOpenNotify(Collection<Integer> functionIds) {
+    public NotifyOpenFunction buildTaskFunctionOpenNotify(Player player, Collection<Integer> functionIds) {
         if (functionIds == null || functionIds.isEmpty()) {
             return null;
         }
@@ -106,7 +108,7 @@ public class GameFunctionService implements GameEventListener {
                 log.warn("任务解锁的功能配置不存在 functionId={}", functionId);
                 continue;
             }
-            if (checkGameFunctionOpen(functionCfg)) {
+            if (checkGameFunctionOpen(player, functionCfg)) {
                 openedFunctionIds.add(functionCfg.getId());
             }
         }
@@ -119,12 +121,12 @@ public class GameFunctionService implements GameEventListener {
     }
 
     public void notifyTaskFunctionOpen(long playerId, Collection<Integer> functionIds) {
-        NotifyOpenFunction notify = buildTaskFunctionOpenNotify(functionIds);
-        if (notify == null) {
+        PFSession session = clusterSystem.getSession(playerId);
+        if (session == null || !(session.getReference() instanceof PlayerController playerController)) {
             return;
         }
-        PFSession session = clusterSystem.getSession(playerId);
-        if (session != null) {
+        NotifyOpenFunction notify = buildTaskFunctionOpenNotify(playerController.getPlayer(), functionIds);
+        if (notify != null) {
             session.send(notify);
         }
     }
@@ -201,6 +203,18 @@ public class GameFunctionService implements GameEventListener {
     }
 
     /**
+     * 检查配置开关及玩家的活动参与资格，不检查任务可解锁的功能条件。
+     */
+    public boolean checkGameFunctionOpen(Player player, GameFunctionCfg functionCfg) {
+        if (player == null || functionCfg == null || !functionCfg.getIsOpen()) {
+            return false;
+        }
+        int activityType = functionCfg.getFunctionType();
+        return activityType <= 0 || SystemInterfaceHolder.getGameSysInterface(ActivityOpenListener.class)
+                .stream().anyMatch(listener -> listener.isActivityOpen(player, activityType));
+    }
+
+    /**
      * 检查游戏功能开放
      */
     public boolean checkGameFunctionOpen(Player player, GameFunctionCfg functionCfg, boolean join, boolean notify) {
@@ -208,7 +222,7 @@ public class GameFunctionService implements GameEventListener {
             return false;
         }
 
-        if (!checkGameFunctionOpen(functionCfg)) {
+        if (!checkGameFunctionOpen(player, functionCfg)) {
             return false;
         }
 

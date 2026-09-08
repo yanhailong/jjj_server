@@ -393,12 +393,14 @@ public class SimManager {
                 ctx.getSeasonPlayerData().markMatchOffline(now);
             }
 
-            //处理缓存的游客
-            Iterator<GuestInfo> it = ctx.getCurrentCasino().getCacheGuestInfoList().iterator();
-            while (it.hasNext()) {
-                GuestInfo guestInfo = it.next();
-                simGuestService.handCacheGuest(ctx, guestInfo);
-                it.remove();
+            if (ctx.getCurrentCasino().getCacheGuestInfoList() != null && !ctx.getCurrentCasino().getCacheGuestInfoList().isEmpty()) {
+                //处理缓存的游客
+                Iterator<GuestInfo> it = ctx.getCurrentCasino().getCacheGuestInfoList().iterator();
+                while (it.hasNext()) {
+                    GuestInfo guestInfo = it.next();
+                    simGuestService.handCacheGuest(ctx, guestInfo);
+                    it.remove();
+                }
             }
 
             exitSaveData(playerId);

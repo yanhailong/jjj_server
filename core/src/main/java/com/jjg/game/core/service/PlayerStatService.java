@@ -18,6 +18,7 @@ public class PlayerStatService {
     private static final Logger log = LoggerFactory.getLogger(PlayerStatService.class);
 
     public static final int BUILDING_LEVEL = 12207;
+    public static final int ALL_SCENE_LEVEL = 12229;
     public static final int SLOT_ITEM = 12251;
     public static final int BIG_SHOW = 12252;
     public static final int JACKPOT = 12253;
@@ -62,6 +63,7 @@ public class PlayerStatService {
 
     public static boolean supports(int conditionId) {
         return conditionId == BUILDING_LEVEL
+                || conditionId == ALL_SCENE_LEVEL
                 || conditionId >= SLOT_ITEM && conditionId <= CARD_POOL_DRAW && conditionId != 12258;
     }
 

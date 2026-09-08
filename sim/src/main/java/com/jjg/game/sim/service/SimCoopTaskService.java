@@ -487,7 +487,7 @@ public class SimCoopTaskService {
                 ? GameDataManager.getTaskCfg(taskId) : null;
         if (firstSettle && completedTaskCfg != null) {
             NotifyOpenFunction functionNotify = gameFunctionService.buildTaskFunctionOpenNotify(
-                    List.of(completedTaskCfg.getFunctionId()));
+                    ctx == null ? corePlayerService.get(ownerId) : resolvePlayer(ctx), List.of(completedTaskCfg.getFunctionId()));
             if (functionNotify != null) {
                 socialSender.sendTo(ownerId, functionNotify);
             }
