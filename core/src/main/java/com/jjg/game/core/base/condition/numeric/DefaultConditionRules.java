@@ -166,7 +166,7 @@ final class DefaultConditionRules {
         rules.add(action(12229, 1, 1, 0, ProgressMode.SET, ActionConditionEvent.Type.SCENE_TOTAL_LEVEL,
                 (s, e) -> true, (s, e) -> e.value()));
 
-        //12251-12283 与上面的接取型条件判定口径一致，进度由玩家统计提供而非任务计数器。
+        //12251-12285 与上面的接取型条件判定口径一致，进度由玩家统计提供而非任务计数器。
         rules.add(game(12251, 3, 3, 2, ProgressMode.ADD,
                 (s, e) -> e.matchesGame(s.parameter(0)), (s, e) -> e.itemGain(s.intParameter(1))));
         rules.add(game(12252, 3, 3, 2, ProgressMode.ADD,
@@ -240,6 +240,10 @@ final class DefaultConditionRules {
         rules.add(action(12282, 2, 2, 1, ProgressMode.ADD, ActionConditionEvent.Type.SEASON_GEM_CRAFT,
                 (s, e) -> e.matchesSubject(s.parameter(0)), (s, e) -> positiveCount(e)));
         rules.add(action(12283, 1, 1, 0, ProgressMode.ADD, ActionConditionEvent.Type.CARD_POOL_DRAW,
+                (s, e) -> true, (s, e) -> positiveCount(e)));
+        rules.add(action(12284, 1, 1, 0, ProgressMode.ADD, ActionConditionEvent.Type.AD_WATCH,
+                (s, e) -> true, (s, e) -> positiveCount(e)));
+        rules.add(action(12285, 1, 1, 0, ProgressMode.ADD, ActionConditionEvent.Type.PASS_CONDITION_TRIGGERED,
                 (s, e) -> true, (s, e) -> positiveCount(e)));
     }
 

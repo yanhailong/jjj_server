@@ -1,5 +1,6 @@
 package com.jjg.game.season.service;
 
+import com.jjg.game.core.base.condition.numeric.ActionConditionEvent;
 import com.jjg.game.core.base.condition.numeric.ConditionEvent;
 import com.jjg.game.core.base.condition.numeric.ConditionUpdate;
 import com.jjg.game.core.constant.AddType;
@@ -10,6 +11,7 @@ import com.jjg.game.core.data.ItemOperationResult;
 import com.jjg.game.core.data.Player;
 import com.jjg.game.core.service.MailService;
 import com.jjg.game.core.service.PlayerPackService;
+import com.jjg.game.core.service.PlayerStatService;
 import com.jjg.game.core.utils.ItemUtils;
 import com.jjg.game.sampledata.bean.PassDetailsCfg;
 import com.jjg.game.sampledata.bean.ShopRechargeListCfg;
@@ -45,22 +47,33 @@ public class SeasonPassService implements SimConditionEventListener {
     private final SimAutoSaveService autoSaveService;
     private final MailService mailService;
     private final SimPlayerStatService playerStatService;
+    private final PlayerStatService lifetimeStatService;
 
     public SeasonPassService(SeasonPassConfigService passConfig, PlayerPackService playerPackService,
                              SimAutoSaveService autoSaveService, MailService mailService,
-                             SimPlayerStatService playerStatService) {
+                             SimPlayerStatService playerStatService, PlayerStatService lifetimeStatService) {
         this.passConfig = passConfig;
         this.playerPackService = playerPackService;
         this.autoSaveService = autoSaveService;
         this.mailService = mailService;
         this.playerStatService = playerStatService;
+        this.lifetimeStatService = lifetimeStatService;
     }
 
     @Override
-    public void onConditionEvent(SimPlayerContext ctx, ConditionEvent event) {
-        SeasonPlayerData data = ctx == null ? null : ctx.getSeasonPlayerData();
-        if (data == null || data.getSeasonId() == 0 || event == null) {
-            return;
+    public ConditionEvent onConditionEvent(SimPlayerContext ctx, ConditionEvent event) {
+        if (ctx == null || event == null) {
+            return null;
+        }
+        ConditionEvent triggered = null;
+        if (passConfig.matchesConditionEvent(event)) {
+            lifetimeStatService.recordPassCondition(ctx.playerId());
+            triggered = new ActionConditionEvent(ActionConditionEvent.Type.PASS_CONDITION_TRIGGERED,
+                    0, 0, 0, 1, 0, false);
+        }
+        SeasonPlayerData data = ctx.getSeasonPlayerData();
+        if (data == null || data.getSeasonId() == 0) {
+            return triggered;
         }
         boolean changed = false;
         Map<String, Long> progress = data.getPassProgress();
@@ -87,6 +100,7 @@ public class SeasonPassService implements SimConditionEventListener {
         if (changed) {
             ctx.setLastSaveTime(0);
         }
+        return triggered;
     }
 
     public ResSeasonPassList list(SimPlayerContext ctx) {

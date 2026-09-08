@@ -490,17 +490,22 @@ public class SimTaskService implements IRedDotService, GameFunctionListener {
             log.error("sim 任务条件事件异常 playerId={},event={}",
                     ctx == null ? 0 : ctx.playerId(), event, e);
         }
-        notifyConditionListeners(ctx, event);
+        notifyConditionListeners(ctx, event, changed, includeProgressChanges);
         return success;
     }
 
-    private void notifyConditionListeners(SimPlayerContext ctx, ConditionEvent event) {
+    private void notifyConditionListeners(SimPlayerContext ctx, ConditionEvent event,
+                                          List<Task> changed, boolean includeProgressChanges) {
         if (ctx == null || event == null) {
             return;
         }
         for (SimConditionEventListener listener : conditionEventListeners) {
             try {
-                listener.onConditionEvent(ctx, event);
+                ConditionEvent next = listener.onConditionEvent(ctx, event);
+                if (next != null) {
+                    // 沿用本次更新集合，由原调用入口决定本地推送或跨节点返回。
+                    tryAdvanceConditionEvent(ctx, next, changed, false, includeProgressChanges);
+                }
             } catch (Exception e) {
                 log.error("sim 条件事件监听器异常 listener={},playerId={},event={}",
                         listener.getClass().getSimpleName(), ctx.playerId(), event, e);

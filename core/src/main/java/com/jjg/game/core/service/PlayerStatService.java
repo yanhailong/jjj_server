@@ -51,6 +51,8 @@ public class PlayerStatService {
     public static final int DOUXIAN_SETTLEMENT = 12281;
     public static final int SEASON_GEM_CRAFT = 12282;
     public static final int CARD_POOL_DRAW = 12283;
+    public static final int DAILY_AD_WATCH = 12284;
+    public static final int DAILY_PASS_CONDITION = 12285;
 
     public static final int GOLD_ITEM_ID = 1990000;
     public static final int DIAMOND_ITEM_ID = 1980000;
@@ -64,7 +66,7 @@ public class PlayerStatService {
     public static boolean supports(int conditionId) {
         return conditionId == BUILDING_LEVEL
                 || conditionId == ALL_SCENE_LEVEL
-                || conditionId >= SLOT_ITEM && conditionId <= CARD_POOL_DRAW && conditionId != 12258;
+                || conditionId >= SLOT_ITEM && conditionId <= DAILY_PASS_CONDITION && conditionId != 12258;
     }
 
     public static boolean recorded(int conditionId) {
@@ -73,7 +75,8 @@ public class PlayerStatService {
                     GUEST_RECRUIT, BUSINESS_INCOME, GAME_UNLOCK, VISIT, LOGIN_DAYS,
                     CURRENCY_CONSUME, GUEST_POOL_DRAW, EMPLOYEE_POOL_DRAW, SLOT_BET,
                     SLOT_WIN, WEALTH_GOD_MODE, ALLIANCE_DONATE, VISIT_GIFT, VISIT_SLOT_SPIN,
-                    DOUXIAN_SETTLEMENT, SEASON_GEM_CRAFT, CARD_POOL_DRAW -> true;
+                    DOUXIAN_SETTLEMENT, SEASON_GEM_CRAFT, CARD_POOL_DRAW,
+                    DAILY_AD_WATCH, DAILY_PASS_CONDITION -> true;
             default -> false;
         };
     }
@@ -134,6 +137,11 @@ public class PlayerStatService {
 
     public void recordAdWatch(long playerId) {
         incrementPlayer(AD_WATCH, playerId, 1);
+        incrementDimensionPlayer(DAILY_AD_WATCH, TimeHelper.getDayNumerical2(), playerId, 1);
+    }
+
+    public void recordPassCondition(long playerId) {
+        incrementDimensionPlayer(DAILY_PASS_CONDITION, TimeHelper.getDayNumerical2(), playerId, 1);
     }
 
     public void recordGuestRecruit(long playerId, boolean paid, long count) {
@@ -278,6 +286,8 @@ public class PlayerStatService {
             case WEALTH_GOD_MODE -> getPlayer(WEALTH_GOD_MODE, playerId);
             case ALLIANCE_DONATE, VISIT_GIFT, DOUXIAN_SETTLEMENT, CARD_POOL_DRAW ->
                     getPlayer(conditionId, playerId);
+            case DAILY_AD_WATCH, DAILY_PASS_CONDITION ->
+                    getDimensionPlayer(conditionId, TimeHelper.getDayNumerical2(), playerId);
             case VISIT_SLOT_SPIN -> getDimensionPlayer(VISIT_SLOT_SPIN,
                     condition.spec().intParameter(0), playerId);
             case SEASON_GEM_CRAFT -> condition.spec().intParameter(0) == 0
