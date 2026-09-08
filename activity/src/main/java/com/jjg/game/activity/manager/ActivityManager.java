@@ -3,6 +3,7 @@ package com.jjg.game.activity.manager;
 import cn.hutool.core.collection.CollectionUtil;
 import com.alibaba.fastjson.JSON;
 import com.jjg.game.activity.common.controller.BaseActivityController;
+import com.jjg.game.activity.common.dao.ActivityDao;
 import com.jjg.game.activity.common.dao.PlayerActivityDao;
 import com.jjg.game.activity.common.data.ActivityData;
 import com.jjg.game.activity.common.data.ActivityTargetType;
@@ -126,6 +127,7 @@ public class ActivityManager implements TimerListener<Long>, IPlayerLoginSuccess
      * 玩家获得数据dao
      */
     private final PlayerActivityDao playerActivityDao;
+    private final ActivityDao activityDao;
 
 
     /**
@@ -162,7 +164,8 @@ public class ActivityManager implements TimerListener<Long>, IPlayerLoginSuccess
                            MarsCurator marsCurator, NodeConfig nodeConfig, RedDotManager redDotManager,
                            ConditionManager conditionManager, PlayerActivityDao playerActivityDao,
                            DropItemManager dropItemManager, CountDao countDao, ConditionParser conditionParser,
-                           GameEventManager gameEventManager, ServerOpenTimeService serverOpenTimeService) {
+                           GameEventManager gameEventManager, ServerOpenTimeService serverOpenTimeService,
+                           ActivityDao activityDao) {
         this.timerCenter = timerCenter;
         this.clusterSystem = clusterSystem;
         this.marqueeManager = marqueeManager;
@@ -171,6 +174,7 @@ public class ActivityManager implements TimerListener<Long>, IPlayerLoginSuccess
         this.redDotManager = redDotManager;
         this.conditionManager = conditionManager;
         this.playerActivityDao = playerActivityDao;
+        this.activityDao = activityDao;
         this.dropItemManager = dropItemManager;
         this.countDao = countDao;
         this.serverOpenTimeService = serverOpenTimeService;
@@ -192,6 +196,11 @@ public class ActivityManager implements TimerListener<Long>, IPlayerLoginSuccess
      */
     public void initData() {
         ActivityType.initialize();
+        Map<Long, ActivityData> previousData = new HashMap<>();
+        for (ActivityData data : activityDao.getAllActivityData()) {
+            previousData.put(data.getId(), data);
+        }
+        previousData.putAll(activityData);
         startServerTime = serverOpenTimeService.getServerOpenTimeSeconds();
         Map<Long, ActivityData> tempActivityData = new ConcurrentHashMap<>();
         //要添加定时器的列表 时间戳 活动id
@@ -219,6 +228,9 @@ public class ActivityManager implements TimerListener<Long>, IPlayerLoginSuccess
         for (ActivityType activityType : ActivityType.values()) {
             activityType.getController().init();
         }
+        closeMissingActivities(previousData.values());
+        activityDao.saveActivityData(activityData.values());
+        countDao.clearOrphanActivityStatus(activityData.keySet(), previousData.keySet());
     }
 
     /**
@@ -387,6 +399,7 @@ public class ActivityManager implements TimerListener<Long>, IPlayerLoginSuccess
                     notifyNodeActivityChange(data);
                     //修改轮数
                     data.addRound();
+                    activityDao.saveActivityData(data);
                     //添加到定时器
                     addActivityTimer(List.of(Pair.newPair(data.getTimeEnd(), activityId)));
                 }
@@ -412,6 +425,7 @@ public class ActivityManager implements TimerListener<Long>, IPlayerLoginSuccess
                                 Pair.newPair(data.getTimeStart(), activityId)));
                         data.setStatus(ActivityConstant.ActivityStatus.NOT_START);
                     }
+                    activityDao.saveActivityData(data);
                 }
             }
             log.info("活动activity:{} 完成结束阶段", activityId);
@@ -443,6 +457,7 @@ public class ActivityManager implements TimerListener<Long>, IPlayerLoginSuccess
      * @param data 活动数据
      */
     public void notifyNodeActivityChange(ActivityData data) {
+        activityDao.saveActivityData(data);
         NotifyActivityChange notifyActivityChange = new NotifyActivityChange();
         notifyActivityChange.activityInfos = new ArrayList<>();
         notifyActivityChange.activityInfos.add(ActivityBuilder.buildActivityInfo(data));
@@ -967,6 +982,8 @@ public class ActivityManager implements TimerListener<Long>, IPlayerLoginSuccess
             changeData.add(data);
             log.info("活动更新成功 activityId:{} activityData:{}", activityInfoId, JSON.toJSONString(activityData));
         }
+        closeMissingActivities(activityData.values());
+        activityDao.saveActivityData(activityData.values());
         if (CollectionUtil.isNotEmpty(changeData)) {
             NotifyActivityChange notifyActivityChange = buildNotifyActivityChange(changeData);
             clusterSystem.broadcastToOnlinePlayer(notifyActivityChange);
@@ -976,6 +993,35 @@ public class ActivityManager implements TimerListener<Long>, IPlayerLoginSuccess
         }
         loadActivityConditionCache();
         gameEventManager.registerEventListener(this);
+    }
+
+    /**
+     * 配置已删除的活动统一执行活动结束流程。
+     */
+    private void closeMissingActivities(Collection<ActivityData> existingData) {
+        List<ActivityData> closedData = new ArrayList<>();
+        for (ActivityData data : existingData) {
+            if (GameDataManager.getActivityConfigCfg((int) data.getId()) != null
+                    || (!data.isOpen() && data.getStatus() == ActivityConstant.ActivityStatus.ENDED)) {
+                continue;
+            }
+            data.setOpen(false);
+            data.setStatus(ActivityConstant.ActivityStatus.ENDED);
+            removeActivityTimer(data.getId());
+            closedData.add(data);
+            log.info("活动配置已删除，强制关闭 activityId:{} activityType:{}", data.getId(), data.getType());
+        }
+        // 先关闭全部失效活动，再判断同类型是否还有有效活动，避免入口状态不一致。
+        long now = System.currentTimeMillis();
+        for (ActivityData data : closedData) {
+            long endTime = data.getTimeEnd();
+            // 沿用原结束时间去重，结算只截止到强制关闭时，不能提前解锁未来奖励。
+            data.setTimeEnd(Math.min(endTime, now));
+            if (addActivityStatusChangeCount(data.getId(), endTime)) {
+                data.getType().getController().onActivityEnd(data);
+            }
+            notifyNodeActivityChange(data);
+        }
     }
 
     /**

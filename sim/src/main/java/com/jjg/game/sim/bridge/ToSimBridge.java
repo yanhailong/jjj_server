@@ -151,6 +151,9 @@ public interface ToSimBridge extends IGameRpc {
      */
     int getCombatPower(long playerId);
 
+    /** 获取模拟经营总等级，优先读取所属 Hall 内存，无上下文时读取数据库。 */
+    int getSimAllLevel(long playerId);
+
     /**
      * 跨节点入账 sim 特殊资源 (能量/知名度/曝光度/赛季币/勋章)。
      * <p>

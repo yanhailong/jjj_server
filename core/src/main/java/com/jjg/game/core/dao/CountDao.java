@@ -419,6 +419,23 @@ public class CountDao {
     }
 
     /**
+     * 启动时清理配置已删除且没有活动快照的历史执行标记。
+     * 有快照的活动由原结束流程处理，保留其去重标记。
+     */
+    public void clearOrphanActivityStatus(Set<Long> configuredIds, Set<Long> snapshotIds) {
+        RKeys keys = redissonClient.getKeys();
+        for (String key : keys.getKeysByPattern("count:activity:status:*", 1000)) {
+            long activityId = Long.parseLong(key.split(":")[3]);
+            if (configuredIds.contains(activityId) || snapshotIds.contains(activityId)) {
+                continue;
+            }
+            if (keys.delete(key) > 0) {
+                log.info("活动配置已删除，清理历史执行标记 activityId:{} key:{}", activityId, key);
+            }
+        }
+    }
+
+    /**
      * 重置计数
      *
      * @param featureId 功能ID

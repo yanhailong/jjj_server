@@ -3,7 +3,7 @@ package com.jjg.game.season.service;
 import com.jjg.game.core.base.condition.numeric.ConditionRuleRegistry;
 import com.jjg.game.core.base.condition.numeric.ConditionSpec;
 import com.jjg.game.core.base.condition.numeric.PreparedCondition;
-import com.jjg.game.core.base.condition.numeric.StateConditionEvent;
+import com.jjg.game.core.service.PlayerStatService;
 import com.jjg.game.sampledata.GameDataManager;
 import com.jjg.game.sampledata.bean.PassDetailsCfg;
 import com.jjg.game.sampledata.bean.PassListCfg;
@@ -153,8 +153,8 @@ public class SeasonPassConfigService {
             }
             previousLevel = detail.getLevel();
             PreparedCondition condition = conditionRules.prepare(ConditionSpec.from(detail.getCompletionCondition()));
-            if (!pass.getFollowsSeason() && condition.eventType() != StateConditionEvent.class) {
-                throw new IllegalArgumentException("non-season pass requires a state condition, detailId="
+            if (!pass.getFollowsSeason() && !PlayerStatService.supports(condition.spec().id())) {
+                throw new IllegalArgumentException("non-season pass requires a player stat condition, detailId="
                         + detail.getId());
             }
             String progressKey = progressKey(pass.getId(), condition);

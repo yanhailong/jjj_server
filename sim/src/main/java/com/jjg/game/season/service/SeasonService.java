@@ -334,6 +334,8 @@ public class SeasonService implements SimPlayerTickListener {
         response.code = result.code;
 
         if (result.success() && result.data != null) {
+            onTaskEvent(ctx, new ActionConditionEvent(ActionConditionEvent.Type.COMPETITIVE_MATCH,
+                    result.data.getGameType(), 0, 0, 1, 0, false));
             response.matchId = result.data.getMatchId();
             response.opponentId = result.data.getOpponentId();
             response.opponentName = result.data.getOpponentName();
@@ -482,8 +484,6 @@ public class SeasonService implements SimPlayerTickListener {
     }
 
     private void onMatchSettled(SimPlayerContext ctx, SeasonMatchResult result) {
-        onTaskEvent(ctx, new ActionConditionEvent(ActionConditionEvent.Type.COMPETITIVE_MATCH,
-                result.getGameType(), 0, 0, 1, 0, false));
         socialSender.sendTo(ctx.playerId(), matchNotify(result));
     }
 

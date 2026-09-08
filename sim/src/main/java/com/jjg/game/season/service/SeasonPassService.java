@@ -2,7 +2,6 @@ package com.jjg.game.season.service;
 
 import com.jjg.game.core.base.condition.numeric.ConditionEvent;
 import com.jjg.game.core.base.condition.numeric.ConditionUpdate;
-import com.jjg.game.core.base.condition.numeric.StateConditionEvent;
 import com.jjg.game.core.constant.AddType;
 import com.jjg.game.core.constant.Code;
 import com.jjg.game.core.data.CommonResult;
@@ -21,10 +20,10 @@ import com.jjg.game.season.pb.res.ResSeasonPassList;
 import com.jjg.game.season.pb.struct.SeasonPassInfo;
 import com.jjg.game.season.pb.struct.SeasonPassLevelInfo;
 import com.jjg.game.season.pb.struct.SeasonPassRewardsInfo;
-import com.jjg.game.sim.data.SimBaseData;
 import com.jjg.game.sim.data.SimPlayerContext;
 import com.jjg.game.sim.listener.SimConditionEventListener;
 import com.jjg.game.sim.service.SimAutoSaveService;
+import com.jjg.game.sim.service.SimPlayerStatService;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Service;
@@ -46,13 +45,16 @@ public class SeasonPassService implements SimConditionEventListener {
     private final PlayerPackService playerPackService;
     private final SimAutoSaveService autoSaveService;
     private final MailService mailService;
+    private final SimPlayerStatService playerStatService;
 
     public SeasonPassService(SeasonPassConfigService passConfig, PlayerPackService playerPackService,
-                             SimAutoSaveService autoSaveService, MailService mailService) {
+                             SimAutoSaveService autoSaveService, MailService mailService,
+                             SimPlayerStatService playerStatService) {
         this.passConfig = passConfig;
         this.playerPackService = playerPackService;
         this.autoSaveService = autoSaveService;
         this.mailService = mailService;
+        this.playerStatService = playerStatService;
     }
 
     @Override
@@ -304,13 +306,7 @@ public class SeasonPassService implements SimConditionEventListener {
         if (pass.followsSeason()) {
             return ctx.getSeasonPlayerData().getPassProgress().getOrDefault(level.progressKey(), 0L);
         }
-        SimBaseData base = ctx.getSimBaseData();
-        if (base == null) {
-            return 0;
-        }
-        ConditionUpdate update = level.condition().evaluate(new StateConditionEvent(
-                StateConditionEvent.Type.PLAYER_LEVEL, 0, base.getAllLevel(), 0));
-        return update.matched() ? Math.max(0, update.apply(0)) : 0;
+        return Math.max(0, playerStatService.progress(ctx, level.condition()));
     }
 
     private int collectLevelRewards(PassDetailsCfg level, int claimed, int purchased,

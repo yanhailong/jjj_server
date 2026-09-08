@@ -37,6 +37,7 @@ import com.jjg.game.sim.data.*;
 import com.jjg.game.sim.logger.SimGuideLogger;
 import com.jjg.game.sim.manager.SimManager;
 import com.jjg.game.sim.manager.SimPlayerContextRegistry;
+import com.jjg.game.sim.dao.SimPlayerGameDao;
 import com.jjg.game.sim.pb.res.NotifySimTaskUpdate;
 import com.jjg.game.sim.pb.res.ResSimTaskReward;
 import com.jjg.game.sim.pb.res.NotifyTogetherPlayInvite;
@@ -86,6 +87,8 @@ public class HallRPCController extends CoreRPCController implements GmToHallBrid
     private AllianceCacheService allianceCacheService;
     @Autowired
     private SimPlayerContextRegistry simPlayerContextRegistry;
+    @Autowired
+    private SimPlayerGameDao simPlayerGameDao;
     @Autowired
     private SimManager simManager;
     @Autowired
@@ -545,6 +548,16 @@ public class HallRPCController extends CoreRPCController implements GmToHallBrid
             return 0;
         }
         return simSkillService.computeCombatPower(ctx);
+    }
+
+    @Override
+    @RpcCallSetting(processorModKey = "#arg0")
+    public int getSimAllLevel(long playerId) {
+        SimPlayerContext ctx = simPlayerContextRegistry.getContext(playerId);
+        if (ctx == null) {
+            return simPlayerGameDao.findAllLevelById(playerId);
+        }
+        return ctx.getSimBaseData() == null ? 0 : ctx.getSimBaseData().getAllLevel();
     }
 
     @Override
