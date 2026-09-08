@@ -32,7 +32,7 @@ public class PlayerCardInfo {
     public String allianceName;
     @ProtoDesc("场景图标列表")
     public List<CasinoIconInfo> casinos;
-    @ProtoDesc("与我的关系 0陌生1好友")
+    @ProtoDesc("与我的关系 0.陌生 1.好友 2.申请中")
     public int relation;
     @ProtoDesc("是否被我拉黑")
     public boolean inBlacklist;

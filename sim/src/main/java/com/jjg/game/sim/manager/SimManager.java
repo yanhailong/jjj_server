@@ -35,6 +35,7 @@ import com.jjg.game.season.service.SeasonEconomyService;
 import com.jjg.game.season.service.SeasonFreeGameService;
 import com.jjg.game.season.service.SeasonLifecycleService;
 import com.jjg.game.season.service.SeasonService;
+import com.jjg.game.sim.pb.struct.GuestInfo;
 import com.jjg.game.sim.service.*;
 import com.jjg.game.core.base.condition.numeric.GameConditionEvent;
 import com.jjg.game.core.base.condition.numeric.ActionConditionEvent;
@@ -44,14 +45,7 @@ import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Component;
 
-import java.util.ArrayList;
-import java.util.Collection;
-import java.util.Collections;
-import java.util.Comparator;
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
-import java.util.Set;
+import java.util.*;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.TimeUnit;
@@ -194,6 +188,7 @@ public class SimManager {
                 buildingService.settleOfflineReward(ctx);
                 ctx.getSimBaseData().setLastOfflineTime(0);
             }
+            ctx.getInCasino().set(true);
             log.info("玩家进入sim节点加载SimPlayerContext数据， playerId={}", playerController.playerId());
         } catch (Exception e) {
             log.error("玩家登录加载 sim 异常 playerId={}", playerController.playerId(), e);
@@ -251,7 +246,7 @@ public class SimManager {
             buildingService.applyPendingSpeedup(ctx, ctx.getCurrentCasino(), System.currentTimeMillis());
 
             //添加建筑数据
-            res.buildings = SimPbConverter.toBuildingInfos(ctx.getCurrentCasino());
+            res.buildings = SimPbConverter.toBuildingInfos(ctx, simConfigCacheService);
 
             //添加主管信息
             res.managerEmployInfos = SimPbConverter.toManagerInfos(ctx.getCurrentCasino());
@@ -275,11 +270,27 @@ public class SimManager {
             //已生成待领奖的购买游客 (断线重连补发, 客户端凭 uid 领奖)
             Map<String, PurchasedGuestData> purchasedGuestMap = ctx.getCurrentCasino().getPurchasedGuestMap();
             if (purchasedGuestMap != null && !purchasedGuestMap.isEmpty()) {
-                res.purchasedGuests = new ArrayList<>(purchasedGuestMap.size());
+                res.purchasedGuests = new ArrayList<>();
                 for (PurchasedGuestData data : purchasedGuestMap.values()) {
                     VisitorQuestCfg visitorQuestCfg = GameDataManager.getVisitorQuestCfg(data.getGuestId());
                     res.purchasedGuests.add(SimPbConverter.toGuestInfo(data, visitorQuestCfg));
                 }
+            }
+
+            //检查是否有缓存的游客列表
+            if (ctx.getCurrentCasino().cacheGuestInfoListSize() > 0) {
+                if (res.purchasedGuests == null) {
+                    res.purchasedGuests = new ArrayList<>();
+                }
+
+                Iterator<GuestInfo> it = ctx.getCurrentCasino().getCacheGuestInfoList().iterator();
+                while (it.hasNext()) {
+                    GuestInfo guestInfo = it.next();
+                    simGuestService.handCacheGuest(ctx, guestInfo);
+                    res.purchasedGuests.add(guestInfo);
+                    it.remove();
+                }
+
             }
 
             //离线收益已在登录时结算, 这里仅从快照构建下发
@@ -381,10 +392,26 @@ public class SimManager {
             if (ctx.getSeasonPlayerData() != null) {
                 ctx.getSeasonPlayerData().markMatchOffline(now);
             }
+
+            //处理缓存的游客
+            Iterator<GuestInfo> it = ctx.getCurrentCasino().getCacheGuestInfoList().iterator();
+            while (it.hasNext()) {
+                GuestInfo guestInfo = it.next();
+                simGuestService.handCacheGuest(ctx, guestInfo);
+                it.remove();
+            }
+
             exitSaveData(playerId);
             return true;
         }
         return false;
+    }
+
+    public void exitCasino(long playerId) {
+        SimPlayerContext ctx = this.simPlayerContextRegistry.getContext(playerId);
+        if (ctx != null) {
+            ctx.getInCasino().set(false);
+        }
     }
 
     /**

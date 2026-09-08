@@ -198,12 +198,12 @@ public class FriendService implements IRedDotService {
             if (RobotUtil.isRobot(targetId)) {
                 FriendData selfData = friendDao.getOrEmpty(selfId);
                 if (selfData.isFriend(targetId)) {
-                    res.code = Code.FORBID;
+                    res.code = Code.FRIRENDS_IS_FRIRENDS;
                     log.warn("发起好友申请失败，该玩家已经是好友， selfId={},targetId={}", selfId, targetId);
                     return res;
                 }
                 if (selfData.friendCount() >= SocialConst.Cfg.FRIEND_LIMIT) {
-                    res.code = Code.FORBID;
+                    res.code = Code.FRIRENDS_LIST_MAX;
                     log.warn("发起好友申请失败，好友数量达到上限， selfId={},targetId={},friendCount={}", selfId, targetId, selfData.friendCount());
                     return res;
                 }
@@ -211,16 +211,15 @@ public class FriendService implements IRedDotService {
                 int today = today();
                 int sentToday = selfData.currentDailyRequestCount(today);
                 if (sentToday >= SocialConst.Cfg.DAILY_REQUEST_LIMIT) {
-                    res.code = Code.FORBID;
+                    res.code = Code.FRIRENDS_APPLY_MAX;
                     log.warn("发起好友申请失败，进入申请达到上限， selfId={},targetId={},sentToday={}", selfId, targetId, sentToday);
                     return res;
                 }
 
-
                 long now = System.currentTimeMillis();
                 //条件 upsert 原子判重+写入, 替代"先查重(hasPendingRequest)再写"的两次往返
                 if (!friendDao.addRequestIfAbsent(targetId, selfId, now)) {
-                    res.code = Code.FORBID;
+                    res.code = Code.FRIRENDS_IS_APPLY_FRIRENDS;
                     log.warn("发起好友申请失败，已经申请过添加该好友， selfId={},targetId={}", selfId, targetId);
                     return res;
                 }
@@ -235,12 +234,12 @@ public class FriendService implements IRedDotService {
                 }
                 FriendData selfData = friendDao.getOrEmpty(selfId);
                 if (selfData.isFriend(targetId)) {
-                    res.code = Code.FORBID;
+                    res.code = Code.FRIRENDS_IS_FRIRENDS;
                     log.warn("发起好友申请失败，该玩家已经是好友， selfId={},targetId={}", selfId, targetId);
                     return res;
                 }
                 if (selfData.friendCount() >= SocialConst.Cfg.FRIEND_LIMIT) {
-                    res.code = Code.FORBID;
+                    res.code = Code.FRIRENDS_LIST_MAX;
                     log.warn("发起好友申请失败，好友数量达到上限， selfId={},targetId={},friendCount={}", selfId, targetId, selfData.friendCount());
                     return res;
                 }
@@ -248,14 +247,14 @@ public class FriendService implements IRedDotService {
                 int today = today();
                 int sentToday = selfData.currentDailyRequestCount(today);
                 if (sentToday >= SocialConst.Cfg.DAILY_REQUEST_LIMIT) {
-                    res.code = Code.FORBID;
+                    res.code = Code.FRIRENDS_APPLY_MAX;
                     log.warn("发起好友申请失败，进入申请达到上限， selfId={},targetId={},sentToday={}", selfId, targetId, sentToday);
                     return res;
                 }
 
                 //对方待处理申请封顶, 防止热门玩家 pendingRequests 无界膨胀 (聚合只回传计数)
                 if (friendDao.pendingRequestCount(targetId) >= SocialConst.Cfg.PENDING_REQUEST_LIMIT) {
-                    res.code = Code.FORBID;
+                    res.code = Code.FRIRENDS_TARGET_HANDLE_MAX;
                     log.warn("发起好友申请失败，对方待处理申请已达上限 selfId={},targetId={}", selfId, targetId);
                     return res;
                 }
@@ -263,7 +262,7 @@ public class FriendService implements IRedDotService {
                 long now = System.currentTimeMillis();
                 //条件 upsert 原子判重+写入, 替代"先查重(hasPendingRequest)再写"的两次往返
                 if (!friendDao.addRequestIfAbsent(targetId, selfId, now)) {
-                    res.code = Code.FORBID;
+                    res.code = Code.FRIRENDS_IS_APPLY_FRIRENDS;
                     log.warn("发起好友申请失败，已经申请过添加该好友， selfId={},targetId={}", selfId, targetId);
                     return res;
                 }

@@ -22,4 +22,6 @@ public class BuildingInfo {
     public int watchAdCount;
     @ProtoDesc("cd是否清零")
     public boolean cdZero;
+    @ProtoDesc("技能等级限制条件是否通过")
+    public boolean skillConditionPass;
 }

@@ -379,6 +379,7 @@ public class HallPlayerEventListener implements SessionCloseListener, SessionEnt
         if (session.getPlayerId() > 0) {
             taskManager.onExit(session.getPlayerId());
         }
+        simManager.exitCasino(session.getPlayerId());
     }
 
     @Override

@@ -1,5 +1,6 @@
 package com.jjg.game.sim.data;
 
+import com.jjg.game.sim.pb.struct.GuestInfo;
 import org.springframework.data.annotation.Id;
 import org.springframework.data.annotation.Transient;
 import org.springframework.data.mongodb.core.index.Indexed;
@@ -67,6 +68,9 @@ public class SimCasinoData extends AbstractData {
     //近期按建筑规划的交互时间戳（用于细分看板实时人数和满意度）— 运行时, 不持久化
     @Transient
     private transient Map<Integer, Deque<Long>> recentBuildingInteractionTimes;
+    //玩家不在模拟场景时换成的游客
+    @Transient
+    private transient List<GuestInfo> cacheGuestInfoList;
 
     public String getId() {
         return id;
@@ -264,7 +268,7 @@ public class SimCasinoData extends AbstractData {
             return null;
         }
         PurchasedGuestData remove = this.purchasedGuestMap.remove(uid);
-        if(this.purchasedGuestMap.isEmpty()){
+        if (this.purchasedGuestMap.isEmpty()) {
             this.purchasedGuestMap = null;
         }
         return remove;
@@ -512,5 +516,23 @@ public class SimCasinoData extends AbstractData {
             return false;
         }
         return this.managerEmployMap.entrySet().stream().anyMatch(e -> e.getValue() == employeeId);
+    }
+
+    public void addCacheGuestInfo(GuestInfo guestInfo) {
+        if (this.cacheGuestInfoList == null) {
+            this.cacheGuestInfoList = new ArrayList<>();
+        }
+        this.cacheGuestInfoList.add(guestInfo);
+    }
+
+    public int cacheGuestInfoListSize(){
+        if (this.cacheGuestInfoList == null) {
+            return 0;
+        }
+        return this.cacheGuestInfoList.size();
+    }
+
+    public List<GuestInfo> getCacheGuestInfoList() {
+        return cacheGuestInfoList;
     }
 }

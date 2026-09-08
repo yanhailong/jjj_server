@@ -252,4 +252,15 @@ public interface Code {
     int TASK_LIMIT = 4056077;
     //今日已达留言次数上限
     int COMMONT_DAILY_LIMIT = 4057168;
+
+    //该玩家已经是好友
+    int FRIRENDS_IS_FRIRENDS = 4058055;
+    //好友数量达到上限
+    int FRIRENDS_LIST_MAX = 4058056;
+    //进入申请达到上限
+    int FRIRENDS_APPLY_MAX = 4058057;
+    //对方待处理申请已达上限
+    int FRIRENDS_TARGET_HANDLE_MAX = 4058058;
+    //已经申请过添加该好友
+    int FRIRENDS_IS_APPLY_FRIRENDS = 4058059;
 }

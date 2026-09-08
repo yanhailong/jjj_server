@@ -1,9 +1,13 @@
 package com.jjg.game.sim.pb;
 
 import com.jjg.game.core.pb.KVInfo;
+import com.jjg.game.sampledata.GameDataManager;
+import com.jjg.game.sampledata.bean.BuildingAreaTableCfg;
+import com.jjg.game.sampledata.bean.BuildingUpgradeTableCfg;
 import com.jjg.game.sampledata.bean.VisitorQuestCfg;
 import com.jjg.game.sim.data.*;
 import com.jjg.game.sim.pb.struct.*;
+import com.jjg.game.sim.service.SimConfigCacheService;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -43,7 +47,7 @@ public final class SimPbConverter {
         return info;
     }
 
-    public static BuildingInfo toBuildingInfo(BuildingData buildingData, long now) {
+    public static BuildingInfo toBuildingInfo(SimPlayerContext ctx, BuildingData buildingData, BuildingUpgradeTableCfg currentLevelCfg, int unlockGameId, long now) {
         BuildingInfo info = new BuildingInfo();
         info.id = buildingData.getId();
         info.level = buildingData.getLevel();
@@ -51,6 +55,15 @@ public final class SimPbConverter {
         info.progress = buildingData.getProgress();
         info.watchAdCount = buildingData.getAdClearCount();
         info.cdZero = (buildingData.getCdEndTime() > 0 && buildingData.getCdEndTime() <= now);
+
+        info.skillConditionPass = true;
+        if (unlockGameId > 0) {
+            //检查技能等级
+            SimSkillsData skillData = ctx.getSkillData(unlockGameId);
+            if (skillData == null || skillData.allLevel() < currentLevelCfg.getSkillLevel()) {
+                info.skillConditionPass = false;
+            }
+        }
         return info;
     }
 
@@ -92,14 +105,18 @@ public final class SimPbConverter {
     /**
      * 场景建筑列表 -> 协议结构 (无建筑返回 null)
      */
-    public static List<BuildingInfo> toBuildingInfos(SimCasinoData casino) {
-        if (casino == null || casino.getBuildingData() == null || casino.getBuildingData().isEmpty()) {
+    public static List<BuildingInfo> toBuildingInfos(SimPlayerContext ctx, SimConfigCacheService simConfigCacheService) {
+        if (ctx.getCurrentCasino() == null || ctx.getCurrentCasino().getBuildingData() == null || ctx.getCurrentCasino().getBuildingData().isEmpty()) {
             return null;
         }
-        List<BuildingInfo> list = new ArrayList<>(casino.getBuildingData().size());
+        List<BuildingInfo> list = new ArrayList<>(ctx.getCurrentCasino().getBuildingData().size());
         long now = System.currentTimeMillis();
-        for (BuildingData b : casino.getBuildingData().values()) {
-            list.add(SimPbConverter.toBuildingInfo(b, now));
+
+
+        for (BuildingData b : ctx.getCurrentCasino().getBuildingData().values()) {
+            BuildingAreaTableCfg buildingAreaTableCfg = GameDataManager.getBuildingAreaTableCfg(b.getId());
+            BuildingUpgradeTableCfg buildingUpgradeCfg = simConfigCacheService.getBuildingUpgradeCfg(b.getId(), b.getLevel());
+            list.add(SimPbConverter.toBuildingInfo(ctx, b, buildingUpgradeCfg, buildingAreaTableCfg.getUnlockGameId(), now));
         }
         return list;
     }
