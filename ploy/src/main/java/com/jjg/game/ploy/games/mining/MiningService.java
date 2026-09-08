@@ -311,8 +311,11 @@ public class MiningService implements OrderGenerate, StandalonePloyGame {
         }
         if (state.nextPickRecoveryTime <= 0) {
             state.nextPickRecoveryTime = Math.addExact(now, rule.intervalMillis);
-            return new Recovery(commit(player, before.json, state, Map.of(), Map.of(),
-                    AddType.MINING_PICK_RECOVERY), Map.of());
+            Snapshot committed = commit(player, before.json, state, Map.of(), Map.of(),
+                    AddType.MINING_PICK_RECOVERY);
+            log.info("mining_pick_recovery_started playerId={} balance={} nextTime={} version={}",
+                    player.getId(), balance, state.nextPickRecoveryTime, state.version);
+            return new Recovery(committed, Map.of());
         }
         if (now < state.nextPickRecoveryTime) return new Recovery(before, Map.of());
         long elapsed = Math.subtractExact(now, state.nextPickRecoveryTime);

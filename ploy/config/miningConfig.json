@@ -2,9 +2,9 @@
   "enabled": true,
   "permanentLimits": {},
   "dailyTasks": [
-    {"id": 1, "kind": 1, "itemId": 0, "target": 50, "rewards": {"1024034": 5}},
-    {"id": 2, "kind": 3, "itemId": 1024035, "target": 3, "rewards": {"1024034": 5}},
-    {"id": 3, "kind": 3, "itemId": 1024034, "target": 50, "rewards": {"1024034": 5}}
+    {"id": 1, "kind": 1, "itemId": 0, "target": 50, "nameLanguageId": 400800066, "descLanguageId": 400800069, "rewards": {"1024034": 5}},
+    {"id": 2, "kind": 3, "itemId": 1024035, "target": 3, "nameLanguageId": 400800067, "descLanguageId": 400800070, "rewards": {"1024034": 5}},
+    {"id": 3, "kind": 3, "itemId": 1024034, "target": 50, "nameLanguageId": 400800068, "descLanguageId": 400800071, "rewards": {"1024034": 5}}
   ],
   "seasons": []
 }

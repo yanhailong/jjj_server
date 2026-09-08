@@ -102,6 +102,24 @@ class MiningServiceTest {
         assertEquals(Code.SUCCESS, response.code);
         assertEquals(Set.of(1, 2, 3), response.dailyTasks.stream()
                 .map(task -> task.id).collect(java.util.stream.Collectors.toSet()));
+        assertTrue(response.dailyTasks.stream()
+                .allMatch(task -> task.nameLanguageId > 0 && task.descLanguageId > 0));
+    }
+
+    @Test void initialInfoStartsPickRecoveryForBalanceOf189() {
+        int pickItemId = new MiningEngine().pickItemId();
+        wallet.put(pickItemId, 189L);
+        MiningState current = state();
+        current.nextPickRecoveryTime = 0;
+        saved = JSON.toJSONString(current);
+        long before = System.currentTimeMillis();
+
+        ResMiningState response = service.info(player);
+
+        assertEquals(Code.SUCCESS, response.code);
+        assertTrue(response.info.nextPickRecoveryTime >= before + TimeUnit.MINUTES.toMillis(10));
+        assertTrue(response.info.nextPickRecoveryTime <= System.currentTimeMillis() + TimeUnit.MINUTES.toMillis(10));
+        assertEquals(response.info.nextPickRecoveryTime, state().nextPickRecoveryTime);
     }
 
     @Test void timedPickRecoveryUsesGlobalIntervalAndSettlesOfflineTimeOnce() {
