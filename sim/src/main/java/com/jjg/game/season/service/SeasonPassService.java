@@ -39,7 +39,6 @@ import java.util.Map;
 @Service
 public class SeasonPassService implements SimConditionEventListener {
     private static final Logger log = LoggerFactory.getLogger(SeasonPassService.class);
-    private static final String GLOBAL_SCOPE = "global";
 
     private final SeasonPassConfigService passConfig;
     private final PlayerPackService playerPackService;
@@ -66,10 +65,10 @@ public class SeasonPassService implements SimConditionEventListener {
         boolean changed = false;
         Map<String, Long> progress = data.getPassProgress();
         for (SeasonPassConfigService.PassDefinition pass : passConfig.passes(data.getSeasonId())) {
-            if (!pass.followsSeason()) {
-                continue;
-            }
             for (SeasonPassConfigService.ProgressDefinition channel : pass.progress()) {
+                if (playerStatService.readsCurrentState(channel.condition())) {
+                    continue;
+                }
                 long current = progress.getOrDefault(channel.key(), 0L);
                 if (current >= channel.maxTarget()) {
                     continue;
@@ -114,12 +113,12 @@ public class SeasonPassService implements SimConditionEventListener {
             return response;
         }
 
-        Map<Integer, Integer> claimed = claimedTracks(ctx, pass);
-        int purchased = purchasedTracks(ctx, pass).getOrDefault(passId, 0);
+        Map<Integer, Integer> claimed = data.getPassClaimedTracks();
+        int purchased = data.getPassPurchasedTracks().getOrDefault(passId, 0);
         Map<Integer, Integer> updatedClaims = new LinkedHashMap<>();
         Map<Integer, Long> rewards = new LinkedHashMap<>();
         for (SeasonPassConfigService.LevelDefinition level : pass.levels()) {
-            if (progress(ctx, pass, level) < level.condition().target()) {
+            if (progress(ctx, level) < level.condition().target()) {
                 continue;
             }
             int detailId = level.config().getId();
@@ -143,7 +142,7 @@ public class SeasonPassService implements SimConditionEventListener {
             return response;
         }
         claimed.putAll(updatedClaims);
-        saveOwner(ctx, pass);
+        saveOwner(ctx);
         response.rewards = ItemUtils.buildItemInfo(rewards);
         response.pass = assemble(ctx, pass);
         log.info("领取通行证奖励成功 playerId={},seasonKey={},passId={},rewards={}",
@@ -151,19 +150,14 @@ public class SeasonPassService implements SimConditionEventListener {
         return response;
     }
 
-    /**
-     * 赛季结束时只补发跟随赛季且已达成的未领奖励。
-     */
+    /** 赛季结束时补发当前赛季已达成的未领奖励。 */
     public void settleUnclaimed(SimPlayerContext ctx, SeasonPlayerData data) {
         Map<Integer, Long> rewards = new LinkedHashMap<>();
         for (SeasonPassConfigService.PassDefinition pass : passConfig.passes(data.getSeasonId())) {
-            if (!pass.followsSeason()) {
-                continue;
-            }
             int purchased = data.getPassPurchasedTracks().getOrDefault(pass.id(), 0);
             Map<Integer, Integer> claimed = data.getPassClaimedTracks();
             for (SeasonPassConfigService.LevelDefinition level : pass.levels()) {
-                if (data.getPassProgress().getOrDefault(level.progressKey(), 0L) < level.condition().target()) {
+                if (progress(ctx, level) < level.condition().target()) {
                     continue;
                 }
                 collectLevelRewards(level.config(), claimed.getOrDefault(level.config().getId(), 0),
@@ -185,8 +179,7 @@ public class SeasonPassService implements SimConditionEventListener {
     }
 
     public String orderToken(SeasonPlayerData data, SeasonPassConfigService.PassDefinition pass, int track) {
-        String scope = pass.followsSeason() ? data.getSeasonKey() : GLOBAL_SCOPE;
-        return scope + ':' + pass.id() + ':' + track;
+        return data.getSeasonKey() + ':' + pass.id() + ':' + track;
     }
 
     public PurchaseToken parseOrderToken(String value) {
@@ -199,13 +192,13 @@ public class SeasonPassService implements SimConditionEventListener {
             return null;
         }
         try {
-            String scope = value.substring(0, passSeparator);
+            String seasonKey = value.substring(0, passSeparator);
             int passId = Integer.parseInt(value.substring(passSeparator + 1, trackSeparator));
             int track = Integer.parseInt(value.substring(trackSeparator + 1));
-            if (scope.isBlank() || passId <= 0 || !validTrack(track)) {
+            if (seasonKey.isBlank() || passId <= 0 || !validTrack(track)) {
                 return null;
             }
-            return new PurchaseToken(scope, passId, track);
+            return new PurchaseToken(seasonKey, passId, track);
         } catch (NumberFormatException e) {
             return null;
         }
@@ -216,31 +209,23 @@ public class SeasonPassService implements SimConditionEventListener {
         if (data == null || token == null) {
             return false;
         }
-        SeasonPassConfigService.PassDefinition pass;
-        if (GLOBAL_SCOPE.equals(token.scope())) {
-            pass = passConfig.pass(token.passId());
-            if (pass == null || pass.followsSeason()) {
-                return false;
-            }
-        } else {
-            if (!token.scope().equals(data.getSeasonKey())) {
-                return false;
-            }
-            pass = passConfig.activePass(data.getSeasonId(), token.passId());
-            if (pass == null || !pass.followsSeason()) {
-                return false;
-            }
+        if (!token.seasonKey().equals(data.getSeasonKey())) {
+            return false;
         }
-        Map<Integer, Integer> purchased = purchasedTracks(ctx, pass);
+        SeasonPassConfigService.PassDefinition pass = passConfig.activePass(data.getSeasonId(), token.passId());
+        if (pass == null) {
+            return false;
+        }
+        Map<Integer, Integer> purchased = data.getPassPurchasedTracks();
         int bit = trackBit(token.track());
         int oldMask = purchased.getOrDefault(pass.id(), 0);
         if ((oldMask & bit) != 0) {
             return true;
         }
         purchased.put(pass.id(), oldMask | bit);
-        saveOwner(ctx, pass);
-        log.info("通行证付费轨解锁成功 playerId={},scope={},passId={},track={}",
-                ctx.playerId(), token.scope(), token.passId(), token.track());
+        saveOwner(ctx);
+        log.info("通行证付费轨解锁成功 playerId={},seasonKey={},passId={},track={}",
+                ctx.playerId(), token.seasonKey(), token.passId(), token.track());
         return true;
     }
 
@@ -257,8 +242,9 @@ public class SeasonPassService implements SimConditionEventListener {
     private SeasonPassInfo assemble(SimPlayerContext ctx, SeasonPassConfigService.PassDefinition pass) {
         SeasonPassInfo info = new SeasonPassInfo();
         info.passId = pass.id();
-        int purchased = purchasedTracks(ctx, pass).getOrDefault(pass.id(), 0);
-        Map<Integer, Integer> claimed = claimedTracks(ctx, pass);
+        SeasonPlayerData data = ctx.getSeasonPlayerData();
+        int purchased = data.getPassPurchasedTracks().getOrDefault(pass.id(), 0);
+        Map<Integer, Integer> claimed = data.getPassClaimedTracks();
         ShopRechargeListCfg basicShop = passConfig.shop(pass, SeasonConstant.PassTrack.BASIC);
         ShopRechargeListCfg premiumShop = passConfig.shop(pass, SeasonConstant.PassTrack.PREMIUM);
         info.levels = pass.levels().stream().map(level -> {
@@ -266,7 +252,7 @@ public class SeasonPassService implements SimConditionEventListener {
             levelInfo.detailId = level.config().getId();
             levelInfo.level = level.config().getLevel();
             levelInfo.conditionId = level.config().getLanguage();
-            levelInfo.progress = progress(ctx, pass, level);
+            levelInfo.progress = progress(ctx, level);
             levelInfo.target = level.condition().target();
             levelInfo.completed = levelInfo.progress >= levelInfo.target;
             int mask = claimed.getOrDefault(levelInfo.detailId, 0);
@@ -301,12 +287,11 @@ public class SeasonPassService implements SimConditionEventListener {
         return info;
     }
 
-    private long progress(SimPlayerContext ctx, SeasonPassConfigService.PassDefinition pass,
-                          SeasonPassConfigService.LevelDefinition level) {
-        if (pass.followsSeason()) {
-            return ctx.getSeasonPlayerData().getPassProgress().getOrDefault(level.progressKey(), 0L);
+    private long progress(SimPlayerContext ctx, SeasonPassConfigService.LevelDefinition level) {
+        if (playerStatService.readsCurrentState(level.condition())) {
+            return Math.max(0, playerStatService.progress(ctx, level.condition()));
         }
-        return Math.max(0, playerStatService.progress(ctx, level.condition()));
+        return ctx.getSeasonPlayerData().getPassProgress().getOrDefault(level.progressKey(), 0L);
     }
 
     private int collectLevelRewards(PassDetailsCfg level, int claimed, int purchased,
@@ -342,21 +327,9 @@ public class SeasonPassService implements SimConditionEventListener {
         return merged;
     }
 
-    private Map<Integer, Integer> purchasedTracks(SimPlayerContext ctx,
-                                                   SeasonPassConfigService.PassDefinition pass) {
-        return pass.followsSeason() ? ctx.getSeasonPlayerData().getPassPurchasedTracks()
-                : ctx.getSimBaseData().getNonSeasonPassPurchasedTracks();
-    }
-
-    private Map<Integer, Integer> claimedTracks(SimPlayerContext ctx,
-                                                 SeasonPassConfigService.PassDefinition pass) {
-        return pass.followsSeason() ? ctx.getSeasonPlayerData().getPassClaimedTracks()
-                : ctx.getSimBaseData().getNonSeasonPassClaimedTracks();
-    }
-
-    private void saveOwner(SimPlayerContext ctx, SeasonPassConfigService.PassDefinition pass) {
+    private void saveOwner(SimPlayerContext ctx) {
         ctx.setLastSaveTime(0);
-        autoSaveService.enqueueSave(pass.followsSeason() ? ctx.getSeasonPlayerData() : ctx.getSimBaseData());
+        autoSaveService.enqueueSave(ctx.getSeasonPlayerData());
     }
 
     public static String channelProductId(Player player, ShopRechargeListCfg shop) {
@@ -376,6 +349,6 @@ public class SeasonPassService implements SimConditionEventListener {
                 ? SeasonConstant.PassClaim.BASIC : SeasonConstant.PassClaim.PREMIUM;
     }
 
-    public record PurchaseToken(String scope, int passId, int track) {
+    public record PurchaseToken(String seasonKey, int passId, int track) {
     }
 }

@@ -33,6 +33,8 @@ public class BuildingAreaTableCfg extends BaseCfgBean {
   protected int MaxLevel;
   /** 场景ID */
   protected int RegionID;
+  /** 奖励显示间隔（ms) */
+  protected int RewardDisplayInterval;
   /** 解锁消耗 */
   protected Map<Integer,Long> UnlockCost;
   /** 解锁游戏ID */
@@ -81,6 +83,11 @@ public class BuildingAreaTableCfg extends BaseCfgBean {
   /** 返回场景ID */
   public int getRegionID() {
     return RegionID;
+  }
+
+  /** 返回奖励显示间隔（ms) */
+  public int getRewardDisplayInterval() {
+    return RewardDisplayInterval;
   }
 
   /** 返回解锁消耗 */

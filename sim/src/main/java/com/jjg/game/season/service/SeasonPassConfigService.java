@@ -3,7 +3,6 @@ package com.jjg.game.season.service;
 import com.jjg.game.core.base.condition.numeric.ConditionRuleRegistry;
 import com.jjg.game.core.base.condition.numeric.ConditionSpec;
 import com.jjg.game.core.base.condition.numeric.PreparedCondition;
-import com.jjg.game.core.service.PlayerStatService;
 import com.jjg.game.sampledata.GameDataManager;
 import com.jjg.game.sampledata.bean.PassDetailsCfg;
 import com.jjg.game.sampledata.bean.PassListCfg;
@@ -69,10 +68,6 @@ public class SeasonPassConfigService {
 
     public PassDefinition activePass(int seasonId, int passId) {
         return passes(seasonId).stream().filter(pass -> pass.id() == passId).findFirst().orElse(null);
-    }
-
-    public PassDefinition pass(int passId) {
-        return index().passById.get(passId);
     }
 
     public ShopRechargeListCfg shop(PassDefinition pass, int track) {
@@ -153,10 +148,6 @@ public class SeasonPassConfigService {
             }
             previousLevel = detail.getLevel();
             PreparedCondition condition = conditionRules.prepare(ConditionSpec.from(detail.getCompletionCondition()));
-            if (!pass.getFollowsSeason() && !PlayerStatService.supports(condition.spec().id())) {
-                throw new IllegalArgumentException("non-season pass requires a player stat condition, detailId="
-                        + detail.getId());
-            }
             String progressKey = progressKey(pass.getId(), condition);
             levels.add(new LevelDefinition(detail, condition, progressKey));
             channelBuilders.compute(progressKey, (ignored, builder) -> {
@@ -201,10 +192,6 @@ public class SeasonPassConfigService {
                                  List<ProgressDefinition> progress) {
         public int id() {
             return config.getId();
-        }
-
-        public boolean followsSeason() {
-            return config.getFollowsSeason();
         }
     }
 
