@@ -298,13 +298,11 @@ final class DefaultConditionRules {
                 (s, e) -> e.matchesSubject(s.parameter(0)), (s, e) -> positiveCount(e)));
         rules.add(action(12608, 2, 2, 1, ProgressMode.ADD, ActionConditionEvent.Type.SEASON_GEM_DROP,
                 (s, e) -> e.matchesSubject(s.parameter(0)), (s, e) -> positiveCount(e)));
-        rules.add(game(12609, 4, 4, 3, ProgressMode.ADD,
-                (s, e) -> e.matchesGame(s.parameter(0)) && e.bet() >= s.parameter(1)
-                        && optional(s.parameter(2), e.winItemId()),
-                (s, e) -> e.winOf(s.intParameter(2))));
-        rules.add(game(12610, 4, 4, 3, ProgressMode.ADD,
-                (s, e) -> e.matchesGame(s.parameter(0)) && e.bet() >= s.parameter(1)
-                        && optional(s.parameter(2), e.betItemId()), (s, e) -> 1));
+        rules.add(game(12609, 3, 3, 2, ProgressMode.ADD,
+                (s, e) -> e.matchesGame(s.parameter(0)) && e.bet() >= s.parameter(1),
+                (s, e) -> Math.max(0, e.win())));
+        rules.add(game(12610, 3, 3, 2, ProgressMode.ADD,
+                (s, e) -> e.matchesGame(s.parameter(0)) && e.bet() >= s.parameter(1), (s, e) -> 1));
     }
 
     private static void addMiningRules(List<ConditionRule<?>> rules) {
