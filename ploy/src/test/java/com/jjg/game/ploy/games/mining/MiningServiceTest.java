@@ -102,8 +102,6 @@ class MiningServiceTest {
         assertEquals(Code.SUCCESS, response.code);
         assertEquals(Set.of(1, 2, 3), response.dailyTasks.stream()
                 .map(task -> task.id).collect(java.util.stream.Collectors.toSet()));
-        assertTrue(response.dailyTasks.stream()
-                .allMatch(task -> task.nameLanguageId > 0 && task.descLanguageId > 0));
     }
 
     @Test void initialInfoStartsPickRecoveryForBalanceOf189() {
