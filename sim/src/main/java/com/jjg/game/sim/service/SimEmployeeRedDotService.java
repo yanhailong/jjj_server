@@ -14,6 +14,7 @@ import com.jjg.game.sampledata.bean.EmployeeLevelCfg;
 import com.jjg.game.sampledata.bean.EmployeeProfileCfg;
 import com.jjg.game.sampledata.bean.EmployeeStarCfg;
 import com.jjg.game.sampledata.bean.PoolListCfg;
+import com.jjg.game.sampledata.bean.VisitorBondsCfg;
 import com.jjg.game.sampledata.bean.VisitorQuestCfg;
 import com.jjg.game.sampledata.bean.VisitorStarCfg;
 import com.jjg.game.sim.constant.SimConstant;
@@ -210,12 +211,20 @@ public class SimEmployeeRedDotService implements IRedDotService, ItemAddListener
         }
     }
 
-    private List<Requirement> guestStarRequirements(long playerId, SimPlayerContext ctx) {
+    private SimCasinoData guestCasino(long playerId, SimPlayerContext ctx) {
         SimCasinoData casino = ctx == null ? null : ctx.getCurrentCasino();
         if (casino == null) {
             int casinoId = simPlayerGameDao.findCurrentCasinoId(playerId);
             casino = simCasinoDao.findGuestGrowthRedDotData(playerId, casinoId);
         }
+        return casino;
+    }
+
+    private List<Requirement> guestStarRequirements(long playerId, SimPlayerContext ctx) {
+        return guestStarRequirements(guestCasino(playerId, ctx));
+    }
+
+    private List<Requirement> guestStarRequirements(SimCasinoData casino) {
         if (casino == null || casino.getGuestMap() == null || casino.getGuestMap().isEmpty()) {
             return List.of();
         }
@@ -234,9 +243,10 @@ public class SimEmployeeRedDotService implements IRedDotService, ItemAddListener
         return requirements;
     }
 
-    /** 游客入口只汇总游客升星与新羁绊，不能混入招募或雇员成长数字。 */
+    /** 游客入口按可升星或有未读羁绊的已拥有游客去重计数，与卡片红点列表一致。 */
     private RedDotDetails buildVisitorEntryRedDot(long playerId, SimPlayerContext ctx, Player player) {
-        List<Requirement> requirements = guestStarRequirements(playerId, ctx);
+        SimCasinoData casino = guestCasino(playerId, ctx);
+        List<Requirement> requirements = guestStarRequirements(casino);
         Set<Integer> satisfied = playerPackService.findSatisfiedItemRequirements(player,
                 requirements.stream().map(Requirement::cost).toList());
         Set<Integer> starUpIds = new java.util.TreeSet<>();
@@ -246,13 +256,29 @@ public class SimEmployeeRedDotService implements IRedDotService, ItemAddListener
             }
         }
         Set<Integer> newBondIds = redDotReadDao.unread(playerId, readScope(playerId, ctx, NEW_BOND));
-        RedDotDetails.RedDotType type = starUpIds.isEmpty()
-                ? RedDotDetails.RedDotType.COMMON : RedDotDetails.RedDotType.COUNT;
-        int count = starUpIds.isEmpty() ? (newBondIds.isEmpty() ? 0 : 1) : starUpIds.size();
+        Set<Integer> bondGuestIds = new java.util.TreeSet<>();
+        if (casino != null && casino.getGuestMap() != null) {
+            for (Integer bondId : newBondIds) {
+                VisitorBondsCfg bondCfg = GameDataManager.getVisitorBondsCfg(bondId);
+                if (bondCfg == null || bondCfg.getMembers() == null) {
+                    continue;
+                }
+                for (Integer guestId : bondCfg.getMembers()) {
+                    if (guestId != null && casino.getGuestMap().get(guestId) != null) {
+                        bondGuestIds.add(guestId);
+                    }
+                }
+            }
+        }
+        // 同一游客可同时升星、拥有多个新羁绊，页签仍只计一个红点。
+        Set<Integer> ids = new java.util.TreeSet<>(starUpIds);
+        ids.addAll(bondGuestIds);
         RedDotDetails dot = redDotManager.buildRedDotDetails(getModule(),
-                SimConstant.Employee.RED_DOT_VISITOR_ENTRY, count, type);
+                SimConstant.Employee.RED_DOT_VISITOR_ENTRY, ids.size(), RedDotDetails.RedDotType.COUNT);
         dot.setExtra(com.alibaba.fastjson.JSON.toJSONString(Map.of(
+                "ids", ids,
                 "starUpIds", starUpIds,
+                "bondGuestIds", bondGuestIds,
                 "newBondIds", newBondIds.stream().sorted().toList())));
         return dot;
     }
