@@ -93,9 +93,52 @@ class MiningEngineTest {
         assertFalse(engine.alignConnectivity(state));
     }
 
+    @Test void strandedVersionOneStateRestoresReachabilityFromOpenedTopRow() {
+        MiningEngine engine = new MiningEngine();
+        MiningState state = MiningFixtures.flat(1, 1001);
+        state.topRow = 324;
+        state.generatedRows = 331;
+        state.connectivityVersion = 1;
+        state.cells.clear();
+        for (int row = 324; row <= 331; row++) {
+            for (int column = 1; column <= 6; column++) {
+                state.cells.add(new MiningState.Cell(row, column, 1001, 1));
+            }
+        }
+        for (int row = 324; row <= 330; row++) MiningFixtures.cell(state, row, 3).hp = 0;
+
+        assertTrue(engine.alignConnectivity(state));
+        assertTrue(MiningFixtures.cell(state, 330, 3).reachable);
+        assertTrue(engine.connected(state, 331, 3));
+        assertEquals(2, state.connectivityVersion);
+    }
+
+    @Test void disconnectedBottomOpeningDoesNotScrollUntilItJoinsReachableArea() {
+        MiningEngine engine = new MiningEngine();
+        MiningState state = MiningFixtures.flat(1, 1001);
+
+        var isolated = engine.dig(state, 8, 6, 103, 1);
+        assertEquals(0, isolated.scrollRows());
+        assertEquals(1, state.topRow);
+
+        for (int row = 1; row <= 7; row++) {
+            MiningState.Cell shaft = MiningFixtures.cell(state, row, 4);
+            shaft.hp = 0;
+            shaft.reachable = true;
+        }
+        var connected = engine.dig(state, 7, 5, 103, 2);
+        assertEquals(1, connected.scrollRows());
+        assertEquals(2, state.topRow);
+    }
+
     @Test void diggingBottomScrollsOnceRejectsOldCoordinatesAndNeverHitsPreGeneratedRows() {
         MiningEngine engine = new MiningEngine();
         MiningState state = MiningFixtures.flat(1, 1001);
+        for (int row = 1; row <= 7; row++) {
+            MiningState.Cell shaft = MiningFixtures.cell(state, row, 4);
+            shaft.hp = 0;
+            shaft.reachable = true;
+        }
         var first = engine.dig(state, 8, 6, 103, 1);
         assertEquals(4, first.changed().size()); assertEquals(1, first.scrollRows()); assertEquals(2, state.topRow);
         assertTrue(state.cells.stream().noneMatch(c -> c.row == 1));
@@ -129,6 +172,13 @@ class MiningEngineTest {
         MiningEngine engine = new MiningEngine();
         MiningState one = engine.create("a", 12345), two = engine.create("a", 12345);
         assertEquals(JSON.toJSONString(one), JSON.toJSONString(two));
+        for (MiningState state : List.of(one, two)) {
+            for (int row = 1; row <= 7; row++) {
+                MiningState.Cell shaft = MiningFixtures.cell(state, row, 3);
+                shaft.hp = 0;
+                shaft.reachable = true;
+            }
+        }
         assertEquals(6, one.width); assertEquals(8, one.visibleRows);
         assertEquals(1011, MiningFixtures.cell(one, 2, 1).type);
         assertEquals(1007, MiningFixtures.cell(one, 3, 1).type);

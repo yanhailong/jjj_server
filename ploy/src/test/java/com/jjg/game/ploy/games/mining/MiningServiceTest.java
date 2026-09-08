@@ -93,6 +93,14 @@ class MiningServiceTest {
         assertEquals(task.descLanguageId, dailyTasks.dailyTasks.getFirst().descLanguageId);
     }
 
+    @Test void bundledDailyTasksAreReturnedWhenExternalConfigIsMissing() {
+        config.loadBundledDefaults();
+        ResMiningDailyTasks response = service.dailyTasks(player);
+        assertEquals(Code.SUCCESS, response.code);
+        assertEquals(Set.of(1, 2, 3), response.dailyTasks.stream()
+                .map(task -> task.id).collect(java.util.stream.Collectors.toSet()));
+    }
+
     @Test void loadingOldTwoColumnStateMigratesItToConfiguredWidth() {
         MiningState old = state();
         old.width = 2;
@@ -133,6 +141,12 @@ class MiningServiceTest {
 
     @Test void scrollReturnsOffsetAndOnlyVisibleChangedCells() {
         MiningState before = state();
+        for (int row = before.topRow; row < before.topRow + before.visibleRows - 1; row++) {
+            MiningState.Cell shaft = MiningFixtures.cell(before, row, 1);
+            shaft.hp = 0;
+            shaft.reachable = true;
+        }
+        saved = JSON.toJSONString(before);
         ReqMiningAction request = request(MiningConstant.DIG, 103);
         request.row = before.topRow + before.visibleRows - 1;
         ResMiningState response = service.action(player, request);

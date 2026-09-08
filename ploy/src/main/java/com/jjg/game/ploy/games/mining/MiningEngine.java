@@ -18,7 +18,7 @@ public class MiningEngine {
         state.seed = seed;
         state.width = catalog.width();
         state.visibleRows = catalog.visibleRows();
-        state.connectivityVersion = 1;
+        state.connectivityVersion = 2;
         ensureRows(state, state.visibleRows);
         return state;
     }
@@ -65,16 +65,26 @@ public class MiningEngine {
         return true;
     }
 
-    /** 兼容旧存档：首屏可从真实地表精确恢复；已滚屏存档以顶行已打开区域作为历史连通前沿。 */
+    /**
+     * 兼容旧存档：首屏可从真实地表精确恢复；已滚屏但丢失连通前沿的存档，
+     * 以当前顶行已打开区域作为历史连通入口。版本1已有的有效前沿继续保留。
+     */
     boolean alignConnectivity(MiningState state) {
-        if (state.connectivityVersion >= 1) return false;
+        if (state.connectivityVersion >= 2) return false;
         if (state.cells == null) state.cells = new ArrayList<>();
-        state.cells.forEach(cell -> cell.reachable = false);
-        int rootRow = state.topRow <= 1 ? 1 : state.topRow;
-        state.cells.stream().filter(cell -> cell.row == rootRow && cell.hp == 0)
-                .forEach(cell -> cell.reachable = true);
+        if (state.connectivityVersion < 1) {
+            state.cells.forEach(cell -> cell.reachable = false);
+        } else {
+            state.cells.stream().filter(cell -> cell.hp > 0).forEach(cell -> cell.reachable = false);
+        }
+        boolean hasReachableOpenCell = state.cells.stream().anyMatch(cell -> cell.hp == 0 && cell.reachable);
+        if (!hasReachableOpenCell) {
+            int rootRow = state.topRow <= 1 ? 1 : state.topRow;
+            state.cells.stream().filter(cell -> cell.row == rootRow && cell.hp == 0)
+                    .forEach(cell -> cell.reachable = true);
+        }
         refreshReachability(state);
-        state.connectivityVersion = 1;
+        state.connectivityVersion = 2;
         return true;
     }
 
@@ -107,7 +117,6 @@ public class MiningEngine {
         if (affected.isEmpty()) throw new MiningException("NO_DIGGABLE_CELL");
         Map<Integer, Long> rewards = new HashMap<>();
         List<CellReward> rewardCells = new ArrayList<>();
-        boolean scroll = false;
         for (MiningState.Cell c : affected) {
             c.hp = Math.max(0, c.hp - tool.getDamage());
             if (c.hp > 0) continue;
@@ -121,9 +130,11 @@ public class MiningEngine {
             state.daily.depth = Math.max(state.daily.depth, c.row);
             state.total.depth = Math.max(state.total.depth, c.row);
             if (c.row > state.depth) { state.depth = c.row; state.depthReachedAt = now; }
-            scroll |= c.row == bottom;
         }
         refreshReachability(state);
+        // 炸弹/挖机可在未连通区域制造空洞；只有空洞真正接入地表后才允许触底滚动，
+        // 否则会过早删除上方连通前沿，最终令整张可视地图都不可挖。
+        boolean scroll = state.cells.stream().anyMatch(c -> c.row == bottom && c.hp == 0 && c.reachable);
         state.total.tools.merge(tool.getItemid(), 1L, Long::sum);
         state.daily.tools.merge(tool.getItemid(), 1L, Long::sum);
         for (Map.Entry<Integer, Long> e : rewards.entrySet()) {

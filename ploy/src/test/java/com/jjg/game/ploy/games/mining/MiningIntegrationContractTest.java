@@ -25,6 +25,14 @@ class MiningIntegrationContractTest {
         assertNotNull(JSON.parseObject("{\"usedAdTickets\":[\"legacy-ticket\"]}", MiningState.class));
     }
 
+    @Test void bundledMiningConfigContainsDailyTasksForDeploymentFallback() {
+        MiningConfig bundled = new MiningConfig();
+        bundled.loadBundledDefaults();
+        assertEquals(3, bundled.dailyTasks.size());
+        assertTrue(bundled.dailyTasks.stream().allMatch(task -> task.id > 0 && task.target > 0
+                && task.rewards != null && !task.rewards.isEmpty()));
+    }
+
     @Test void requestsAndFullStateRoundTripThroughProductionSerializer() {
         ReqMiningAction request = new ReqMiningAction(); request.action = 1; request.id = 103; request.version = 123;
         request.seasonId = "s1"; request.row = 1000; request.column = 6; request.count = 1;

@@ -1,13 +1,17 @@
 package com.jjg.game.ploy.games.mining;
 
+import com.alibaba.fastjson.JSON;
+import jakarta.annotation.PostConstruct;
 import org.springframework.stereotype.Component;
 
+import java.io.InputStream;
+import java.nio.charset.StandardCharsets;
 import java.util.List;
 import java.util.Map;
 import java.util.HashSet;
 import java.util.Comparator;
 
-/** miningConfig.json：仅保留不属于配置表的运行与赛季参数。玩法数据由 Mining*.xlsx 提供。 */
+/** miningConfig.json：内置默认值随ploy包发布，部署目录中的同名文件仍可覆盖和热更新。 */
 @Component
 public class MiningConfig {
     public boolean enabled = true;
@@ -23,6 +27,24 @@ public class MiningConfig {
     public void setDailyTasks(List<DailyTask> value) { dailyTasks = value; }
     public List<Season> getSeasons() { return seasons; }
     public void setSeasons(List<Season> value) { seasons = value; }
+
+    /** 避免部署目录漏放JSON时静默退回空任务；外部配置会在SampleDataManager启动时再次覆盖。 */
+    @PostConstruct
+    public void loadBundledDefaults() {
+        try (InputStream input = MiningConfig.class.getResourceAsStream("/miningConfig.json")) {
+            if (input == null) throw new IllegalStateException("Bundled miningConfig.json is missing");
+            MiningConfig bundled = JSON.parseObject(new String(input.readAllBytes(), StandardCharsets.UTF_8), MiningConfig.class);
+            if (bundled == null || bundled.dailyTasks == null || bundled.dailyTasks.isEmpty()) {
+                throw new IllegalStateException("Bundled mining dailyTasks is empty");
+            }
+            enabled = bundled.enabled;
+            permanentLimits = bundled.permanentLimits == null ? Map.of() : bundled.permanentLimits;
+            dailyTasks = bundled.dailyTasks;
+            seasons = bundled.seasons == null ? List.of() : bundled.seasons;
+        } catch (Exception e) {
+            throw new IllegalStateException("Failed to load bundled miningConfig.json", e);
+        }
+    }
 
     public static class DailyTask {
         public int id;
