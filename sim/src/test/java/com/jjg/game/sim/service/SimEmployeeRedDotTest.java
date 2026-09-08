@@ -19,7 +19,7 @@ import static org.junit.jupiter.api.Assertions.*;
 import static org.mockito.Mockito.*;
 
 class SimEmployeeRedDotTest {
-    @Test void visitorEntryShowsNothingWithoutStarUpOrNewBondAndUsesCorrectPriority() {
+    @Test void visitorEntryCountsStarUpAndUnreadBondVisitors() {
         SimEmployeeRedDotService service = new SimEmployeeRedDotService();
         SimPlayerContextRegistry contexts = mock(SimPlayerContextRegistry.class);
         SimPlayerContext ctx = new SimPlayerContext();
@@ -53,12 +53,15 @@ class SimEmployeeRedDotTest {
         ReflectionTestUtils.setField(service, "redDotManager", new RedDotManager(null, null, null));
         VisitorQuestCfg visitor = mock(VisitorQuestCfg.class);
         when(visitor.getDuplicatetoShard()).thenReturn(List.of(1025101, 1125101, 10));
+        VisitorBondsCfg bond = mock(VisitorBondsCfg.class);
+        when(bond.getMembers()).thenReturn(List.of(1001));
 
         try (var staticConfigs = mockStatic(GameDataManager.class)) {
             staticConfigs.when(() -> GameDataManager.getVisitorQuestCfg(1001)).thenReturn(visitor);
+            staticConfigs.when(() -> GameDataManager.getVisitorBondsCfg(301)).thenReturn(bond);
             var none = service.initialize(7L, SimConstant.Employee.RED_DOT_VISITOR_ENTRY).getFirst();
             assertEquals(0, none.getCount());
-            assertEquals(com.jjg.game.core.pb.reddot.RedDotDetails.RedDotType.COMMON, none.getRedDotType());
+            assertEquals(com.jjg.game.core.pb.reddot.RedDotDetails.RedDotType.COUNT, none.getRedDotType());
             assertTrue(none.getExtra().contains("\"starUpIds\":[]"));
             assertTrue(none.getExtra().contains("\"newBondIds\":[]"));
 
@@ -68,7 +71,7 @@ class SimEmployeeRedDotTest {
 
             var bondOnly = service.initialize(7L, SimConstant.Employee.RED_DOT_VISITOR_ENTRY).getFirst();
             assertEquals(1, bondOnly.getCount());
-            assertEquals(com.jjg.game.core.pb.reddot.RedDotDetails.RedDotType.COMMON, bondOnly.getRedDotType());
+            assertEquals(com.jjg.game.core.pb.reddot.RedDotDetails.RedDotType.COUNT, bondOnly.getRedDotType());
             assertTrue(bondOnly.getExtra().contains("301"));
         }
     }

@@ -307,7 +307,7 @@ public interface SimConstant {
         int RED_DOT_RECRUIT_POOL = 1;
         int RED_DOT_GUEST_STAR_UP = 2;
         int RED_DOT_EMPLOYEE_GROWTH = 3;
-        //游客入口/卡片汇总：可升星优先显示数字，仅有新羁绊时显示普通红点
+        //游客入口/卡片汇总：可升星或有未读羁绊的已拥有游客去重计数
         int RED_DOT_VISITOR_ENTRY = 6;
     }
 
