@@ -22,4 +22,6 @@ public interface MiningConstant {
     int RES_DAILY_TASKS = BASE | 0x10C;
     int DIG = 1, EXCHANGE = 2, BUNDLE = 3, ACHIEVEMENT = 4, DAILY_TASK = 5;
     int BUNDLE_FREE = 1, BUNDLE_AD = 2, BUNDLE_PAID = 3;
+    /** global.xlsx：每隔多少分钟恢复1个镐。 */
+    int PICK_RECOVERY_INTERVAL_GLOBAL_ID = 320;
 }

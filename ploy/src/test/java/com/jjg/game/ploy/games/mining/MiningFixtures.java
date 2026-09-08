@@ -20,6 +20,7 @@ final class MiningFixtures {
         containers.put(MiningExchangeShopCfg.class, new MiningExchangeShopCfgContainer());
         containers.put(ItemCfg.class, new ItemCfgContainer());
         containers.put(MedalListCfg.class, new MedalListCfgContainer());
+        containers.put(GlobalConfigCfg.class, new GlobalConfigCfgContainer());
         Path samples = Path.of("resources/sample").toAbsolutePath();
         if (!samples.toFile().isDirectory()) samples = Path.of("ploy/resources/sample").toAbsolutePath();
         for (BaseCfgContainer<?> container : containers.values()) container.loadData(samples.toString());

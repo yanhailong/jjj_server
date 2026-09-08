@@ -16,6 +16,7 @@ import org.redisson.api.RedissonClient;
 
 import java.math.BigDecimal;
 import java.util.*;
+import java.util.concurrent.TimeUnit;
 
 import static org.junit.jupiter.api.Assertions.*;
 import static org.mockito.ArgumentMatchers.*;
@@ -50,7 +51,9 @@ class MiningServiceTest {
                     saved = inv.getArgument(6); return new CommonResult<ItemOperationResult>(Code.SUCCESS);
                 });
         service = new MiningService(config, packs, redis, ranks);
-        assertEquals(Code.SUCCESS, service.info(player).code);
+        ResMiningState initial = service.info(player);
+        var recoveryCfg = GameDataManager.getGlobalConfigCfg(MiningConstant.PICK_RECOVERY_INTERVAL_GLOBAL_ID);
+        assertEquals(Code.SUCCESS, initial.code, initial.reason + ", recoveryCfg=" + recoveryCfg.getValue());
     }
 
     private MiningState state() { return JSON.parseObject(saved, MiningState.class); }
@@ -99,6 +102,74 @@ class MiningServiceTest {
         assertEquals(Code.SUCCESS, response.code);
         assertEquals(Set.of(1, 2, 3), response.dailyTasks.stream()
                 .map(task -> task.id).collect(java.util.stream.Collectors.toSet()));
+    }
+
+    @Test void timedPickRecoveryUsesGlobalIntervalAndSettlesOfflineTimeOnce() {
+        String[] configured = GameDataManager.getGlobalConfigCfg(
+                MiningConstant.PICK_RECOVERY_INTERVAL_GLOBAL_ID).getValue().split("[,_，]");
+        int configuredMinutes = Integer.parseInt(configured[0]);
+        assertEquals(10, configuredMinutes); assertEquals(400, Integer.parseInt(configured[1]));
+        long interval = TimeUnit.MINUTES.toMillis(configuredMinutes);
+        long now = System.currentTimeMillis();
+        MiningState current = state();
+        current.nextPickRecoveryTime = now - interval - 1000;
+        long previousVersion = current.version;
+        saved = JSON.toJSONString(current);
+
+        ResMiningState response = service.info(player);
+        assertEquals(Code.SUCCESS, response.code);
+        assertEquals(102, wallet.get(new MiningEngine().pickItemId()));
+        assertEquals(2, response.rewards.stream()
+                .filter(item -> item.itemId == new MiningEngine().pickItemId())
+                .mapToLong(item -> item.count).sum());
+        assertEquals(previousVersion + 1, state().version);
+        assertTrue(response.info.nextPickRecoveryTime > now);
+        assertTrue(response.info.nextPickRecoveryTime <= now + interval);
+
+        String afterRecovery = saved;
+        ResMiningState repeated = service.info(player);
+        assertEquals(Code.SUCCESS, repeated.code);
+        assertEquals(102, wallet.get(new MiningEngine().pickItemId()));
+        assertEquals(afterRecovery, saved);
+        assertTrue(repeated.rewards == null || repeated.rewards.isEmpty());
+    }
+
+    @Test void timedRecoveryStopsAtLimitAndRestartsAfterUsingAPick() {
+        int pickItemId = new MiningEngine().pickItemId();
+        wallet.put(pickItemId, 399L);
+        MiningState current = state();
+        current.nextPickRecoveryTime = System.currentTimeMillis() - TimeUnit.HOURS.toMillis(1);
+        saved = JSON.toJSONString(current);
+
+        ResMiningState capped = service.info(player);
+        assertEquals(Code.SUCCESS, capped.code);
+        assertEquals(400, wallet.get(pickItemId));
+        assertEquals(1, capped.rewards.stream().filter(item -> item.itemId == pickItemId)
+                .mapToLong(item -> item.count).sum());
+        assertEquals(0, capped.info.nextPickRecoveryTime);
+
+        long beforeDig = System.currentTimeMillis();
+        ResMiningState dug = service.action(player, request(MiningConstant.DIG, 101));
+        assertEquals(Code.SUCCESS, dug.code);
+        assertEquals(399, wallet.get(pickItemId));
+        assertTrue(dug.info.nextPickRecoveryTime >= beforeDig + TimeUnit.MINUTES.toMillis(10));
+    }
+
+    @Test void duePickRecoveryCanFundTheSameVersionDigRequest() {
+        int pickItemId = new MiningEngine().pickItemId();
+        wallet.put(pickItemId, 0L);
+        MiningState current = state();
+        current.nextPickRecoveryTime = System.currentTimeMillis() - 1000;
+        long previousVersion = current.version;
+        saved = JSON.toJSONString(current);
+        ReqMiningAction request = request(MiningConstant.DIG, 101);
+
+        ResMiningState response = service.action(player, request);
+        assertEquals(Code.SUCCESS, response.code);
+        assertEquals(0, wallet.get(pickItemId));
+        assertEquals(1, response.rewards.stream().filter(item -> item.itemId == pickItemId)
+                .mapToLong(item -> item.count).sum());
+        assertEquals(previousVersion + 2, response.info.version);
     }
 
     @Test void loadingOldTwoColumnStateMigratesItToConfiguredWidth() {

@@ -38,4 +38,6 @@ public class MiningInfo {
     public long resourceValue;
     @ProtoDesc("非空表示特殊奖励需核账，禁止重复操作")
     public String pendingDeliveryId;
+    @ProtoDesc("下一次按时恢复1个镐的时间，毫秒时间戳；达到恢复上限时为0")
+    public long nextPickRecoveryTime;
 }

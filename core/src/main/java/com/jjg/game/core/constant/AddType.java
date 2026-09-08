@@ -359,7 +359,9 @@ public enum AddType {
     //挖矿每日任务奖励
     MINING_DAILY_TASK(2205),
     //挖矿排行奖励
-    MINING_RANK(2206);
+    MINING_RANK(2206),
+    //挖矿按时恢复镐
+    MINING_PICK_RECOVERY(2207);
     private int value;
 
     AddType(int value) {

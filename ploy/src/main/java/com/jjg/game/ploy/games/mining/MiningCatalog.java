@@ -111,6 +111,7 @@ final class MiningCatalog {
     MiningToolsCfg tool(int id) { return tools.get(id); }
     List<MiningMapGenerationCfg> stages() { return stages; }
     int pickToolId() { return pickToolId; }
+    int pickItemId() { return tools.get(pickToolId).getItemid(); }
     int bombToolId() { return bombToolId; }
     int excavatorToolId() { return excavatorToolId; }
     int defaultCellId() { return defaultCellId; }

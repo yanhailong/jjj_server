@@ -15,6 +15,8 @@ public class MiningState {
     public int generatedRows;
     public int lastToolRow;
     public int connectivityVersion;
+    /** 下一次按时恢复1个镐的毫秒时间戳；到期奖励在玩家锁内结算。 */
+    public long nextPickRecoveryTime;
     public List<Cell> cells = new ArrayList<>();
     public Stats total = new Stats();
     public Stats daily = new Stats();

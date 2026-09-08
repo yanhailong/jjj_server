@@ -241,6 +241,7 @@ public class MiningEngine {
     }
 
     Set<Integer> toolItemIds() { return catalog.toolItemIds(); }
+    int pickItemId() { return catalog.pickItemId(); }
     Set<Integer> resourceItemIds() { return catalog.resourceItemIds(); }
     public static void merge(Map<Integer, Long> into, Map<Integer, Long> values) {
         values.forEach((id, count) -> into.merge(id, count, Math::addExact));

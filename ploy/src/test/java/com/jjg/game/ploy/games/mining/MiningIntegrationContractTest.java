@@ -39,7 +39,7 @@ class MiningIntegrationContractTest {
         ReqMiningAction copy = ProtostuffUtil.deserialize(ProtostuffUtil.serialize(request), ReqMiningAction.class);
         assertEquals(request.seasonId, copy.seasonId); assertEquals(123, copy.version); assertEquals(1000, copy.row);
         ResMiningState res = new ResMiningState(Code.SUCCESS); res.info = new MiningInfo(); res.scrollRows = 2;
-        res.info.seasonId = "s1"; res.info.version = 124;
+        res.info.seasonId = "s1"; res.info.version = 124; res.info.nextPickRecoveryTime = 1800000600000L;
         MiningCellInfo cell = new MiningCellInfo(); cell.row = 1000; cell.column = 6; cell.hp = 1; cell.typeId = 1002;
         ItemInfo tool = new ItemInfo(); tool.itemId = 1024034; tool.count = 3;
         ItemInfo ore = new ItemInfo(); ore.itemId = 1024037; ore.count = 9;
@@ -49,6 +49,7 @@ class MiningIntegrationContractTest {
         res.rewardCells = List.of(rewardCell);
         ResMiningState result = ProtostuffUtil.deserialize(ProtostuffUtil.serialize(res), ResMiningState.class);
         assertEquals(Code.SUCCESS, result.code); assertEquals(1002, result.info.cells.getFirst().typeId); assertEquals(124, result.info.version);
+        assertEquals(1800000600000L, result.info.nextPickRecoveryTime);
         assertEquals(2, result.scrollRows);
         assertEquals(1000, result.rewardCells.getFirst().row);
         assertEquals(1024037, result.rewardCells.getFirst().rewards.getFirst().itemId);

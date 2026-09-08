@@ -28,6 +28,7 @@ import java.security.SecureRandom;
 import java.time.LocalDate;
 import java.time.ZoneId;
 import java.util.*;
+import java.util.concurrent.TimeUnit;
 import java.util.function.Function;
 
 /** 服务端权威挖矿。所有写操作使用玩家分布式锁和背包存档CAS。 */
@@ -46,6 +47,8 @@ public class MiningService implements OrderGenerate, StandalonePloyGame {
     }
 
     private record Snapshot(String json, MiningState state) { }
+    private record Recovery(Snapshot snapshot, Map<Integer, Long> rewards) { }
+    private record RecoveryRule(long intervalMillis, long limit) { }
     private record ProductView(boolean available, String disabledReason, int id, int order,
                                int boughtToday, int remaining, List<ItemInfo> goods) { }
 
@@ -60,7 +63,9 @@ public class MiningService implements OrderGenerate, StandalonePloyGame {
                 Snapshot snapshot = load(player, season);
                 MiningState state = snapshot.state;
                 MiningEngine engine = new MiningEngine();
+                long now = System.currentTimeMillis();
                 Map<Integer, Long> costs = Map.of(), rewards = Map.of();
+                Map<Integer, Long> responseRewards = new HashMap<>();
                 AddType source = AddType.MINING_DIG;
                 if (request != null) {
                     if (!Objects.equals(request.seasonId, state.seasonId) || request.version != state.version)
@@ -68,9 +73,17 @@ public class MiningService implements OrderGenerate, StandalonePloyGame {
                     if (state.delivery != null) throw new MiningException(Code.FAIL, "DELIVERY_REQUIRES_RECONCILIATION");
                     if (request.count < 1 || request.count > 10000 || request.action != MiningConstant.EXCHANGE && request.count != 1)
                         throw new MiningException("INVALID_COUNT");
+                    if (request.action < MiningConstant.DIG || request.action > MiningConstant.DAILY_TASK)
+                        throw new MiningException("UNKNOWN_ACTION");
+                }
+                Recovery recovery = settlePickRecovery(player, snapshot, engine, now);
+                snapshot = recovery.snapshot; state = snapshot.state;
+                MiningEngine.merge(responseRewards, recovery.rewards);
+                if (!responseRewards.isEmpty()) response.rewards = ItemUtils.buildItemInfo(responseRewards);
+                if (request != null) {
                     switch (request.action) {
                         case MiningConstant.DIG -> {
-                            MiningEngine.DigResult result = engine.dig(state, request.row, request.column, request.id, System.currentTimeMillis());
+                            MiningEngine.DigResult result = engine.dig(state, request.row, request.column, request.id, now);
                             costs = Map.of(result.itemId(), 1L); rewards = result.rewards();
                             MiningState hitState = state;
                             response.scrollRows = result.scrollRows();
@@ -133,12 +146,14 @@ public class MiningService implements OrderGenerate, StandalonePloyGame {
                         default -> throw new MiningException("UNKNOWN_ACTION");
                     }
                     validateItems(costs); validateItems(rewards);
+                    alignPickRecoveryClockAfterExchange(player, state, engine, costs, rewards, now);
                     if (rewards.keySet().stream().anyMatch(id -> !ordinaryItem(id))) {
                         // 兑换支持能量、游客、雇员等特殊道具；这些由现有业务处理器入账。
                         snapshot = deliverSpecial(player, snapshot, costs, rewards, request.id, source);
                         state = snapshot.state;
                     } else snapshot = commit(player, snapshot.json, state, costs, rewards, source);
-                    response.rewards = ItemUtils.buildItemInfo(rewards);
+                    MiningEngine.merge(responseRewards, rewards);
+                    response.rewards = ItemUtils.buildItemInfo(responseRewards);
                     log.info("mining_action playerId={} action={} id={} depth={} version={} rewards={}",
                             player.getId(), request.action, request.id, state.depth, state.version, rewards);
                 }
@@ -262,6 +277,7 @@ public class MiningService implements OrderGenerate, StandalonePloyGame {
                 state.total = previous.total; state.claimedAchievements = previous.claimedAchievements;
                 state.permanentPurchases = previous.permanentPurchases;
                 state.paymentQuotes = previous.paymentQuotes; state.paidOrders = previous.paidOrders;
+                state.nextPickRecoveryTime = previous.nextPickRecoveryTime;
                 state.day = previous.day; state.daily = previous.daily;
                 state.dailyPurchases = previous.dailyPurchases; state.claimedDailyTasks = previous.claimedDailyTasks;
             }
@@ -277,6 +293,69 @@ public class MiningService implements OrderGenerate, StandalonePloyGame {
             state.refreshDay(TimeHelper.getDayNumerical()); changed = true;
         }
         return changed ? commit(player, json, state, Map.of(), Map.of(), AddType.MINING_DIG) : new Snapshot(json, state);
+    }
+
+    /** 在玩家锁内一次结算全部到期镐；时间游标和背包奖励由同一个CAS事务提交。 */
+    private Recovery settlePickRecovery(Player player, Snapshot before, MiningEngine engine, long now) {
+        MiningState state = before.state;
+        if (state.delivery != null) {
+            return new Recovery(before, Map.of());
+        }
+        RecoveryRule rule = pickRecoveryRule();
+        long balance = packs.getItemCount(player.getId(), engine.pickItemId());
+        if (balance >= rule.limit) {
+            if (state.nextPickRecoveryTime == 0) return new Recovery(before, Map.of());
+            state.nextPickRecoveryTime = 0;
+            return new Recovery(commit(player, before.json, state, Map.of(), Map.of(),
+                    AddType.MINING_PICK_RECOVERY), Map.of());
+        }
+        if (state.nextPickRecoveryTime <= 0) {
+            state.nextPickRecoveryTime = Math.addExact(now, rule.intervalMillis);
+            return new Recovery(commit(player, before.json, state, Map.of(), Map.of(),
+                    AddType.MINING_PICK_RECOVERY), Map.of());
+        }
+        if (now < state.nextPickRecoveryTime) return new Recovery(before, Map.of());
+        long elapsed = Math.subtractExact(now, state.nextPickRecoveryTime);
+        long due = Math.addExact(Math.floorDiv(elapsed, rule.intervalMillis), 1L);
+        long count = Math.min(due, Math.subtractExact(rule.limit, balance));
+        state.nextPickRecoveryTime = Math.addExact(balance, count) >= rule.limit ? 0
+                : Math.addExact(state.nextPickRecoveryTime, Math.multiplyExact(count, rule.intervalMillis));
+        Map<Integer, Long> rewards = Map.of(engine.pickItemId(), count);
+        validateItems(rewards);
+        Snapshot committed = commit(player, before.json, state, Map.of(), rewards, AddType.MINING_PICK_RECOVERY);
+        log.info("mining_pick_recovery playerId={} count={} nextTime={} version={}",
+                player.getId(), count, state.nextPickRecoveryTime, state.version);
+        return new Recovery(committed, rewards);
+    }
+
+    /** 其他来源可超过恢复上限；只有低于上限时才启动或保留自动恢复计时。 */
+    private void alignPickRecoveryClockAfterExchange(Player player, MiningState state, MiningEngine engine,
+                                                     Map<Integer, Long> costs, Map<Integer, Long> rewards, long now) {
+        RecoveryRule rule = pickRecoveryRule();
+        int pickItemId = engine.pickItemId();
+        long projected = Math.addExact(Math.subtractExact(packs.getItemCount(player.getId(), pickItemId),
+                costs.getOrDefault(pickItemId, 0L)), rewards.getOrDefault(pickItemId, 0L));
+        if (projected >= rule.limit) state.nextPickRecoveryTime = 0;
+        else if (state.nextPickRecoveryTime <= 0)
+            state.nextPickRecoveryTime = Math.addExact(now, rule.intervalMillis);
+    }
+
+    private static RecoveryRule pickRecoveryRule() {
+        GlobalConfigCfg cfg = GameDataManager.getGlobalConfigCfg(MiningConstant.PICK_RECOVERY_INTERVAL_GLOBAL_ID);
+        if (cfg == null || cfg.getValue() == null) {
+            throw new MiningException(Code.SAMPLE_ERROR, "INVALID_PICK_RECOVERY_INTERVAL");
+        }
+        try {
+            // 通用配置加载器会把Excel中的英文逗号规范化为下划线。
+            String[] values = cfg.getValue().split("[,_，]", -1);
+            if (values.length != 2) throw new NumberFormatException("expected interval,limit");
+            long minutes = Long.parseLong(values[0].trim());
+            long limit = Long.parseLong(values[1].trim());
+            if (minutes <= 0 || limit <= 0) throw new NumberFormatException("non-positive value");
+            return new RecoveryRule(Math.multiplyExact(minutes, TimeUnit.MINUTES.toMillis(1)), limit);
+        } catch (ArithmeticException | NumberFormatException e) {
+            throw new MiningException(Code.SAMPLE_ERROR, "INVALID_PICK_RECOVERY_INTERVAL");
+        }
     }
 
     private Snapshot commit(Player player, String expected, MiningState state, Map<Integer, Long> costs,
@@ -427,6 +506,7 @@ public class MiningService implements OrderGenerate, StandalonePloyGame {
         info.resourceValue = engine.resourceItemIds().stream()
                 .mapToLong(id -> state.total.resources.getOrDefault(id, 0L)).sum();
         info.pendingDeliveryId = state.delivery == null ? null : state.delivery.id;
+        info.nextPickRecoveryTime = state.nextPickRecoveryTime;
         return info;
     }
 
