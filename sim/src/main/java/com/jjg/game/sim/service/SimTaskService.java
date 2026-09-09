@@ -25,6 +25,7 @@ import com.jjg.game.core.utils.ItemUtils;
 import com.jjg.game.sampledata.GameDataManager;
 import com.jjg.game.sampledata.bean.MedalBuffCfg;
 import com.jjg.game.sampledata.bean.TaskCfg;
+import com.jjg.game.sim.constant.SimConstant;
 import com.jjg.game.sim.dao.SimTaskDao;
 import com.jjg.game.sim.data.SimBaseData;
 import com.jjg.game.sim.data.SimPlayerContext;
@@ -405,6 +406,7 @@ public class SimTaskService implements IRedDotService, GameFunctionListener {
             }
             taskLogger.completeTask(ctx.playerId(), cfg.getId());
             gameFunctionService.notifyTaskFunctionOpen(ctx.playerId(), List.of(cfg.getFunctionId()));
+            guideService.trigger(ctx, SimConstant.GuideCondition.TASK_COMPLETED, cfg.getId(), true);
             if (cfg.getTaskType() == TaskConstant.TaskType.MAIN_LINE) {
                 mainTaskLogger.completed(ctx.playerId(), player.getNickName(), cfg.getId(),
                         conditionId, target, target, now);
@@ -764,6 +766,7 @@ public class SimTaskService implements IRedDotService, GameFunctionListener {
         taskLogger.completeTask(player.getId(), node.getConfigId());
         log.info("玩家[{}]完成 sim 任务[{}]", player.getId(), node.getConfigId());
         gameFunctionService.notifyTaskFunctionOpen(player.getId(), List.of(cfg.getFunctionId()));
+        guideService.trigger(ctx, SimConstant.GuideCondition.TASK_COMPLETED, node.getConfigId(), true);
         if (cfg.getTaskType() == TaskConstant.TaskType.MAIN_LINE) {
             mainTaskLogger.completed(player.getId(), player.getNickName(), cfg.getId(),
                     conditionId, completedProgress, target, now);
@@ -873,7 +876,6 @@ public class SimTaskService implements IRedDotService, GameFunctionListener {
         //领奖后强制下个 tick 尽快落库(走 autosave 规范路径), 收窄崩溃重复领取窗口
         ctx.setLastSaveTime(0);
         updateTaskRedDot(ctx);
-        guideService.trigger(ctx, com.jjg.game.sim.constant.SimConstant.GuideCondition.TASK_REWARD, taskId, true);
         log.info("玩家[{}]领取 sim 任务[{}]奖励成功", playerId, taskId);
         return res;
     }

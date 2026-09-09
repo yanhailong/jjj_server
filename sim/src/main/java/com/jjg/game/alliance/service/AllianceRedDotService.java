@@ -79,7 +79,7 @@ public class AllianceRedDotService implements IRedDotService, SimPlayerTickListe
                 && hasFreeDonation(playerData, alliance, today);
         ApplicationSnapshot applicationSnapshot = needsTotal || submodules.contains(AllianceConst.RedDot.APPLICATION)
                 ? applicationSnapshot(alliance, playerId, now) : ApplicationSnapshot.EMPTY;
-        boolean taskReminder = (needsTotal || submodules.contains(AllianceConst.RedDot.TASK_DAILY_ENTRY))
+        boolean taskReminder = submodules.contains(AllianceConst.RedDot.TASK_DAILY_ENTRY)
                 && playerData != null && playerData.getAllianceId() > 0
                 && !redDotReadDao.viewedToday(playerId, TASK_DAILY_ENTRY_SCOPE)
                 && allianceTaskService.hasAvailableTask(playerId);
@@ -96,12 +96,11 @@ public class AllianceRedDotService implements IRedDotService, SimPlayerTickListe
                         RedDotDetails.RedDotType.COMMON));
             } else if (currentSubmodule == AllianceConst.RedDot.ENTRANCE_TOTAL) {
                 int freeDonationCount = freeDonation ? 1 : 0;
-                int taskCount = taskReminder ? 1 : 0;
-                int total = freeDonationCount + taskCount + applicationSnapshot.count();
+                // 联盟入口只累计免费捐献和有效申请，任务提醒仅在任务按钮上展示。
+                int total = freeDonationCount + applicationSnapshot.count();
                 RedDotDetails totalDetails = buildDetails(currentSubmodule, total, RedDotDetails.RedDotType.COUNT);
                 totalDetails.setExtra(JSON.toJSONString(Map.of(
                         "freeDonationCount", freeDonationCount,
-                        "taskCount", taskCount,
                         "applicationCount", applicationSnapshot.count())));
                 details.add(totalDetails);
             }
@@ -114,8 +113,7 @@ public class AllianceRedDotService implements IRedDotService, SimPlayerTickListe
                 || submodules.contains(AllianceConst.RedDot.ENTRANCE_TOTAL)) {
             updateApplicationExpireTime(playerId, applicationSnapshot.nextExpireTime());
         }
-        if (submodules.contains(AllianceConst.RedDot.TASK_DAILY_ENTRY)
-                || submodules.contains(AllianceConst.RedDot.ENTRANCE_TOTAL)) {
+        if (submodules.contains(AllianceConst.RedDot.TASK_DAILY_ENTRY)) {
             updateTaskDay(playerId, today);
         }
         return details;

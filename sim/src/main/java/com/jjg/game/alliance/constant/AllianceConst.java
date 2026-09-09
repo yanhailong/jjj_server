@@ -16,7 +16,7 @@ import com.jjg.game.common.constant.MessageConst;
 public interface AllianceConst {
 
     interface RedDot {
-        //联盟总入口数字：免费捐献 + 任务提醒 + 待处理申请数
+        //联盟总入口数字：免费捐献 + 待处理申请数（任务提醒只在任务按钮展示）
         int ENTRANCE_TOTAL = 4;
         //每日首次免费捐献
         int FREE_DONATE = 1;
