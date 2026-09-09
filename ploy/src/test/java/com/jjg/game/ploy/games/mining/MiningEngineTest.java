@@ -148,6 +148,26 @@ class MiningEngineTest {
         assertThrows(MiningException.class, () -> engine.dig(state, 10, 1, 103, 2));
     }
 
+    @Test void excavatorScrollsByReachableDepthAdvanceAndKeepsNewFrontierConnected() {
+        MiningEngine engine = new MiningEngine();
+        MiningState state = MiningFixtures.flat(1, 1001);
+        for (int row = 1; row <= 6; row++) {
+            MiningState.Cell shaft = MiningFixtures.cell(state, row, 3);
+            shaft.hp = 0;
+            shaft.reachable = true;
+        }
+
+        var result = engine.dig(state, 8, 3, 103, 1);
+
+        assertEquals(2, result.scrollRows());
+        assertEquals(3, state.topRow);
+        assertTrue(state.generatedRows >= 10);
+        assertTrue(state.cells.stream().anyMatch(c -> c.row == 10));
+        assertTrue(state.cells.stream().noneMatch(c -> c.row < 3));
+        assertTrue(engine.connected(state, 9, 3));
+        assertFalse(engine.connected(state, 10, 3));
+    }
+
     @Test void resourceRewardAndDepthDoNotAdvanceForPartialDamageOrRepeatedEmptyHit() {
         MiningEngine engine = new MiningEngine();
         MiningState state = MiningFixtures.flat(1, 1004);

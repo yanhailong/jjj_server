@@ -288,6 +288,28 @@ class MiningServiceTest {
                 && cell.row < response.info.topRow + response.info.visibleRows));
     }
 
+    @Test void excavatorReturnsTwoRowScrollAndConnectivityForFinalWindow() {
+        MiningState before = state();
+        for (int row = before.topRow; row < before.topRow + before.visibleRows - 2; row++) {
+            MiningState.Cell shaft = MiningFixtures.cell(before, row, 3);
+            shaft.hp = 0;
+            shaft.reachable = true;
+        }
+        saved = JSON.toJSONString(before);
+        ReqMiningAction request = request(MiningConstant.DIG, 103);
+        request.row = before.topRow + before.visibleRows - 1;
+        request.column = 3;
+
+        ResMiningState response = service.action(player, request);
+
+        assertEquals(Code.SUCCESS, response.code);
+        assertEquals(2, response.scrollRows);
+        assertEquals(before.topRow + 2, response.info.topRow);
+        assertTrue(response.info.cells.stream().allMatch(cell -> cell.row >= response.info.topRow
+                && cell.row < response.info.topRow + response.info.visibleRows));
+        assertTrue(response.info.cells.stream().anyMatch(cell -> cell.row == 9 && cell.column == 3 && cell.connected));
+    }
+
     @Test void insufficientToolLeavesWholeStateUnchanged() {
         wallet.put(1024034, 0L); String before = saved;
         assertEquals(Code.NOT_ENOUGH_ITEM, service.action(player, request(MiningConstant.DIG, 101)).code);

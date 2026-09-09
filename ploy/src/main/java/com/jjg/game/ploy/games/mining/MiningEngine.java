@@ -102,6 +102,7 @@ public class MiningEngine {
         int bottom = Math.addExact(state.topRow, state.visibleRows - 1);
         if (row < state.topRow || row > bottom || column < 1 || column > state.width) throw new MiningException("OUTSIDE_VISIBLE_MAP");
         MiningState.Cell target = cell(state, row, column);
+        int previousReachableDepth = deepestReachableDepth(state, state.topRow - 1);
         if (toolId == catalog.pickToolId()) {
             if (target.hp <= 0) throw new MiningException("CELL_ALREADY_OPEN");
             if (catalog.isWallCell(target.type)) throw new MiningException("WALL_REQUIRES_EXCAVATOR");
@@ -134,7 +135,9 @@ public class MiningEngine {
         refreshReachability(state);
         // 炸弹/挖机可在未连通区域制造空洞；只有空洞真正接入地表后才允许触底滚动，
         // 否则会过早删除上方连通前沿，最终令整张可视地图都不可挖。
-        boolean scroll = state.cells.stream().anyMatch(c -> c.row == bottom && c.hp == 0 && c.reachable);
+        int reachableDepth = deepestReachableDepth(state, state.topRow - 1);
+        int scrollRows = reachableDepth == bottom
+                ? Math.min(state.visibleRows - 1, Math.max(0, reachableDepth - previousReachableDepth)) : 0;
         state.total.tools.merge(tool.getItemid(), 1L, Long::sum);
         state.daily.tools.merge(tool.getItemid(), 1L, Long::sum);
         for (Map.Entry<Integer, Long> e : rewards.entrySet()) {
@@ -143,13 +146,18 @@ public class MiningEngine {
                 state.daily.resources.merge(e.getKey(), e.getValue(), Long::sum);
             }
         }
-        if (scroll) {
-            state.topRow++;
+        if (scrollRows > 0) {
+            state.topRow = Math.addExact(state.topRow, scrollRows);
             state.cells.removeIf(c -> c.row < state.topRow);
             state.secrets.keySet().removeIf(id -> state.cells.stream().noneMatch(c -> c.secretId == id));
-            ensureRows(state, Math.addExact(bottom, 1));
+            ensureRows(state, Math.addExact(bottom, scrollRows));
         }
-        return new DigResult(tool.getItemid(), rewards, rewardCells, affected, scroll ? 1 : 0);
+        return new DigResult(tool.getItemid(), rewards, rewardCells, affected, scrollRows);
+    }
+
+    private static int deepestReachableDepth(MiningState state, int defaultDepth) {
+        return state.cells.stream().filter(c -> c.hp == 0 && c.reachable)
+                .mapToInt(c -> c.row).max().orElse(defaultDepth);
     }
 
     public boolean connected(MiningState state, int row, int column) {
