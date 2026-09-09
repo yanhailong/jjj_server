@@ -250,6 +250,23 @@ class MiningServiceTest {
         assertEquals(version + 1, state().version);
     }
 
+    @Test void enteringLegacyFirstScreenRecalculatesSecondRowConnectivity() {
+        MiningState old = state();
+        old.connectivityVersion = 2;
+        MiningFixtures.cell(old, 1, 5).hp = 0;
+        MiningFixtures.cell(old, 2, 6).hp = 0;
+        MiningFixtures.cell(old, 2, 4).hp = 1;
+        MiningFixtures.cell(old, 2, 5).hp = 1;
+        saved = JSON.toJSONString(old);
+
+        ResMiningState response = service.info(player);
+
+        assertEquals(Code.SUCCESS, response.code);
+        assertEquals(3, state().connectivityVersion);
+        assertTrue(response.info.cells.stream().anyMatch(cell -> cell.row == 2 && cell.column == 4 && cell.connected));
+        assertTrue(response.info.cells.stream().anyMatch(cell -> cell.row == 2 && cell.column == 5 && cell.connected));
+    }
+
     @Test void duplicateDigAndStaleMapDoNotConsumeAgain() {
         ReqMiningAction request = request(MiningConstant.DIG, 101);
         ResMiningState first = service.action(player, request); assertEquals(Code.SUCCESS, first.code);

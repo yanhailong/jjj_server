@@ -18,8 +18,9 @@ public class MiningEngine {
         state.seed = seed;
         state.width = catalog.width();
         state.visibleRows = catalog.visibleRows();
-        state.connectivityVersion = 2;
+        state.connectivityVersion = 3;
         ensureRows(state, state.visibleRows);
+        refreshReachability(state);
         return state;
     }
 
@@ -70,7 +71,7 @@ public class MiningEngine {
      * 以当前顶行已打开区域作为历史连通入口。版本1已有的有效前沿继续保留。
      */
     boolean alignConnectivity(MiningState state) {
-        if (state.connectivityVersion >= 2) return false;
+        if (state.connectivityVersion >= 3) return false;
         if (state.cells == null) state.cells = new ArrayList<>();
         if (state.connectivityVersion < 1) {
             state.cells.forEach(cell -> cell.reachable = false);
@@ -84,7 +85,7 @@ public class MiningEngine {
                     .forEach(cell -> cell.reachable = true);
         }
         refreshReachability(state);
-        state.connectivityVersion = 2;
+        state.connectivityVersion = 3;
         return true;
     }
 
@@ -168,7 +169,7 @@ public class MiningEngine {
         int bottom = Math.addExact(state.topRow, state.visibleRows - 1);
         return state.cells.stream().anyMatch(c -> c.hp == 0 && c.reachable && c.row >= state.topRow
                 && c.row <= bottom
-                && Math.abs(c.row - row) + Math.abs(c.column - column) == 1);
+                && Math.max(Math.abs(c.row - row), Math.abs(c.column - column)) == 1);
     }
 
     private void refreshReachability(MiningState state) {
@@ -187,7 +188,11 @@ public class MiningEngine {
         Map<Long, MiningState.Cell> opened = new HashMap<>();
         state.cells.stream().filter(cell -> cell.row >= state.topRow && cell.row <= bottom && cell.hp == 0)
                 .forEach(cell -> opened.put(cellKey(cell.row, cell.column), cell));
-        int[][] directions = {{-1, 0}, {1, 0}, {0, -1}, {0, 1}};
+        int[][] directions = {
+                {-1, -1}, {-1, 0}, {-1, 1},
+                {0, -1},           {0, 1},
+                {1, -1},  {1, 0},  {1, 1}
+        };
         while (!queue.isEmpty()) {
             MiningState.Cell current = queue.removeFirst();
             for (int[] direction : directions) {
