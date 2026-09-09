@@ -2,6 +2,7 @@ package com.jjg.game.ploy.games.mining;
 
 import com.alibaba.fastjson.JSON;
 import com.jjg.game.core.constant.Code;
+import com.jjg.game.core.dao.AccountDao;
 import com.jjg.game.core.data.*;
 import com.jjg.game.core.pb.RechargeType;
 import com.jjg.game.core.pb.ReqGenerateOrder;
@@ -25,6 +26,7 @@ import static org.mockito.Mockito.*;
 class MiningServiceTest {
     private MiningService service;
     private PlayerPackService packs;
+    private AccountDao accounts;
     private MiningRankService ranks;
     private MiningConfig config;
     private final Player player = new Player();
@@ -35,7 +37,7 @@ class MiningServiceTest {
     @BeforeEach void setup() {
         player.setId(10001L); saved = null; wallet = new HashMap<>();
         wallet.put(1024034, 100L); wallet.put(1024035, 20L); wallet.put(1024036, 20L); wallet.put(1024037, 1000L);
-        config = new MiningConfig(); packs = mock(PlayerPackService.class);
+        config = new MiningConfig(); packs = mock(PlayerPackService.class); accounts = mock(AccountDao.class);
         ranks = mock(MiningRankService.class); RedissonClient redis = mock(RedissonClient.class); RLock lock = mock(RLock.class);
         when(lock.tryLock()).thenReturn(true); when(redis.getLock(anyString())).thenReturn(lock);
         when(ranks.seasonReadLock(anyString())).thenReturn(lock);
@@ -50,7 +52,7 @@ class MiningServiceTest {
                     costs.forEach((id, n) -> wallet.merge(id, -n, Long::sum)); rewards.forEach((id, n) -> wallet.merge(id, n, Long::sum));
                     saved = inv.getArgument(6); return new CommonResult<ItemOperationResult>(Code.SUCCESS);
                 });
-        service = new MiningService(config, packs, redis, ranks);
+        service = new MiningService(config, packs, accounts, redis, ranks);
         ResMiningState initial = service.info(player);
         var recoveryCfg = GameDataManager.getGlobalConfigCfg(MiningConstant.PICK_RECOVERY_INTERVAL_GLOBAL_ID);
         assertEquals(Code.SUCCESS, initial.code, initial.reason + ", recoveryCfg=" + recoveryCfg.getValue());
@@ -118,6 +120,49 @@ class MiningServiceTest {
         assertTrue(response.info.nextPickRecoveryTime >= before + TimeUnit.MINUTES.toMillis(10));
         assertTrue(response.info.nextPickRecoveryTime <= System.currentTimeMillis() + TimeUnit.MINUTES.toMillis(10));
         assertEquals(response.info.nextPickRecoveryTime, state().nextPickRecoveryTime);
+    }
+
+    @Test void missingRecoveryCursorSettlesTimeSinceLastOffline() {
+        int pickItemId = new MiningEngine().pickItemId();
+        wallet.put(pickItemId, 0L);
+        MiningState current = state();
+        current.nextPickRecoveryTime = 0;
+        saved = JSON.toJSONString(current);
+        long interval = TimeUnit.MINUTES.toMillis(10);
+        Account account = new Account();
+        account.setPlayerId(player.getId());
+        account.setLastOfflineTime(System.currentTimeMillis() - interval * 3 - 1000);
+        when(accounts.queryAccountByPlayerId(player.getId())).thenReturn(account);
+        clearInvocations(accounts);
+
+        ResMiningState response = service.info(player);
+
+        assertEquals(Code.SUCCESS, response.code);
+        assertEquals(3, wallet.get(pickItemId));
+        assertEquals(3, response.rewards.stream().filter(item -> item.itemId == pickItemId)
+                .mapToLong(item -> item.count).sum());
+        assertTrue(response.info.nextPickRecoveryTime > System.currentTimeMillis());
+        ResMiningState repeated = service.info(player);
+        assertEquals(3, wallet.get(pickItemId));
+        assertTrue(repeated.rewards == null || repeated.rewards.isEmpty());
+        verify(accounts).queryAccountByPlayerId(player.getId());
+    }
+
+    @Test void missingRecoveryCursorUsesCurrentTimeWithoutOfflineRecord() {
+        int pickItemId = new MiningEngine().pickItemId();
+        wallet.put(pickItemId, 0L);
+        MiningState current = state();
+        current.nextPickRecoveryTime = 0;
+        saved = JSON.toJSONString(current);
+        long before = System.currentTimeMillis();
+        clearInvocations(accounts);
+
+        ResMiningState response = service.info(player);
+
+        assertEquals(Code.SUCCESS, response.code);
+        assertEquals(0, wallet.get(pickItemId));
+        assertTrue(response.info.nextPickRecoveryTime >= before + TimeUnit.MINUTES.toMillis(10));
+        verify(accounts).queryAccountByPlayerId(player.getId());
     }
 
     @Test void timedPickRecoveryUsesGlobalIntervalAndSettlesOfflineTimeOnce() {

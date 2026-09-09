@@ -7,6 +7,7 @@ import com.jjg.game.core.base.condition.numeric.*;
 import com.jjg.game.core.constant.AddType;
 import com.jjg.game.core.constant.Code;
 import com.jjg.game.core.constant.GameConstant;
+import com.jjg.game.core.dao.AccountDao;
 import com.jjg.game.core.data.*;
 import com.jjg.game.core.listener.OrderGenerate;
 import com.jjg.game.core.pb.RechargeType;
@@ -38,12 +39,13 @@ public class MiningService implements OrderGenerate, StandalonePloyGame {
     private static final SecureRandom SEEDS = new SecureRandom();
     private final MiningConfig config;
     private final PlayerPackService packs;
+    private final AccountDao accounts;
     private final RedissonClient redis;
     private final MiningRankService ranks;
 
-    public MiningService(MiningConfig config, PlayerPackService packs, RedissonClient redis,
+    public MiningService(MiningConfig config, PlayerPackService packs, AccountDao accounts, RedissonClient redis,
                          MiningRankService ranks) {
-        this.config = config; this.packs = packs; this.redis = redis; this.ranks = ranks;
+        this.config = config; this.packs = packs; this.accounts = accounts; this.redis = redis; this.ranks = ranks;
     }
 
     private record Snapshot(String json, MiningState state) { }
@@ -310,12 +312,17 @@ public class MiningService implements OrderGenerate, StandalonePloyGame {
                     AddType.MINING_PICK_RECOVERY), Map.of());
         }
         if (state.nextPickRecoveryTime <= 0) {
-            state.nextPickRecoveryTime = Math.addExact(now, rule.intervalMillis);
-            Snapshot committed = commit(player, before.json, state, Map.of(), Map.of(),
-                    AddType.MINING_PICK_RECOVERY);
-            log.info("mining_pick_recovery_started playerId={} balance={} nextTime={} version={}",
-                    player.getId(), balance, state.nextPickRecoveryTime, state.version);
-            return new Recovery(committed, Map.of());
+            long recoveryStart = recoveryStartForMissingCursor(player.getId(), now);
+            state.nextPickRecoveryTime = Math.addExact(recoveryStart, rule.intervalMillis);
+            if (now < state.nextPickRecoveryTime) {
+                Snapshot committed = commit(player, before.json, state, Map.of(), Map.of(),
+                        AddType.MINING_PICK_RECOVERY);
+                log.info("mining_pick_recovery_started playerId={} balance={} startTime={} nextTime={} version={}",
+                        player.getId(), balance, recoveryStart, state.nextPickRecoveryTime, state.version);
+                return new Recovery(committed, Map.of());
+            }
+            log.info("mining_pick_recovery_migrated playerId={} balance={} offlineTime={} firstDueTime={}",
+                    player.getId(), balance, recoveryStart, state.nextPickRecoveryTime);
         }
         if (now < state.nextPickRecoveryTime) return new Recovery(before, Map.of());
         long elapsed = Math.subtractExact(now, state.nextPickRecoveryTime);
@@ -329,6 +336,19 @@ public class MiningService implements OrderGenerate, StandalonePloyGame {
         log.info("mining_pick_recovery playerId={} count={} nextTime={} version={}",
                 player.getId(), count, state.nextPickRecoveryTime, state.version);
         return new Recovery(committed, rewards);
+    }
+
+    /** 旧存档没有恢复游标时，以最近离线时间作为一次性补算起点；无有效离线时间则从当前时刻开始。 */
+    private long recoveryStartForMissingCursor(long playerId, long now) {
+        try {
+            Account account = accounts.queryAccountByPlayerId(playerId);
+            if (account == null) return now;
+            long offlineTime = account.getLastOfflineTime();
+            return offlineTime > 0 && offlineTime < now ? offlineTime : now;
+        } catch (Exception e) {
+            log.warn("读取挖矿恢复离线时间失败，改从当前时间启动 playerId={}", playerId, e);
+            return now;
+        }
     }
 
     /** 其他来源可超过恢复上限；只有低于上限时才启动或保留自动恢复计时。 */
