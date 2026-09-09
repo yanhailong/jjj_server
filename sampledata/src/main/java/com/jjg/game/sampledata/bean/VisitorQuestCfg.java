@@ -39,6 +39,8 @@ public class VisitorQuestCfg extends BaseCfgBean {
   protected int Resource;
   /** 服务能力 */
   protected int ServiceCapacity;
+  /** 特殊交互建筑与概率 */
+  protected List<Integer> SpecialInteraction;
   /** 指定区域 */
   protected List<Integer> TargetArea;
   /** 知名度要求值 */
@@ -94,6 +96,11 @@ public class VisitorQuestCfg extends BaseCfgBean {
   /** 返回服务能力 */
   public int getServiceCapacity() {
     return ServiceCapacity;
+  }
+
+  /** 返回特殊交互建筑与概率 */
+  public List<Integer> getSpecialInteraction() {
+    return SpecialInteraction;
   }
 
   /** 返回指定区域 */

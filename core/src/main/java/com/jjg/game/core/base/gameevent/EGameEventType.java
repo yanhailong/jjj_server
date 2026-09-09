@@ -27,6 +27,8 @@ public enum EGameEventType {
     CURRENCY_CHANGE(""),
     //每日签到奖励领取成功
     DAILY_SIGN_IN(""),
+    //广告观看成功
+    AD_WATCH(""),
     ;
 
     // 配置表中的类型

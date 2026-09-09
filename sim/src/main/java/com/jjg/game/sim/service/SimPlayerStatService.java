@@ -40,6 +40,10 @@ public class SimPlayerStatService {
         return condition != null && PlayerStatService.supports(condition.spec().id());
     }
 
+    public boolean readsCurrentState(PreparedCondition condition) {
+        return supports(condition) && !PlayerStatService.recorded(condition.spec().id());
+    }
+
     public long progress(SimPlayerContext ctx, PreparedCondition condition) {
         int conditionId = condition.spec().id();
         if (PlayerStatService.recorded(conditionId)) {

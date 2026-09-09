@@ -14,6 +14,9 @@ import com.jjg.game.activity.common.message.bean.BaseActivityDetailInfo;
 import com.jjg.game.activity.constant.ActivityConstant;
 import com.jjg.game.common.pb.AbstractResponse;
 import com.jjg.game.common.utils.TimeHelper;
+import com.jjg.game.core.base.gameevent.EGameEventType;
+import com.jjg.game.core.base.gameevent.GameEventManager;
+import com.jjg.game.core.base.gameevent.PlayerEvent;
 import com.jjg.game.core.constant.AddType;
 import com.jjg.game.core.constant.Code;
 import com.jjg.game.core.data.CommonResult;
@@ -40,6 +43,11 @@ import java.util.Map;
 @Component
 public class AdsRewardController extends BaseActivityController {
     private static final long DATA_EXPIRE_SECONDS = TimeHelper.DAY_SECOND * 2L;
+    private final GameEventManager gameEventManager;
+
+    public AdsRewardController(GameEventManager gameEventManager) {
+        this.gameEventManager = gameEventManager;
+    }
 
     @Override
     public AbstractResponse joinActivity(Player player, ActivityData activityData, int detailId, int times) {
@@ -67,6 +75,7 @@ public class AdsRewardController extends BaseActivityController {
         try {
             watchCount = countDao.incrementWithoutExpireRefresh(
                     getCountFeature(activityData, day), String.valueOf(playerId), BigDecimal.ONE, DATA_EXPIRE_SECONDS).intValue();
+            gameEventManager.syncTriggerEvent(new PlayerEvent(player, EGameEventType.AD_WATCH, 1L, null));
             res.activityInfo = buildActivityInfo(playerId, activityData, cfgMap, day, watchCount);
             log.info("视频福利观看计数成功 playerId:{} activityId:{} watchCount:{} dailyLimit:{}",
                     playerId, activityData.getId(), watchCount, dailyLimit);

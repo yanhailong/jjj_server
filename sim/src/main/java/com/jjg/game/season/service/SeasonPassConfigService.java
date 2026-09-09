@@ -1,10 +1,13 @@
 package com.jjg.game.season.service;
 
+import com.jjg.game.core.base.condition.numeric.ConditionEvent;
 import com.jjg.game.core.base.condition.numeric.ConditionRuleRegistry;
 import com.jjg.game.core.base.condition.numeric.ConditionSpec;
+import com.jjg.game.core.base.condition.numeric.ConditionUpdate;
 import com.jjg.game.core.base.condition.numeric.PreparedCondition;
 import com.jjg.game.core.service.PlayerStatService;
 import com.jjg.game.sampledata.GameDataManager;
+import com.jjg.game.sampledata.bean.BaseCfgBean;
 import com.jjg.game.sampledata.bean.PassDetailsCfg;
 import com.jjg.game.sampledata.bean.PassListCfg;
 import com.jjg.game.sampledata.bean.SeasonStartCfg;
@@ -71,8 +74,15 @@ public class SeasonPassConfigService {
         return passes(seasonId).stream().filter(pass -> pass.id() == passId).findFirst().orElse(null);
     }
 
-    public PassDefinition pass(int passId) {
-        return index().passById.get(passId);
+    /** 只匹配配置中的事实条件，不依赖玩家赛季或通行证进度；一次事件至多命中一次。 */
+    public boolean matchesConditionEvent(ConditionEvent event) {
+        for (PreparedCondition condition : index().eventConditions) {
+            ConditionUpdate update = condition.evaluate(event);
+            if (update.matched() && update.value() > 0) {
+                return true;
+            }
+        }
+        return false;
     }
 
     public ShopRechargeListCfg shop(PassDefinition pass, int track) {
@@ -88,10 +98,10 @@ public class SeasonPassConfigService {
     }
 
     private ConfigIndex index() {
-        List<PassListCfg> passSource = passConfigs();
-        List<PassDetailsCfg> detailSource = detailConfigs();
-        List<SeasonStartCfg> seasonSource = seasonConfigs();
-        List<ShopRechargeListCfg> shopSource = shopConfigs();
+        Object passSource = source(PassListCfg.class, passes);
+        Object detailSource = source(PassDetailsCfg.class, details);
+        Object seasonSource = source(SeasonStartCfg.class, seasons);
+        Object shopSource = source(ShopRechargeListCfg.class, shops);
         ConfigIndex cached = index;
         if (cached == null || cached.passSource != passSource || cached.detailSource != detailSource
                 || cached.seasonSource != seasonSource || cached.shopSource != shopSource) {
@@ -101,33 +111,53 @@ public class SeasonPassConfigService {
         return cached;
     }
 
+    private Object source(Class<? extends BaseCfgBean> type, List<?> fixedConfigs) {
+        // getCfgBeanList 每次返回新列表；热加载替换的是容器，不能用列表引用判断版本。
+        return fixedConfigs == null ? GameDataManager.getInstance().getCfgContainer(type) : fixedConfigs;
+    }
+
     private final class ConfigIndex {
-        final List<PassListCfg> passSource;
-        final List<PassDetailsCfg> detailSource;
-        final List<SeasonStartCfg> seasonSource;
-        final List<ShopRechargeListCfg> shopSource;
+        final Object passSource;
+        final Object detailSource;
+        final Object seasonSource;
+        final Object shopSource;
         final Map<Integer, PassDefinition> passById = new HashMap<>();
         final Map<Integer, SeasonStartCfg> seasonById = new HashMap<>();
         final Map<Integer, ShopRechargeListCfg> shopById = new HashMap<>();
+        final List<PreparedCondition> eventConditions;
 
-        ConfigIndex(List<PassListCfg> passSource, List<PassDetailsCfg> detailSource,
-                    List<SeasonStartCfg> seasonSource, List<ShopRechargeListCfg> shopSource) {
+        ConfigIndex(Object passSource, Object detailSource, Object seasonSource, Object shopSource) {
             this.passSource = passSource;
             this.detailSource = detailSource;
             this.seasonSource = seasonSource;
             this.shopSource = shopSource;
-            seasonSource.forEach(cfg -> seasonById.putIfAbsent(cfg.getId(), cfg));
-            shopSource.forEach(cfg -> shopById.putIfAbsent(cfg.getId(), cfg));
+            seasonConfigs().forEach(cfg -> seasonById.putIfAbsent(cfg.getId(), cfg));
+            shopConfigs().forEach(cfg -> shopById.putIfAbsent(cfg.getId(), cfg));
 
             Map<Integer, List<PassDetailsCfg>> detailsByPass = new HashMap<>();
-            detailSource.forEach(cfg -> detailsByPass.computeIfAbsent(cfg.getPassID(), ignored -> new ArrayList<>())
-                    .add(cfg));
-            for (PassListCfg cfg : passSource) {
+            Map<Integer, PreparedCondition> conditionsByDetail = new HashMap<>();
+            Map<String, PreparedCondition> uniqueConditions = new LinkedHashMap<>();
+            for (PassDetailsCfg detail : detailConfigs()) {
+                detailsByPass.computeIfAbsent(detail.getPassID(), ignored -> new ArrayList<>()).add(detail);
+                try {
+                    PreparedCondition condition = conditionRules.prepare(ConditionSpec.from(detail.getCompletionCondition()));
+                    conditionsByDetail.put(detail.getId(), condition);
+                    // 派生统计本身不能再次产生该统计，避免配置自引用。
+                    if (condition.spec().id() != PlayerStatService.DAILY_PASS_CONDITION) {
+                        uniqueConditions.putIfAbsent(progressKey(0, condition), condition);
+                    }
+                } catch (RuntimeException e) {
+                    log.error("通行证条件配置无效 detailId={}", detail.getId(), e);
+                }
+            }
+            eventConditions = List.copyOf(uniqueConditions.values());
+            for (PassListCfg cfg : passConfigs()) {
                 if (!cfg.getIsOpen() || passById.containsKey(cfg.getId())) {
                     continue;
                 }
                 try {
-                    PassDefinition pass = buildPass(cfg, detailsByPass.getOrDefault(cfg.getId(), List.of()));
+                    PassDefinition pass = buildPass(cfg, detailsByPass.getOrDefault(cfg.getId(), List.of()),
+                            conditionsByDetail);
                     passById.put(cfg.getId(), pass);
                 } catch (RuntimeException e) {
                     log.error("通行证配置无效，已停用 passId={}", cfg.getId(), e);
@@ -136,7 +166,8 @@ public class SeasonPassConfigService {
         }
     }
 
-    private PassDefinition buildPass(PassListCfg pass, List<PassDetailsCfg> source) {
+    private PassDefinition buildPass(PassListCfg pass, List<PassDetailsCfg> source,
+                                     Map<Integer, PreparedCondition> conditionsByDetail) {
         if (source.isEmpty()) {
             throw new IllegalArgumentException("PassDetails is empty");
         }
@@ -152,10 +183,9 @@ public class SeasonPassConfigService {
                 throw new IllegalArgumentException("duplicate or unordered level " + detail.getLevel());
             }
             previousLevel = detail.getLevel();
-            PreparedCondition condition = conditionRules.prepare(ConditionSpec.from(detail.getCompletionCondition()));
-            if (!pass.getFollowsSeason() && !PlayerStatService.supports(condition.spec().id())) {
-                throw new IllegalArgumentException("non-season pass requires a player stat condition, detailId="
-                        + detail.getId());
+            PreparedCondition condition = conditionsByDetail.get(detail.getId());
+            if (condition == null) {
+                throw new IllegalArgumentException("invalid condition for detail " + detail.getId());
             }
             String progressKey = progressKey(pass.getId(), condition);
             levels.add(new LevelDefinition(detail, condition, progressKey));
@@ -201,10 +231,6 @@ public class SeasonPassConfigService {
                                  List<ProgressDefinition> progress) {
         public int id() {
             return config.getId();
-        }
-
-        public boolean followsSeason() {
-            return config.getFollowsSeason();
         }
     }
 

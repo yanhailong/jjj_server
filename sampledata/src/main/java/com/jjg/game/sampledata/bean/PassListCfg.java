@@ -19,8 +19,6 @@ public class PassListCfg extends BaseCfgBean {
   /** 配置表工作薄名 */
   public static final String SHEET_NAME = "PassList";
 
-  /** 是否跟随赛季进行 */
-  protected boolean FollowsSeason;
   /** 通行证名称 */
   protected int PassName;
   /** 高级付费金额 */
@@ -29,11 +27,6 @@ public class PassListCfg extends BaseCfgBean {
   protected int ShopRechargeListID;
   /** 是否开启 */
   protected boolean isOpen;
-
-  /** 返回是否跟随赛季进行 */
-  public boolean getFollowsSeason() {
-    return FollowsSeason;
-  }
 
   /** 返回通行证名称 */
   public int getPassName() {

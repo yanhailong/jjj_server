@@ -54,9 +54,7 @@ public class SeasonPassOrderService implements OrderGenerate {
         if (pass == null || !passService.hasTrackRewards(pass, target.track())) {
             return result;
         }
-        int purchased = pass.followsSeason()
-                ? data.getPassPurchasedTracks().getOrDefault(pass.id(), 0)
-                : ctx.getSimBaseData().getNonSeasonPassPurchasedTracks().getOrDefault(pass.id(), 0);
+        int purchased = data.getPassPurchasedTracks().getOrDefault(pass.id(), 0);
         if ((purchased & SeasonPassService.trackBit(target.track())) != 0) {
             return result;
         }
