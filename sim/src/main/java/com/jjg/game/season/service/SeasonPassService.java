@@ -17,6 +17,7 @@ import com.jjg.game.sampledata.bean.PassDetailsCfg;
 import com.jjg.game.sampledata.bean.ShopRechargeListCfg;
 import com.jjg.game.season.constant.SeasonConstant;
 import com.jjg.game.season.data.SeasonPlayerData;
+import com.jjg.game.season.pb.res.NotifySeasonPassLevelUp;
 import com.jjg.game.season.pb.res.ResSeasonPassClaim;
 import com.jjg.game.season.pb.res.ResSeasonPassList;
 import com.jjg.game.season.pb.struct.SeasonPassInfo;
@@ -26,6 +27,7 @@ import com.jjg.game.sim.data.SimPlayerContext;
 import com.jjg.game.sim.listener.SimConditionEventListener;
 import com.jjg.game.sim.service.SimAutoSaveService;
 import com.jjg.game.sim.service.SimPlayerStatService;
+import com.jjg.game.social.service.SocialSender;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Service;
@@ -48,16 +50,19 @@ public class SeasonPassService implements SimConditionEventListener {
     private final MailService mailService;
     private final SimPlayerStatService playerStatService;
     private final PlayerStatService lifetimeStatService;
+    private final SocialSender socialSender;
 
     public SeasonPassService(SeasonPassConfigService passConfig, PlayerPackService playerPackService,
                              SimAutoSaveService autoSaveService, MailService mailService,
-                             SimPlayerStatService playerStatService, PlayerStatService lifetimeStatService) {
+                             SimPlayerStatService playerStatService, PlayerStatService lifetimeStatService,
+                             SocialSender socialSender) {
         this.passConfig = passConfig;
         this.playerPackService = playerPackService;
         this.autoSaveService = autoSaveService;
         this.mailService = mailService;
         this.playerStatService = playerStatService;
         this.lifetimeStatService = lifetimeStatService;
+        this.socialSender = socialSender;
     }
 
     @Override
@@ -94,6 +99,7 @@ public class SeasonPassService implements SimConditionEventListener {
                 if (next != current) {
                     progress.put(channel.key(), next);
                     changed = true;
+                    notifyCompletedLevels(ctx, pass, channel.key(), current, next);
                 }
             }
         }
@@ -101,6 +107,26 @@ public class SeasonPassService implements SimConditionEventListener {
             ctx.setLastSaveTime(0);
         }
         return triggered;
+    }
+
+    private void notifyCompletedLevels(SimPlayerContext ctx,
+                                       SeasonPassConfigService.PassDefinition pass,
+                                       String progressKey, long previous, long current) {
+        for (SeasonPassConfigService.LevelDefinition level : pass.levels()) {
+            long target = level.condition().target();
+            if (!progressKey.equals(level.progressKey()) || previous >= target || current < target) {
+                continue;
+            }
+            NotifySeasonPassLevelUp notify = new NotifySeasonPassLevelUp(Code.SUCCESS);
+            notify.passId = pass.id();
+            notify.level = level.config().getLevel();
+            try {
+                socialSender.sendTo(ctx.playerId(), notify);
+            } catch (RuntimeException e) {
+                log.warn("通行证等级达成通知失败 playerId={},passId={},level={}",
+                        ctx.playerId(), notify.passId, notify.level, e);
+            }
+        }
     }
 
     public ResSeasonPassList list(SimPlayerContext ctx) {

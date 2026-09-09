@@ -824,8 +824,10 @@ public class CashCowController extends BaseActivityController implements TimerLi
                                             int addValue = RandomUtil.randomInt(list.get(2), list.get(3));
                                             // 将 addValue 增加到所有该类型活动的每个非累计 detail 的奖池中
                                             Map<Long, ActivityData> activityDataMap = activityManager.getActivityTypeData().get(ActivityType.CASH_COW);
-                                            for (ActivityData activityData : activityDataMap.values()) {
-                                                cashCowDao.addActivityPool(activityData.getId(), addValue);
+                                            if (activityDataMap != null) {
+                                                for (ActivityData activityData : activityDataMap.values()) {
+                                                    cashCowDao.addActivityPool(activityData.getId(), addValue);
+                                                }
                                             }
                                         }
                                     }

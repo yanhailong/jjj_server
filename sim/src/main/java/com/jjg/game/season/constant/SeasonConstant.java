@@ -69,6 +69,8 @@ public interface SeasonConstant {
 
         int REQ_SEASON_PASS_CLAIM = BASE_MSG_PREFIX | 0x26;
         int RES_SEASON_PASS_CLAIM = BASE_MSG_PREFIX | 0x27;
+
+        int NOTIFY_SEASON_PASS_LEVEL_UP = BASE_MSG_PREFIX | 0x28;
     }
 
     interface PassTrack {
