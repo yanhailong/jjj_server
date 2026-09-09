@@ -184,6 +184,32 @@ class MiningEngineTest {
         assertTrue(engine.connected(state, 9, 3));
     }
 
+    @Test void preGeneratedOpenRowsBelowViewportDoNotSuppressTwoRowScroll() {
+        MiningEngine engine = new MiningEngine();
+        MiningState state = MiningFixtures.flat(1, 1001);
+        state.topRow = 3;
+        state.generatedRows = 16;
+        state.cells.clear();
+        for (int row = 3; row <= 16; row++) {
+            for (int column = 1; column <= state.width; column++) {
+                state.cells.add(new MiningState.Cell(row, column, 1001, 1));
+            }
+        }
+        for (int row = 3; row <= 8; row++) {
+            MiningState.Cell shaft = MiningFixtures.cell(state, row, 3);
+            shaft.hp = 0;
+            shaft.reachable = true;
+        }
+        for (int row = 10; row <= 16; row++) MiningFixtures.cell(state, row, 3).hp = 0;
+
+        var result = engine.dig(state, 9, 3, 101, 1);
+
+        assertEquals(2, result.scrollRows());
+        assertEquals(5, state.topRow);
+        assertTrue(MiningFixtures.cell(state, 12, 3).reachable);
+        assertFalse(MiningFixtures.cell(state, 13, 3).reachable);
+    }
+
     @Test void resourceRewardAndDepthDoNotAdvanceForPartialDamageOrRepeatedEmptyHit() {
         MiningEngine engine = new MiningEngine();
         MiningState state = MiningFixtures.flat(1, 1004);
