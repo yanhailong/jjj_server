@@ -17,6 +17,8 @@ public class BuildingData {
     private int adClearCount;
     //进度条 BuildingUpgradeTable.CostPerLevel 的下标，默认为0
     private int progress;
+    //接待次数
+    private int receptCount;
 
     public int getId() {
         return id;
@@ -58,6 +60,14 @@ public class BuildingData {
         this.progress = progress;
     }
 
+    public int getReceptCount() {
+        return receptCount;
+    }
+
+    public void setReceptCount(int receptCount) {
+        this.receptCount = receptCount;
+    }
+
     /**
      * 是否处于升级 CD 中 (尚未到时)
      */
@@ -85,5 +95,9 @@ public class BuildingData {
         long reduceMs = Math.min(seconds * 1000L, remainMs);
         cdEndTime -= reduceMs;
         return reduceMs / 1000L;
+    }
+
+    public void incrementReceptCount(){
+        this.receptCount++;
     }
 }

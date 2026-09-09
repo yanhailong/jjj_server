@@ -15,6 +15,7 @@ import com.jjg.game.sampledata.GameDataManager;
 import com.jjg.game.sampledata.bean.*;
 import com.jjg.game.season.service.SeasonRankingService;
 import com.jjg.game.sim.constant.BuildingOutputType;
+import com.jjg.game.sim.constant.ServerBuildingType;
 import com.jjg.game.sim.constant.SimConstant;
 import com.jjg.game.sim.dao.SimCasinoDao;
 import com.jjg.game.sim.data.*;
@@ -168,7 +169,7 @@ public class SimCasinoService implements SimTaskStateReporter {
 
             SimCasinoData casino = ctx.getCurrentCasino();
             res.currentCasinoId = casino.getCasinoId();
-            res.buildings = SimPbConverter.toBuildingInfos(ctx,configCacheService);
+            res.buildings = SimPbConverter.toBuildingInfos(ctx, configCacheService);
             res.managerEmployInfos = SimPbConverter.toManagerInfos(casino);
             res.awareness = casino.getAwareness();
 
@@ -591,10 +592,14 @@ public class SimCasinoService implements SimTaskStateReporter {
             return 0;
         }
 
-        //获取运营部的建筑
-        BuildingData buildingData = casinoData.getBuildingData().get(SimConstant.Building.ID_OPERATIONS_DEPART);
-        if (buildingData == null) {
-            return 0;
+        BuildingData buildingData = null;
+        int operateBuildId = configCacheService.getCasinoManageBuildId(ctx.getCurrentCasino().getCasinoId(), ServerBuildingType.OPERATIONS);
+        if (operateBuildId > 0) {
+            //获取运营部的建筑
+            buildingData = casinoData.getBuildingData().get(operateBuildId);
+            if (buildingData == null) {
+                return 0;
+            }
         }
 
         //获取配置

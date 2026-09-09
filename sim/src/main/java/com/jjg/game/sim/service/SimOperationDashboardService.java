@@ -323,6 +323,14 @@ public class SimOperationDashboardService {
         return total;
     }
 
+    public long customerAcquisitionPerMinute(SimPlayerContext ctx) {
+        SimCasinoData casino = ctx.getCurrentCasino();
+        long exposure = buildingService.computeDeptValue(ctx, casino, BuildingOutputType.EXPOSURE);
+        CasinoStatsSheetCfg casinoCfg = configCache.getCasinoStatsSheetCfg(
+                casino.getCasinoId(), casino.getCasinoLevel());
+        return customerAcquisitionPerMinute(exposure, casinoCfg);
+    }
+
     private long customerAcquisitionPerMinute(long exposure, CasinoStatsSheetCfg cfg) {
         if (exposure <= 0 || cfg == null || cfg.getExposureRequirements() <= 0
                 || cfg.getBaseVisitInterval() <= 0 || cfg.getVisitorSpawnCount() <= 0) {

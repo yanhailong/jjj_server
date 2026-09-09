@@ -18,6 +18,9 @@ import com.jjg.game.core.listener.ConfigExcelChangeListener;
 import com.jjg.game.core.utils.ItemUtils;
 import com.jjg.game.sampledata.GameDataManager;
 import com.jjg.game.sampledata.bean.*;
+import com.jjg.game.sim.constant.BuildingOutputType;
+import com.jjg.game.sim.constant.BuildingType;
+import com.jjg.game.sim.constant.ServerBuildingType;
 import com.jjg.game.sim.constant.SimConstant;
 import com.jjg.game.sim.data.BuildingUnlockEquipmentData;
 import com.jjg.game.sim.pb.struct.BuildLevelMaxInfo;
@@ -97,6 +100,8 @@ public class SimConfigCacheService implements ConfigExcelChangeListener {
     private Map<Integer, BuildingAreaTableCfg> gameBuildingAreaTableCfg;
     //RegionID -> casinoLevel -> List.BuildingAreaTableCfg  ，每个场景等级解锁的建筑
     private Map<Integer, Map<Integer, List<BuildingAreaTableCfg>>> casinoLevelBuildingAreaTableCfgs;
+    //RegionID -> ServerBuildingType -> buildingId  ，每个场景的特殊建筑id
+    private Map<Integer, Map<ServerBuildingType, Integer>> casinoManageBuildIdMap;
 
     //技能配置
     private Map<Integer, List<PropCfg>> propCfgMap;
@@ -258,7 +263,7 @@ public class SimConfigCacheService implements ConfigExcelChangeListener {
     /**
      * 加载VisitorQuestCfg。
      */
-    private void loadVisitorQuestConfig() {
+    public void loadVisitorQuestConfig() {
         Map<Integer, List<VisitorQuestCfg>> tmpVisitorQuestCfgMap = new HashMap<>();
         Map<Integer, VisitorQuestCfg> tmpVisitorQuestItemCfgMap = new HashMap<>();
         Map<Integer, List<VisitorQuestCfg>> tmpRegionVistorCfgMap = new HashMap<>();
@@ -446,6 +451,8 @@ public class SimConfigCacheService implements ConfigExcelChangeListener {
     private void loadBuildingAreaTableConfig() {
         Map<Integer, BuildingAreaTableCfg> tmpGameBuildingAreaTableCfg = new HashMap<>();
         Map<Integer, Map<Integer, List<BuildingAreaTableCfg>>> tmpCasinoLevelBuildingAreaTableCfgs = new HashMap<>();
+        Map<Integer, Map<ServerBuildingType, Integer>> tmpCasinoManageBuildIdMap = new HashMap<>();
+
         for (BuildingAreaTableCfg cfg : GameDataManager.getBuildingAreaTableCfgList()) {
             if (cfg.getUnlockGameId() > 0) {
                 tmpGameBuildingAreaTableCfg.put(cfg.getUnlockGameId(), cfg);
@@ -456,9 +463,24 @@ public class SimConfigCacheService implements ConfigExcelChangeListener {
                 List<BuildingAreaTableCfg> tmpList = levelMap.computeIfAbsent(cfg.getCasinoLevel(), k -> new ArrayList<>());
                 tmpList.add(cfg);
             }
+
+            Map<ServerBuildingType, Integer> tmpReginMap = tmpCasinoManageBuildIdMap.computeIfAbsent(cfg.getRegionID(), k -> new HashMap<>());
+            if (cfg.getType() == BuildingType.REST.code()) {
+                tmpReginMap.put(ServerBuildingType.REST, cfg.getId());
+            } else if (cfg.getType() == BuildingType.MANAGE.code()) {
+                if (cfg.getTypeValue().contains(BuildingOutputType.SERVICE.getCode())) {
+                    tmpReginMap.put(ServerBuildingType.WELCOME, cfg.getId());
+                } else if (cfg.getTypeValue().contains(BuildingOutputType.EXPOSURE.getCode())) {
+                    tmpReginMap.put(ServerBuildingType.OPERATIONS, cfg.getId());
+                } else if (cfg.getTypeValue().contains(BuildingOutputType.AWARENESS.getCode())) {
+                    tmpReginMap.put(ServerBuildingType.MARKETING, cfg.getId());
+                }
+            }
+
         }
         this.gameBuildingAreaTableCfg = tmpGameBuildingAreaTableCfg;
         this.casinoLevelBuildingAreaTableCfgs = tmpCasinoLevelBuildingAreaTableCfgs;
+        this.casinoManageBuildIdMap = tmpCasinoManageBuildIdMap;
     }
 
     /**
@@ -940,6 +962,10 @@ public class SimConfigCacheService implements ConfigExcelChangeListener {
         return this.visitorQuestCfgMap.get(quality);
     }
 
+    public Map<Integer, List<VisitorQuestCfg>> getVisitorQuestCfgMap() {
+        return visitorQuestCfgMap;
+    }
+
     public VisitorStarCfg getVisitorStarCfgByGuest(int guestId, int star) {
         if (this.visitorStarCfgMap == null || this.visitorStarCfgMap.isEmpty()) {
             return null;
@@ -1212,5 +1238,18 @@ public class SimConfigCacheService implements ConfigExcelChangeListener {
         }
 
         return this.dropItemCfgMap.get(gameType);
+    }
+
+    public int getCasinoManageBuildId(int regionId, ServerBuildingType serverBuildingType) {
+        if (this.casinoManageBuildIdMap == null || this.casinoManageBuildIdMap.isEmpty()) {
+            return 0;
+        }
+
+        Map<ServerBuildingType, Integer> tmpMap = this.casinoManageBuildIdMap.get(regionId);
+        if (tmpMap == null || tmpMap.isEmpty()) {
+            return 0;
+        }
+        Integer id = tmpMap.get(serverBuildingType);
+        return id == null ? 0 : id;
     }
 }

@@ -163,7 +163,7 @@ public class SimBuildingService implements SimPlayerTickListener, SimTaskStateRe
 
             BuildingUpgradeTableCfg buildingUpgradeCfg = configCache.getBuildingUpgradeCfg(buildingId, buildingData.getLevel());
 
-            res.buildingInfo = SimPbConverter.toBuildingInfo(ctx, buildingData, buildingUpgradeCfg, areaCfg.getUnlockGameId(), now);
+            res.buildingInfo = SimPbConverter.toBuildingInfo(ctx, configCache, buildingData, buildingUpgradeCfg, areaCfg.getUnlockGameId(), now);
             //建筑的基础产出，不包含加成
             Map<BuildingOutputType, Long> base = getBaseOutput(buildingData.getId(), buildingData.getLevel());
             //普通雇员加成
@@ -470,7 +470,7 @@ public class SimBuildingService implements SimPlayerTickListener, SimTaskStateRe
                 }
 
                 data.setProgress(data.getProgress() + 1);
-                res.buildingInfo = SimPbConverter.toBuildingInfo(ctx, data, currentCfg, GameDataManager.getBuildingAreaTableCfg(buildingId).getUnlockGameId(), now);
+                res.buildingInfo = SimPbConverter.toBuildingInfo(ctx, configCache, data, currentCfg, GameDataManager.getBuildingAreaTableCfg(buildingId).getUnlockGameId(), now);
                 ctx.send(res);
                 log.info("建筑增加进度条 playerId={},buildingInfo={}", ctx.playerId(), JSON.toJSONString(res.buildingInfo));
                 return;
@@ -499,7 +499,7 @@ public class SimBuildingService implements SimPlayerTickListener, SimTaskStateRe
             long cdMs = (long) currentCfg.getUpgradeCD() * 60_000L;
             allianceHelpService.consumeSpeedupSeconds(ctx.playerId(), buildingId);
             data.setCdEndTime(now + cdMs);
-            res.buildingInfo = SimPbConverter.toBuildingInfo(ctx, data, currentCfg, GameDataManager.getBuildingAreaTableCfg(buildingId).getUnlockGameId(), now);
+            res.buildingInfo = SimPbConverter.toBuildingInfo(ctx, configCache, data, currentCfg, GameDataManager.getBuildingAreaTableCfg(buildingId).getUnlockGameId(), now);
             log.info("升级建筑启动 playerId={},buildingInfo={}", ctx.playerId(), JSON.toJSONString(res.buildingInfo));
         } catch (Exception e) {
             log.error("", e);
@@ -576,7 +576,7 @@ public class SimBuildingService implements SimPlayerTickListener, SimTaskStateRe
             if (res.code == Code.SUCCESS) {
                 BuildingAreaTableCfg buildingAreaTableCfg = GameDataManager.getBuildingAreaTableCfg(data.getId());
                 BuildingUpgradeTableCfg buildingUpgradeTableCfg = configCache.getBuildingUpgradeCfg(data.getId(), data.getLevel());
-                res.buildingInfo = SimPbConverter.toBuildingInfo(ctx, data, buildingUpgradeTableCfg, buildingAreaTableCfg.getUnlockGameId(), now);
+                res.buildingInfo = SimPbConverter.toBuildingInfo(ctx, configCache, data, buildingUpgradeTableCfg, buildingAreaTableCfg.getUnlockGameId(), now);
             }
         } catch (Exception e) {
             log.error("", e);
@@ -673,7 +673,7 @@ public class SimBuildingService implements SimPlayerTickListener, SimTaskStateRe
 
             BuildingAreaTableCfg buildingAreaTableCfg = GameDataManager.getBuildingAreaTableCfg(buildingId);
             BuildingUpgradeTableCfg buildingUpgradeCfg = configCache.getBuildingUpgradeCfg(data.getId(), data.getLevel());
-            res.buildingInfo = SimPbConverter.toBuildingInfo(ctx, data, buildingUpgradeCfg, buildingAreaTableCfg.getUnlockGameId(), now);
+            res.buildingInfo = SimPbConverter.toBuildingInfo(ctx, configCache, data, buildingUpgradeCfg, buildingAreaTableCfg.getUnlockGameId(), now);
             log.info("清除建筑升级CD playerId={},buildingId={},watchAd={},costCount={},level={},cdEndTime={}", ctx.playerId(), buildingId, watchAd, costCount, data.getLevel(), data.getCdEndTime());
         } catch (Exception e) {
             log.error("", e);
@@ -1352,7 +1352,7 @@ public class SimBuildingService implements SimPlayerTickListener, SimTaskStateRe
         ResCompleteBuildingUpgrade res = new ResCompleteBuildingUpgrade(Code.SUCCESS);
         BuildingAreaTableCfg buildingAreaTableCfg = GameDataManager.getBuildingAreaTableCfg(data.getId());
         BuildingUpgradeTableCfg buildingUpgradeTableCfg = configCache.getBuildingUpgradeCfg(data.getId(), data.getLevel());
-        res.buildingInfo = SimPbConverter.toBuildingInfo(ctx, data, buildingUpgradeTableCfg, buildingAreaTableCfg.getUnlockGameId(), now);
+        res.buildingInfo = SimPbConverter.toBuildingInfo(ctx, configCache, data, buildingUpgradeTableCfg, buildingAreaTableCfg.getUnlockGameId(), now);
         return res;
     }
 

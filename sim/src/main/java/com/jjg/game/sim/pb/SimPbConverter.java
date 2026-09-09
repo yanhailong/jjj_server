@@ -1,13 +1,18 @@
 package com.jjg.game.sim.pb;
 
+import com.jjg.game.common.utils.CommonUtil;
 import com.jjg.game.core.pb.KVInfo;
 import com.jjg.game.sampledata.GameDataManager;
 import com.jjg.game.sampledata.bean.BuildingAreaTableCfg;
 import com.jjg.game.sampledata.bean.BuildingUpgradeTableCfg;
+import com.jjg.game.sampledata.bean.GlobalConfigCfg;
 import com.jjg.game.sampledata.bean.VisitorQuestCfg;
+import com.jjg.game.sim.constant.ServerBuildingType;
+import com.jjg.game.sim.constant.SimConstant;
 import com.jjg.game.sim.data.*;
 import com.jjg.game.sim.pb.struct.*;
 import com.jjg.game.sim.service.SimConfigCacheService;
+import com.jjg.game.sim.service.SimOperationDashboardService;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -47,7 +52,8 @@ public final class SimPbConverter {
         return info;
     }
 
-    public static BuildingInfo toBuildingInfo(SimPlayerContext ctx, BuildingData buildingData, BuildingUpgradeTableCfg currentLevelCfg, int unlockGameId, long now) {
+    public static BuildingInfo toBuildingInfo(SimPlayerContext ctx, SimConfigCacheService simConfigCacheService,
+                                              BuildingData buildingData, BuildingUpgradeTableCfg currentLevelCfg, int unlockGameId, long now) {
         BuildingInfo info = new BuildingInfo();
         info.id = buildingData.getId();
         info.level = buildingData.getLevel();
@@ -63,6 +69,30 @@ public final class SimPbConverter {
             if (skillData == null || skillData.allLevel() < currentLevelCfg.getSkillLevel()) {
                 info.skillConditionPass = false;
             }
+        }
+
+        //交互次数
+        info.interactCount = buildingData.getReceptCount();
+        int operateBuildId = simConfigCacheService.getCasinoManageBuildId(ctx.getCurrentCasino().getCasinoId(), ServerBuildingType.OPERATIONS);
+        if (operateBuildId > 0) {
+            //交互次数
+            if (buildingData.getId() == operateBuildId) {
+                //运营看板每分钟获客量
+                info.interactCount = Math.toIntExact(CommonUtil.getContext()
+                        .getBean(SimOperationDashboardService.class).customerAcquisitionPerMinute(ctx));
+            }
+        }
+
+        GlobalConfigCfg globalConfigCfg = GameDataManager.getGlobalConfigCfg(SimConstant.Global.GUEST_AWARENESS_MAX);
+        info.guestQualityList = new ArrayList<>();
+        for (Map.Entry<Integer, List<VisitorQuestCfg>> en : simConfigCacheService.getVisitorQuestCfgMap().entrySet()) {
+            KVInfo kvInfo = new KVInfo();
+            kvInfo.key = en.getKey();
+
+            VisitorQuestCfg visitorQuestCfg = en.getValue().stream().findFirst().get();
+            kvInfo.value = (int) ((double) ctx.getCurrentCasino().getAwareness() / globalConfigCfg.getIntValue() * visitorQuestCfg.getAwareness() + visitorQuestCfg.getBaseWeight());
+
+            info.guestQualityList.add(kvInfo);
         }
         return info;
     }
@@ -116,7 +146,7 @@ public final class SimPbConverter {
         for (BuildingData b : ctx.getCurrentCasino().getBuildingData().values()) {
             BuildingAreaTableCfg buildingAreaTableCfg = GameDataManager.getBuildingAreaTableCfg(b.getId());
             BuildingUpgradeTableCfg buildingUpgradeCfg = simConfigCacheService.getBuildingUpgradeCfg(b.getId(), b.getLevel());
-            list.add(SimPbConverter.toBuildingInfo(ctx, b, buildingUpgradeCfg, buildingAreaTableCfg.getUnlockGameId(), now));
+            list.add(SimPbConverter.toBuildingInfo(ctx, simConfigCacheService, b, buildingUpgradeCfg, buildingAreaTableCfg.getUnlockGameId(), now));
         }
         return list;
     }

@@ -508,13 +508,6 @@ public interface SimConstant {
         //其它值: 装饰
     }
 
-    interface Building {
-        //接待区id
-        int ID_WELCOME_DEPART = 1301;
-        //运营部id
-        int ID_OPERATIONS_DEPART = 1303;
-    }
-
     /**
      * 大奖展示等级 (镜像 slots SlotsConst.BigWinShow, 用于 SPINE游戏统计的大奖次数分类)
      */

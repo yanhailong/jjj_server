@@ -26,6 +26,7 @@ import com.jjg.game.core.service.SpecialGuestDailyCountService;
 import com.jjg.game.core.utils.ItemUtils;
 import com.jjg.game.sampledata.GameDataManager;
 import com.jjg.game.sampledata.bean.*;
+import com.jjg.game.sim.constant.ServerBuildingType;
 import com.jjg.game.sim.constant.SimConstant;
 import com.jjg.game.sim.dao.SimCasinoDao;
 import com.jjg.game.sim.dao.SimPlayerGameDao;
@@ -625,13 +626,17 @@ public class SimGuestService implements SimPlayerTickListener, ItemListener, Sim
         double effective = (double) serviceCapacity * coefficient / SimConstant.Common.SERVICE_CAPACITY_COEFFICIENT_BASE;
 
         //加上接待区的服务能力
-        BuildingData buildingData = ctx.getCurrentCasino().findBuilding(SimConstant.Building.ID_WELCOME_DEPART);
-        if (buildingData != null) {
-            BuildingUpgradeTableCfg buildingUpgradeTableCfg = configCache.getBuildingUpgradeCfg(buildingData.getId(), buildingData.getLevel());
-            if (buildingUpgradeTableCfg != null) {
-                effective += buildingUpgradeTableCfg.getUpgradeOutput();
+        int welcomeBuildId = configCache.getCasinoManageBuildId(ctx.getCurrentCasino().getCasinoId(), ServerBuildingType.WELCOME);
+        if(welcomeBuildId > 0){
+            BuildingData buildingData = ctx.getCurrentCasino().findBuilding(welcomeBuildId);
+            if (buildingData != null) {
+                BuildingUpgradeTableCfg buildingUpgradeTableCfg = configCache.getBuildingUpgradeCfg(buildingData.getId(), buildingData.getLevel());
+                if (buildingUpgradeTableCfg != null) {
+                    effective += buildingUpgradeTableCfg.getUpgradeOutput();
+                }
             }
         }
+
 
         double ratio = effective / (double) prosperity;
         int floor = (int) Math.floor(ratio);
@@ -676,9 +681,14 @@ public class SimGuestService implements SimPlayerTickListener, ItemListener, Sim
         }
 
         //获取运营部的等级
-        BuildingData buildingData = casino.findBuilding(SimConstant.Building.ID_OPERATIONS_DEPART);
-        if (buildingData == null) {
-            return base;
+        BuildingData buildingData = null;
+        int operateBuildId = configCache.getCasinoManageBuildId(casino.getCasinoId(), ServerBuildingType.OPERATIONS);
+        if (operateBuildId > 0) {
+            //获取运营部的建筑
+            buildingData = casino.getBuildingData().get(operateBuildId);
+            if (buildingData == null) {
+                return base;
+            }
         }
 
         BuildingUpgradeTableCfg buildingUpgradeCfg = configCache.getBuildingUpgradeCfg(buildingData.getId(), buildingData.getLevel());
@@ -702,6 +712,7 @@ public class SimGuestService implements SimPlayerTickListener, ItemListener, Sim
      * - 无奖励交互: 按 TargetArea 顺序循环
      * - 两类穿插; 简单实现为先有奖励, 再无奖励
      * - 目标建筑未解锁/未配置则跳过该次交互
+     * - 概率交互: 优先逐个判定 SpecialInteraction, 成功生成交互点后消耗一次 rewardedCount, 耗尽即结束
      * - 有奖励交互点结算奖励到 dest.rewards (是否添加到玩家身上由调用方决定)
      */
     private List<DestinationInfo> planDestinations(GuestData guest, VisitorQuestCfg cfg, SimCasinoData casino, int rewardedCount) {
@@ -711,6 +722,27 @@ public class SimGuestService implements SimPlayerTickListener, ItemListener, Sim
         List<DestinationInfo> result = new ArrayList<>();
 
         int id = 0;
+        //SpecialInteraction 每次生成游客时, 每个建筑按百分比概率判定一次
+        Map<Integer, Integer> specialInteraction = cfg.getSpecialInteraction();
+        if (specialInteraction != null && !specialInteraction.isEmpty()) {
+            for (Map.Entry<Integer, Integer> en : specialInteraction.entrySet()) {
+                if (en.getValue() == null || en.getValue() <= 0 || RandomUtils.randomInt(100) >= en.getValue()) {
+                    continue;
+                }
+                DestinationInfo dest = pickBuildingDevice(en.getKey(), casino);
+                if (dest != null) {
+                    rewardService.grantReward(guest, dest);
+                    dest.index = id;
+                    id++;
+                    result.add(dest);
+                    rewardedCount--;
+                    if (rewardedCount < 1) {
+                        return result;
+                    }
+                }
+            }
+        }
+
         //InteractionWeight (Map<buildingId, weight>)
         Map<Integer, Integer> interactionWeight = cfg.getInteractionWeight();
         if (interactionWeight != null && !interactionWeight.isEmpty()) {
@@ -758,7 +790,6 @@ public class SimGuestService implements SimPlayerTickListener, ItemListener, Sim
                 }
             }
         }
-
         return result;
     }
 
@@ -782,6 +813,8 @@ public class SimGuestService implements SimPlayerTickListener, ItemListener, Sim
         if (list == null || list.isEmpty()) {
             return null;
         }
+
+        building.incrementReceptCount();
 
         BuildingAreaTableCfg cfg = GameDataManager.getBuildingAreaTableCfg(buildingId);
 
