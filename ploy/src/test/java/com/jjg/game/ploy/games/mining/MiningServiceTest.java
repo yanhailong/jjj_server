@@ -250,6 +250,23 @@ class MiningServiceTest {
         assertEquals(version + 1, state().version);
     }
 
+    @Test void enteringLegacyFirstScreenRecalculatesSecondRowConnectivity() {
+        MiningState old = state();
+        old.connectivityVersion = 2;
+        MiningFixtures.cell(old, 1, 5).hp = 0;
+        MiningFixtures.cell(old, 2, 6).hp = 0;
+        MiningFixtures.cell(old, 2, 4).hp = 1;
+        MiningFixtures.cell(old, 2, 5).hp = 1;
+        saved = JSON.toJSONString(old);
+
+        ResMiningState response = service.info(player);
+
+        assertEquals(Code.SUCCESS, response.code);
+        assertEquals(3, state().connectivityVersion);
+        assertTrue(response.info.cells.stream().anyMatch(cell -> cell.row == 2 && cell.column == 4 && cell.connected));
+        assertTrue(response.info.cells.stream().anyMatch(cell -> cell.row == 2 && cell.column == 5 && cell.connected));
+    }
+
     @Test void duplicateDigAndStaleMapDoNotConsumeAgain() {
         ReqMiningAction request = request(MiningConstant.DIG, 101);
         ResMiningState first = service.action(player, request); assertEquals(Code.SUCCESS, first.code);
@@ -308,6 +325,56 @@ class MiningServiceTest {
         assertTrue(response.info.cells.stream().allMatch(cell -> cell.row >= response.info.topRow
                 && cell.row < response.info.topRow + response.info.visibleRows));
         assertTrue(response.info.cells.stream().anyMatch(cell -> cell.row == 9 && cell.column == 3 && cell.connected));
+    }
+
+    @Test void oldStateWithReachableBottomReturnsPendingScrollInsteadOfZero() {
+        MiningState before = state();
+        for (int row = before.topRow; row < before.topRow + before.visibleRows; row++) {
+            MiningState.Cell shaft = MiningFixtures.cell(before, row, 3);
+            shaft.hp = 0;
+            shaft.reachable = true;
+        }
+        saved = JSON.toJSONString(before);
+        ReqMiningAction request = request(MiningConstant.DIG, 101);
+        request.row = before.topRow + before.visibleRows - 1;
+        request.column = 4;
+
+        ResMiningState response = service.action(player, request);
+
+        assertEquals(Code.SUCCESS, response.code);
+        assertEquals(1, response.scrollRows);
+        assertEquals(before.topRow + 1, response.info.topRow);
+        assertTrue(response.info.cells.stream().anyMatch(cell -> cell.row == 9 && cell.column == 3 && cell.connected));
+    }
+
+    @Test void preGeneratedOpenRowsBelowViewportReturnTwoRowScrollForRealRequestShape() {
+        MiningState before = state();
+        before.topRow = 3;
+        before.generatedRows = 16;
+        before.cells.clear();
+        for (int row = 3; row <= 16; row++) {
+            for (int column = 1; column <= before.width; column++) {
+                before.cells.add(new MiningState.Cell(row, column, 1001, 1));
+            }
+        }
+        for (int row = 3; row <= 8; row++) {
+            MiningState.Cell shaft = MiningFixtures.cell(before, row, 3);
+            shaft.hp = 0;
+            shaft.reachable = true;
+        }
+        for (int row = 10; row <= 16; row++) MiningFixtures.cell(before, row, 3).hp = 0;
+        saved = JSON.toJSONString(before);
+        ReqMiningAction request = request(MiningConstant.DIG, 101);
+        request.row = 9;
+        request.column = 3;
+
+        ResMiningState response = service.action(player, request);
+
+        assertEquals(Code.SUCCESS, response.code);
+        assertEquals(2, response.scrollRows);
+        assertEquals(5, response.info.topRow);
+        assertTrue(response.changed.stream().anyMatch(cell -> cell.row == 9 && cell.column == 3));
+        assertFalse(MiningFixtures.cell(state(), 13, 3).reachable);
     }
 
     @Test void insufficientToolLeavesWholeStateUnchanged() {

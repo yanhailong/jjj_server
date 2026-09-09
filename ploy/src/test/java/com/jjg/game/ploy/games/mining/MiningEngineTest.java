@@ -21,7 +21,7 @@ class MiningEngineTest {
         assertEquals(24, GameDataManager.getMiningMapGenerationCfgList().size());
     }
 
-    @Test void pickRequiresOrthogonalAdjacencyAndCountsOnlyDestroyedCells() {
+    @Test void pickRequiresEightDirectionAdjacencyAndCountsOnlyDestroyedCells() {
         MiningEngine engine = new MiningEngine();
         MiningState state = MiningFixtures.flat(2, 1002);
         assertEquals("CELL_NOT_CONNECTED", assertThrows(MiningException.class, () -> engine.dig(state, 2, 2, 101, 1)).getMessage());
@@ -29,8 +29,26 @@ class MiningEngineTest {
         assertEquals(1, MiningFixtures.cell(state, 1, 1).hp); assertEquals(0, state.total.grids);
         assertFalse(engine.connected(state, 2, 1));
         engine.dig(state, 1, 1, 101, 2);
-        assertTrue(engine.connected(state, 2, 1)); assertFalse(engine.connected(state, 2, 2));
+        assertTrue(engine.connected(state, 2, 1)); assertTrue(engine.connected(state, 2, 2));
+        assertFalse(engine.connected(state, 2, 3));
         assertEquals(1, state.total.grids); assertEquals(2, state.total.tools.get(1024034));
+    }
+
+    @Test void legacyFirstScreenRecalculatesEightDirectionFrontierOnLoad() {
+        MiningEngine engine = new MiningEngine();
+        MiningState state = MiningFixtures.flat(1, 1001);
+        state.connectivityVersion = 2;
+        MiningFixtures.cell(state, 1, 5).hp = 0;
+        MiningFixtures.cell(state, 2, 6).hp = 0;
+
+        assertTrue(engine.alignConnectivity(state));
+
+        assertEquals(3, state.connectivityVersion);
+        assertTrue(MiningFixtures.cell(state, 1, 5).reachable);
+        assertTrue(MiningFixtures.cell(state, 2, 6).reachable);
+        assertTrue(engine.connected(state, 2, 4));
+        assertTrue(engine.connected(state, 2, 5));
+        assertFalse(engine.alignConnectivity(state));
     }
 
     @Test void bombAffectsOnlyRowAndDoesNotDamageGranite() {
@@ -61,7 +79,8 @@ class MiningEngineTest {
         MiningFixtures.cell(state, 1, 1).reachable = true;
 
         assertTrue(MiningService.cellInfo(MiningFixtures.cell(state, 2, 1), state, engine).connected);
-        assertFalse(MiningService.cellInfo(MiningFixtures.cell(state, 2, 2), state, engine).connected);
+        assertTrue(MiningService.cellInfo(MiningFixtures.cell(state, 2, 2), state, engine).connected);
+        assertFalse(MiningService.cellInfo(MiningFixtures.cell(state, 2, 3), state, engine).connected);
     }
 
     @Test void isolatedOpenAreaDoesNotMakeAdjacentCellsConnected() {
@@ -110,7 +129,7 @@ class MiningEngineTest {
         assertTrue(engine.alignConnectivity(state));
         assertTrue(MiningFixtures.cell(state, 330, 3).reachable);
         assertTrue(engine.connected(state, 331, 3));
-        assertEquals(2, state.connectivityVersion);
+        assertEquals(3, state.connectivityVersion);
     }
 
     @Test void disconnectedBottomOpeningDoesNotScrollUntilItJoinsReachableArea() {
@@ -166,6 +185,48 @@ class MiningEngineTest {
         assertTrue(state.cells.stream().noneMatch(c -> c.row < 3));
         assertTrue(engine.connected(state, 9, 3));
         assertFalse(engine.connected(state, 10, 3));
+    }
+
+    @Test void persistedReachableBottomStillScrollsOnNextSuccessfulDig() {
+        MiningEngine engine = new MiningEngine();
+        MiningState state = MiningFixtures.flat(1, 1001);
+        for (int row = 1; row <= 8; row++) {
+            MiningState.Cell shaft = MiningFixtures.cell(state, row, 3);
+            shaft.hp = 0;
+            shaft.reachable = true;
+        }
+
+        var result = engine.dig(state, 8, 4, 101, 1);
+
+        assertEquals(1, result.scrollRows());
+        assertEquals(2, state.topRow);
+        assertTrue(engine.connected(state, 9, 3));
+    }
+
+    @Test void preGeneratedOpenRowsBelowViewportDoNotSuppressTwoRowScroll() {
+        MiningEngine engine = new MiningEngine();
+        MiningState state = MiningFixtures.flat(1, 1001);
+        state.topRow = 3;
+        state.generatedRows = 16;
+        state.cells.clear();
+        for (int row = 3; row <= 16; row++) {
+            for (int column = 1; column <= state.width; column++) {
+                state.cells.add(new MiningState.Cell(row, column, 1001, 1));
+            }
+        }
+        for (int row = 3; row <= 8; row++) {
+            MiningState.Cell shaft = MiningFixtures.cell(state, row, 3);
+            shaft.hp = 0;
+            shaft.reachable = true;
+        }
+        for (int row = 10; row <= 16; row++) MiningFixtures.cell(state, row, 3).hp = 0;
+
+        var result = engine.dig(state, 9, 3, 101, 1);
+
+        assertEquals(2, result.scrollRows());
+        assertEquals(5, state.topRow);
+        assertTrue(MiningFixtures.cell(state, 12, 3).reachable);
+        assertFalse(MiningFixtures.cell(state, 13, 3).reachable);
     }
 
     @Test void resourceRewardAndDepthDoNotAdvanceForPartialDamageOrRepeatedEmptyHit() {

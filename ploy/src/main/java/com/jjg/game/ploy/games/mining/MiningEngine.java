@@ -18,8 +18,9 @@ public class MiningEngine {
         state.seed = seed;
         state.width = catalog.width();
         state.visibleRows = catalog.visibleRows();
-        state.connectivityVersion = 2;
+        state.connectivityVersion = 3;
         ensureRows(state, state.visibleRows);
+        refreshReachability(state);
         return state;
     }
 
@@ -70,7 +71,7 @@ public class MiningEngine {
      * 以当前顶行已打开区域作为历史连通入口。版本1已有的有效前沿继续保留。
      */
     boolean alignConnectivity(MiningState state) {
-        if (state.connectivityVersion >= 2) return false;
+        if (state.connectivityVersion >= 3) return false;
         if (state.cells == null) state.cells = new ArrayList<>();
         if (state.connectivityVersion < 1) {
             state.cells.forEach(cell -> cell.reachable = false);
@@ -84,7 +85,7 @@ public class MiningEngine {
                     .forEach(cell -> cell.reachable = true);
         }
         refreshReachability(state);
-        state.connectivityVersion = 2;
+        state.connectivityVersion = 3;
         return true;
     }
 
@@ -102,7 +103,7 @@ public class MiningEngine {
         int bottom = Math.addExact(state.topRow, state.visibleRows - 1);
         if (row < state.topRow || row > bottom || column < 1 || column > state.width) throw new MiningException("OUTSIDE_VISIBLE_MAP");
         MiningState.Cell target = cell(state, row, column);
-        int previousReachableDepth = deepestReachableDepth(state, state.topRow - 1);
+        int previousReachableDepth = deepestReachableDepth(state, state.topRow - 1, bottom);
         if (toolId == catalog.pickToolId()) {
             if (target.hp <= 0) throw new MiningException("CELL_ALREADY_OPEN");
             if (catalog.isWallCell(target.type)) throw new MiningException("WALL_REQUIRES_EXCAVATOR");
@@ -135,9 +136,9 @@ public class MiningEngine {
         refreshReachability(state);
         // 炸弹/挖机可在未连通区域制造空洞；只有空洞真正接入地表后才允许触底滚动，
         // 否则会过早删除上方连通前沿，最终令整张可视地图都不可挖。
-        int reachableDepth = deepestReachableDepth(state, state.topRow - 1);
+        int reachableDepth = deepestReachableDepth(state, state.topRow - 1, bottom);
         int scrollRows = reachableDepth == bottom
-                ? Math.min(state.visibleRows - 1, Math.max(0, reachableDepth - previousReachableDepth)) : 0;
+                ? Math.min(state.visibleRows - 1, Math.max(1, reachableDepth - previousReachableDepth)) : 0;
         state.total.tools.merge(tool.getItemid(), 1L, Long::sum);
         state.daily.tools.merge(tool.getItemid(), 1L, Long::sum);
         for (Map.Entry<Integer, Long> e : rewards.entrySet()) {
@@ -151,35 +152,47 @@ public class MiningEngine {
             state.cells.removeIf(c -> c.row < state.topRow);
             state.secrets.keySet().removeIf(id -> state.cells.stream().noneMatch(c -> c.secretId == id));
             ensureRows(state, Math.addExact(bottom, scrollRows));
+            // 阶段会整段预生成；只在新可视窗口内延伸连通前沿，不能提前穿透屏幕外空格。
+            refreshReachability(state);
         }
         return new DigResult(tool.getItemid(), rewards, rewardCells, affected, scrollRows);
     }
 
-    private static int deepestReachableDepth(MiningState state, int defaultDepth) {
-        return state.cells.stream().filter(c -> c.hp == 0 && c.reachable)
+    private static int deepestReachableDepth(MiningState state, int defaultDepth, int visibleBottom) {
+        return state.cells.stream().filter(c -> c.hp == 0 && c.reachable && c.row <= visibleBottom)
                 .mapToInt(c -> c.row).max().orElse(defaultDepth);
     }
 
     public boolean connected(MiningState state, int row, int column) {
         // 未挖的第一行直接暴露在地表；其他格必须邻接真正连到地表的开放格。
         if (row == 1) return true;
+        int bottom = Math.addExact(state.topRow, state.visibleRows - 1);
         return state.cells.stream().anyMatch(c -> c.hp == 0 && c.reachable && c.row >= state.topRow
-                && Math.abs(c.row - row) + Math.abs(c.column - column) == 1);
+                && c.row <= bottom
+                && Math.max(Math.abs(c.row - row), Math.abs(c.column - column)) == 1);
     }
 
     private void refreshReachability(MiningState state) {
+        int bottom = Math.addExact(state.topRow, state.visibleRows - 1);
+        state.cells.stream().filter(cell -> cell.hp > 0 || cell.row > bottom)
+                .forEach(cell -> cell.reachable = false);
         ArrayDeque<MiningState.Cell> queue = new ArrayDeque<>();
         Set<Long> visited = new HashSet<>();
         for (MiningState.Cell cell : state.cells) {
-            if (cell.hp == 0 && (cell.reachable || cell.row == 1)) {
+            if (cell.row >= state.topRow && cell.row <= bottom && cell.hp == 0
+                    && (cell.reachable || cell.row == 1)) {
                 cell.reachable = true;
                 if (visited.add(cellKey(cell.row, cell.column))) queue.add(cell);
             }
         }
         Map<Long, MiningState.Cell> opened = new HashMap<>();
-        state.cells.stream().filter(cell -> cell.hp == 0)
+        state.cells.stream().filter(cell -> cell.row >= state.topRow && cell.row <= bottom && cell.hp == 0)
                 .forEach(cell -> opened.put(cellKey(cell.row, cell.column), cell));
-        int[][] directions = {{-1, 0}, {1, 0}, {0, -1}, {0, 1}};
+        int[][] directions = {
+                {-1, -1}, {-1, 0}, {-1, 1},
+                {0, -1},           {0, 1},
+                {1, -1},  {1, 0},  {1, 1}
+        };
         while (!queue.isEmpty()) {
             MiningState.Cell current = queue.removeFirst();
             for (int[] direction : directions) {
