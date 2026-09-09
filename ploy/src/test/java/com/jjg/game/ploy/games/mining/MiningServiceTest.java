@@ -310,6 +310,26 @@ class MiningServiceTest {
         assertTrue(response.info.cells.stream().anyMatch(cell -> cell.row == 9 && cell.column == 3 && cell.connected));
     }
 
+    @Test void oldStateWithReachableBottomReturnsPendingScrollInsteadOfZero() {
+        MiningState before = state();
+        for (int row = before.topRow; row < before.topRow + before.visibleRows; row++) {
+            MiningState.Cell shaft = MiningFixtures.cell(before, row, 3);
+            shaft.hp = 0;
+            shaft.reachable = true;
+        }
+        saved = JSON.toJSONString(before);
+        ReqMiningAction request = request(MiningConstant.DIG, 101);
+        request.row = before.topRow + before.visibleRows - 1;
+        request.column = 4;
+
+        ResMiningState response = service.action(player, request);
+
+        assertEquals(Code.SUCCESS, response.code);
+        assertEquals(1, response.scrollRows);
+        assertEquals(before.topRow + 1, response.info.topRow);
+        assertTrue(response.info.cells.stream().anyMatch(cell -> cell.row == 9 && cell.column == 3 && cell.connected));
+    }
+
     @Test void insufficientToolLeavesWholeStateUnchanged() {
         wallet.put(1024034, 0L); String before = saved;
         assertEquals(Code.NOT_ENOUGH_ITEM, service.action(player, request(MiningConstant.DIG, 101)).code);

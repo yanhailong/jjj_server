@@ -137,7 +137,7 @@ public class MiningEngine {
         // 否则会过早删除上方连通前沿，最终令整张可视地图都不可挖。
         int reachableDepth = deepestReachableDepth(state, state.topRow - 1);
         int scrollRows = reachableDepth == bottom
-                ? Math.min(state.visibleRows - 1, Math.max(0, reachableDepth - previousReachableDepth)) : 0;
+                ? Math.min(state.visibleRows - 1, Math.max(1, reachableDepth - previousReachableDepth)) : 0;
         state.total.tools.merge(tool.getItemid(), 1L, Long::sum);
         state.daily.tools.merge(tool.getItemid(), 1L, Long::sum);
         for (Map.Entry<Integer, Long> e : rewards.entrySet()) {

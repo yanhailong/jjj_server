@@ -168,6 +168,22 @@ class MiningEngineTest {
         assertFalse(engine.connected(state, 10, 3));
     }
 
+    @Test void persistedReachableBottomStillScrollsOnNextSuccessfulDig() {
+        MiningEngine engine = new MiningEngine();
+        MiningState state = MiningFixtures.flat(1, 1001);
+        for (int row = 1; row <= 8; row++) {
+            MiningState.Cell shaft = MiningFixtures.cell(state, row, 3);
+            shaft.hp = 0;
+            shaft.reachable = true;
+        }
+
+        var result = engine.dig(state, 8, 4, 101, 1);
+
+        assertEquals(1, result.scrollRows());
+        assertEquals(2, state.topRow);
+        assertTrue(engine.connected(state, 9, 3));
+    }
+
     @Test void resourceRewardAndDepthDoNotAdvanceForPartialDamageOrRepeatedEmptyHit() {
         MiningEngine engine = new MiningEngine();
         MiningState state = MiningFixtures.flat(1, 1004);
