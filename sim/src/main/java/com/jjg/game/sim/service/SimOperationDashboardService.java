@@ -211,11 +211,15 @@ public class SimOperationDashboardService {
     private List<OperationResearchBuilding> buildResearchBuildings(SimPlayerContext ctx, SimCasinoData casino) {
         List<OperationResearchBuilding> result = new ArrayList<>();
         boolean currentLockedFound = false;
-        for (BuildingAreaTableCfg cfg : GameDataManager.getBuildingAreaTableCfgList()) {
-            if (cfg.getRegionID() != casino.getCasinoId()
-                    || BuildingType.fromCode(cfg.getType()) != BuildingType.GAME) {
-                continue;
-            }
+        // 与客户端展示顺序保持一致：经营等级低的游戏优先，同等级按建筑ID排序。
+        // 配置容器底层为ConcurrentHashMap，不能依赖getCfgBeanList的遍历顺序。
+        List<BuildingAreaTableCfg> researchConfigs = GameDataManager.getBuildingAreaTableCfgList().stream()
+                .filter(cfg -> cfg.getRegionID() == casino.getCasinoId()
+                        && BuildingType.fromCode(cfg.getType()) == BuildingType.GAME)
+                .sorted(Comparator.comparingInt(BuildingAreaTableCfg::getCasinoLevel)
+                        .thenComparingInt(BuildingAreaTableCfg::getId))
+                .toList();
+        for (BuildingAreaTableCfg cfg : researchConfigs) {
             OperationResearchBuilding data = new OperationResearchBuilding();
             data.buildingId = cfg.getId();
             data.gameType = cfg.getUnlockGameId();
