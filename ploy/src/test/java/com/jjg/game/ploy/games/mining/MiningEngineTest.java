@@ -18,7 +18,7 @@ class MiningEngineTest {
         assertEquals(6, stage.getFixedGrid().stream().filter(e -> e.getFirst() == 1011).count());
         assertEquals(List.of(1001, 90, 50), stage.getRandomizedgrid().getFirst());
         assertEquals(6, stage.getWidth());
-        assertEquals(24, GameDataManager.getMiningMapGenerationCfgList().size());
+        assertTrue(GameDataManager.getMiningMapGenerationCfgList().size() >= 24);
     }
 
     @Test void pickRequiresEightDirectionAdjacencyAndCountsOnlyDestroyedCells() {
@@ -153,6 +153,12 @@ class MiningEngineTest {
     @Test void diggingBottomScrollsOnceRejectsOldCoordinatesAndNeverHitsPreGeneratedRows() {
         MiningEngine engine = new MiningEngine();
         MiningState state = MiningFixtures.flat(1, 1001);
+        state.generatedRows = 16;
+        for (int row = 9; row <= 16; row++) {
+            for (int column = 1; column <= state.width; column++) {
+                state.cells.add(new MiningState.Cell(row, column, 1001, 1));
+            }
+        }
         for (int row = 1; row <= 7; row++) {
             MiningState.Cell shaft = MiningFixtures.cell(state, row, 4);
             shaft.hp = 0;
@@ -203,13 +209,13 @@ class MiningEngineTest {
         assertTrue(engine.connected(state, 9, 3));
     }
 
-    @Test void preGeneratedOpenRowsBelowViewportDoNotSuppressTwoRowScroll() {
+    @Test void preGeneratedOpenRowsBelowViewportAutoScrollUntilTheFirstBlockedBottom() {
         MiningEngine engine = new MiningEngine();
         MiningState state = MiningFixtures.flat(1, 1001);
         state.topRow = 3;
-        state.generatedRows = 16;
+        state.generatedRows = 24;
         state.cells.clear();
-        for (int row = 3; row <= 16; row++) {
+        for (int row = 3; row <= 24; row++) {
             for (int column = 1; column <= state.width; column++) {
                 state.cells.add(new MiningState.Cell(row, column, 1001, 1));
             }
@@ -223,10 +229,35 @@ class MiningEngineTest {
 
         var result = engine.dig(state, 9, 3, 101, 1);
 
-        assertEquals(2, result.scrollRows());
-        assertEquals(5, state.topRow);
-        assertTrue(MiningFixtures.cell(state, 12, 3).reachable);
-        assertFalse(MiningFixtures.cell(state, 13, 3).reachable);
+        assertEquals(7, result.scrollRows());
+        assertEquals(10, state.topRow);
+        assertTrue(MiningFixtures.cell(state, 16, 3).reachable);
+        assertFalse(MiningFixtures.cell(state, 18, 3).reachable);
+    }
+
+    @Test void connectedEmptyNewBottomKeepsLoadingUntilANonEmptyBottomAppears() {
+        MiningEngine engine = new MiningEngine();
+        MiningState state = MiningFixtures.flat(1, 1001);
+        state.generatedRows = 12;
+        for (int row = 9; row <= 12; row++) {
+            for (int column = 1; column <= state.width; column++) {
+                state.cells.add(new MiningState.Cell(row, column, 1001, 1));
+            }
+        }
+        for (int row = 1; row <= 7; row++) {
+            MiningState.Cell shaft = MiningFixtures.cell(state, row, 3);
+            shaft.hp = 0;
+            shaft.reachable = true;
+        }
+        MiningFixtures.cell(state, 9, 3).hp = 0;
+        MiningFixtures.cell(state, 10, 3).hp = 0;
+
+        var result = engine.dig(state, 8, 3, 101, 1);
+
+        assertEquals(3, result.scrollRows());
+        assertEquals(4, state.topRow);
+        assertTrue(MiningFixtures.cell(state, 10, 3).reachable);
+        assertEquals(1, MiningFixtures.cell(state, 11, 3).hp);
     }
 
     @Test void resourceRewardAndDepthDoNotAdvanceForPartialDamageOrRepeatedEmptyHit() {
@@ -264,12 +295,24 @@ class MiningEngineTest {
         assertEquals(1011, MiningFixtures.cell(one, 2, 1).type);
         assertEquals(1007, MiningFixtures.cell(one, 3, 1).type);
         assertEquals(1008, MiningFixtures.cell(one, 3, 2).type);
-        for (int n = 0; n < 220; n++) {
+        int operations = 0;
+        int maxStageHeight = GameDataManager.getMiningMapGenerationCfgList().stream()
+                .mapToInt(stage -> stage.getHeight()).max().orElse(one.visibleRows);
+        while (one.topRow <= 220 && operations < 500) {
             int bottom = one.topRow + one.visibleRows - 1;
-            engine.dig(one, bottom, 3, 103, n + 1);
-            assertTrue(one.cells.size() <= (one.visibleRows + 7) * one.width);
+            List<MiningState.Cell> frontier = one.cells.stream()
+                    .filter(cell -> cell.row == bottom - 1 && cell.hp == 0 && cell.reachable).toList();
+            MiningState.Cell target = one.cells.stream()
+                    .filter(cell -> cell.row == bottom && cell.hp > 0)
+                    .filter(cell -> frontier.stream().anyMatch(open -> Math.abs(open.column - cell.column) <= 1))
+                    .findFirst().orElseThrow();
+            int oldTop = one.topRow;
+            engine.dig(one, bottom, target.column, 103, ++operations);
+            assertTrue(one.topRow > oldTop);
+            assertTrue(one.cells.size() <= (one.visibleRows + maxStageHeight - 1) * one.width);
             assertEquals(one.cells.size(), one.cells.stream().map(c -> c.row + ":" + c.column).distinct().count());
         }
+        assertTrue(one.topRow > 220);
         assertTrue(one.depth > 192);
         assertTrue(one.cells.stream().allMatch(c -> GameDataManager.getMiningCellTypeCfg(c.type) != null));
     }

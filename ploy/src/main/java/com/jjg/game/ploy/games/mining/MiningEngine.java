@@ -6,6 +6,7 @@ import java.util.*;
 
 /** 纯地图规则；调用方先在快照计算，再原子提交消耗、奖励和存档。坐标从1开始。 */
 public class MiningEngine {
+    private static final int MAX_AUTO_SCROLL_ROWS = 10_000;
     private final MiningCatalog catalog;
 
     public MiningEngine() { this(MiningCatalog.live()); }
@@ -148,14 +149,29 @@ public class MiningEngine {
             }
         }
         if (scrollRows > 0) {
-            state.topRow = Math.addExact(state.topRow, scrollRows);
-            state.cells.removeIf(c -> c.row < state.topRow);
-            state.secrets.keySet().removeIf(id -> state.cells.stream().noneMatch(c -> c.secretId == id));
-            ensureRows(state, Math.addExact(bottom, scrollRows));
-            // 阶段会整段预生成；只在新可视窗口内延伸连通前沿，不能提前穿透屏幕外空格。
-            refreshReachability(state);
+            scroll(state, scrollRows);
+            // 新加载的底行如果存在与矿洞相连的空格，该行已经可以直接通过，继续向下加载。
+            while (reachableBottom(state)) {
+                if (scrollRows >= MAX_AUTO_SCROLL_ROWS) throw new MiningException("AUTO_SCROLL_LIMIT_EXCEEDED");
+                scroll(state, 1);
+                scrollRows++;
+            }
         }
         return new DigResult(tool.getItemid(), rewards, rewardCells, affected, scrollRows);
+    }
+
+    private void scroll(MiningState state, int rows) {
+        state.topRow = Math.addExact(state.topRow, rows);
+        state.cells.removeIf(c -> c.row < state.topRow);
+        state.secrets.keySet().removeIf(id -> state.cells.stream().noneMatch(c -> c.secretId == id));
+        ensureRows(state, Math.addExact(state.topRow, state.visibleRows - 1));
+        // 阶段会整段预生成；只在新可视窗口内延伸连通前沿，不能提前穿透屏幕外空格。
+        refreshReachability(state);
+    }
+
+    private static boolean reachableBottom(MiningState state) {
+        int bottom = Math.addExact(state.topRow, state.visibleRows - 1);
+        return state.cells.stream().anyMatch(c -> c.row == bottom && c.hp == 0 && c.reachable);
     }
 
     private static int deepestReachableDepth(MiningState state, int defaultDepth, int visibleBottom) {
