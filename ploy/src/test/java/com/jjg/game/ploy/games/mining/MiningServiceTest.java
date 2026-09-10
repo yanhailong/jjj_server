@@ -83,7 +83,8 @@ class MiningServiceTest {
         assertTrue(bundles.bundles.stream().allMatch(bundle -> bundle.adCdEndTime == 0));
         assertEquals(1, bundles.bundles.stream().filter(bundle -> bundle.id == 6001).findFirst().orElseThrow().mode);
         assertEquals(2, bundles.bundles.stream().filter(bundle -> bundle.id == 6002).findFirst().orElseThrow().mode);
-        assertEquals(3, bundles.bundles.stream().filter(bundle -> bundle.id == 6003).findFirst().orElseThrow().mode);
+        MiningBundleInfo paidBundle = bundles.bundles.stream().filter(bundle -> bundle.id == 6003).findFirst().orElseThrow();
+        assertEquals(3, paidBundle.mode); assertEquals("6", paidBundle.price);
 
         ResMiningAchievements achievements = service.achievements(player);
         assertEquals(Code.SUCCESS, achievements.code); assertFalse(achievements.achievements.isEmpty());

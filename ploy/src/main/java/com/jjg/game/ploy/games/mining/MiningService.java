@@ -13,7 +13,9 @@ import com.jjg.game.core.listener.OrderGenerate;
 import com.jjg.game.core.pb.RechargeType;
 import com.jjg.game.core.pb.ReqGenerateOrder;
 import com.jjg.game.core.service.PlayerPackService;
+import com.jjg.game.core.service.PlayerStatService;
 import com.jjg.game.core.utils.ItemUtils;
+import com.jjg.game.core.utils.RedisUtils;
 import com.jjg.game.ploy.games.mining.message.*;
 import com.jjg.game.ploy.manager.StandalonePloyGame;
 import com.jjg.game.sampledata.GameDataManager;
@@ -676,8 +678,11 @@ public class MiningService implements OrderGenerate, StandalonePloyGame {
     private static BigDecimal price(MiningBundleShopCfg good) {
         List<Integer> cost = good.getCost();
         if (cost == null || cost.isEmpty()) return BigDecimal.ZERO;
-        if (cost.size() != 1 || cost.getFirst() < 0) throw new MiningException(Code.SAMPLE_ERROR, "INVALID_BUNDLE_PRICE");
-        return BigDecimal.valueOf(cost.getFirst());
+        if (cost.size() == 1 && cost.getFirst() == 0) return BigDecimal.ZERO;
+        if (cost.size() != 2 || cost.getFirst() != PlayerStatService.DIAMOND_ITEM_ID || cost.get(1) <= 0)
+            throw new MiningException(Code.SAMPLE_ERROR, "INVALID_BUNDLE_PRICE");
+        // MiningBundleShop.cost 使用“计价项ID_分值”，例如 1980000_600 表示 6 元。
+        return RedisUtils.fromLong(cost.get(1)).stripTrailingZeros();
     }
     private static boolean ordinaryItem(int id) {
         ItemCfg cfg = GameDataManager.getItemCfg(id);
