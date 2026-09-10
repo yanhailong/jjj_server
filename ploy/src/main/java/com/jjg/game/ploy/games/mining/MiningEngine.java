@@ -150,8 +150,8 @@ public class MiningEngine {
         }
         if (scrollRows > 0) {
             scroll(state, scrollRows);
-            // 新加载的底行如果存在与矿洞相连的空格，该行已经可以直接通过，继续向下加载。
-            while (reachableBottom(state)) {
+            // 自动向下拓展要求上下两行同列形成通道；仅斜角相邻仍属于隔断，不继续滚动。
+            while (bottomHasVerticalPassage(state)) {
                 if (scrollRows >= MAX_AUTO_SCROLL_ROWS) throw new MiningException("AUTO_SCROLL_LIMIT_EXCEEDED");
                 scroll(state, 1);
                 scrollRows++;
@@ -169,9 +169,13 @@ public class MiningEngine {
         refreshReachability(state);
     }
 
-    private static boolean reachableBottom(MiningState state) {
+    private static boolean bottomHasVerticalPassage(MiningState state) {
         int bottom = Math.addExact(state.topRow, state.visibleRows - 1);
-        return state.cells.stream().anyMatch(c -> c.row == bottom && c.hp == 0 && c.reachable);
+        Set<Integer> openColumnsAbove = new HashSet<>();
+        state.cells.stream().filter(c -> c.row == bottom - 1 && c.hp == 0 && c.reachable)
+                .forEach(c -> openColumnsAbove.add(c.column));
+        return state.cells.stream().anyMatch(c -> c.row == bottom && c.hp == 0 && c.reachable
+                && openColumnsAbove.contains(c.column));
     }
 
     private static int deepestReachableDepth(MiningState state, int defaultDepth, int visibleBottom) {

@@ -362,6 +362,10 @@ class MiningServiceTest {
             shaft.hp = 0;
             shaft.reachable = true;
         }
+        MiningState.Cell target = MiningFixtures.cell(before,
+                before.topRow + before.visibleRows - 1, 4);
+        target.type = 1001;
+        target.hp = 1;
         saved = JSON.toJSONString(before);
         ReqMiningAction request = request(MiningConstant.DIG, 101);
         request.row = before.topRow + before.visibleRows - 1;

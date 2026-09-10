@@ -260,6 +260,31 @@ class MiningEngineTest {
         assertEquals(1, MiningFixtures.cell(state, 11, 3).hp);
     }
 
+    @Test void diagonalOnlyGapsInNewRowsDoNotCauseAdditionalScrolling() {
+        MiningEngine engine = new MiningEngine();
+        MiningState state = MiningFixtures.flat(1, 1001);
+        state.generatedRows = 12;
+        for (int row = 9; row <= 12; row++) {
+            for (int column = 1; column <= state.width; column++) {
+                state.cells.add(new MiningState.Cell(row, column, 1001, 1));
+            }
+        }
+        for (int row = 1; row <= 7; row++) {
+            MiningState.Cell shaft = MiningFixtures.cell(state, row, 3);
+            shaft.hp = 0;
+            shaft.reachable = true;
+        }
+        MiningFixtures.cell(state, 9, 4).hp = 0;
+        MiningFixtures.cell(state, 10, 5).hp = 0;
+        MiningFixtures.cell(state, 11, 6).hp = 0;
+
+        var result = engine.dig(state, 8, 3, 101, 1);
+
+        assertEquals(1, result.scrollRows());
+        assertEquals(2, state.topRow);
+        assertTrue(MiningFixtures.cell(state, 9, 4).reachable);
+    }
+
     @Test void resourceRewardAndDepthDoNotAdvanceForPartialDamageOrRepeatedEmptyHit() {
         MiningEngine engine = new MiningEngine();
         MiningState state = MiningFixtures.flat(1, 1004);
