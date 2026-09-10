@@ -4,11 +4,8 @@ import com.jjg.game.common.constant.MessageConst;
 import com.jjg.game.common.pb.AbstractResponse;
 import com.jjg.game.common.proto.ProtoDesc;
 import com.jjg.game.common.proto.ProtobufMessage;
-import com.jjg.game.core.pb.KVInfo;
 import com.jjg.game.sim.constant.SimConstant;
 import com.jjg.game.sim.pb.struct.BuildingInfo;
-
-import java.util.List;
 
 /**
  * @author 11
@@ -19,21 +16,14 @@ import java.util.List;
 public class ResBuildingInfo extends AbstractResponse {
     @ProtoDesc("建筑信息")
     public BuildingInfo buildingInfo;
-    @ProtoDesc("雇员加成")
-    public List<KVInfo> employeeBonus;
-    @ProtoDesc("主管百分比加成  key参考BuildingAreaTable表的typeValue值")
-    public List<KVInfo> manageEmployeeBonus;
     @ProtoDesc("配置的观看广告次数")
     public int watchAdLimit;
     @ProtoDesc("主管id")
     public int managerId;
-    @ProtoDesc("主管固定加成  key参考BuildingAreaTable表的typeValue值")
-    public List<KVInfo> manageEmployeeFixBonus;
     @ProtoDesc("主管等级")
     public int managerLevel;
     @ProtoDesc("是否有雇员可设置为主管")
     public boolean canSetManager;
-
 
     public ResBuildingInfo(int code) {
         super(code);

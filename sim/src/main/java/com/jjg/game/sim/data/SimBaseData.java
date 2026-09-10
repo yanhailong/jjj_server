@@ -45,6 +45,8 @@ public class SimBaseData extends AbstractData {
     private int watchAdCount;
     //经营信息-完成任务数 (玩家跨娱乐城累计, 完成即计数)
     private int finishedTaskCount;
+    //任务完成时解锁的功能ID，不随任务配置变化重新计算
+    private Set<Integer> unlockedFunctionIds;
     //最近一次触发"登陆天数"条件的自然日 (yyyyMMdd); 每个自然日仅计一次登陆, 跨天再计
     private int lastLoginDay;
     //经营信息-SPINE游戏统计 gameType -> 玩家累计统计
@@ -329,6 +331,24 @@ public class SimBaseData extends AbstractData {
 
     public void incFinishedTaskCount() {
         this.finishedTaskCount++;
+    }
+
+    public Set<Integer> getUnlockedFunctionIds() {
+        return unlockedFunctionIds == null ? Collections.emptySet() : unlockedFunctionIds;
+    }
+
+    public void setUnlockedFunctionIds(Set<Integer> unlockedFunctionIds) {
+        this.unlockedFunctionIds = unlockedFunctionIds;
+    }
+
+    public boolean unlockFunction(int functionId) {
+        if (functionId <= 0) {
+            return false;
+        }
+        if (unlockedFunctionIds == null) {
+            unlockedFunctionIds = new HashSet<>();
+        }
+        return unlockedFunctionIds.add(functionId);
     }
 
     public int getLastLoginDay() {

@@ -23,12 +23,16 @@ public class BuildingUpgradeTableCfg extends BaseCfgBean {
   protected int BuildingID;
   /** 每级消耗 */
   protected List<List<Integer>> CostPerLevel;
+  /** 交互次数 */
+  protected int InteractCount;
   /** 最大交互数量 */
   protected int MaxInteractionCount;
   /** 最大等待数量 */
   protected List<Integer> MaxWaiting;
   /** 经营等级 */
   protected int NeedLevel;
+  /** 基础繁荣度 */
+  protected int Prosperity;
   /** 技能等级限制 */
   protected int SkillLevel;
   /** 解锁装饰 */
@@ -64,6 +68,11 @@ public class BuildingUpgradeTableCfg extends BaseCfgBean {
     return CostPerLevel;
   }
 
+  /** 返回交互次数 */
+  public int getInteractCount() {
+    return InteractCount;
+  }
+
   /** 返回最大交互数量 */
   public int getMaxInteractionCount() {
     return MaxInteractionCount;
@@ -77,6 +86,11 @@ public class BuildingUpgradeTableCfg extends BaseCfgBean {
   /** 返回经营等级 */
   public int getNeedLevel() {
     return NeedLevel;
+  }
+
+  /** 返回基础繁荣度 */
+  public int getProsperity() {
+    return Prosperity;
   }
 
   /** 返回技能等级限制 */
