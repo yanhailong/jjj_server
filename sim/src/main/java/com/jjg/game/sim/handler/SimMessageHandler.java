@@ -1045,7 +1045,8 @@ public class SimMessageHandler implements GmListener {
                     return res;
                 }
                 SimPlayerContext ctx = simPlayerContextRegistry.getContext(playerController.playerId());
-                return taskService.jumpTask(ctx, taskId);
+                CommonResult<String> stringCommonResult = taskService.jumpTask(ctx, taskId);
+                return stringCommonResult;
             } else if ("printGuest".equalsIgnoreCase(gmOrders[0])) {
                 SimPlayerContext context = this.simPlayerContextRegistry.getContext(playerController.playerId());
                 context.printGuest();

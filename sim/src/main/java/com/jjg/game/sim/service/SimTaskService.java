@@ -8,7 +8,6 @@ import com.jjg.game.core.constant.Code;
 import com.jjg.game.core.constant.TaskConstant;
 import com.jjg.game.core.dao.CountDao;
 import com.jjg.game.core.data.*;
-import com.jjg.game.core.listener.GameFunctionListener;
 import com.jjg.game.core.logger.TaskLogger;
 import com.jjg.game.core.manager.RedDotManager;
 import com.jjg.game.core.pb.reddot.RedDotDetails;
@@ -62,7 +61,7 @@ import java.util.*;
  * @date 2026/6/25
  */
 @Service
-public class SimTaskService implements IRedDotService, GameFunctionListener {
+public class SimTaskService implements IRedDotService {
     private static final Logger log = LoggerFactory.getLogger(SimTaskService.class);
 
     //主线计数 prefix: 每个节点一个 (featureId = 条件type + prefix)
@@ -131,15 +130,19 @@ public class SimTaskService implements IRedDotService, GameFunctionListener {
         onLogin(ctx);
     }
 
-    /** 每次登录补接全局分组，复用内存上下文时同样执行。 */
+    /**
+     * 每次登录补接全局分组，复用内存上下文时同样执行。
+     */
     public void onLogin(SimPlayerContext ctx) {
         SimTaskData data = ctx.getSimTaskData();
         ensureMainActive(ctx.playerId(), data);
         for (int groupId : taskConfig.globalAchievementGroups()) {
             acceptAchievementGroup(ctx, groupId);
         }
-        for (TaskDetail node : data.getAchievementTasks().values()) {
-            advanceIfRewardedTail(ctx.playerId(), data, node);
+        if (data.getAchievementTasks() != null && !data.getAchievementTasks().isEmpty()) {
+            for (TaskDetail node : data.getAchievementTasks().values()) {
+                advanceIfRewardedTail(ctx.playerId(), data, node);
+            }
         }
         //任务数据就绪后补一次状态: 场景/建筑/雇员/游客在本方法之前加载, 那时的上报会被任务侧丢弃;
         //玩家等级等状态型条件同理, 不补则要等下一次事件或开界面才结算
@@ -246,7 +249,9 @@ public class SimTaskService implements IRedDotService, GameFunctionListener {
         return true;
     }
 
-    /** 建筑成功解锁后，仅接取对应徽章下 Quality=1 的任务组。 */
+    /**
+     * 建筑成功解锁后，仅接取对应徽章下 Quality=1 的任务组。
+     */
     public void onBuildingUnlocked(SimPlayerContext ctx, int buildingId) {
         List<MedalBuffCfg> medals = simConfigCacheService.getMedalBuffCfgs(buildingId);
         if (medals == null || medals.isEmpty()) {
@@ -329,6 +334,13 @@ public class SimTaskService implements IRedDotService, GameFunctionListener {
         TaskDetail target = createNode(ctx.playerId(), taskId);
         data.setMainTask(target);
         ctx.setLastSaveTime(0);
+        //目标任务仍在进行中，只解锁本次跳过的任务对应功能。
+        for (int skippedId = current.getConfigId(); skippedId != taskId; skippedId = taskConfig.next(skippedId)) {
+            TaskCfg skippedCfg = GameDataManager.getTaskCfg(skippedId);
+            if (skippedCfg != null) {
+                unlockTaskFunction(ctx, skippedCfg.getFunctionId());
+            }
+        }
         updateTaskRedDot(ctx);
         log.info("GM向前跳转sim主线任务 playerId={},currentTaskId={},targetTaskId={}",
                 ctx.playerId(), current.getConfigId(), taskId);
@@ -405,7 +417,7 @@ public class SimTaskService implements IRedDotService, GameFunctionListener {
                 ctx.getSimBaseData().incFinishedTaskCount();
             }
             taskLogger.completeTask(ctx.playerId(), cfg.getId());
-            gameFunctionService.notifyTaskFunctionOpen(ctx.playerId(), List.of(cfg.getFunctionId()));
+            unlockTaskFunction(ctx, cfg.getFunctionId());
             guideService.trigger(ctx, SimConstant.GuideCondition.TASK_COMPLETED, cfg.getId(), true);
             if (cfg.getTaskType() == TaskConstant.TaskType.MAIN_LINE) {
                 mainTaskLogger.completed(ctx.playerId(), player.getNickName(), cfg.getId(),
@@ -770,7 +782,7 @@ public class SimTaskService implements IRedDotService, GameFunctionListener {
         //后台任务日志: 完成 (主线/成就类型由后台按 taskType 区分)
         taskLogger.completeTask(player.getId(), node.getConfigId());
         log.info("玩家[{}]完成 sim 任务[{}]", player.getId(), node.getConfigId());
-        gameFunctionService.notifyTaskFunctionOpen(player.getId(), List.of(cfg.getFunctionId()));
+        unlockTaskFunction(ctx, cfg.getFunctionId());
         guideService.trigger(ctx, SimConstant.GuideCondition.TASK_COMPLETED, node.getConfigId(), true);
         if (cfg.getTaskType() == TaskConstant.TaskType.MAIN_LINE) {
             mainTaskLogger.completed(player.getId(), player.getNickName(), cfg.getId(),
@@ -1161,11 +1173,13 @@ public class SimTaskService implements IRedDotService, GameFunctionListener {
         task.setStatus(node.getStatus());
         task.rewards = ItemUtils.buildItemInfo(cfg.getGetItem());
 
-        List<Long> cond = cfg.getTaskConditionId();
         TaskCondition c = new TaskCondition();
-        c.setConfigId(cond.getFirst().intValue());
         SimTaskConfigService.TaskConditionDef def = taskConfig.conditionOf(cfg.getId());
-        c.setConfigParam(def == null ? cond.getLast() : def.condition().target());
+        List<Long> cond = cfg.getTaskConditionId();
+        if (cond != null && !cond.isEmpty()) {
+            c.setConfigId(cond.getFirst().intValue());
+            c.setConfigParam(def == null ? cond.getLast() : def.condition().target());
+        }
         c.setProgress(node.getStatus() == TaskConstant.TaskStatus.STATUS_IN_PROGRESS
                 ? (progressOverride == null ? currentProgress(ctx, player, node, cfg) : progressOverride)
                 : completedProgress(node, def));
@@ -1244,37 +1258,9 @@ public class SimTaskService implements IRedDotService, GameFunctionListener {
         return corePlayerService.get(ctx.playerId());
     }
 
-    @Override
-    public Set<Integer> checkOpenFunction(Player player) {
-        SimPlayerContext ctx = contextRegistry.getContext(player.getId());
-        if (ctx == null) {
-            return Collections.emptySet();
+    private void unlockTaskFunction(SimPlayerContext ctx, int functionId) {
+        if (ctx.getSimBaseData().unlockFunction(functionId)) {
+            gameFunctionService.notifyTaskFunctionOpen(ctx.playerId(), List.of(functionId));
         }
-
-        SimTaskData data = ctx.getSimTaskData();
-        if (data == null || data.getMainTask() == null) {
-            return Collections.emptySet();
-        }
-
-        Set<Integer> set = new HashSet<>();
-        for (int id : taskConfig.getMainChain()) {
-            TaskCfg cfg = GameDataManager.getTaskCfg(id);
-            if (cfg == null || cfg.getFunctionId() < 1) {
-                continue;
-            }
-
-            if(cfg.getId() > data.getMainTask().getConfigId()){
-                break;
-            }
-
-            if(cfg.getId() == data.getMainTask().getConfigId()){
-                if(data.getMainTask().getStatus() >= TaskConstant.TaskStatus.STATUS_COMPLETED){
-                    set.add(cfg.getFunctionId());
-                }
-            }else {
-                set.add(cfg.getFunctionId());
-            }
-        }
-        return set;
     }
 }

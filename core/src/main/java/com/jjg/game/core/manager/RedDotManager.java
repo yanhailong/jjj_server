@@ -441,7 +441,8 @@ public class RedDotManager {
             return;
         }
         try (ExecutorService executor = Executors.newVirtualThreadPerTaskExecutor()) {
-            onlinePlayers.keySet().forEach(playerId -> executor.submit(() -> {
+            onlinePlayers.values().forEach(sessionInfo -> executor.submit(() -> {
+                long playerId = sessionInfo.getPlayerId();
                 try {
                     updateRedDotByInitialize(module, submodule, playerId);
                 } catch (Exception e) {
