@@ -263,4 +263,13 @@ public interface Code {
     int FRIRENDS_TARGET_HANDLE_MAX = 4058058;
     //已经申请过添加该好友
     int FRIRENDS_IS_APPLY_FRIRENDS = 4058059;
+
+    //建筑加成-雇员
+    int BUILD_BONUS_EMPLOYEE = 4010055;
+    //建筑加成-主管
+    int BUILD_BONUS_MANAGER = 4010056;
+    //建筑加成-成就徽章
+    int BUILD_BONUS_MEDAL = 4010057;
+    //建筑加成-技能
+    int BUILD_BONUS_SKILL = 4010058;
 }

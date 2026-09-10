@@ -31,16 +31,6 @@ public class BuildingInfo {
     public int interactCount;
     @ProtoDesc("游客品质出现概率")
     public List<KVInfo> guestQualityList;
-    @ProtoDesc("金币产出/分钟")
-    public long goldOutputPerMinute;
-    @ProtoDesc("经验产出/分钟")
-    public long expOutputPerMinute;
-    @ProtoDesc("体力产出/分钟")
-    public long powerOutputPerMinute;
-    @ProtoDesc("服务能力")
-    public long serviceCapacity;
-    @ProtoDesc("曝光度")
-    public long exposure;
-    @ProtoDesc("知名度")
-    public long awareness;
+    @ProtoDesc("建筑加成")
+    public List<BonusInfo> bonusInfos;
 }
