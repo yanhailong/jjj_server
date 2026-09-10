@@ -7,10 +7,12 @@ import com.jjg.game.sampledata.bean.BuildingAreaTableCfg;
 import com.jjg.game.sampledata.bean.BuildingUpgradeTableCfg;
 import com.jjg.game.sampledata.bean.GlobalConfigCfg;
 import com.jjg.game.sampledata.bean.VisitorQuestCfg;
+import com.jjg.game.sim.constant.BuildingOutputType;
 import com.jjg.game.sim.constant.ServerBuildingType;
 import com.jjg.game.sim.constant.SimConstant;
 import com.jjg.game.sim.data.*;
 import com.jjg.game.sim.pb.struct.*;
+import com.jjg.game.sim.service.SimBuildingService;
 import com.jjg.game.sim.service.SimConfigCacheService;
 import com.jjg.game.sim.service.SimOperationDashboardService;
 
@@ -94,6 +96,14 @@ public final class SimPbConverter {
 
             info.guestQualityList.add(kvInfo);
         }
+        Map<BuildingOutputType, Long> values = CommonUtil.getContext().getBean(SimBuildingService.class)
+                .computeDashboardBuildingValues(ctx, buildingData);
+        info.goldOutputPerMinute = values.getOrDefault(BuildingOutputType.GOLD, 0L);
+        info.expOutputPerMinute = values.getOrDefault(BuildingOutputType.CASINO_LEVEL_EXP, 0L);
+        info.powerOutputPerMinute = values.getOrDefault(BuildingOutputType.POWER, 0L);
+        info.serviceCapacity = values.getOrDefault(BuildingOutputType.SERVICE, 0L);
+        info.exposure = values.getOrDefault(BuildingOutputType.EXPOSURE, 0L);
+        info.awareness = values.getOrDefault(BuildingOutputType.AWARENESS, 0L);
         return info;
     }
 
