@@ -16,7 +16,7 @@ public class MiningCellInfo {
     public int typeId;
     @ProtoDesc("剩余耐久，0已挖开")
     public int hp;
-    @ProtoDesc("是否与已开放区域连通，不代表当前工具可挖")
+    @ProtoDesc("是否与地表可达开放区域上下左右相邻，斜角不连通，不代表当前工具可挖")
     public boolean connected;
     @ProtoDesc("秘境ID，0无")
     public long secretId;

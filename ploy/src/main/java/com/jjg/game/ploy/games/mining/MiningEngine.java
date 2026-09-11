@@ -7,6 +7,7 @@ import java.util.*;
 /** 纯地图规则；调用方先在快照计算，再原子提交消耗、奖励和存档。坐标从1开始。 */
 public class MiningEngine {
     private static final int MAX_AUTO_SCROLL_ROWS = 10_000;
+    private static final int CONNECTIVITY_VERSION = 4;
     private final MiningCatalog catalog;
 
     public MiningEngine() { this(MiningCatalog.live()); }
@@ -19,7 +20,7 @@ public class MiningEngine {
         state.seed = seed;
         state.width = catalog.width();
         state.visibleRows = catalog.visibleRows();
-        state.connectivityVersion = 3;
+        state.connectivityVersion = CONNECTIVITY_VERSION;
         ensureRows(state, state.visibleRows);
         refreshReachability(state);
         return state;
@@ -68,25 +69,20 @@ public class MiningEngine {
     }
 
     /**
-     * 兼容旧存档：首屏可从真实地表精确恢复；已滚屏但丢失连通前沿的存档，
-     * 以当前顶行已打开区域作为历史连通入口。版本1已有的有效前沿继续保留。
+     * 首屏从地表重算；滚屏存档只保留顶行历史入口，清除下方八方向传播的旧标记。
+     * 更早版本丢失入口时，沿用当前顶行已打开区域的恢复策略。
      */
     boolean alignConnectivity(MiningState state) {
-        if (state.connectivityVersion >= 3) return false;
+        if (state.connectivityVersion >= CONNECTIVITY_VERSION) return false;
         if (state.cells == null) state.cells = new ArrayList<>();
-        if (state.connectivityVersion < 1) {
-            state.cells.forEach(cell -> cell.reachable = false);
-        } else {
-            state.cells.stream().filter(cell -> cell.hp > 0).forEach(cell -> cell.reachable = false);
-        }
-        boolean hasReachableOpenCell = state.cells.stream().anyMatch(cell -> cell.hp == 0 && cell.reachable);
-        if (!hasReachableOpenCell) {
-            int rootRow = state.topRow <= 1 ? 1 : state.topRow;
-            state.cells.stream().filter(cell -> cell.row == rootRow && cell.hp == 0)
-                    .forEach(cell -> cell.reachable = true);
+        boolean hasHistoricalReachability = state.connectivityVersion >= 1
+                && state.cells.stream().anyMatch(cell -> cell.hp == 0 && cell.reachable);
+        for (MiningState.Cell cell : state.cells) {
+            cell.reachable = cell.hp == 0 && cell.row == state.topRow
+                    && (state.topRow == 1 || !hasHistoricalReachability || cell.reachable);
         }
         refreshReachability(state);
-        state.connectivityVersion = 3;
+        state.connectivityVersion = CONNECTIVITY_VERSION;
         return true;
     }
 
@@ -189,7 +185,7 @@ public class MiningEngine {
         int bottom = Math.addExact(state.topRow, state.visibleRows - 1);
         return state.cells.stream().anyMatch(c -> c.hp == 0 && c.reachable && c.row >= state.topRow
                 && c.row <= bottom
-                && Math.max(Math.abs(c.row - row), Math.abs(c.column - column)) == 1);
+                && Math.abs(c.row - row) + Math.abs(c.column - column) == 1);
     }
 
     private void refreshReachability(MiningState state) {
@@ -208,11 +204,7 @@ public class MiningEngine {
         Map<Long, MiningState.Cell> opened = new HashMap<>();
         state.cells.stream().filter(cell -> cell.row >= state.topRow && cell.row <= bottom && cell.hp == 0)
                 .forEach(cell -> opened.put(cellKey(cell.row, cell.column), cell));
-        int[][] directions = {
-                {-1, -1}, {-1, 0}, {-1, 1},
-                {0, -1},           {0, 1},
-                {1, -1},  {1, 0},  {1, 1}
-        };
+        int[][] directions = {{-1, 0}, {1, 0}, {0, -1}, {0, 1}};
         while (!queue.isEmpty()) {
             MiningState.Cell current = queue.removeFirst();
             for (int[] direction : directions) {

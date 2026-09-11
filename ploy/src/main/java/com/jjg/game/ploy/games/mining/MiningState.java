@@ -66,6 +66,8 @@ public class MiningState {
     }
 
     public static class Delivery {
+        /** 货币购买待核账：货币扣除与普通背包奖励分属不同存储。 */
+        public boolean currencyPurchase;
         public String id;
         public Map<Integer, Long> rewards;
         public Map<Integer, Long> costs;

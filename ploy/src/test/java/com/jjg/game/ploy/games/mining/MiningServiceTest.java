@@ -37,12 +37,20 @@ class MiningServiceTest {
     @BeforeEach void setup() {
         player.setId(10001L); saved = null; wallet = new HashMap<>();
         wallet.put(1024034, 100L); wallet.put(1024035, 20L); wallet.put(1024036, 20L); wallet.put(1024037, 1000L);
+        wallet.put(1980000, 10000L);
         config = new MiningConfig(); packs = mock(PlayerPackService.class); accounts = mock(AccountDao.class);
         ranks = mock(MiningRankService.class); RedissonClient redis = mock(RedissonClient.class); RLock lock = mock(RLock.class);
         when(lock.tryLock()).thenReturn(true); when(redis.getLock(anyString())).thenReturn(lock);
         when(ranks.seasonReadLock(anyString())).thenReturn(lock);
         when(packs.getFromAllDB(player.getId())).thenAnswer(inv -> { PlayerPack p = new PlayerPack(player.getId()); p.setMiningState(saved); return p; });
         when(packs.getItemCount(eq(player.getId()), anyInt())).thenAnswer(inv -> wallet.getOrDefault(inv.getArgument(1), 0L));
+        when(packs.removeItems(eq(player), anyMap(), any(), anyString())).thenAnswer(inv -> {
+            Map<Integer, Long> costs = inv.getArgument(1);
+            if (costs.entrySet().stream().anyMatch(e -> wallet.getOrDefault(e.getKey(), 0L) < e.getValue()))
+                return new CommonResult<ItemOperationResult>(Code.NOT_ENOUGH);
+            costs.forEach((id, n) -> wallet.merge(id, -n, Long::sum));
+            return new CommonResult<ItemOperationResult>(Code.SUCCESS);
+        });
         when(packs.exchangeMiningItems(eq(player), anyMap(), anyMap(), any(), anyString(), nullable(String.class), anyString()))
                 .thenAnswer(inv -> {
                     Map<Integer, Long> costs = inv.getArgument(1), rewards = inv.getArgument(2);
@@ -84,7 +92,11 @@ class MiningServiceTest {
         assertEquals(1, bundles.bundles.stream().filter(bundle -> bundle.id == 6001).findFirst().orElseThrow().mode);
         assertEquals(2, bundles.bundles.stream().filter(bundle -> bundle.id == 6002).findFirst().orElseThrow().mode);
         MiningBundleInfo paidBundle = bundles.bundles.stream().filter(bundle -> bundle.id == 6003).findFirst().orElseThrow();
-        assertEquals(3, paidBundle.mode); assertEquals("6", paidBundle.price);
+        assertEquals(3, paidBundle.mode); assertEquals("600", paidBundle.price);
+        assertEquals(1, paidBundle.cost.size());
+        assertEquals(1980000, paidBundle.cost.getFirst().itemId);
+        assertEquals(600, paidBundle.cost.getFirst().count);
+        assertTrue(bundles.bundles.stream().filter(bundle -> bundle.mode != 3).allMatch(bundle -> bundle.cost.isEmpty()));
 
         ResMiningAchievements achievements = service.achievements(player);
         assertEquals(Code.SUCCESS, achievements.code); assertFalse(achievements.achievements.isEmpty());
@@ -211,6 +223,11 @@ class MiningServiceTest {
         assertEquals(0, capped.info.nextPickRecoveryTime);
 
         long beforeDig = System.currentTimeMillis();
+        MiningState ready = state();
+        // 当前配置首行可能生成空格，显式构造一个可用镐消耗的地表格。
+        MiningState.Cell target = MiningFixtures.cell(ready, 1, 1);
+        target.hp = 1; target.type = 1001; target.reachable = false;
+        saved = JSON.toJSONString(ready);
         ResMiningState dug = service.action(player, request(MiningConstant.DIG, 101));
         assertEquals(Code.SUCCESS, dug.code);
         assertEquals(399, wallet.get(pickItemId));
@@ -259,9 +276,11 @@ class MiningServiceTest {
 
     @Test void enteringLegacyFirstScreenRecalculatesSecondRowConnectivity() {
         MiningState old = state();
-        old.connectivityVersion = 2;
+        old.connectivityVersion = 3;
+        old.cells.forEach(cell -> { cell.hp = 1; cell.type = 1001; cell.reachable = false; });
         MiningFixtures.cell(old, 1, 5).hp = 0;
         MiningFixtures.cell(old, 2, 6).hp = 0;
+        MiningFixtures.cell(old, 2, 6).reachable = true;
         MiningFixtures.cell(old, 2, 4).hp = 1;
         MiningFixtures.cell(old, 2, 5).hp = 1;
         saved = JSON.toJSONString(old);
@@ -269,9 +288,16 @@ class MiningServiceTest {
         ResMiningState response = service.info(player);
 
         assertEquals(Code.SUCCESS, response.code);
-        assertEquals(3, state().connectivityVersion);
-        assertTrue(response.info.cells.stream().anyMatch(cell -> cell.row == 2 && cell.column == 4 && cell.connected));
+        assertEquals(4, state().connectivityVersion);
+        assertFalse(response.info.cells.stream().filter(cell -> cell.row == 2 && cell.column == 4)
+                .findFirst().orElseThrow().connected);
         assertTrue(response.info.cells.stream().anyMatch(cell -> cell.row == 2 && cell.column == 5 && cell.connected));
+        assertFalse(MiningFixtures.cell(state(), 2, 6).reachable);
+        ReqMiningAction diagonal = request(MiningConstant.DIG, 101);
+        diagonal.row = 2; diagonal.column = 4;
+        Map<Integer, Long> before = Map.copyOf(wallet);
+        assertEquals("CELL_NOT_CONNECTED", service.action(player, diagonal).reason);
+        assertEquals(before, wallet);
     }
 
     @Test void duplicateDigAndStaleMapDoNotConsumeAgain() {
@@ -462,10 +488,81 @@ class MiningServiceTest {
         assertEquals(before, wallet); assertEquals(old, saved);
     }
 
-    @Test void adBundleClaimsDirectlyAndPaidBundleCannotUseFreeClaim() {
+    @Test void adBundleIsFreeAndPurchaseDeductsConfiguredDiamondsOnce() {
         assertEquals(Code.SUCCESS, service.action(player, request(MiningConstant.BUNDLE, 6002)).code);
         assertEquals(1, state().total.ads);
-        assertEquals("PAYMENT_REQUIRED", service.action(player, request(MiningConstant.BUNDLE, 6003)).reason);
+        ReqMiningAction purchase = request(MiningConstant.BUNDLE, 6003);
+        assertEquals(Code.SUCCESS, service.action(player, purchase).code);
+        assertEquals(9400, wallet.get(1980000));
+        assertEquals(111, wallet.get(1024034));
+        assertEquals(1, state().dailyPurchases.get(6003));
+        assertNull(state().delivery);
+        assertEquals("STALE_VERSION", service.action(player, purchase).reason);
+        assertEquals(9400, wallet.get(1980000));
+        assertEquals(111, wallet.get(1024034));
+        verify(packs).removeItems(eq(player), eq(Map.of(1980000, 600L)), any(), startsWith("mining:currency:"));
+    }
+
+    @Test void insufficientDiamondsRestoreQuotaWithoutGivingRewards() {
+        wallet.put(1980000, 599L);
+        assertEquals("NOT_ENOUGH_BUNDLE_CURRENCY", service.action(player, request(MiningConstant.BUNDLE, 6003)).reason);
+        assertEquals(599, wallet.get(1980000)); assertEquals(100, wallet.get(1024034));
+        assertFalse(state().dailyPurchases.containsKey(6003)); assertNull(state().delivery);
+        wallet.put(1980000, 600L);
+        assertEquals(Code.SUCCESS, service.action(player, request(MiningConstant.BUNDLE, 6003)).code);
+        assertEquals(0, wallet.get(1980000)); assertEquals(110, wallet.get(1024034));
+    }
+
+    @Test void diamondBundleDailyLimitRejectsBeforeAnotherDeduction() {
+        int limit = GameDataManager.getMiningBundleShopCfg(6003).getDailyPurchaseLimit();
+        for (int i = 0; i < limit; i++)
+            assertEquals(Code.SUCCESS, service.action(player, request(MiningConstant.BUNDLE, 6003)).code);
+        long balance = wallet.get(1980000);
+        assertEquals(Code.DAILY_LIMIT, service.action(player, request(MiningConstant.BUNDLE, 6003)).code);
+        assertEquals(balance, wallet.get(1980000));
+        verify(packs, times(limit)).removeItems(eq(player), anyMap(), any(), anyString());
+    }
+
+    @Test void unknownCurrencyDeductionBlocksReplayAndCanBeReconciledWithoutRedebit() {
+        when(packs.removeItems(eq(player), anyMap(), any(), anyString())).thenAnswer(inv -> {
+            wallet.merge(1980000, -600L, Long::sum);
+            throw new IllegalStateException("response lost after debit");
+        });
+        assertEquals(Code.EXCEPTION, service.action(player, request(MiningConstant.BUNDLE, 6003)).code);
+        String deliveryId = state().delivery.id;
+        assertTrue(state().delivery.currencyPurchase);
+        assertEquals("DELIVERY_REQUIRES_RECONCILIATION", service.action(player, request(MiningConstant.BUNDLE, 6003)).reason);
+        service.reconcileCurrencyPurchase(player, deliveryId, true);
+        assertEquals(9400, wallet.get(1980000)); assertEquals(110, wallet.get(1024034));
+        assertNull(state().delivery);
+        assertThrows(MiningException.class, () -> service.reconcileCurrencyPurchase(player, deliveryId, true));
+        verify(packs).removeItems(eq(player), anyMap(), any(), anyString());
+    }
+
+    @Test void unconfirmedDebitCanBeCancelledWithoutRefundingUndeductedCurrency() {
+        when(packs.removeItems(eq(player), anyMap(), any(), anyString())).thenReturn(new CommonResult<>(Code.FAIL));
+        assertEquals("DELIVERY_REQUIRES_RECONCILIATION", service.action(player, request(MiningConstant.BUNDLE, 6003)).reason);
+        service.reconcileCurrencyPurchase(player, state().delivery.id, false);
+        assertEquals(10000, wallet.get(1980000)); assertEquals(100, wallet.get(1024034));
+        assertFalse(state().dailyPurchases.containsKey(6003)); assertNull(state().delivery);
+    }
+
+    @Test void rewardCommitFailureAfterDebitKeepsPendingAndBlocksSecondDebit() {
+        when(packs.exchangeMiningItems(eq(player), anyMap(),
+                argThat(rewards -> rewards != null && rewards.containsKey(1024034)), any(),
+                anyString(), nullable(String.class), anyString())).thenReturn(new CommonResult<>(Code.FAIL));
+        assertEquals(Code.FAIL, service.action(player, request(MiningConstant.BUNDLE, 6003)).code);
+        assertEquals(9400, wallet.get(1980000)); assertEquals(100, wallet.get(1024034));
+        assertTrue(state().delivery.currencyPurchase);
+        assertEquals("DELIVERY_REQUIRES_RECONCILIATION", service.action(player, request(MiningConstant.BUNDLE, 6003)).reason);
+        verify(packs).removeItems(eq(player), anyMap(), any(), anyString());
+    }
+
+    @Test void newCashOrderIsForbiddenAndDoesNotReserveQuota() {
+        String before = saved;
+        ReqGenerateOrder req = new ReqGenerateOrder(); req.productId = "6003";
+        assertEquals(Code.FORBID, service.generateOrderDetailInfo(player, req).code);
+        assertEquals(before, saved);
     }
 
     @Test void exhaustedAdBundleReturnsDailyResetAsCooldownEndTime() {
@@ -503,12 +600,20 @@ class MiningServiceTest {
         assertEquals(105, wallet.get(1024034));
     }
 
-    @Test void paymentQuoteLocksPriceRewardsAndDuplicateCallbackCannotGrantAgain() {
-        ReqGenerateOrder req = new ReqGenerateOrder(); req.productId = "6003"; req.desc = "client supplied";
-        CommonResult<BigDecimal> orderResult = service.generateOrderDetailInfo(player, req);
-        assertTrue(orderResult.success());
-        assertEquals(new BigDecimal("6"), orderResult.data);
-        assertNotEquals("client supplied", req.desc);
+    private ReqGenerateOrder legacyQuote() {
+        ReqGenerateOrder req = new ReqGenerateOrder(); req.productId = "6003"; req.desc = "legacy-quote";
+        MiningState current = state();
+        MiningState.Quote quote = new MiningState.Quote();
+        quote.id = req.desc; quote.goodId = 6003; quote.day = current.day;
+        quote.price = "6"; quote.goods = Map.of(1024034, 10L);
+        current.paymentQuotes.put(quote.id, quote);
+        current.dailyPurchases.put(6003, 1); current.permanentPurchases.put(6003, 1);
+        saved = JSON.toJSONString(current);
+        return req;
+    }
+
+    @Test void legacyPaymentQuoteStillFulfillsExactlyOnce() {
+        ReqGenerateOrder req = legacyQuote();
         Order order = new Order(); order.setId("paid-order-1"); order.setPlayerId(player.getId());
         order.setRechargeType(RechargeType.MINING_BUNDLE); order.setProductId("6003"); order.setDesc(req.desc);
         order.setPrice(new BigDecimal("1"));
@@ -521,8 +626,7 @@ class MiningServiceTest {
     }
 
     @Test void failedOrderCreationReleasesReservationExactlyOnce() {
-        ReqGenerateOrder req = new ReqGenerateOrder(); req.productId = "6003";
-        assertTrue(service.generateOrderDetailInfo(player, req).success());
+        ReqGenerateOrder req = legacyQuote();
         assertEquals(1, state().dailyPurchases.get(6003));
         service.onOrderCreationFailed(player, req); service.onOrderCreationFailed(player, req);
         assertEquals(0, state().dailyPurchases.get(6003)); assertEquals(0, state().permanentPurchases.get(6003));

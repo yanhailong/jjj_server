@@ -21,7 +21,7 @@ class MiningEngineTest {
         assertTrue(GameDataManager.getMiningMapGenerationCfgList().size() >= 24);
     }
 
-    @Test void pickRequiresEightDirectionAdjacencyAndCountsOnlyDestroyedCells() {
+    @Test void pickRequiresFourDirectionAdjacencyAndCountsOnlyDestroyedCells() {
         MiningEngine engine = new MiningEngine();
         MiningState state = MiningFixtures.flat(2, 1002);
         assertEquals("CELL_NOT_CONNECTED", assertThrows(MiningException.class, () -> engine.dig(state, 2, 2, 101, 1)).getMessage());
@@ -29,24 +29,27 @@ class MiningEngineTest {
         assertEquals(1, MiningFixtures.cell(state, 1, 1).hp); assertEquals(0, state.total.grids);
         assertFalse(engine.connected(state, 2, 1));
         engine.dig(state, 1, 1, 101, 2);
-        assertTrue(engine.connected(state, 2, 1)); assertTrue(engine.connected(state, 2, 2));
+        assertTrue(engine.connected(state, 2, 1)); assertFalse(engine.connected(state, 2, 2));
+        assertEquals("CELL_NOT_CONNECTED", assertThrows(MiningException.class,
+                () -> engine.dig(state, 2, 2, 101, 3)).getMessage());
         assertFalse(engine.connected(state, 2, 3));
         assertEquals(1, state.total.grids); assertEquals(2, state.total.tools.get(1024034));
     }
 
-    @Test void legacyFirstScreenRecalculatesEightDirectionFrontierOnLoad() {
+    @Test void legacyFirstScreenClearsCachedDiagonalReachabilityOnLoad() {
         MiningEngine engine = new MiningEngine();
         MiningState state = MiningFixtures.flat(1, 1001);
-        state.connectivityVersion = 2;
+        state.connectivityVersion = 3;
         MiningFixtures.cell(state, 1, 5).hp = 0;
         MiningFixtures.cell(state, 2, 6).hp = 0;
+        MiningFixtures.cell(state, 2, 6).reachable = true;
 
         assertTrue(engine.alignConnectivity(state));
 
-        assertEquals(3, state.connectivityVersion);
+        assertEquals(4, state.connectivityVersion);
         assertTrue(MiningFixtures.cell(state, 1, 5).reachable);
-        assertTrue(MiningFixtures.cell(state, 2, 6).reachable);
-        assertTrue(engine.connected(state, 2, 4));
+        assertFalse(MiningFixtures.cell(state, 2, 6).reachable);
+        assertFalse(engine.connected(state, 2, 4));
         assertTrue(engine.connected(state, 2, 5));
         assertFalse(engine.alignConnectivity(state));
     }
@@ -79,7 +82,7 @@ class MiningEngineTest {
         MiningFixtures.cell(state, 1, 1).reachable = true;
 
         assertTrue(MiningService.cellInfo(MiningFixtures.cell(state, 2, 1), state, engine).connected);
-        assertTrue(MiningService.cellInfo(MiningFixtures.cell(state, 2, 2), state, engine).connected);
+        assertFalse(MiningService.cellInfo(MiningFixtures.cell(state, 2, 2), state, engine).connected);
         assertFalse(MiningService.cellInfo(MiningFixtures.cell(state, 2, 3), state, engine).connected);
     }
 
@@ -129,7 +132,7 @@ class MiningEngineTest {
         assertTrue(engine.alignConnectivity(state));
         assertTrue(MiningFixtures.cell(state, 330, 3).reachable);
         assertTrue(engine.connected(state, 331, 3));
-        assertEquals(3, state.connectivityVersion);
+        assertEquals(4, state.connectivityVersion);
     }
 
     @Test void disconnectedBottomOpeningDoesNotScrollUntilItJoinsReachableArea() {
@@ -282,7 +285,52 @@ class MiningEngineTest {
 
         assertEquals(1, result.scrollRows());
         assertEquals(2, state.topRow);
-        assertTrue(MiningFixtures.cell(state, 9, 4).reachable);
+        assertFalse(MiningFixtures.cell(state, 9, 4).reachable);
+        assertFalse(engine.connected(state, 9, 5));
+        // 再挖上方格子，也不能把上次留下的斜角空隙当作触底来源。
+        assertEquals(0, engine.dig(state, 2, 2, 101, 2).scrollRows());
+        assertEquals(2, state.topRow);
+    }
+
+    @Test void fourDirectionPassageTurnsCornersButCannotCrossDiagonalGaps() {
+        MiningEngine engine = new MiningEngine();
+        MiningState state = MiningFixtures.flat(1, 1001);
+        for (int[] position : new int[][]{{1, 3}, {2, 3}, {2, 4}, {3, 4}, {4, 5}, {5, 5}}) {
+            MiningFixtures.cell(state, position[0], position[1]).hp = 0;
+        }
+        engine.alignConnectivity(state);
+        assertTrue(MiningFixtures.cell(state, 3, 4).reachable);
+        assertFalse(MiningFixtures.cell(state, 4, 5).reachable);
+        assertFalse(MiningFixtures.cell(state, 5, 5).reachable);
+        assertTrue(engine.connected(state, 3, 5));
+        assertFalse(engine.connected(state, 5, 4));
+
+        engine.dig(state, 3, 5, 101, 1);
+        assertTrue(MiningFixtures.cell(state, 4, 5).reachable);
+        assertTrue(MiningFixtures.cell(state, 5, 5).reachable);
+        assertTrue(engine.connected(state, 5, 4));
+    }
+
+    @Test void migratedScrolledStateDropsDiagonalFlagsAndRetainsHistoricalTopEntrance() {
+        MiningEngine engine = new MiningEngine();
+        MiningState state = MiningFixtures.flat(1, 1001);
+        state.cells.forEach(cell -> cell.row += 20);
+        state.topRow = 21; state.generatedRows = 28; state.connectivityVersion = 3;
+        for (int[] position : new int[][]{{21, 3}, {22, 3}, {23, 4}, {24, 4}}) {
+            var cell = MiningFixtures.cell(state, position[0], position[1]);
+            cell.hp = 0; cell.reachable = true;
+        }
+        MiningFixtures.cell(state, 21, 6).hp = 0;
+
+        assertTrue(engine.alignConnectivity(state));
+        assertTrue(MiningFixtures.cell(state, 22, 3).reachable);
+        assertFalse(MiningFixtures.cell(state, 23, 4).reachable);
+        assertFalse(MiningFixtures.cell(state, 24, 4).reachable);
+        assertFalse(MiningFixtures.cell(state, 21, 6).reachable);
+        assertFalse(engine.connected(state, 24, 5));
+        assertEquals(21, state.topRow);
+        assertEquals(0, MiningFixtures.cell(state, 23, 4).hp);
+        assertFalse(engine.alignConnectivity(state));
     }
 
     @Test void resourceRewardAndDepthDoNotAdvanceForPartialDamageOrRepeatedEmptyHit() {

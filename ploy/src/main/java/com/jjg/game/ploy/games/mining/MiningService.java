@@ -13,9 +13,7 @@ import com.jjg.game.core.listener.OrderGenerate;
 import com.jjg.game.core.pb.RechargeType;
 import com.jjg.game.core.pb.ReqGenerateOrder;
 import com.jjg.game.core.service.PlayerPackService;
-import com.jjg.game.core.service.PlayerStatService;
 import com.jjg.game.core.utils.ItemUtils;
-import com.jjg.game.core.utils.RedisUtils;
 import com.jjg.game.ploy.games.mining.message.*;
 import com.jjg.game.ploy.manager.StandalonePloyGame;
 import com.jjg.game.sampledata.GameDataManager;
@@ -124,8 +122,7 @@ public class MiningService implements OrderGenerate, StandalonePloyGame {
                             if (good == null) throw new MiningException("UNKNOWN_PRODUCT");
                             checkLimit(state, good.getId(), good.getDailyPurchaseLimit(), 1);
                             int mode = bundleMode(good);
-                            if (mode == MiningConstant.BUNDLE_PAID)
-                                throw new MiningException(Code.FORBID, "PAYMENT_REQUIRED");
+                            costs = bundleCost(good);
                             if (mode == MiningConstant.BUNDLE_AD) {
                                 state.total.ads++; state.daily.ads++;
                             }
@@ -151,7 +148,10 @@ public class MiningService implements OrderGenerate, StandalonePloyGame {
                     }
                     validateItems(costs); validateItems(rewards);
                     alignPickRecoveryClockAfterExchange(player, state, engine, costs, rewards, now);
-                    if (rewards.keySet().stream().anyMatch(id -> !ordinaryItem(id))) {
+                    if (request.action == MiningConstant.BUNDLE && costs.keySet().stream().anyMatch(MiningService::currencyItem)) {
+                        snapshot = purchaseWithCurrency(player, snapshot, costs, rewards, request.id, source);
+                        state = snapshot.state;
+                    } else if (rewards.keySet().stream().anyMatch(id -> !ordinaryItem(id))) {
                         // 兑换支持能量、游客、雇员等特殊道具；这些由现有业务处理器入账。
                         snapshot = deliverSpecial(player, snapshot, costs, rewards, request.id, source);
                         state = snapshot.state;
@@ -412,6 +412,55 @@ public class MiningService implements OrderGenerate, StandalonePloyGame {
         return commit(player, pending.json, pending.state, Map.of(), Map.of(), source);
     }
 
+    private Snapshot purchaseWithCurrency(Player player, Snapshot before, Map<Integer, Long> costs,
+                                          Map<Integer, Long> rewards, int goodId, AddType source) {
+        // 通用扣币接口读取最新玩家货币余额。礼包奖励必须能与限购、存档在背包事务内提交。
+        if (costs.keySet().stream().anyMatch(id -> !currencyItem(id))
+                || rewards.keySet().stream().anyMatch(id -> !ordinaryItem(id)))
+            throw new MiningException(Code.SAMPLE_ERROR, "UNSUPPORTED_CURRENCY_BUNDLE");
+        MiningState.Delivery delivery = new MiningState.Delivery();
+        delivery.id = UUID.randomUUID().toString(); delivery.currencyPurchase = true;
+        delivery.costs = costs; delivery.rewards = rewards; delivery.goodId = goodId;
+        delivery.previousState = before.json;
+        before.state.delivery = delivery;
+        Snapshot pending = commit(player, before.json, before.state, Map.of(), Map.of(), source);
+        CommonResult<ItemOperationResult> removed = packs.removeItems(player, costs, source,
+                "mining:currency:" + delivery.id);
+        if (!removed.success()) {
+            // 只有明确余额不足才撤销预占。异常或未知结果保留pending，禁止再次扣款。
+            if (removed.code == Code.NOT_ENOUGH || removed.code == Code.NOT_ENOUGH_ITEM
+                    || removed.code == Code.DIAMOND_NOT_ENOUGH) {
+                MiningState restored = JSON.parseObject(before.json, MiningState.class);
+                restored.version = pending.state.version;
+                commit(player, pending.json, restored, Map.of(), Map.of(), source);
+                throw new MiningException(removed.code, "NOT_ENOUGH_BUNDLE_CURRENCY");
+            }
+            throw new MiningException(Code.FAIL, "DELIVERY_REQUIRES_RECONCILIATION");
+        }
+        pending.state.delivery = null;
+        return commit(player, pending.json, pending.state, Map.of(), rewards, source);
+    }
+
+    /** 运维确认该pending对应的货币是否已扣除后调用；不会再次扣款，已扣则补发，未扣则撤销预占。 */
+    public void reconcileCurrencyPurchase(Player player, String deliveryId, boolean deducted) {
+        RLock lock = redis.getLock("mining:player:" + player.getId());
+        if (!lock.tryLock()) throw new MiningException("PLAYER_BUSY");
+        try {
+            PlayerPack pack = packs.getFromAllDB(player.getId());
+            MiningState state = JSON.parseObject(pack.getMiningState(), MiningState.class);
+            MiningState.Delivery delivery = state.delivery;
+            if (delivery == null || !delivery.currencyPurchase || !Objects.equals(delivery.id, deliveryId))
+                throw new MiningException("DELIVERY_NOT_FOUND");
+            if (!deducted) {
+                MiningState restored = JSON.parseObject(delivery.previousState, MiningState.class);
+                restored.version = state.version;
+                state = restored;
+            }
+            state.delivery = null;
+            commit(player, pack.getMiningState(), state, Map.of(), deducted ? delivery.rewards : Map.of(), AddType.MINING_BUNDLE);
+        } finally { lock.unlock(); }
+    }
+
     /** 运维核账确认后调用；不是客户端协议。granted=true表示外部奖励已到账。 */
     public void reconcileDelivery(Player player, String deliveryId, boolean granted) {
         RLock lock = redis.getLock("mining:player:" + player.getId());
@@ -421,6 +470,7 @@ public class MiningService implements OrderGenerate, StandalonePloyGame {
             MiningState state = JSON.parseObject(pack.getMiningState(), MiningState.class);
             if (state.delivery == null || !Objects.equals(state.delivery.id, deliveryId)) throw new MiningException("DELIVERY_NOT_FOUND");
             MiningState.Delivery delivery = state.delivery;
+            if (delivery.currencyPurchase) throw new MiningException("USE_CURRENCY_PURCHASE_RECONCILIATION");
             if (!granted) {
                 MiningState restored = JSON.parseObject(delivery.previousState, MiningState.class);
                 restored.version = state.version;
@@ -466,30 +516,8 @@ public class MiningService implements OrderGenerate, StandalonePloyGame {
 
     @Override
     public CommonResult<BigDecimal> generateOrderDetailInfo(Player player, ReqGenerateOrder request) {
-        CommonResult<BigDecimal> result = new CommonResult<>(Code.FAIL);
-        try { return inSeason(player, season -> {
-            MiningBundleShopCfg good = GameDataManager.getMiningBundleShopCfg(Integer.parseInt(request.productId));
-            if (good == null || bundleMode(good) != MiningConstant.BUNDLE_PAID) return result;
-            BigDecimal price = price(good);
-            if (price.signum() <= 0) return result;
-            Map<Integer, Long> goods = MiningCatalog.itemPair(good.getGoods());
-            validateItems(goods);
-            if (goods.isEmpty() || goods.keySet().stream().anyMatch(id -> !ordinaryItem(id))) return result;
-            Snapshot snapshot = load(player, season);
-            if (snapshot.state.delivery != null) return result;
-            checkLimit(snapshot.state, good.getId(), good.getDailyPurchaseLimit(), 1);
-            MiningState.Quote quote = new MiningState.Quote();
-            quote.id = UUID.randomUUID().toString(); quote.goodId = good.getId(); quote.day = snapshot.state.day;
-            quote.price = price.toPlainString(); quote.goods = goods;
-            snapshot.state.paymentQuotes.put(quote.id, quote);
-            // 下单即占用限购额度，避免并发创建多张订单绕过限购；废单需按订单状态释放。
-            purchase(snapshot.state, good.getId(), 1);
-            commit(player, snapshot.json, snapshot.state, Map.of(), Map.of(), AddType.MINING_BUNDLE);
-            request.desc = quote.id;
-            result.code = Code.SUCCESS;
-            result.data = price;
-            return result;
-        }); } catch (Exception e) { log.warn("挖矿礼包预下单拒绝 playerId={} productId={}", player.getId(), request.productId, e); return result; }
+        // 现在通过ReqMiningAction按表扣道具。保留回调接口仅用于旧版本已创建订单的履约/释放。
+        return new CommonResult<>(Code.FORBID);
     }
 
     @Override
@@ -561,7 +589,10 @@ public class MiningService implements OrderGenerate, StandalonePloyGame {
         info.available = product.available; info.disabledReason = product.disabledReason;
         info.id = product.id; info.order = product.order; info.boughtToday = product.boughtToday;
         info.remaining = product.remaining; info.goods = product.goods;
-        info.mode = bundleMode(good); info.price = price(good).toPlainString();
+        info.mode = bundleMode(good);
+        Map<Integer, Long> cost = bundleCost(good);
+        info.cost = ItemUtils.buildItemInfo(cost);
+        info.price = Long.toString(cost.values().stream().findFirst().orElse(0L));
         info.nameLanguageId = good.getBundleName();
         info.adCdEndTime = info.mode == MiningConstant.BUNDLE_AD && info.remaining == 0 ? nextDailyReset : 0;
         return info;
@@ -668,21 +699,28 @@ public class MiningService implements OrderGenerate, StandalonePloyGame {
         int mode = good.getBundleType();
         if (mode < MiningConstant.BUNDLE_FREE || mode > MiningConstant.BUNDLE_PAID)
             throw new MiningException(Code.SAMPLE_ERROR, "INVALID_BUNDLE_TYPE");
-        int priceSign = price(good).signum();
-        if (mode == MiningConstant.BUNDLE_PAID && priceSign <= 0)
+        Map<Integer, Long> cost = bundleCost(good);
+        if (mode == MiningConstant.BUNDLE_PAID && cost.isEmpty())
             throw new MiningException(Code.SAMPLE_ERROR, "PAID_BUNDLE_REQUIRES_PRICE");
-        if (mode != MiningConstant.BUNDLE_PAID && priceSign != 0)
+        if (mode != MiningConstant.BUNDLE_PAID && !cost.isEmpty())
             throw new MiningException(Code.SAMPLE_ERROR, "FREE_OR_AD_BUNDLE_HAS_PRICE");
         return mode;
     }
-    private static BigDecimal price(MiningBundleShopCfg good) {
+    private static Map<Integer, Long> bundleCost(MiningBundleShopCfg good) {
         List<Integer> cost = good.getCost();
-        if (cost == null || cost.isEmpty()) return BigDecimal.ZERO;
-        if (cost.size() == 1 && cost.getFirst() == 0) return BigDecimal.ZERO;
-        if (cost.size() != 2 || cost.getFirst() != PlayerStatService.DIAMOND_ITEM_ID || cost.get(1) <= 0)
+        if (cost == null || cost.isEmpty() || cost.size() == 1 && cost.getFirst() == 0) return Map.of();
+        if (cost.size() != 2 || cost.getFirst() <= 0 || cost.get(1) <= 0)
             throw new MiningException(Code.SAMPLE_ERROR, "INVALID_BUNDLE_PRICE");
-        // MiningBundleShop.cost 使用“计价项ID_分值”，例如 1980000_600 表示 6 元。
-        return RedisUtils.fromLong(cost.get(1)).stripTrailingZeros();
+        Map<Integer, Long> items = MiningCatalog.itemPair(cost);
+        validateItems(items);
+        if (items.keySet().stream().anyMatch(id -> !ordinaryItem(id) && !currencyItem(id)))
+            throw new MiningException(Code.SAMPLE_ERROR, "UNSUPPORTED_BUNDLE_COST");
+        return items;
+    }
+    private static boolean currencyItem(int id) {
+        ItemCfg cfg = GameDataManager.getItemCfg(id);
+        return cfg != null && (cfg.getType() == GameConstant.Item.TYPE_GOLD
+                || cfg.getType() == GameConstant.Item.TYPE_DIAMOND || cfg.getType() == GameConstant.Item.TYPE_SHELL);
     }
     private static boolean ordinaryItem(int id) {
         ItemCfg cfg = GameDataManager.getItemCfg(id);

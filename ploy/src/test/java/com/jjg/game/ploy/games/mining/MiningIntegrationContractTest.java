@@ -61,9 +61,13 @@ class MiningIntegrationContractTest {
 
         MiningBundleInfo bundle = new MiningBundleInfo(); bundle.nameLanguageId = 400800040;
         bundle.adCdEndTime = 1800000000000L;
+        ItemInfo diamondCost = new ItemInfo(); diamondCost.itemId = 1980000; diamondCost.count = 600;
+        bundle.cost = List.of(diamondCost);
         MiningBundleInfo bundleCopy = ProtostuffUtil.deserialize(ProtostuffUtil.serialize(bundle), MiningBundleInfo.class);
         assertEquals(400800040, bundleCopy.nameLanguageId);
         assertEquals(1800000000000L, bundleCopy.adCdEndTime);
+        assertEquals(1980000, bundleCopy.cost.getFirst().itemId);
+        assertEquals(600, bundleCopy.cost.getFirst().count);
 
         ResMiningExchangeShop shop = new ResMiningExchangeShop(Code.SUCCESS); shop.version = 125;
         MiningExchangeInfo good = new MiningExchangeInfo(); good.id = 5001; good.goods = List.of(tool); good.cost = List.of(ore);
