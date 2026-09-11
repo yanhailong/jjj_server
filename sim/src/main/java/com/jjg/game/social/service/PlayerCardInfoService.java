@@ -8,10 +8,10 @@ import com.jjg.game.sampledata.GameDataManager;
 import com.jjg.game.sampledata.bean.CasinoListCfg;
 import com.jjg.game.sampledata.bean.RobotCfg;
 import com.jjg.game.sim.dao.SimPlayerGameDao;
-import com.jjg.game.sim.dao.SimTaskDao;
 import com.jjg.game.sim.data.SimBaseData;
 import com.jjg.game.sim.data.SimCasinoUnlock;
 import com.jjg.game.sim.service.SimCasinoService;
+import com.jjg.game.sim.service.SimMedalService;
 import com.jjg.game.social.dao.FriendDao;
 import com.jjg.game.social.data.FriendData;
 import com.jjg.game.social.pb.res.ResPlayerCard;
@@ -47,7 +47,7 @@ public class PlayerCardInfoService {
     @Autowired
     private SimPlayerGameDao simPlayerGameDao;
     @Autowired
-    private SimTaskDao simTaskDao;
+    private SimMedalService simMedalService;
     @Autowired
     private SocialSender socialSender;
     @Autowired
@@ -135,7 +135,7 @@ public class PlayerCardInfoService {
             card.allianceName = allianceId > 0 ? allianceProvider.getAllianceName(allianceId) : null;
 
             card.casinos = buildCasinoIcons(targetId);
-            card.displayedMedalIds = simTaskDao.findDisplayedMedalIds(targetId);
+            card.displayedMedalIds = simMedalService.getDisplayedMedalCfgIds(targetId);
 
             FriendData selfData = friendDao.getOrEmpty(selfId);
 

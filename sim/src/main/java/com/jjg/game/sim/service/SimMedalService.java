@@ -11,6 +11,7 @@ import com.jjg.game.sampledata.GameDataManager;
 import com.jjg.game.sampledata.bean.GlobalConfigCfg;
 import com.jjg.game.sim.constant.BuildingOutputType;
 import com.jjg.game.sim.constant.SimConstant;
+import com.jjg.game.sim.dao.SimTaskDao;
 import com.jjg.game.sim.data.SimPlayerContext;
 import com.jjg.game.sim.data.SimTaskData;
 import com.jjg.game.sim.pb.res.ResChangeShowMedal;
@@ -43,6 +44,28 @@ public class SimMedalService {
     private RankService rankService;
     @Autowired
     private SimTaskConfigService taskConfig;
+    @Autowired
+    private SimTaskDao simTaskDao;
+
+    /** 按展示顺序返回已选徽章当前最高档位的 MedalBuff.id，未达到首档的徽章不返回。 */
+    public List<Integer> getDisplayedMedalCfgIds(long playerId) {
+        SimTaskData data = simTaskDao.findMedalDisplayData(playerId);
+        if (data == null || data.getDisplayedMedalIds().isEmpty()) {
+            return List.of();
+        }
+        List<Integer> result = new ArrayList<>(data.getDisplayedMedalIds().size());
+        for (int badgeId : data.getDisplayedMedalIds()) {
+            SimTaskConfigService.AchievementBadgeDef badge = taskConfig.badge(badgeId);
+            if (badge == null) {
+                continue;
+            }
+            SimTaskConfigService.BadgeBuffTier active = badge.activeTier(completedCount(data, badge));
+            if (active != null) {
+                result.add(active.cfgId());
+            }
+        }
+        return result;
+    }
 
     /** 玩家至少完成一个对应成就后即获得徽章，是否激活 Buff 档位由 CollectNum 独立决定。 */
     public List<Integer> getActivatedMedalIds(SimPlayerContext ctx) {
