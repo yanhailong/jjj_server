@@ -24,6 +24,8 @@ public class ResOperationCapacity extends AbstractResponse {
     public int totalCapacity;
     @ProtoDesc("各游戏区和休息区建筑的实时容纳数据")
     public List<OperationBuildingCapacity> buildings;
+    @ProtoDesc("当前场景容纳人数是否超过爆红阈值")
+    public boolean capacityOverloaded;
 
     public ResOperationCapacity(int code) {
         super(code);

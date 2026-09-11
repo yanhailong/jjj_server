@@ -79,6 +79,10 @@ public class SimPlayerContext {
     private String buildingRedDotInput;
     private String buildingRedDotSnapshot;
 
+    //数据看板入口感叹号会话缓存；首次tick立即检查，之后由看板服务按较长间隔刷新。
+    private long dashboardWarningCheckTime;
+    private Boolean dashboardWarningSnapshot;
+
     //是否在模拟游戏场景中
     private AtomicBoolean inCasino = new AtomicBoolean(true);
 
@@ -112,6 +116,22 @@ public class SimPlayerContext {
 
     public void setBuildingRedDotSnapshot(String value) {
         buildingRedDotSnapshot = value;
+    }
+
+    public long getDashboardWarningCheckTime() {
+        return dashboardWarningCheckTime;
+    }
+
+    public void setDashboardWarningCheckTime(long dashboardWarningCheckTime) {
+        this.dashboardWarningCheckTime = dashboardWarningCheckTime;
+    }
+
+    public Boolean getDashboardWarningSnapshot() {
+        return dashboardWarningSnapshot;
+    }
+
+    public void setDashboardWarningSnapshot(Boolean dashboardWarningSnapshot) {
+        this.dashboardWarningSnapshot = dashboardWarningSnapshot;
     }
 
     //联盟免费捐献红点已检查的自然日 (内存态)

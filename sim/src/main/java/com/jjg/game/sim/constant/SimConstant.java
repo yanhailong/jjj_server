@@ -343,6 +343,35 @@ public interface SimConstant {
     }
 
     /**
+     * 细分运营数据看板配置。
+     */
+    interface Dashboard {
+        /** BUILDING 红点模块下的数据看板入口感叹号子模块。 */
+        int RED_DOT_WARNING = 2;
+        /** 当前容纳人数超过总容纳人数该比例时显示红色底板。 */
+        int GLOBAL_CAPACITY_OVERLOAD_RATE_ID = 331;
+        /** 游戏机台当前实际人数低于标准容纳人数该比例时提示收益过低。 */
+        int GLOBAL_GAME_CAPACITY_LOW_RATE_ID = 332;
+        /** 当前获客人数低于标准获客人数该比例时提示运营部等级过低。 */
+        int GLOBAL_ACQUISITION_LOW_RATE_ID = 333;
+        /** 当前满意度低于标准满意度该比例时提示接待区等级过低。 */
+        int GLOBAL_SATISFACTION_LOW_RATE_ID = 334;
+
+        int DEFAULT_CAPACITY_OVERLOAD_RATE = 80;
+        int DEFAULT_GAME_CAPACITY_LOW_RATE = 60;
+        int DEFAULT_ACQUISITION_LOW_RATE = 80;
+        int DEFAULT_SATISFACTION_LOW_RATE = 80;
+
+        int LANG_PROMPT_RECEPTION_LOW = 4_062_133;
+        int LANG_PROMPT_OPERATION_LOW = 4_062_134;
+        int LANG_PROMPT_RECEPTION_AND_OPERATION_LOW = 4_062_135;
+        int LANG_PROMPT_NORMAL = 4_062_136;
+        int LANG_LABEL_GAME_CAPACITY_LOW = 4_062_137;
+        int LANG_LABEL_RECEPTION_LOW = 4_062_138;
+        int LANG_LABEL_OPERATION_LOW = 4_062_139;
+    }
+
+    /**
      * Guide.xlsx 的 PathName 约定。
      */
     interface GuidePath {

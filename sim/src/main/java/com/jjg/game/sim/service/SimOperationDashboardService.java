@@ -1,12 +1,16 @@
 package com.jjg.game.sim.service;
 
 import com.jjg.game.core.constant.Code;
+import com.jjg.game.core.base.reddot.IRedDotService;
+import com.jjg.game.core.manager.RedDotManager;
+import com.jjg.game.core.pb.reddot.RedDotDetails;
 import com.jjg.game.core.service.PlayerPackService;
 import com.jjg.game.core.utils.ItemUtils;
 import com.jjg.game.sampledata.GameDataManager;
 import com.jjg.game.sampledata.bean.BuildingAreaTableCfg;
 import com.jjg.game.sampledata.bean.BuildingUpgradeTableCfg;
 import com.jjg.game.sampledata.bean.CasinoStatsSheetCfg;
+import com.jjg.game.sampledata.bean.GlobalConfigCfg;
 import com.jjg.game.sampledata.bean.VisitorQuestCfg;
 import com.jjg.game.sim.constant.BuildingOutputType;
 import com.jjg.game.sim.constant.BuildingType;
@@ -15,6 +19,8 @@ import com.jjg.game.sim.data.BuildingData;
 import com.jjg.game.sim.data.GuestData;
 import com.jjg.game.sim.data.SimCasinoData;
 import com.jjg.game.sim.data.SimPlayerContext;
+import com.jjg.game.sim.listener.SimPlayerTickListener;
+import com.jjg.game.sim.manager.SimPlayerContextRegistry;
 import com.jjg.game.sim.pb.res.ResOperationCapacity;
 import com.jjg.game.sim.pb.res.ResOperationDashboard;
 import com.jjg.game.sim.pb.struct.BuildingTips;
@@ -47,7 +53,7 @@ import java.util.Map;
  * 本服务使用独立消息和数据结构，不复用也不修改旧版 {@link SimStatsService} 的累计总数据口径。
  */
 @Service
-public class SimOperationDashboardService {
+public class SimOperationDashboardService implements IRedDotService, SimPlayerTickListener {
     private static final Logger log = LoggerFactory.getLogger(SimOperationDashboardService.class);
     private static final DateTimeFormatter SATISFACTION_LOG_TIME = DateTimeFormatter
             .ofPattern("yyyy-MM-dd HH:mm:ss.SSS").withZone(ZoneId.systemDefault());
@@ -55,6 +61,9 @@ public class SimOperationDashboardService {
     //测试核对用，只在请求完整看板时输出；不需要排查时可通过配置关闭。
     @Value("${sim.dashboard.satisfaction-log-enabled:true}")
     private boolean satisfactionLogEnabled = true;
+    //游客生成由2秒总tick驱动；入口告警只需低频刷新，默认30秒检查一次。
+    @Value("${sim.dashboard.warning-check-interval-ms:30000}")
+    private long warningCheckIntervalMs = 30_000L;
 
     private static final int RESEARCH_UNLOCKED = 1;
     private static final int RESEARCH_CURRENT = 2;
@@ -71,6 +80,10 @@ public class SimOperationDashboardService {
     private SimConfigCacheService configCache;
     @Autowired
     private PlayerPackService playerPackService;
+    @Autowired
+    private SimPlayerContextRegistry contextRegistry;
+    @Autowired
+    private RedDotManager redDotManager;
 
     /**
      * 获取进入数据页时使用的完整看板数据。
@@ -85,7 +98,7 @@ public class SimOperationDashboardService {
             } else {
                 long now = System.currentTimeMillis();
                 res.casinoId = casino.getCasinoId();
-                res.overview = buildOverview(ctx, casino, now);
+                res.overview = buildOverview(ctx, casino, now, true);
                 res.buildings = buildBuildingData(ctx, casino, res.overview, now);
                 res.researchBuildings = buildResearchBuildings(ctx, casino);
                 log.info("返回细分运营看板 playerId={},casinoId={},buildingCount={},researchCount={}",
@@ -113,8 +126,9 @@ public class SimOperationDashboardService {
                 res.casinoId = casino.getCasinoId();
                 res.buildings = buildCapacityData(casino, now);
                 res.totalCapacity = res.buildings.stream().mapToInt(data -> data.capacity).sum();
-                res.currentCapacity = Math.min(res.totalCapacity,
-                        casino.countGenerateInWindow(now, SimConstant.Common.CAPACITY_WINDOW_MS));
+                int currentCapacity = casino.countGenerateInWindow(now, SimConstant.Common.CAPACITY_WINDOW_MS);
+                res.currentCapacity = Math.min(res.totalCapacity, currentCapacity);
+                res.capacityOverloaded = isCapacityOverloaded(currentCapacity, res.totalCapacity);
             }
         } catch (Exception e) {
             log.error("获取看板实时容纳数据异常 playerId={}", ctx.playerId(), e);
@@ -123,15 +137,17 @@ public class SimOperationDashboardService {
         ctx.send(res);
     }
 
-    private OperationDashboardOverview buildOverview(SimPlayerContext ctx, SimCasinoData casino, long now) {
+    private OperationDashboardOverview buildOverview(SimPlayerContext ctx, SimCasinoData casino, long now,
+                                                       boolean writeSatisfactionLog) {
         OperationDashboardOverview overview = new OperationDashboardOverview();
         Map<BuildingOutputType, Long> outputs = buildingService.computePerMinuteOutput(ctx, casino);
         overview.goldOutputPerMinute = outputs.getOrDefault(BuildingOutputType.GOLD, 0L);
         overview.expOutputPerMinute = outputs.getOrDefault(BuildingOutputType.CASINO_LEVEL_EXP, 0L);
         overview.totalCapacity = computeCurrentCapacity(casino);
         //窗口累计人数仅用于展示，按当前容纳上限截断，不修改原始游客/交互统计。
-        overview.currentCapacity = Math.min(overview.totalCapacity,
-                casino.countGenerateInWindow(now, SimConstant.Common.CAPACITY_WINDOW_MS));
+        int currentCapacity = casino.countGenerateInWindow(now, SimConstant.Common.CAPACITY_WINDOW_MS);
+        overview.currentCapacity = Math.min(overview.totalCapacity, currentCapacity);
+        overview.capacityOverloaded = isCapacityOverloaded(currentCapacity, overview.totalCapacity);
         overview.serviceCapacity = buildingService.computeDeptValue(ctx, casino, BuildingOutputType.SERVICE);
         overview.awareness = buildingService.computeDeptValue(ctx, casino, BuildingOutputType.AWARENESS);
         long exposure = buildingService.computeDeptValue(ctx, casino, BuildingOutputType.EXPOSURE);
@@ -140,8 +156,20 @@ public class SimOperationDashboardService {
                 casino.getCasinoId(), casino.getCasinoLevel());
         overview.customerAcquisitionPerMinute = customerAcquisitionPerMinute(exposure, casinoCfg);
         overview.operationRate = operationRate(exposure, casinoCfg);
-        overview.satisfactionRate = satisfactionRate(ctx.playerId(), casino, casinoCfg, now);
+        overview.totalProsperity = buildingService.computeProsperity(casino);
+        overview.standardInteractionCount = buildingService.computeStandardInteractionCount(casino);
+        overview.satisfactionRate = satisfactionRate(ctx.playerId(), casino,
+                overview.standardInteractionCount, now, writeSatisfactionLog);
         overview.premiumVisitorRates = premiumVisitorRates(casino);
+        overview.receptionIncomeTooLow = overview.serviceCapacity > 0 && isRateBelow(overview.satisfactionRate,
+                SimConstant.Dashboard.GLOBAL_SATISFACTION_LOW_RATE_ID,
+                SimConstant.Dashboard.DEFAULT_SATISFACTION_LOW_RATE);
+        overview.operationIncomeTooLow = exposure > 0 && isRateBelow(overview.operationRate,
+                SimConstant.Dashboard.GLOBAL_ACQUISITION_LOW_RATE_ID,
+                SimConstant.Dashboard.DEFAULT_ACQUISITION_LOW_RATE);
+        overview.hasWarning = overview.receptionIncomeTooLow || overview.operationIncomeTooLow
+                || hasGameCapacityWarning(casino, now);
+        overview.promptLanguageId = promptLanguageId(overview);
         return overview;
     }
 
@@ -174,13 +202,15 @@ public class SimOperationDashboardService {
             data.level = building.getLevel();
             data.maxLevel = areaCfg.getMaxLevel();
             data.expectedLevel = expectedLevels.getOrDefault(building.getId(), 0);
-            data.incomeTooLow = data.expectedLevel > 0 && data.level < data.expectedLevel;
 
             BuildingUpgradeTableCfg levelCfg = configCache.getBuildingUpgradeCfg(building.getId(), building.getLevel());
+            int currentCapacity = 0;
             if (levelCfg != null && (buildingType == BuildingType.GAME || buildingType == BuildingType.REST)) {
                 data.capacity = levelCfg.getMaxInteractionCount();
-                data.currentCapacity = Math.min(data.capacity, casino.countBuildingInteractionsInWindow(
-                        building.getId(), now, SimConstant.Common.CAPACITY_WINDOW_MS));
+                currentCapacity = casino.countBuildingInteractionsInWindow(
+                        building.getId(), now, SimConstant.Common.CAPACITY_WINDOW_MS);
+                data.currentCapacity = Math.min(data.capacity, currentCapacity);
+                data.capacityOverloaded = isCapacityOverloaded(currentCapacity, data.capacity);
             }
 
             Map<BuildingOutputType, Long> values = buildingService.computeDashboardBuildingValues(ctx, building);
@@ -200,11 +230,25 @@ public class SimOperationDashboardService {
             if (data.awareness > 0) {
                 data.premiumVisitorRates = overview.premiumVisitorRates;
             }
+            if (data.serviceCapacity > 0) {
+                data.incomeTooLow = overview.receptionIncomeTooLow;
+                data.warningLanguageId = data.incomeTooLow
+                        ? SimConstant.Dashboard.LANG_LABEL_RECEPTION_LOW : 0;
+            } else if (data.exposure > 0) {
+                data.incomeTooLow = overview.operationIncomeTooLow;
+                data.warningLanguageId = data.incomeTooLow
+                        ? SimConstant.Dashboard.LANG_LABEL_OPERATION_LOW : 0;
+            } else if (buildingType == BuildingType.GAME) {
+                data.incomeTooLow = isGameCapacityTooLow(currentCapacity, data.capacity);
+                data.warningLanguageId = data.incomeTooLow
+                        ? SimConstant.Dashboard.LANG_LABEL_GAME_CAPACITY_LOW : 0;
+            }
             result.add(data);
         }
 
-        //配置顺序决定同类建筑解锁顺序；稳定排序只调整管理区、休息区、Slot区三个分组。
-        result.sort(Comparator.comparingInt(data -> buildingSortGroup(data.buildingType)));
+        //收益过低项整体前置；同一状态内再按原有建筑分组和配置解锁顺序排列。
+        result.sort(Comparator.<OperationBuildingData, Boolean>comparing(data -> !data.incomeTooLow)
+                .thenComparingInt(data -> buildingSortGroup(data.buildingType)));
         return result;
     }
 
@@ -298,8 +342,10 @@ public class SimOperationDashboardService {
             OperationBuildingCapacity data = new OperationBuildingCapacity();
             data.buildingId = building.getId();
             data.capacity = cfg.getMaxInteractionCount();
-            data.currentCapacity = Math.min(data.capacity, casino.countBuildingInteractionsInWindow(
-                    building.getId(), now, SimConstant.Common.CAPACITY_WINDOW_MS));
+            int currentCapacity = casino.countBuildingInteractionsInWindow(
+                    building.getId(), now, SimConstant.Common.CAPACITY_WINDOW_MS);
+            data.currentCapacity = Math.min(data.capacity, currentCapacity);
+            data.capacityOverloaded = isCapacityOverloaded(currentCapacity, data.capacity);
             result.add(data);
         }
         return result;
@@ -352,34 +398,169 @@ public class SimOperationDashboardService {
         return (int) Math.min(SimConstant.Common.DASHBOARD_RATE_BASE, rate);
     }
 
-    private int satisfactionRate(long playerId, SimCasinoData casino, CasinoStatsSheetCfg cfg, long now) {
+    private int satisfactionRate(long playerId, SimCasinoData casino, int standardInteractionCount,
+                                 long now, boolean writeLog) {
         int guestCount = casino.countGenerateInWindow(now, SimConstant.Common.CAPACITY_WINDOW_MS);
-        int configuredInteractions = cfg == null ? 0 : cfg.getInteractCount();
-        int requiredInteractions = configuredInteractions;
-        //兼容策划表尚未增加 InteractCount 的环境：按每名游客至少完成一次交互计算。
-        if (requiredInteractions <= 0) {
-            requiredInteractions = 1;
-        }
         long interactions = casino.countInteractionsInWindow(now, SimConstant.Common.CAPACITY_WINDOW_MS);
-        long denominator = (long) guestCount * requiredInteractions;
+        //标准交互次数 = 已解锁建筑当前等级 InteractCount 之和 / 100。
+        long denominator = (long) guestCount * standardInteractionCount;
         long rate = denominator <= 0 ? SimConstant.Common.DASHBOARD_RATE_BASE
-                : interactions * SimConstant.Common.DASHBOARD_RATE_BASE / denominator;
+                : interactions * 100L * SimConstant.Common.DASHBOARD_RATE_BASE / denominator;
         int result = (int) Math.min(SimConstant.Common.DASHBOARD_RATE_BASE, rate);
-        if (satisfactionLogEnabled && log.isInfoEnabled()) {
+        if (writeLog && satisfactionLogEnabled && log.isInfoEnabled()) {
             //直接记录本次计算快照，不重复统计；人数不使用前端容纳展示的截断值。
             log.info("看板满意度计算：玩家编号：{}，场景编号：{}，统计时长：最近{}分钟，窗口开始：{}，窗口结束：{}，"
-                            + "游客人数（未截断）：{}，规划交互次数：{}，配置要求交互次数：{}，每名游客要求交互次数：{}，"
+                            + "游客人数（未截断）：{}，规划交互次数：{}，标准交互次数（百分之一）：{}，"
                             + "最终满意度：{}%，计算说明：{}",
                     playerId, casino.getCasinoId(), SimConstant.Common.CAPACITY_WINDOW_MS / 60_000,
                     SATISFACTION_LOG_TIME.format(Instant.ofEpochMilli(now - SimConstant.Common.CAPACITY_WINDOW_MS)),
                     SATISFACTION_LOG_TIME.format(Instant.ofEpochMilli(now)),
-                    guestCount, interactions, configuredInteractions, requiredInteractions,
+                    guestCount, interactions, standardInteractionCount,
                     BigDecimal.valueOf(result, 2).toPlainString(),
-                    guestCount <= 0 ? "窗口内没有游客，默认满满意度"
-                            : configuredInteractions <= 0 ? "配置未设置有效次数，按每名游客一次计算，最高百分之百"
-                            : "规划交互次数除以游客人数与要求次数的乘积，最高百分之百");
+                    denominator <= 0 ? "窗口内没有游客或建筑未配置标准交互次数，默认满满意度"
+                            : "规划交互次数乘一百，除以游客人数与标准交互次数配置和，最高百分之百");
         }
         return result;
+    }
+
+    private boolean hasGameCapacityWarning(SimCasinoData casino, long now) {
+        if (casino.getBuildingData() == null || casino.getBuildingData().isEmpty()) {
+            return false;
+        }
+        for (BuildingData building : casino.getBuildingData().values()) {
+            BuildingAreaTableCfg areaCfg = GameDataManager.getBuildingAreaTableCfg(building.getId());
+            if (areaCfg == null || BuildingType.fromCode(areaCfg.getType()) != BuildingType.GAME) {
+                continue;
+            }
+            BuildingUpgradeTableCfg cfg = configCache.getBuildingUpgradeCfg(building.getId(), building.getLevel());
+            int capacity = cfg == null ? 0 : cfg.getMaxInteractionCount();
+            int current = casino.countBuildingInteractionsInWindow(
+                    building.getId(), now, SimConstant.Common.CAPACITY_WINDOW_MS);
+            if (isGameCapacityTooLow(current, capacity)) {
+                return true;
+            }
+        }
+        return false;
+    }
+
+    private boolean isGameCapacityTooLow(int currentCapacity, int standardCapacity) {
+        if (standardCapacity <= 0) {
+            return false;
+        }
+        int threshold = globalPercent(SimConstant.Dashboard.GLOBAL_GAME_CAPACITY_LOW_RATE_ID,
+                SimConstant.Dashboard.DEFAULT_GAME_CAPACITY_LOW_RATE);
+        return (long) currentCapacity * 100 < (long) standardCapacity * threshold;
+    }
+
+    private boolean isRateBelow(int rate, int globalId, int defaultPercent) {
+        return rate < globalPercent(globalId, defaultPercent) * 100;
+    }
+
+    private boolean isCapacityOverloaded(int currentCapacity, int totalCapacity) {
+        if (totalCapacity <= 0) {
+            return false;
+        }
+        int threshold = globalPercent(SimConstant.Dashboard.GLOBAL_CAPACITY_OVERLOAD_RATE_ID,
+                SimConstant.Dashboard.DEFAULT_CAPACITY_OVERLOAD_RATE);
+        return (long) currentCapacity * 100 > (long) totalCapacity * threshold;
+    }
+
+    private int globalPercent(int id, int defaultValue) {
+        GlobalConfigCfg cfg = GameDataManager.getGlobalConfigCfg(id);
+        return cfg == null || cfg.getIntValue() <= 0 ? defaultValue : cfg.getIntValue();
+    }
+
+    private static int promptLanguageId(OperationDashboardOverview overview) {
+        if (overview.receptionIncomeTooLow && overview.operationIncomeTooLow) {
+            return SimConstant.Dashboard.LANG_PROMPT_RECEPTION_AND_OPERATION_LOW;
+        }
+        if (overview.receptionIncomeTooLow) {
+            return SimConstant.Dashboard.LANG_PROMPT_RECEPTION_LOW;
+        }
+        if (overview.operationIncomeTooLow) {
+            return SimConstant.Dashboard.LANG_PROMPT_OPERATION_LOW;
+        }
+        return overview.hasWarning ? 0 : SimConstant.Dashboard.LANG_PROMPT_NORMAL;
+    }
+
+    /** 定时入口提示只计算告警所需指标，避免每30秒重复计算产出和游客品质概率。 */
+    private boolean hasDashboardWarning(SimPlayerContext ctx, SimCasinoData casino, long now) {
+        int standardInteractionCount = buildingService.computeStandardInteractionCount(casino);
+        int satisfactionRate = satisfactionRate(ctx.playerId(), casino, standardInteractionCount, now, false);
+        long serviceCapacity = buildingService.computeDeptValue(ctx, casino, BuildingOutputType.SERVICE);
+        if (serviceCapacity > 0 && isRateBelow(satisfactionRate,
+                SimConstant.Dashboard.GLOBAL_SATISFACTION_LOW_RATE_ID,
+                SimConstant.Dashboard.DEFAULT_SATISFACTION_LOW_RATE)) {
+            return true;
+        }
+
+        long exposure = buildingService.computeDeptValue(ctx, casino, BuildingOutputType.EXPOSURE);
+        CasinoStatsSheetCfg casinoCfg = configCache.getCasinoStatsSheetCfg(
+                casino.getCasinoId(), casino.getCasinoLevel());
+        if (exposure > 0 && isRateBelow(operationRate(exposure, casinoCfg),
+                SimConstant.Dashboard.GLOBAL_ACQUISITION_LOW_RATE_ID,
+                SimConstant.Dashboard.DEFAULT_ACQUISITION_LOW_RATE)) {
+            return true;
+        }
+        return hasGameCapacityWarning(casino, now);
+    }
+
+    @Override
+    public RedDotDetails.RedDotModule getModule() {
+        return RedDotDetails.RedDotModule.BUILDING;
+    }
+
+    @Override
+    public List<Integer> getSubmodules() {
+        return List.of(SimConstant.Dashboard.RED_DOT_WARNING);
+    }
+
+    @Override
+    public List<RedDotDetails> initialize(long playerId, int submodule) {
+        if (submodule != 0 && submodule != SimConstant.Dashboard.RED_DOT_WARNING) {
+            return List.of();
+        }
+        SimPlayerContext ctx = contextRegistry.getContext(playerId);
+        if (ctx == null || ctx.getCurrentCasino() == null) {
+            return List.of();
+        }
+        long now = System.currentTimeMillis();
+        boolean warning = hasDashboardWarning(ctx, ctx.getCurrentCasino(), now);
+        ctx.setDashboardWarningSnapshot(warning);
+        ctx.setDashboardWarningCheckTime(now);
+        return List.of(buildWarningRedDot(warning));
+    }
+
+    @Override
+    public void onTick(SimPlayerContext ctx, long now) {
+        if (ctx == null || ctx.getCurrentCasino() == null || !ctx.getInCasino().get()
+                || ctx.getDashboardWarningCheckTime() > 0
+                && now - ctx.getDashboardWarningCheckTime() < Math.max(5_000L, warningCheckIntervalMs)) {
+            return;
+        }
+        try {
+            ctx.setDashboardWarningCheckTime(now);
+            boolean warning = hasDashboardWarning(ctx, ctx.getCurrentCasino(), now);
+            Boolean previous = ctx.getDashboardWarningSnapshot();
+            ctx.setDashboardWarningSnapshot(warning);
+            if (previous == null || previous != warning) {
+                redDotManager.updateRedDot(List.of(buildWarningRedDot(warning)), ctx.playerId());
+                log.info("刷新数据看板入口感叹号 playerId={},casinoId={},show={}",
+                        ctx.playerId(), ctx.getCurrentCasino().getCasinoId(), warning);
+            }
+        } catch (Exception e) {
+            log.error("刷新数据看板入口感叹号异常 playerId={}", ctx.playerId(), e);
+        }
+    }
+
+    @Override
+    public int order() {
+        return 120;
+    }
+
+    private RedDotDetails buildWarningRedDot(boolean warning) {
+        return redDotManager.buildRedDotDetails(getModule(), SimConstant.Dashboard.RED_DOT_WARNING,
+                warning ? 1 : 0, RedDotDetails.RedDotType.EXCLAMATION);
     }
 
     private List<OperationVisitorQualityRate> premiumVisitorRates(SimCasinoData casino) {
