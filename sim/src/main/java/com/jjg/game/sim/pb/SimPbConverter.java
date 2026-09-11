@@ -85,16 +85,27 @@ public final class SimPbConverter {
         }
 
         GlobalConfigCfg globalConfigCfg = GameDataManager.getGlobalConfigCfg(SimConstant.Global.GUEST_AWARENESS_MAX);
-        info.guestQualityList = new ArrayList<>();
+        List<KVInfo> tmpList = new ArrayList<>();
+        int sum = 0;
         for (Map.Entry<Integer, List<VisitorQuestCfg>> en : simConfigCacheService.getVisitorQuestCfgMap().entrySet()) {
             KVInfo kvInfo = new KVInfo();
             kvInfo.key = en.getKey();
-
             VisitorQuestCfg visitorQuestCfg = en.getValue().stream().findFirst().get();
             kvInfo.value = (int) ((double) ctx.getCurrentCasino().getAwareness() / globalConfigCfg.getIntValue() * visitorQuestCfg.getAwareness() + visitorQuestCfg.getBaseWeight());
-
-            info.guestQualityList.add(kvInfo);
+            sum += kvInfo.value;
+            tmpList.add(kvInfo);
         }
+
+        if (sum > 0) {
+            info.guestQualityList = new ArrayList<>();
+            for (KVInfo kv : tmpList) {
+                KVInfo kvInfo = new KVInfo();
+                kvInfo.key = kv.key;
+                kvInfo.value = (int) (kv.value/sum);
+                info.guestQualityList.add(kvInfo);
+            }
+        }
+
         info.bonusInfos = new ArrayList<>();
         CommonUtil.getContext().getBean(SimBuildingService.class)
                 .computeDashboardBuildingValues(ctx, buildingData, info.bonusInfos);

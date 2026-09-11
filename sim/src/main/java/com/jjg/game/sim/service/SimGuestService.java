@@ -602,16 +602,11 @@ public class SimGuestService implements SimPlayerTickListener, ItemListener, Sim
      */
     private long computeVisitIntervalMs(CasinoStatsSheetCfg casinoCfg, SimCasinoData casino, long now) {
         long base = (long) casinoCfg.getBaseVisitInterval() * 1000L;
-        CasinoListCfg listCfg = GameDataManager.getCasinoListCfg(casino.getCasinoId());
-        if (listCfg == null || listCfg.getCapacityNum() <= 0) {
-            return base;
-        }
-        int capacity = listCfg.getCapacityNum();
         int recent = casino.countGenerateInWindow(now, SimConstant.Common.CAPACITY_WINDOW_MS);
-        if (recent < capacity) {
+        if (recent < casino.getCacheGuestSize()) {
             return base;
         }
-        return base * recent / capacity;
+        return base * recent / casino.getCacheGuestSize();
     }
 
     /**
