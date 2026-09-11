@@ -735,7 +735,8 @@ public class SimGuestService implements SimPlayerTickListener, ItemListener, Sim
                 }
                 DestinationInfo dest = pickBuildingDevice(en.getKey(), casino);
                 if (dest != null) {
-                    rewardService.grantReward(guest, dest);
+                    //前台不产生奖励
+//                    rewardService.grantReward(guest, dest);
                     dest.index = id;
                     id++;
                     result.add(dest);

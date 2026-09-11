@@ -40,6 +40,13 @@ public class SimTaskDao extends MongoBaseDao<SimTaskData, Long> {
         return data == null ? List.of() : data.getDisplayedMedalIds();
     }
 
+    /** 个人卡片解析展示徽章档位，只读取展示列表和成就进度。 */
+    public SimTaskData findMedalDisplayData(long playerId) {
+        Query query = Query.query(Criteria.where("_id").is(playerId));
+        query.fields().include("displayedMedalIds").include("achievementTasks");
+        return mongoTemplate.findOne(query, SimTaskData.class);
+    }
+
     /**
      * 统计主线和成就中当前可领取奖励的任务数，只返回计数，不拉取任务文档。
      */

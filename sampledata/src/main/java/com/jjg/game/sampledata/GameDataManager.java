@@ -138,7 +138,6 @@ public class GameDataManager {
     containerMap.put(BlackjackCfg.class, new BlackjackCfgContainer());
     containerMap.put(BuffCfg.class, new BuffCfgContainer());
     containerMap.put(BuildingAreaTableCfg.class, new BuildingAreaTableCfgContainer());
-    containerMap.put(BuildingEquipmentTableCfg.class, new BuildingEquipmentTableCfgContainer());
     containerMap.put(BuildingFloorCfg.class, new BuildingFloorCfgContainer());
     containerMap.put(BuildingFunctionCfg.class, new BuildingFunctionCfgContainer());
     containerMap.put(BuildingGainCfg.class, new BuildingGainCfgContainer());
@@ -901,18 +900,6 @@ public class GameDataManager {
 
   public static List<BuildingAreaTableCfg> getBuildingAreaTableCfgList() {
     return getInstance().getCfgContainer(BuildingAreaTableCfg.class).getCfgBeanList();
-  }
-
-  public static BuildingEquipmentTableCfg getBuildingEquipmentTableCfg(int key) {
-    return getInstance().getCfgContainer(BuildingEquipmentTableCfg.class).getCfgBeanMap().get(key);
-  }
-
-  public static Map<Integer, BuildingEquipmentTableCfg> getBuildingEquipmentTableCfgMap() {
-    return getInstance().getCfgContainer(BuildingEquipmentTableCfg.class).getCfgBeanMap();
-  }
-
-  public static List<BuildingEquipmentTableCfg> getBuildingEquipmentTableCfgList() {
-    return getInstance().getCfgContainer(BuildingEquipmentTableCfg.class).getCfgBeanList();
   }
 
   public static BuildingFloorCfg getBuildingFloorCfg(int key) {

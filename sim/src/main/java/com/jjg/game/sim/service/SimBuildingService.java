@@ -3,8 +3,10 @@ package com.jjg.game.sim.service;
 import com.alibaba.fastjson.JSON;
 import com.jjg.game.alliance.service.AllianceEventService;
 import com.jjg.game.alliance.service.AllianceHelpService;
+import com.jjg.game.common.constant.CoreConst;
 import com.jjg.game.common.pb.ItemInfo;
 import com.jjg.game.common.proto.Pair;
+import com.jjg.game.common.utils.CommonUtil;
 import com.jjg.game.common.utils.TimeHelper;
 import com.jjg.game.core.base.condition.numeric.ActionConditionEvent;
 import com.jjg.game.core.constant.AddType;
@@ -931,7 +933,7 @@ public class SimBuildingService implements SimPlayerTickListener, SimTaskStateRe
                 //能量房间: 休息区 POWER 产量
                 result.merge(SimStatKey.Operation.ENERGY_ROOM, actual.getOrDefault(BuildingOutputType.POWER, 0L), Long::sum);
             } else {
-                //按建筑ID末两位区分: 1~6 SLOT(金币收益), 7~9 扑克, 10~12 捕鱼, 各房间产量互不重叠
+                //按解锁游戏的大类区分 SLOT、扑克和捕鱼，各房间产量互不重叠
                 long gold = actual.getOrDefault(BuildingOutputType.GOLD, 0L);
                 int statKey = resolveGameRoomStatKey(areaCfg);
                 if (statKey > 0) {
@@ -946,15 +948,12 @@ public class SimBuildingService implements SimPlayerTickListener, SimTaskStateRe
         if (areaCfg == null) {
             return 0;
         }
-        //游戏区建筑ID末两位即原 SequenceID: 1~6 SLOT, 7~9 扑克, 10~12 捕鱼
-        int sequenceId = areaCfg.getId() % 100;
-        if (sequenceId >= 1 && sequenceId <= 6) {
+        int majorType = CommonUtil.getMajorTypeByGameType(areaCfg.getUnlockGameId());
+        if (majorType == CoreConst.GameMajorType.SLOTS) {
             return SimStatKey.Operation.GOLD_INCOME;
-        }
-        if (sequenceId >= 7 && sequenceId <= 9) {
+        } else if (majorType == CoreConst.GameMajorType.TABLE || majorType == CoreConst.GameMajorType.POKER) {
             return SimStatKey.Operation.POKER_ROOM;
-        }
-        if (sequenceId >= 10 && sequenceId <= 12) {
+        } else if (majorType == CoreConst.GameMajorType.PLOY) {
             return SimStatKey.Operation.FISHING_ROOM;
         }
         return 0;

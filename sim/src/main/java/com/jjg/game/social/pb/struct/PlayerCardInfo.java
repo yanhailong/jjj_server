@@ -38,6 +38,6 @@ public class PlayerCardInfo {
     public boolean inBlacklist;
     @ProtoDesc("是否在线")
     public boolean online;
-    @ProtoDesc("该玩家设置的展示徽章ID列表(MedalBuff.MedalType)")
+    @ProtoDesc("该玩家已选展示徽章的当前最高档位ID列表(MedalBuff.id)，按展示顺序，未达到首档的不返回")
     public List<Integer> displayedMedalIds;
 }
