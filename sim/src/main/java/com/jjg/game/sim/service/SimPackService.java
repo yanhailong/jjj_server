@@ -62,6 +62,12 @@ public class SimPackService implements SpecialItemListener {
     @Lazy
     @Autowired
     private SimCasinoService simCasinoService;
+    @Lazy
+    @Autowired
+    private SimGuestService simGuestService;
+    @Lazy
+    @Autowired
+    private SimEmployeeService simEmployeeService;
     @Autowired
     private SeasonPlayerDao seasonPlayerDao;
     @Autowired
@@ -150,13 +156,13 @@ public class SimPackService implements SpecialItemListener {
      */
     public boolean addItemsHere(long playerId, List<Item> items, AddType addType) {
         SimPlayerContext ctx = simPlayerContextRegistry.getContext(playerId);
-        return ctx != null ? addItemsOnline(ctx, items) : addItemsOffline(playerId, items);
+        return ctx != null ? addItemsOnline(ctx, items, addType) : addItemsOffline(playerId, items);
     }
 
     /**
      * 在线入账：改内存态，随 ctx 定时落库
      */
-    private boolean addItemsOnline(SimPlayerContext ctx, List<Item> items) {
+    private boolean addItemsOnline(SimPlayerContext ctx, List<Item> items, AddType addType) {
         boolean specialGuestItemAdded = false;
         for (Item item : items) {
             int itemId = item.getId();
@@ -166,7 +172,7 @@ public class SimPackService implements SpecialItemListener {
             }
 
             ItemCfg itemCfg = GameDataManager.getItemCfg(itemId);
-            if(itemCfg == null){
+            if (itemCfg == null) {
                 continue;
             }
 
@@ -186,9 +192,13 @@ public class SimPackService implements SpecialItemListener {
                 ctx.getSimBaseData().activeMedalId(itemId);
             } else if (itemId == SimConstant.Item.ID_SEASON_COIN) {  //赛季币
                 addSeasonCoin(ctx, count);
-            } else if(itemCfg.getItemType() == GameConstant.Item.ITEM_TYPE_SIM_RECRUIT_CARD){  //招商卡
+            } else if (itemCfg.getItemType() == GameConstant.Item.ITEM_TYPE_SIM_RECRUIT_CARD) {  //招商卡
                 ctx.getCurrentCasino().addSpecialGuest(itemId, count);
                 specialGuestItemAdded = true;
+            } else if (itemCfg.getItemType() == GameConstant.Item.ITEM_TYPE_SIM_GUEST) { //游客
+                simGuestService.addGuestItem(ctx, itemId, count, addType);
+            } else if (itemCfg.getItemType() == GameConstant.Item.ITEM_TYPE_SIM_EMPLOYEE) {  //雇员
+                simEmployeeService.addEmployeeItem(ctx, itemId, count, addType);
             }
         }
         if (specialGuestItemAdded) {
@@ -198,7 +208,9 @@ public class SimPackService implements SpecialItemListener {
         return true;
     }
 
-    /** 在线赛季币入账：仅增加可用余额，累计获得量只由赛季匹配获胜推进。 */
+    /**
+     * 在线赛季币入账：仅增加可用余额，累计获得量只由赛季匹配获胜推进。
+     */
     private void addSeasonCoin(SimPlayerContext ctx, long count) {
         if (ctx.getSeasonPlayerData() == null) {
             log.warn("赛季币入账失败, 无SeasonPlayerData playerId={},count={}", ctx.playerId(), count);

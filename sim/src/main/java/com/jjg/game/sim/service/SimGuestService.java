@@ -832,6 +832,32 @@ public class SimGuestService implements SimPlayerTickListener, ItemListener, Sim
     // 解锁
     // ---------------------------------------------------------------------
 
+    /** 添加游客道具：首次解锁，其余数量按招募配置转为碎片。 */
+    public boolean addGuestItem(SimPlayerContext ctx, int itemId, long count, AddType addType) {
+        VisitorQuestCfg cfg = configCache.getVisitorQuestCfgByItemId(itemId);
+        if (cfg == null || ctx.getCurrentCasino() == null) {
+            log.warn("添加游客道具失败, 配置或当前场景不存在 playerId={},itemId={}", ctx.playerId(), itemId);
+            return false;
+        }
+        boolean unlocked = ctx.getCurrentCasino().findGuestData(cfg.getId()) == null;
+        long duplicateCount = count - (unlocked ? 1 : 0);
+        if (duplicateCount > 0) {
+            List<Integer> shards = cfg.getDuplicatetoShard();
+            CommonResult<ItemOperationResult> result = playerPackService.addItems(ctx.playerId(),
+                    Map.of(shards.get(1), duplicateCount * shards.get(2)), addType, "游客重复转碎片", true);
+            if (!result.success()) {
+                return false;
+            }
+        }
+        if (unlocked) {
+            if (unlockGuest(ctx, cfg.getId()) != Code.SUCCESS) {
+                return false;
+            }
+            reportGuestCounts(ctx);
+        }
+        return true;
+    }
+
     /**
      * 解锁游客
      */

@@ -44,6 +44,8 @@ public class GameConstant {
 
 //        SIM_SPECIAL_ITEM_TYPE.add(Item.ITEM_TYPE_RESEARCH_POINT);
         SIM_SPECIAL_ITEM_TYPE.add(Item.ITEM_TYPE_SIM_RECRUIT_CARD);
+        SIM_SPECIAL_ITEM_TYPE.add(Item.ITEM_TYPE_SIM_GUEST);
+        SIM_SPECIAL_ITEM_TYPE.add(Item.ITEM_TYPE_SIM_EMPLOYEE);
     }
 
     public class Common {
@@ -81,6 +83,10 @@ public class GameConstant {
         int ITEM_TYPE_RESEARCH_POINT = 1;
         //招商卡
         int ITEM_TYPE_SIM_RECRUIT_CARD = 2;
+        //游客
+        int ITEM_TYPE_SIM_GUEST = 3;
+        //雇员
+        int ITEM_TYPE_SIM_EMPLOYEE = 4;
     }
 
     public interface Marquee {

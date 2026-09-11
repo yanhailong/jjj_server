@@ -467,7 +467,7 @@ public class SimBuildingService implements SimPlayerTickListener, SimTaskStateRe
                 data.setProgress(data.getProgress() + 1);
                 res.buildingInfo = SimPbConverter.toBuildingInfo(ctx, configCache, data, currentCfg, GameDataManager.getBuildingAreaTableCfg(buildingId).getUnlockGameId(), now);
                 ctx.send(res);
-                log.info("建筑增加进度条 playerId={},buildingInfo={}", ctx.playerId(), JSON.toJSONString(res.buildingInfo));
+                log.info("建筑增加进度条 playerId={},buildingId={},level={},progress={},", ctx.playerId(), res.buildingInfo.id, res.buildingInfo.level, res.buildingInfo.progress);
                 return;
             }
 
@@ -495,7 +495,7 @@ public class SimBuildingService implements SimPlayerTickListener, SimTaskStateRe
             allianceHelpService.consumeSpeedupSeconds(ctx.playerId(), buildingId);
             data.setCdEndTime(now + cdMs);
             res.buildingInfo = SimPbConverter.toBuildingInfo(ctx, configCache, data, currentCfg, GameDataManager.getBuildingAreaTableCfg(buildingId).getUnlockGameId(), now);
-            log.info("升级建筑启动 playerId={},buildingInfo={}", ctx.playerId(), JSON.toJSONString(res.buildingInfo));
+            log.info("升级建筑启动 playerId={},buildingId={},level={}", ctx.playerId(), res.buildingInfo.id, res.buildingInfo.level);
         } catch (Exception e) {
             log.error("", e);
             res.code = Code.EXCEPTION;
@@ -809,9 +809,11 @@ public class SimBuildingService implements SimPlayerTickListener, SimTaskStateRe
         return computeDashboardBuildingValues(ctx, building, null);
     }
 
-    /** 计算总值时按需收集各属性的来源加成，结算和普通看板不创建明细对象。 */
+    /**
+     * 计算总值时按需收集各属性的来源加成，结算和普通看板不创建明细对象。
+     */
     public Map<BuildingOutputType, Long> computeDashboardBuildingValues(SimPlayerContext ctx, BuildingData building,
-                                                                      List<BonusInfo> bonusInfos) {
+                                                                        List<BonusInfo> bonusInfos) {
         if (ctx == null || building == null) {
             return Collections.emptyMap();
         }
@@ -863,8 +865,8 @@ public class SimBuildingService implements SimPlayerTickListener, SimTaskStateRe
     }
 
     private Map<BuildingOutputType, Long> applyBuildingBonus(SimPlayerContext ctx, Map<BuildingOutputType, Long> base,
-                                                            int employeeProfile, Map<BuildingOutputType, Integer> bonusesMap,
-                                                            long skillBonus, List<BonusInfo> bonusInfos) {
+                                                             int employeeProfile, Map<BuildingOutputType, Integer> bonusesMap,
+                                                             long skillBonus, List<BonusInfo> bonusInfos) {
         if (base == null || base.isEmpty()) {
             return base;
         }

@@ -603,6 +603,37 @@ public class SimEmployeeService implements SimTaskStateReporter {
         }
     }
 
+    /** 添加雇员道具：首次解锁，其余数量按招募配置转为碎片。 */
+    public boolean addEmployeeItem(SimPlayerContext ctx, int itemId, long count, AddType addType) {
+        EmployeeProfileCfg cfg = configCache.getEmployeeProfileCfgByItemId(itemId);
+        if (cfg == null) {
+            log.warn("添加雇员道具失败, 配置不存在 playerId={},itemId={}", ctx.playerId(), itemId);
+            return false;
+        }
+        boolean unlocked = ctx.getEmployee(cfg.getId()) == null;
+        long duplicateCount = count - (unlocked ? 1 : 0);
+        if (duplicateCount > 0) {
+            List<Integer> shards = cfg.getDuplicatetoShard();
+            CommonResult<ItemOperationResult> result = playerPackService.addItems(ctx.playerId(),
+                    Map.of(shards.get(1), duplicateCount * shards.get(2)), addType, "雇员重复转碎片", true);
+            if (!result.success()) {
+                return false;
+            }
+        }
+        if (unlocked) {
+            SimEmployeeData data = new SimEmployeeData();
+            data.setPlayerId(ctx.playerId());
+            data.setEmployeeId(cfg.getId());
+            data.setLevel(INITIAL_LEVEL);
+            data.setStar(INITIAL_STAR);
+            ctx.putEmployee(data);
+            employeeRedDotService.recordNewContent(ctx, SimEmployeeRedDotService.NEW_EMPLOYEE, cfg.getId());
+            employeeRedDotService.updateRedDots(ctx.playerId(), SimConstant.Employee.RED_DOT_EMPLOYEE_GROWTH);
+            reportEmployeeCounts(ctx);
+        }
+        return true;
+    }
+
     // ---------------------------------------------------------------------
     // helpers
     // ---------------------------------------------------------------------
