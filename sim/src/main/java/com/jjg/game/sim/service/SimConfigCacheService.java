@@ -94,8 +94,6 @@ public class SimConfigCacheService implements ConfigExcelChangeListener {
     //建筑等级解锁设备的信息
     private Map<Integer, BuildingUnlockEquipmentData> buildingUnlockEquipmentDataMap;
 
-    //建筑设备列表 buildingId -> 该建筑下所有设备 (EquipmentTable type==设备)
-    private Map<Integer, List<Integer>> buildingDeviceMap;
     //gameType -> BuildingAreaTableCfg
     private Map<Integer, BuildingAreaTableCfg> gameBuildingAreaTableCfg;
     //RegionID -> casinoLevel -> List.BuildingAreaTableCfg  ，每个场景等级解锁的建筑
@@ -166,7 +164,6 @@ public class SimConfigCacheService implements ConfigExcelChangeListener {
         loadResearchInstituteCfg();
         loadTrialWareConfig();
 
-        loadBuildingDeviceConfig();
         loadBuildingUpgradeConfig();
         loadBuildingAreaTableConfig();
 
@@ -484,20 +481,6 @@ public class SimConfigCacheService implements ConfigExcelChangeListener {
     }
 
     /**
-     * 加载建筑设备列表
-     */
-    private void loadBuildingDeviceConfig() {
-        Map<Integer, List<Integer>> tmp = new HashMap<>();
-        for (BuildingEquipmentTableCfg cfg : GameDataManager.getBuildingEquipmentTableCfgList()) {
-            if (cfg.getType() != SimConstant.EquipmentType.DEVICE) {
-                continue;
-            }
-            tmp.computeIfAbsent(cfg.getBuildingID(), k -> new ArrayList<>()).add(cfg.getId());
-        }
-        this.buildingDeviceMap = tmp;
-    }
-
-    /**
      * 加载全局配置
      */
     private void loadGlobalConfig() {
@@ -787,7 +770,6 @@ public class SimConfigCacheService implements ConfigExcelChangeListener {
 
         addInitSampleFileObserveWithCallBack(BuildingAreaTableCfg.EXCEL_NAME, this::loadBuildingAreaTableConfig);
         addInitSampleFileObserveWithCallBack(BuildingUpgradeTableCfg.EXCEL_NAME, this::loadBuildingUpgradeConfig);
-        addInitSampleFileObserveWithCallBack(BuildingEquipmentTableCfg.EXCEL_NAME, this::loadBuildingDeviceConfig);
 
 
         addInitSampleFileObserveWithCallBack(GlobalConfigCfg.EXCEL_NAME, this::loadGlobalConfig);
@@ -893,17 +875,6 @@ public class SimConfigCacheService implements ConfigExcelChangeListener {
             }
         }
         return new ArrayList<>(tmp.values());
-    }
-
-    /**
-     * 获取建筑下的设备列表
-     */
-    public List<Integer> getBuildingDevices(int buildingId) {
-        if (buildingDeviceMap == null) {
-            return Collections.emptyList();
-        }
-        List<Integer> list = buildingDeviceMap.get(buildingId);
-        return list == null ? Collections.emptyList() : list;
     }
 
     /**
