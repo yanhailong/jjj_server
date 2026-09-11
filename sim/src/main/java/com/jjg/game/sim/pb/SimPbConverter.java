@@ -82,27 +82,31 @@ public final class SimPbConverter {
                 info.interactCount = Math.toIntExact(CommonUtil.getContext()
                         .getBean(SimOperationDashboardService.class).customerAcquisitionPerMinute(ctx));
             }
-        }
+        }else {
+            int marketBuildId = simConfigCacheService.getCasinoManageBuildId(ctx.getCurrentCasino().getCasinoId(), ServerBuildingType.MARKETING);
+            if(marketBuildId > 0) {
+                GlobalConfigCfg globalConfigCfg = GameDataManager.getGlobalConfigCfg(SimConstant.Global.GUEST_AWARENESS_MAX);
+                List<KVInfo> tmpList = new ArrayList<>();
+                int sum = 0;
+                for (Map.Entry<Integer, List<VisitorQuestCfg>> en : simConfigCacheService.getVisitorQuestCfgMap().entrySet()) {
+                    KVInfo kvInfo = new KVInfo();
+                    kvInfo.key = en.getKey();
+                    VisitorQuestCfg visitorQuestCfg = en.getValue().stream().findFirst().get();
+                    kvInfo.value = (int) ((double) ctx.getCurrentCasino().getAwareness() / globalConfigCfg.getIntValue() * visitorQuestCfg.getAwareness() + visitorQuestCfg.getBaseWeight());
+                    sum += kvInfo.value;
+                    tmpList.add(kvInfo);
+                }
 
-        GlobalConfigCfg globalConfigCfg = GameDataManager.getGlobalConfigCfg(SimConstant.Global.GUEST_AWARENESS_MAX);
-        List<KVInfo> tmpList = new ArrayList<>();
-        int sum = 0;
-        for (Map.Entry<Integer, List<VisitorQuestCfg>> en : simConfigCacheService.getVisitorQuestCfgMap().entrySet()) {
-            KVInfo kvInfo = new KVInfo();
-            kvInfo.key = en.getKey();
-            VisitorQuestCfg visitorQuestCfg = en.getValue().stream().findFirst().get();
-            kvInfo.value = (int) ((double) ctx.getCurrentCasino().getAwareness() / globalConfigCfg.getIntValue() * visitorQuestCfg.getAwareness() + visitorQuestCfg.getBaseWeight());
-            sum += kvInfo.value;
-            tmpList.add(kvInfo);
-        }
-
-        if (sum > 0) {
-            info.guestQualityList = new ArrayList<>();
-            for (KVInfo kv : tmpList) {
-                KVInfo kvInfo = new KVInfo();
-                kvInfo.key = kv.key;
-                kvInfo.value = (int) (kv.value/sum);
-                info.guestQualityList.add(kvInfo);
+                if (sum > 0) {
+                    System.out.println(sum);
+                    info.guestQualityList = new ArrayList<>();
+                    for (KVInfo kv : tmpList) {
+                        KVInfo kvInfo = new KVInfo();
+                        kvInfo.key = kv.key;
+                        kvInfo.value = (int) ((double) kv.value / sum * 100);
+                        info.guestQualityList.add(kvInfo);
+                    }
+                }
             }
         }
 
