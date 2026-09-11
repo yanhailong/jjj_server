@@ -137,7 +137,7 @@ public class RedDotDetails {
          */
         @ProtoDesc("联盟")
         ALLIANCE(14, RedDotType.COMMON, false),
-        @ProtoDesc("建筑")
+        @ProtoDesc("建筑；子模块1=可升级数量，子模块2=数据看板入口感叹号")
         BUILDING(15, RedDotType.COUNT, false);
 
         private final int type;

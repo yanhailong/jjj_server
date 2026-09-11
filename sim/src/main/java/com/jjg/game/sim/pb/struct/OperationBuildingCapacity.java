@@ -15,4 +15,6 @@ public class OperationBuildingCapacity {
     public int currentCapacity;
     @ProtoDesc("当前等级容纳上限")
     public int capacity;
+    @ProtoDesc("当前交互人数是否超过爆红阈值")
+    public boolean capacityOverloaded;
 }

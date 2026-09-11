@@ -979,6 +979,42 @@ public class SimBuildingService implements SimPlayerTickListener, SimTaskStateRe
     }
 
     /**
+     * 计算当前娱乐城总繁荣度：累加所有已解锁建筑当前等级的 BuildingUpgradeTable.Prosperity。
+     * 补充策划案已将该字段从 CasinoStatsSheet 迁移到建筑升级表，旧字段不再参与计算。
+     */
+    public int computeProsperity(SimCasinoData casino) {
+        if (casino == null || casino.getBuildingData() == null || casino.getBuildingData().isEmpty()) {
+            return 0;
+        }
+        long sum = 0;
+        for (BuildingData building : casino.getBuildingData().values()) {
+            BuildingUpgradeTableCfg cfg = configCache.getBuildingUpgradeCfg(building.getId(), building.getLevel());
+            if (cfg != null) {
+                sum += Math.max(0, cfg.getProsperity());
+            }
+        }
+        return Math.toIntExact(Math.min(Integer.MAX_VALUE, sum));
+    }
+
+    /**
+     * 计算标准交互次数的百分之一单位值。
+     * BuildingUpgradeTable.InteractCount 的配置和为 100 时，实际标准交互次数为 1 次。
+     */
+    public int computeStandardInteractionCount(SimCasinoData casino) {
+        if (casino == null || casino.getBuildingData() == null || casino.getBuildingData().isEmpty()) {
+            return 0;
+        }
+        long sum = 0;
+        for (BuildingData building : casino.getBuildingData().values()) {
+            BuildingUpgradeTableCfg cfg = configCache.getBuildingUpgradeCfg(building.getId(), building.getLevel());
+            if (cfg != null) {
+                sum += Math.max(0, cfg.getInteractCount());
+            }
+        }
+        return Math.toIntExact(Math.min(Integer.MAX_VALUE, sum));
+    }
+
+    /**
      * 经营信息-升满级最大容纳游客人数: 该场景全部建筑满级的最大交互数量之和。
      */
     public int computeMaxCapacity(int casinoId) {

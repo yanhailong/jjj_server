@@ -99,6 +99,8 @@ public class SimGuestService implements SimPlayerTickListener, ItemListener, Sim
     private RedDotReadDao redDotReadDao;
     @Autowired
     private SimEmployeeRedDotService employeeRedDotService;
+    @Autowired
+    private SimBuildingService buildingService;
 
     @Override
     public void onTick(SimPlayerContext ctx, long now) {
@@ -329,8 +331,9 @@ public class SimGuestService implements SimPlayerTickListener, ItemListener, Sim
 
             //本次交互次数 (有奖励 + 无奖励)
             VisitorStarCfg starCfg = rewardService.getStarCfg(guestId, guest.getStar());
-            int rewardedCount = computeInteractionCount(ctx, visitorQuestCfg.getServiceCapacity(), casinoCfg.getProsperity(), starCfg);
-            int unrewardedCount = computeInteractionCount(ctx, visitorQuestCfg.getBaseServiceCapacity(), casinoCfg.getProsperity(), starCfg);
+            int prosperity = buildingService.computeProsperity(casino);
+            int rewardedCount = computeInteractionCount(ctx, visitorQuestCfg.getServiceCapacity(), prosperity, starCfg);
+            int unrewardedCount = computeInteractionCount(ctx, visitorQuestCfg.getBaseServiceCapacity(), prosperity, starCfg);
             if (rewardedCount + unrewardedCount <= 0) {
                 log.info("生成购买游客但交互次数为 0, 跳过 playerId={},guestId={}", ctx.playerId(), guestId);
                 continue;
@@ -525,8 +528,9 @@ public class SimGuestService implements SimPlayerTickListener, ItemListener, Sim
 
         //本次交互次数 (有奖励 + 无奖励)
         VisitorStarCfg starCfg = rewardService.getStarCfg(guest.getId(), guest.getStar());
-        int rewardedCount = computeInteractionCount(ctx, visitorQuestCfg.getServiceCapacity(), casinoCfg.getProsperity(), starCfg);
-        int unrewardedCount = computeInteractionCount(ctx, visitorQuestCfg.getBaseServiceCapacity(), casinoCfg.getProsperity(), starCfg);
+        int prosperity = buildingService.computeProsperity(ctx.getCurrentCasino());
+        int rewardedCount = computeInteractionCount(ctx, visitorQuestCfg.getServiceCapacity(), prosperity, starCfg);
+        int unrewardedCount = computeInteractionCount(ctx, visitorQuestCfg.getBaseServiceCapacity(), prosperity, starCfg);
         if (rewardedCount + unrewardedCount <= 0) {
             ctx.getCurrentCasino().setLastGenerateTime(now);
 //            log.info("生成游客但交互次数为 0, 跳过 playerId={},guestId={}", ctx.playerId(), visitorQuestCfg.getId());

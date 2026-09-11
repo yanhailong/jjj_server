@@ -45,4 +45,8 @@ public class OperationBuildingData {
     public int operationRate;
     @ProtoDesc("高级游客品质概率，仅营销部建筑返回")
     public List<OperationVisitorQualityRate> premiumVisitorRates;
+    @ProtoDesc("收益过低标签多语言ID，0表示不显示标签")
+    public int warningLanguageId;
+    @ProtoDesc("当前交互人数是否超过爆红阈值")
+    public boolean capacityOverloaded;
 }
