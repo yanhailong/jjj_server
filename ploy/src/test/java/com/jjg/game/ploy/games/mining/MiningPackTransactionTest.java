@@ -6,8 +6,10 @@ import com.jjg.game.core.constant.AddType;
 import com.jjg.game.core.constant.Code;
 import com.jjg.game.core.data.Player;
 import com.jjg.game.core.data.PlayerPack;
+import com.jjg.game.core.data.CommonResult;
 import com.jjg.game.core.logger.CoreLogger;
 import com.jjg.game.core.service.PlayerPackService;
+import com.jjg.game.core.service.CorePlayerService;
 import com.jjg.game.core.task.manager.TaskManager;
 import org.junit.jupiter.api.*;
 import org.springframework.data.redis.core.HashOperations;
@@ -49,6 +51,25 @@ class MiningPackTransactionTest {
     }
 
     private PlayerPack stored() { return JSON.parseObject(persisted.get(), PlayerPack.class); }
+
+    @Test void diamondCostUsesPlayerCurrencyServiceAtFullConfiguredQuantity() {
+        player.setDiamond(1000);
+        CorePlayerService currency = mock(CorePlayerService.class);
+        ReflectionTestUtils.setField(packs, "corePlayerService", currency);
+        when(currency.get(123L)).thenReturn(player);
+        when(currency.deductMoneyCoin(eq(123L), eq(0L), eq(600L), eq(0L),
+                eq(AddType.MINING_BUNDLE), eq(true), anyString())).thenAnswer(inv -> {
+            player.setDiamond(player.getDiamond() - 600);
+            return new CommonResult<>(Code.SUCCESS, player);
+        });
+
+        assertEquals(Code.SUCCESS, packs.removeItems(player, Map.of(1980000, 600L),
+                AddType.MINING_BUNDLE, "mining:currency:test").code);
+        assertEquals(400, player.getDiamond());
+        assertEquals(0, stored().getItemCount(1980000));
+        assertEquals("old", stored().getMiningState());
+        verify(currency).deductMoneyCoin(123L, 0, 600, 0, AddType.MINING_BUNDLE, true, "mining:currency:test");
+    }
 
     @Test void stateAndItemExchangeCommitTogetherAndStaleRequestIsReadOnly() {
         assertEquals(Code.SUCCESS, packs.exchangeMiningItems(player, Map.of(1024034, 1L), Map.of(1024037, 1L),

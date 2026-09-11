@@ -9,7 +9,7 @@ import com.jjg.game.ploy.games.mining.MiningConstant;
 @ProtobufMessage(messageType = MessageConst.MessageTypeDef.MINIGAME, cmd = MiningConstant.REQ_ACTION)
 @ProtoDesc("挖矿操作")
 public class ReqMiningAction extends AbstractMessage {
-    @ProtoDesc("1挖掘 2兑换 3免费/广告礼包 4成就领奖 5每日任务领奖")
+    @ProtoDesc("1挖掘 2兑换 3礼包领取/道具购买 4成就领奖 5每日任务领奖")
     public int action;
     @ProtoDesc("当前赛季ID")
     public String seasonId;
