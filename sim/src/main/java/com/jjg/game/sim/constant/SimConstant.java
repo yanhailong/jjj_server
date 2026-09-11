@@ -483,9 +483,6 @@ public interface SimConstant {
         int ONLINE_REWARD_DIAMOND_LIMIT = 306;
         int ONLINE_REWARD_DIAMOND_HOURS = 307;
         int ONLINE_REWARD_DIAMOND_COST = 308;
-
-        //这里临时写的具体的数字，而非配置id
-        int cache_guest_size = 10;
     }
 
     /**

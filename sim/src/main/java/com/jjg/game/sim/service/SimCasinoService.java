@@ -286,6 +286,8 @@ public class SimCasinoService implements SimTaskStateReporter {
             return null;
         }
 
+        simBuildingService.updateCacheGuestSize(currentCasino);
+
         ctx.setCurrentCasino(currentCasino);
         //检查是否有建筑完成升级
         simBuildingService.completeAllBuildingUpgrade(ctx, currentCasino);

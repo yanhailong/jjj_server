@@ -1332,6 +1332,7 @@ public class SimBuildingService implements SimPlayerTickListener, SimTaskStateRe
         }
         int afterLevel = data.getLevel() + 1;
         data.setLevel(afterLevel);
+        updateCacheGuestSize(casino);
         data.setCdEndTime(0);
         data.setAdClearCount(0);
         data.setProgress(0);
@@ -1492,11 +1493,24 @@ public class SimBuildingService implements SimPlayerTickListener, SimTaskStateRe
         }
     }
 
+    public void updateCacheGuestSize(SimCasinoData casino) {
+        int count = 0;
+        for (BuildingData building : casino.getBuildingData().values()) {
+            BuildingUpgradeTableCfg cfg = configCache.getBuildingUpgradeCfg(building.getId(), building.getLevel());
+            if (cfg == null) {
+                continue;
+            }
+            count += cfg.getMaxInteractionCount();
+        }
+        casino.setCacheGuestSize(count * 2);
+    }
+
     public void unlockAndUpdateBuildData(SimPlayerContext ctx, int buildingId, BuildingAreaTableCfg cfg) {
         BuildingData data = new BuildingData();
         data.setId(buildingId);
         data.setLevel(INITIAL_LEVEL);
         ctx.getCurrentCasino().putBuilding(data);
+        updateCacheGuestSize(ctx.getCurrentCasino());
         if (cfg.getUnlockGameId() > 0) {
             simCasinoService.updateCasinoUnlock(ctx, ctx.getCurrentCasino().getCasinoId(), Set.of(cfg.getUnlockGameId()));
         }

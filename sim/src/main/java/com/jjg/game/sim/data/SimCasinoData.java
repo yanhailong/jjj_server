@@ -71,6 +71,8 @@ public class SimCasinoData extends AbstractData {
     //玩家不在模拟场景时换成的游客
     @Transient
     private transient List<GuestInfo> cacheGuestInfoList;
+    @Transient
+    private transient int cacheGuestSize;
 
     public String getId() {
         return id;
@@ -534,5 +536,13 @@ public class SimCasinoData extends AbstractData {
 
     public List<GuestInfo> getCacheGuestInfoList() {
         return cacheGuestInfoList;
+    }
+
+    public int getCacheGuestSize() {
+        return cacheGuestSize;
+    }
+
+    public void setCacheGuestSize(int cacheGuestSize) {
+        this.cacheGuestSize = cacheGuestSize;
     }
 }

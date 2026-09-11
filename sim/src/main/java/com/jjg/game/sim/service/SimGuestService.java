@@ -471,7 +471,7 @@ public class SimGuestService implements SimPlayerTickListener, ItemListener, Sim
 
         for (int i = 0; i < num; i++) {
             //生成单个游客
-            if (ctx.getInCasino().get() || ctx.getCurrentCasino().cacheGuestInfoListSize() > SimConstant.Global.cache_guest_size) {
+            if (ctx.getInCasino().get() || ctx.getCurrentCasino().cacheGuestInfoListSize() > ctx.getCurrentCasino().getCacheGuestSize()) {
                 GuestInfo guestInfo = generateOneGuest(ctx, guestDataWeightRandom, casinoCfg, now, specifyGuest);
                 if (guestInfo != null) {
                     //将游客信息放入列表
