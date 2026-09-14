@@ -3,10 +3,7 @@ package com.jjg.game.sim.pb;
 import com.jjg.game.common.utils.CommonUtil;
 import com.jjg.game.core.pb.KVInfo;
 import com.jjg.game.sampledata.GameDataManager;
-import com.jjg.game.sampledata.bean.BuildingAreaTableCfg;
-import com.jjg.game.sampledata.bean.BuildingUpgradeTableCfg;
-import com.jjg.game.sampledata.bean.GlobalConfigCfg;
-import com.jjg.game.sampledata.bean.VisitorQuestCfg;
+import com.jjg.game.sampledata.bean.*;
 import com.jjg.game.sim.constant.ServerBuildingType;
 import com.jjg.game.sim.constant.SimConstant;
 import com.jjg.game.sim.data.*;
@@ -78,13 +75,15 @@ public final class SimPbConverter {
         if (operateBuildId > 0) {
             //交互次数
             if (buildingData.getId() == operateBuildId) {
+                CasinoStatsSheetCfg casinoCfg = simConfigCacheService.getCasinoStatsSheetCfg(
+                        ctx.getCurrentCasino().getCasinoId(), ctx.getCurrentCasino().getCasinoLevel());
                 //运营看板每分钟获客量
                 info.interactCount = Math.toIntExact(CommonUtil.getContext()
-                        .getBean(SimOperationDashboardService.class).customerAcquisitionPerMinute(ctx));
+                        .getBean(SimOperationDashboardService.class).customerAcquisitionPerMinute(casinoCfg, ctx.getCurrentCasino(), System.currentTimeMillis()));
             }
-        }else {
+        } else {
             int marketBuildId = simConfigCacheService.getCasinoManageBuildId(ctx.getCurrentCasino().getCasinoId(), ServerBuildingType.MARKETING);
-            if(marketBuildId > 0) {
+            if (marketBuildId > 0) {
                 GlobalConfigCfg globalConfigCfg = GameDataManager.getGlobalConfigCfg(SimConstant.Global.GUEST_AWARENESS_MAX);
                 List<KVInfo> tmpList = new ArrayList<>();
                 int sum = 0;

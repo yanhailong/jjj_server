@@ -1034,8 +1034,6 @@ public class SimBuildingService implements SimPlayerTickListener, SimTaskStateRe
     }
 
     /**
-     * 经营信息-职能部门 (管理区) 当前等级的属性值 (含管理区普通雇员 + 主管加成, 与建筑详情页口径一致):
-     * 接待区(服务能力) / 营销部(曝光度) / 运营部(知名度)。
      *
      * @param outputType 部门对应的产出类型 (按建筑 typeValue 匹配)
      * @return 部门属性值; 未解锁对应建筑返回 0

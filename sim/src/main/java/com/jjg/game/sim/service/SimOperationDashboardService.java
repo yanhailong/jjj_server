@@ -138,7 +138,7 @@ public class SimOperationDashboardService implements IRedDotService, SimPlayerTi
     }
 
     private OperationDashboardOverview buildOverview(SimPlayerContext ctx, SimCasinoData casino, long now,
-                                                       boolean writeSatisfactionLog) {
+                                                     boolean writeSatisfactionLog) {
         OperationDashboardOverview overview = new OperationDashboardOverview();
         Map<BuildingOutputType, Long> outputs = buildingService.computePerMinuteOutput(ctx, casino);
         overview.goldOutputPerMinute = outputs.getOrDefault(BuildingOutputType.GOLD, 0L);
@@ -154,7 +154,7 @@ public class SimOperationDashboardService implements IRedDotService, SimPlayerTi
 
         CasinoStatsSheetCfg casinoCfg = configCache.getCasinoStatsSheetCfg(
                 casino.getCasinoId(), casino.getCasinoLevel());
-        overview.customerAcquisitionPerMinute = customerAcquisitionPerMinute(exposure, casinoCfg);
+        overview.customerAcquisitionPerMinute = customerAcquisitionPerMinute(casinoCfg, casino, now);
         overview.operationRate = operationRate(exposure, casinoCfg);
         overview.totalProsperity = buildingService.computeProsperity(casino);
         overview.standardInteractionCount = buildingService.computeStandardInteractionCount(casino);
@@ -174,7 +174,7 @@ public class SimOperationDashboardService implements IRedDotService, SimPlayerTi
     }
 
     private List<OperationBuildingData> buildBuildingData(SimPlayerContext ctx, SimCasinoData casino,
-                                                           OperationDashboardOverview overview, long now) {
+                                                          OperationDashboardOverview overview, long now) {
         Map<Integer, Integer> expectedLevels = expectedBuildingLevels(casino);
         List<OperationBuildingData> result = new ArrayList<>();
         if (casino.getBuildingData() == null || casino.getBuildingData().isEmpty()) {
@@ -286,7 +286,7 @@ public class SimOperationDashboardService implements IRedDotService, SimPlayerTi
     }
 
     private List<BuildingTips> buildUnlockConditions(SimPlayerContext ctx, SimCasinoData casino,
-                                                      BuildingAreaTableCfg cfg) {
+                                                     BuildingAreaTableCfg cfg) {
         List<BuildingTips> tips = new ArrayList<>();
         if (cfg.getCasinoLevel() > 0 && ctx.getSimBaseData().getAllLevel() < cfg.getCasinoLevel()) {
             addTip(tips, languageId(cfg, 0), String.valueOf(cfg.getCasinoLevel()));
@@ -373,21 +373,12 @@ public class SimOperationDashboardService implements IRedDotService, SimPlayerTi
         return total;
     }
 
-    public long customerAcquisitionPerMinute(SimPlayerContext ctx) {
-        SimCasinoData casino = ctx.getCurrentCasino();
-        long exposure = buildingService.computeDeptValue(ctx, casino, BuildingOutputType.EXPOSURE);
-        CasinoStatsSheetCfg casinoCfg = configCache.getCasinoStatsSheetCfg(
-                casino.getCasinoId(), casino.getCasinoLevel());
-        return customerAcquisitionPerMinute(exposure, casinoCfg);
-    }
-
-    private long customerAcquisitionPerMinute(long exposure, CasinoStatsSheetCfg cfg) {
-        if (exposure <= 0 || cfg == null || cfg.getExposureRequirements() <= 0
-                || cfg.getBaseVisitInterval() <= 0 || cfg.getVisitorSpawnCount() <= 0) {
+    public long customerAcquisitionPerMinute(CasinoStatsSheetCfg cfg, SimCasinoData casino, long now) {
+        long intervalMs = guestService.computeVisitIntervalMs(cfg, casino, now);
+        if (intervalMs <= 0) {
             return 0;
         }
-        return exposure * cfg.getVisitorSpawnCount() * 60L
-                / cfg.getExposureRequirements() / cfg.getBaseVisitInterval();
+        return 60_000L * cfg.getVisitorSpawnCount() / intervalMs;
     }
 
     private int operationRate(long exposure, CasinoStatsSheetCfg cfg) {
@@ -483,7 +474,9 @@ public class SimOperationDashboardService implements IRedDotService, SimPlayerTi
         return overview.hasWarning ? 0 : SimConstant.Dashboard.LANG_PROMPT_NORMAL;
     }
 
-    /** 定时入口提示只计算告警所需指标，避免每30秒重复计算产出和游客品质概率。 */
+    /**
+     * 定时入口提示只计算告警所需指标，避免每30秒重复计算产出和游客品质概率。
+     */
     private boolean hasDashboardWarning(SimPlayerContext ctx, SimCasinoData casino, long now) {
         int standardInteractionCount = buildingService.computeStandardInteractionCount(casino);
         int satisfactionRate = satisfactionRate(ctx.playerId(), casino, standardInteractionCount, now, false);
