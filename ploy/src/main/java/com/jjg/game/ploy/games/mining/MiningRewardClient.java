@@ -11,6 +11,7 @@ import com.jjg.game.core.data.CommonResult;
 import com.jjg.game.core.data.ItemOperationResult;
 import com.jjg.game.core.rpc.MiningRewardBridge;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.data.redis.core.RedisTemplate;
 import org.springframework.stereotype.Service;
 
@@ -19,7 +20,9 @@ import java.util.Map;
 @Service
 public class MiningRewardClient {
     @Autowired private ClusterSystem cluster;
-    @Autowired private RedisTemplate redis;
+    @Autowired
+    @Qualifier("redisTemplate")
+    private RedisTemplate redis;
     @ClusterRpcReference private MiningRewardBridge bridge;
 
     public CommonResult<ItemOperationResult> grant(long playerId, Map<Integer, Long> rewards,
