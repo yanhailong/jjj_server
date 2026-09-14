@@ -164,6 +164,13 @@ public class PlayerPackService implements IPlayerRegister {
                         playerId, item.getId(), item.getItemCount(), addType, desc);
                 continue;
             }
+            ItemCfg roleCfg = GameDataManager.getItemCfg(item.getId());
+            if (specialItemListener == null && roleCfg != null
+                    && (roleCfg.getItemType() == GameConstant.Item.ITEM_TYPE_SIM_GUEST
+                    || roleCfg.getItemType() == GameConstant.Item.ITEM_TYPE_SIM_EMPLOYEE)) {
+                log.error("角色发奖失败，当前节点没有SIM处理器 playerId={},itemId={},addType={}", playerId, item.getId(), addType);
+                return result;
+            }
             validAddItemList.add(item);
         }
         if (validAddItemList.isEmpty()) {

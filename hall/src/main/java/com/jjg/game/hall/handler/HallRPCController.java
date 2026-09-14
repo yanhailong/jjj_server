@@ -69,7 +69,7 @@ import java.util.Set;
  */
 @Component
 public class HallRPCController extends CoreRPCController implements GmToHallBridge, ToSimBridge, ToAllianceBridge,
-        ToSocialBridge {
+        ToSocialBridge, com.jjg.game.core.rpc.MiningRewardBridge {
 
     private static final long TOGETHER_PLAY_INVITE_VALID_MILLIS = 30_000L;
 
@@ -107,6 +107,15 @@ public class HallRPCController extends CoreRPCController implements GmToHallBrid
     private SimVisitService simVisitService;
     @Autowired
     private SimEmployeeRedDotService simEmployeeRedDotService;
+    @Autowired
+    private com.jjg.game.sim.service.SimMiningRewardService simMiningRewardService;
+
+    @Override
+    @RpcCallSetting(processorModKey = "#arg0")
+    public CommonResult<ItemOperationResult> grantMiningRoleReward(long playerId, Map<Integer, Long> rewards,
+                                                                  AddType source, String deliveryId) {
+        return simMiningRewardService.grant(playerId, rewards, source, deliveryId);
+    }
     @Autowired
     private com.jjg.game.sim.service.SimBuildingRedDotService simBuildingRedDotService;
     @Autowired

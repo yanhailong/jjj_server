@@ -196,9 +196,9 @@ public class SimPackService implements SpecialItemListener {
                 ctx.getCurrentCasino().addSpecialGuest(itemId, count);
                 specialGuestItemAdded = true;
             } else if (itemCfg.getItemType() == GameConstant.Item.ITEM_TYPE_SIM_GUEST) { //游客
-                simGuestService.addGuestItem(ctx, itemId, count, addType);
+                if (!simGuestService.addGuestItem(ctx, itemId, count, addType)) return false;
             } else if (itemCfg.getItemType() == GameConstant.Item.ITEM_TYPE_SIM_EMPLOYEE) {  //雇员
-                simEmployeeService.addEmployeeItem(ctx, itemId, count, addType);
+                if (!simEmployeeService.addEmployeeItem(ctx, itemId, count, addType)) return false;
             }
         }
         if (specialGuestItemAdded) {

@@ -28,6 +28,7 @@ class MiningServiceTest {
     private PlayerPackService packs;
     private AccountDao accounts;
     private MiningRankService ranks;
+    private MiningRewardClient rewardClient;
     private MiningConfig config;
     private final Player player = new Player();
     private String saved;
@@ -61,6 +62,8 @@ class MiningServiceTest {
                     saved = inv.getArgument(6); return new CommonResult<ItemOperationResult>(Code.SUCCESS);
                 });
         service = new MiningService(config, packs, accounts, redis, ranks);
+        rewardClient = mock(MiningRewardClient.class);
+        org.springframework.test.util.ReflectionTestUtils.setField(service, "rewardClient", rewardClient);
         ResMiningState initial = service.info(player);
         var recoveryCfg = GameDataManager.getGlobalConfigCfg(MiningConstant.PICK_RECOVERY_INTERVAL_GLOBAL_ID);
         assertEquals(Code.SUCCESS, initial.code, initial.reason + ", recoveryCfg=" + recoveryCfg.getValue());
@@ -481,11 +484,46 @@ class MiningServiceTest {
         assertEquals(940, wallet.get(1024037));
     }
 
-    @Test void unsupportedEntityRewardIsRejectedBeforeDeduction() {
-        Map<Integer, Long> before = Map.copyOf(wallet); String old = saved;
+    @Test void roleExchangeUsesHallGrantInsteadOfPloyPackAndRejectsReplay() {
+        for (int goodsId : List.of(5007, 5008)) {
+            var cfg = GameDataManager.getMiningExchangeShopCfg(goodsId);
+            var cost = MiningCatalog.itemPair(cfg.getCost());
+            cost.forEach((id, n) -> wallet.put(id, n * 2));
+            var rewards = MiningCatalog.itemPair(cfg.getGoods());
+            when(rewardClient.grant(eq(player.getId()), eq(rewards), any(), anyString()))
+                    .thenReturn(new CommonResult<>(Code.SUCCESS, new ItemOperationResult()));
+            var req = request(MiningConstant.EXCHANGE, goodsId);
+            var response = service.action(player, req);
+            assertEquals(Code.SUCCESS, response.code, response.reason + ", rewardItemType="
+                    + GameDataManager.getItemCfg(cfg.getGoods().getFirst()).getItemType());
+            assertNull(state().delivery);
+            assertEquals(1, state().dailyPurchases.get(goodsId));
+            cost.forEach((id, n) -> assertEquals(n, wallet.get(id)));
+            rewards.keySet().forEach(id -> assertFalse(wallet.containsKey(id)));
+            assertEquals("STALE_VERSION", service.action(player, req).reason);
+            verify(rewardClient).grant(eq(player.getId()), eq(rewards), any(), anyString());
+        }
+        verify(packs, never()).addItems(anyLong(), anyMap(), any(), anyString());
+    }
+
+    @Test void missingRoleOwnerRefundsCostsAndQuota() {
+        var cost = MiningCatalog.itemPair(GameDataManager.getMiningExchangeShopCfg(5007).getCost());
+        wallet.putAll(cost);
+        when(rewardClient.grant(anyLong(), anyMap(), any(), anyString())).thenReturn(new CommonResult<>(Code.NOT_FOUND));
         var res = service.action(player, request(MiningConstant.EXCHANGE, 5007));
-        assertEquals(Code.SAMPLE_ERROR, res.code); assertTrue(res.reason.startsWith("UNSUPPORTED_NON_BAG_REWARD"));
-        assertEquals(before, wallet); assertEquals(old, saved);
+        assertEquals(Code.NOT_FOUND, res.code);
+        assertNull(state().delivery);
+        assertEquals(0, state().dailyPurchases.getOrDefault(5007, 0));
+        cost.forEach((id, n) -> assertEquals(n, wallet.get(id)));
+    }
+
+    @Test void roleRpcTimeoutKeepsPendingAndDoesNotSendAnotherGrant() {
+        wallet.putAll(MiningCatalog.itemPair(GameDataManager.getMiningExchangeShopCfg(5007).getCost()));
+        when(rewardClient.grant(anyLong(), anyMap(), any(), anyString())).thenThrow(new IllegalStateException("RPC timeout"));
+        assertEquals(Code.EXCEPTION, service.action(player, request(MiningConstant.EXCHANGE, 5007)).code);
+        assertNotNull(state().delivery);
+        assertEquals("DELIVERY_REQUIRES_RECONCILIATION", service.action(player, request(MiningConstant.EXCHANGE, 5007)).reason);
+        verify(rewardClient).grant(anyLong(), anyMap(), any(), anyString());
     }
 
     @Test void adBundleIsFreeAndPurchaseDeductsConfiguredDiamondsOnce() {

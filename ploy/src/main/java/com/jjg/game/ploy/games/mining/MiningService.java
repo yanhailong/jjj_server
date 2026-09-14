@@ -42,6 +42,8 @@ public class MiningService implements OrderGenerate, StandalonePloyGame {
     private final AccountDao accounts;
     private final RedissonClient redis;
     private final MiningRankService ranks;
+    @org.springframework.beans.factory.annotation.Autowired
+    private MiningRewardClient rewardClient;
 
     public MiningService(MiningConfig config, PlayerPackService packs, AccountDao accounts, RedissonClient redis,
                          MiningRankService ranks) {
@@ -401,7 +403,9 @@ public class MiningService implements OrderGenerate, StandalonePloyGame {
         before.state.delivery = delivery;
         Snapshot pending = commit(player, before.json, before.state, costs, Map.of(), source);
         // 未知结果必须保留pending，不能猜测失败并自动退款/重发。
-        CommonResult<ItemOperationResult> grant = packs.addItems(player.getId(), rewards, source, "mining:delivery:" + delivery.id);
+        CommonResult<ItemOperationResult> grant = rewards.keySet().stream().anyMatch(MiningService::roleItem)
+                ? rewardClient.grant(player.getId(), rewards, source, delivery.id)
+                : packs.addItems(player.getId(), rewards, source, "mining:delivery:" + delivery.id);
         if (!grant.success()) {
             MiningState restored = JSON.parseObject(before.json, MiningState.class);
             restored.version = pending.state.version;
@@ -727,6 +731,12 @@ public class MiningService implements OrderGenerate, StandalonePloyGame {
         return cfg != null && cfg.getIsBag() && !GameConstant.suportSpecialItem(id) && !GameConstant.SIM_SPECIAL_ITEM_TYPE.contains(cfg.getItemType())
                 && cfg.getType() != GameConstant.Item.TYPE_GOLD && cfg.getType() != GameConstant.Item.TYPE_DIAMOND
                 && cfg.getType() != GameConstant.Item.TYPE_SHELL;
+    }
+
+    private static boolean roleItem(int id) {
+        ItemCfg cfg = GameDataManager.getItemCfg(id);
+        return cfg != null && (cfg.getItemType() == GameConstant.Item.ITEM_TYPE_SIM_GUEST
+                || cfg.getItemType() == GameConstant.Item.ITEM_TYPE_SIM_EMPLOYEE);
     }
     private static void validateItems(Map<Integer, Long> values) {
         if (values == null) throw new MiningException(Code.SAMPLE_ERROR, "NULL_REWARDS");
