@@ -141,8 +141,8 @@ public class SimOperationDashboardService implements IRedDotService, SimPlayerTi
                                                      boolean writeSatisfactionLog) {
         OperationDashboardOverview overview = new OperationDashboardOverview();
         Map<BuildingOutputType, Long> outputs = buildingService.computePerMinuteOutput(ctx, casino);
-        overview.goldOutputPerMinute = outputs.getOrDefault(BuildingOutputType.GOLD, 0L);
-        overview.expOutputPerMinute = outputs.getOrDefault(BuildingOutputType.CASINO_LEVEL_EXP, 0L);
+        overview.goldOutputPerMinute = outputs.getOrDefault(BuildingOutputType.GOLD, 0L) * 60;
+        overview.expOutputPerMinute = outputs.getOrDefault(BuildingOutputType.CASINO_LEVEL_EXP, 0L) * 60;
         overview.totalCapacity = computeCurrentCapacity(casino);
         //窗口累计人数仅用于展示，按当前容纳上限截断，不修改原始游客/交互统计。
         int currentCapacity = casino.countGenerateInWindow(now, SimConstant.Common.CAPACITY_WINDOW_MS);
@@ -154,7 +154,7 @@ public class SimOperationDashboardService implements IRedDotService, SimPlayerTi
 
         CasinoStatsSheetCfg casinoCfg = configCache.getCasinoStatsSheetCfg(
                 casino.getCasinoId(), casino.getCasinoLevel());
-        overview.customerAcquisitionPerMinute = customerAcquisitionPerMinute(casinoCfg, casino, now);
+        overview.customerAcquisitionPerMinute = customerAcquisitionPerMinute(casinoCfg, casino, now) * 60;
         overview.operationRate = operationRate(exposure, casinoCfg);
         overview.totalProsperity = buildingService.computeProsperity(casino);
         overview.standardInteractionCount = buildingService.computeStandardInteractionCount(casino);

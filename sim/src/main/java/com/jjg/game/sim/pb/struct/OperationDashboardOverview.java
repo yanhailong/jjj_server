@@ -11,15 +11,15 @@ import java.util.List;
 @ProtobufMessage
 @ProtoDesc("数据看板顶部经营数据总览")
 public class OperationDashboardOverview {
-    @ProtoDesc("所有已解锁Slot建筑金币产出/分钟")
+    @ProtoDesc("所有已解锁Slot建筑金币产出/小时")
     public long goldOutputPerMinute;
-    @ProtoDesc("所有已解锁Slot建筑经验产出/分钟")
+    @ProtoDesc("所有已解锁Slot建筑经验产出/小时")
     public long expOutputPerMinute;
     @ProtoDesc("固定窗口内的当前交互人数")
     public int currentCapacity;
     @ProtoDesc("当前已解锁Slot建筑和休息区的总容纳上限")
     public int totalCapacity;
-    @ProtoDesc("获客人数/分钟")
+    @ProtoDesc("获客人数/小时")
     public long customerAcquisitionPerMinute;
     @ProtoDesc("知名度")
     public long awareness;
