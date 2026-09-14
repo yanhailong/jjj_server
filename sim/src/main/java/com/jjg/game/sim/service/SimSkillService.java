@@ -175,7 +175,7 @@ public class SimSkillService extends AbstractSkillService {
             SimSkillsData skillData;
             if (propCfg.getSkillTypeId() == 1) {
                 skillData = ctx.getSkillData(0);
-                gameType = GLOBAL_GAME_TYPE;
+//                gameType = GLOBAL_GAME_TYPE;
             } else {
                 skillData = ctx.getSkillData(gameType);
             }
@@ -186,13 +186,13 @@ public class SimSkillService extends AbstractSkillService {
                 return;
             }
 
-            if (skillGameType(propCfg) != gameType) {
-                log.warn("升级技能失败，技能类型与请求不匹配 playerId={},propId={},gameType={}",
-                        skillData.getPlayerId(), skillPropId, gameType);
-                res.code = Code.PARAM_ERROR;
-                ctx.send(res);
-                return;
-            }
+//            if (skillGameType(propCfg) != gameType) {
+//                log.warn("升级技能失败，技能类型与请求不匹配 playerId={},propId={},gameType={}",
+//                        skillData.getPlayerId(), skillPropId, gameType);
+//                res.code = Code.PARAM_ERROR;
+//                ctx.send(res);
+//                return;
+//            }
 
             Map<Integer, Map<Integer, ResearchSkillsCfg>> cfgMap = this.skillsCfgMap.get(skillData.getGameType());
             if (cfgMap == null || cfgMap.isEmpty()) {
@@ -227,10 +227,10 @@ public class SimSkillService extends AbstractSkillService {
                 return;
             }
 
-            if (gameType != GLOBAL_GAME_TYPE) {
-                BuildingAreaTableCfg buildingAreaTableCfg = simConfigCacheService.getBuildingAreaTableCfgByGameType(gameType);
+            if (propCfg.getSkillTypeId() != 1) {
+                BuildingAreaTableCfg buildingAreaTableCfg = simConfigCacheService.getBuildingAreaTableCfgByGameType(skillData.getGameType());
                 if (buildingAreaTableCfg == null) {
-                    log.warn("升级技能失败，根据游戏未找到配置 playerId={},propId={},gameType={}", skillData.getPlayerId(), skillPropId, gameType);
+                    log.warn("升级技能失败，根据游戏未找到配置 playerId={},propId={},gameType={}", skillData.getPlayerId(), skillPropId, skillData.getGameType());
                     res.code = Code.PARAM_ERROR;
                     ctx.send(res);
                     return;
@@ -272,17 +272,16 @@ public class SimSkillService extends AbstractSkillService {
             super.changeSkillLevel(ctx, skillData, skillPropId, newLevelCfg.getGrade());
             refreshBuildOutput(skillData, skillPropId);
             //联盟任务: 技能研究次数 (param=游戏类型, 供 0=任意/指定游戏 过滤)
-            allianceEventService.onGameResearch(ctx.playerId(), gameType,
-                    skillPropId, newLevelCfg.getGrade());
+            allianceEventService.onGameResearch(ctx.playerId(), gameType,skillPropId, newLevelCfg.getGrade());
 
-            res.gameType = gameType;
+            res.gameType = skillData.getGameType();
             res.skillId = skillPropId;
             res.nowLevel = newLevelCfg.getGrade();
 
-            res.researchPoints = getResearchPoints(ctx.playerId(), gameType);
+            res.researchPoints = getResearchPoints(ctx.playerId(), skillData.getGameType());
 
             //新解锁的技能
-            List<PropCfg> propCfgList = simConfigCacheService.getPropCfgList(gameType);
+            List<PropCfg> propCfgList = simConfigCacheService.getPropCfgList(skillData.getGameType());
             if (propCfgList != null && !propCfgList.isEmpty()) {
                 res.newUnlockSkills = new ArrayList<>();
                 for (PropCfg cfg : propCfgList) {

@@ -423,6 +423,9 @@ public class CoreMessageHandler {
             return;
         }
         playerController.send(res);
+//        ResCoreGetPack resCoreGetPack = new ResCoreGetPack(Code.SUCCESS);
+//        resCoreGetPack.packItemInfos = playerPackService.getPlayerPack(playerController.playerId());
+//        playerController.send(resCoreGetPack);
         log.debug("添加道具成功 playerId = {},orders = {}", playerController.playerId(), orders);
     }
 

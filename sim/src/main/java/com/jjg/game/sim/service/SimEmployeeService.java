@@ -2,13 +2,13 @@ package com.jjg.game.sim.service;
 
 import com.jjg.game.alliance.service.AllianceEventService;
 import com.jjg.game.common.utils.WeightRandom;
-import com.jjg.game.core.service.PlayerPackService;
-import com.jjg.game.core.data.ItemOperationResult;
 import com.jjg.game.core.base.condition.numeric.ActionConditionEvent;
 import com.jjg.game.core.constant.AddType;
 import com.jjg.game.core.constant.Code;
 import com.jjg.game.core.data.CommonResult;
+import com.jjg.game.core.data.ItemOperationResult;
 import com.jjg.game.core.pb.KVInfo;
+import com.jjg.game.core.service.PlayerPackService;
 import com.jjg.game.sampledata.GameDataManager;
 import com.jjg.game.sampledata.bean.*;
 import com.jjg.game.sim.constant.BuildingOutputType;
@@ -235,21 +235,23 @@ public class SimEmployeeService implements SimTaskStateReporter {
                 return;
             }
 
+            Map<Integer, Long> changeEndItemNum = null;
             if (currentCfg.getUpgradeCost() != null && !currentCfg.getUpgradeCost().isEmpty()) {
-                boolean removeItems = playerPackService.removeItems(ctx.getPlayer(), currentCfg.getUpgradeCost(), AddType.SIM_EMPLOYEE_LEVEL_UP, null).success();
-                if (!removeItems) {
-                    log.warn("升级雇员失败, 扣除道具失败 playerId={},employeeId={},level={},cost={}", ctx.playerId(), employeeId, data.getLevel(), currentCfg.getUpgradeCost());
+                CommonResult<ItemOperationResult> removeResult = playerPackService.removeItems(ctx.getPlayer(), currentCfg.getUpgradeCost(), AddType.SIM_EMPLOYEE_LEVEL_UP, null);
+                if (!removeResult.success()) {
+                    log.warn("升级雇员失败, 扣除道具失败 playerId={},employeeId={},level={},cost={},code={}", ctx.playerId(), employeeId, data.getLevel(), currentCfg.getUpgradeCost(), removeResult.code);
                     res.code = Code.NOT_ENOUGH_ITEM;
                     ctx.send(res);
                     return;
                 }
+                changeEndItemNum = removeResult.data.getChangeEndItemNum();
             }
 
             data.setLevel(data.getLevel() + 1);
             res.level = data.getLevel();
             employeeRedDotService.updateRedDots(ctx.playerId(),
                     SimConstant.Employee.RED_DOT_EMPLOYEE_GROWTH);
-            log.info("升级雇员成功 playerId={},employeeId={},newLevel={}", ctx.playerId(), employeeId, data.getLevel());
+            log.info("升级雇员成功 playerId={},employeeId={},newLevel={},changeEndItemNum={}", ctx.playerId(), employeeId, data.getLevel(), changeEndItemNum);
         } catch (Exception e) {
             log.error("", e);
             res.code = Code.EXCEPTION;
@@ -603,7 +605,9 @@ public class SimEmployeeService implements SimTaskStateReporter {
         }
     }
 
-    /** 添加雇员道具：首次解锁，其余数量按招募配置转为碎片。 */
+    /**
+     * 添加雇员道具：首次解锁，其余数量按招募配置转为碎片。
+     */
     public boolean addEmployeeItem(SimPlayerContext ctx, int itemId, long count, AddType addType) {
         EmployeeProfileCfg cfg = configCache.getEmployeeProfileCfgByItemId(itemId);
         if (cfg == null) {
