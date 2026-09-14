@@ -870,7 +870,7 @@ public class GMController extends AbstractController {
 
     /**
      * 生成结果库（slots + poker 统一入口）
-     * 如果 gameType 包含南方前进(300400)，走 poker 服务生成；其余走 slots 服务
+     * 南方前进和斗仙牌走 poker 服务生成，其余走 slots 服务
      */
     @RequestMapping(BackendGMCmd.GENERATE_LIB)
     public WebResult<String> generateLib(@RequestBody GenerateLibDto param) {
@@ -878,11 +878,13 @@ public class GMController extends AbstractController {
         try {
             // 收集所有待生成的 gameType → count
             List<KVInfo> allList = new ArrayList<>();
+            Map<Integer, Integer> rolloutCountMap = new HashMap<>();
             if (param.gameType() > 0 && param.count() > 0) {
                 KVInfo kvInfo = new KVInfo();
                 kvInfo.key = param.gameType();
                 kvInfo.value = param.count();
                 allList.add(kvInfo);
+                rolloutCountMap.put(param.gameType(), param.rolloutCount());
             }
             if (param.list() != null && !param.list().isEmpty()) {
                 for (GenerateLibCfgDto d : param.list()) {
@@ -890,6 +892,7 @@ public class GMController extends AbstractController {
                     tmpInfo.key = d.gameType();
                     tmpInfo.value = d.count();
                     allList.add(tmpInfo);
+                    rolloutCountMap.put(d.gameType(), d.rolloutCount());
                 }
             }
             if (allList.isEmpty()) {
@@ -901,7 +904,10 @@ public class GMController extends AbstractController {
             List<KVInfo> pokerList = new ArrayList<>();
             List<KVInfo> slotsList = new ArrayList<>();
             for (KVInfo kv : allList) {
-                if (kv.key == CoreConst.GameType.TO_SOUTH || kv.key == CoreConst.GameType.TO_SOUTH_BLOOD || kv.key == CoreConst.GameType.TO_SOUTH_FREE) {
+                if (kv.key == CoreConst.GameType.TO_SOUTH
+                        || kv.key == CoreConst.GameType.TO_SOUTH_BLOOD
+                        || kv.key == CoreConst.GameType.TO_SOUTH_FREE
+                        || kv.key == CoreConst.GameType.DOU_XIAN) {
                     pokerList.add(kv);
                 } else {
                     slotsList.add(kv);
@@ -922,10 +928,13 @@ public class GMController extends AbstractController {
                 }
                 for (KVInfo kv : pokerList) {
                     NotifyGenerateToSouthLib notify = new NotifyGenerateToSouthLib();
+                    notify.gameType = kv.key;
                     notify.count = kv.value;
+                    notify.rolloutCount = rolloutCountMap.getOrDefault(kv.key, 0);
                     PFMessage pfMessage = MessageUtil.getPFMessage(notify);
                     pokerClient.write(new ClusterMessage(pfMessage));
-                    log.info("通知 poker 节点生成牌库 gameType={}, count={}", kv.key, kv.value);
+                    log.info("通知 poker 节点生成牌库 gameType={}, count={}, rolloutCount={}",
+                            kv.key, kv.value, notify.rolloutCount);
                 }
             }
 

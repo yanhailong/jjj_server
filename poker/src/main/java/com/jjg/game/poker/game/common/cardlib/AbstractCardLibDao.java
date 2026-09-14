@@ -3,6 +3,7 @@ package com.jjg.game.poker.game.common.cardlib;
 import com.jjg.game.common.protostuff.ProtostuffUtil;
 import com.jjg.game.core.utils.LZ4CompressionUtil;
 import org.redisson.api.RKeys;
+import org.redisson.api.RLock;
 import org.redisson.api.RedissonClient;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -12,7 +13,6 @@ import org.springframework.data.redis.core.RedisTemplate;
 
 import java.nio.ByteBuffer;
 import java.util.List;
-import java.util.concurrent.TimeUnit;
 
 /**
  * Poker 牌库通用 Redis DAO 基类
@@ -29,8 +29,8 @@ import java.util.concurrent.TimeUnit;
  * Redis key 命名规则（与 Slots 对齐）：
  * <ul>
  *     <li>当前库标识：PokerResultLibCurrent:{gameType}</li>
- *     <li>库1 前缀：  PokerResultLib1:{gameType}:{sectionKey}</li>
- *     <li>库2 前缀：  PokerResultLib2:{gameType}:{sectionKey}</li>
+ *     <li>库1 前缀：  PokerResultLib1:{gameType}:{sectionKey}[:partitionKey]</li>
+ *     <li>库2 前缀：  PokerResultLib2:{gameType}:{sectionKey}[:partitionKey]</li>
  *     <li>生成锁：    PokerResultLibGenLock:{gameType}</li>
  *     <li>生成时间：  PokerResultLibLastGenTime:{gameType}</li>
  * </ul>
@@ -139,7 +139,14 @@ public abstract class AbstractCardLibDao<T extends CardLibEntry> {
      * 构建 Redis key: {libName}{sectionKey}
      */
     private String buildKey(String libName, int sectionKey) {
-        return libName + sectionKey;
+        return buildKey(libName, sectionKey, "");
+    }
+
+    private String buildKey(String libName, int sectionKey, String partitionKey) {
+        if (partitionKey == null || partitionKey.isBlank()) {
+            return libName + sectionKey;
+        }
+        return libName + sectionKey + ":" + partitionKey;
     }
 
     /**
@@ -182,7 +189,7 @@ public abstract class AbstractCardLibDao<T extends CardLibEntry> {
 
                 int sectionKey = findSectionKey(lib.getMultiplier(), sortedSectionKeys);
                 connection.sAdd(
-                        buildKey(libName, sectionKey).getBytes(),
+                        buildKey(libName, sectionKey, lib.getPartitionKey()).getBytes(),
                         buffer.array()
                 );
             }
@@ -205,17 +212,35 @@ public abstract class AbstractCardLibDao<T extends CardLibEntry> {
      * @return 牌库条目，可能为 null
      */
     public T getCardLib(int sectionKey) {
+        return getCardLib(sectionKey, "");
+    }
+
+    /** 从指定收益区间及二级场景分区随机获取一条记录。 */
+    public T getCardLib(int sectionKey, String partitionKey) {
         if (currentLibName == null || currentLibName.isEmpty()) {
             init();
         }
         if (currentLibName == null || currentLibName.isEmpty()) {
             return null;
         }
-        String key = buildKey(currentLibName, sectionKey);
-        byte[] compressedData = (byte[]) redisTemplate.execute(
+        String readLibName = currentLibName;
+        byte[] compressedData = randomMember(readLibName, sectionKey, partitionKey);
+        if (compressedData == null) {
+            // 另一节点完成双库切换后，本节点可能仍缓存旧库名；刷新后重试一次。
+            String latestLibName = getCurrentLibNameFromRedis();
+            if (latestLibName != null && !latestLibName.isEmpty() && !latestLibName.equals(readLibName)) {
+                currentLibName = latestLibName;
+                compressedData = randomMember(latestLibName, sectionKey, partitionKey);
+            }
+        }
+        return deserialize(compressedData);
+    }
+
+    private byte[] randomMember(String libName, int sectionKey, String partitionKey) {
+        String key = buildKey(libName, sectionKey, partitionKey);
+        return (byte[]) redisTemplate.execute(
                 (RedisCallback<byte[]>) connection -> connection.sRandMember(key.getBytes())
         );
-        return deserialize(compressedData);
     }
 
     /**
@@ -264,24 +289,24 @@ public abstract class AbstractCardLibDao<T extends CardLibEntry> {
      * 添加生成锁
      */
     public boolean addGenerateLock() {
-        return Boolean.TRUE.equals(
-                redisTemplate.opsForValue().setIfAbsent(genLockKey, true, 30, TimeUnit.MINUTES)
-        );
+        return redisson.getLock(genLockKey).tryLock();
     }
 
     /**
      * 检查是否有生成锁
      */
     public boolean hasGenerateLock() {
-        Object o = redisTemplate.opsForValue().get(genLockKey);
-        return o != null && Boolean.parseBoolean(o.toString());
+        return redisson.getLock(genLockKey).isLocked();
     }
 
     /**
      * 移除生成锁
      */
     public void removeGenerateLock() {
-        redisTemplate.delete(genLockKey);
+        RLock lock = redisson.getLock(genLockKey);
+        if (lock.isHeldByCurrentThread()) {
+            lock.unlock();
+        }
     }
 
     /**
@@ -289,6 +314,30 @@ public abstract class AbstractCardLibDao<T extends CardLibEntry> {
      */
     public void addGenerateTime() {
         redisTemplate.opsForValue().set(lastGenTimeKey, System.currentTimeMillis());
+    }
+
+    /** 获取最近一次成功切库的时间戳。 */
+    public long getLastGenerateTime() {
+        Object value = redisTemplate.opsForValue().get(lastGenTimeKey);
+        if (value == null) {
+            return 0;
+        }
+        try {
+            return Long.parseLong(value.toString());
+        } catch (NumberFormatException e) {
+            log.warn("结果库生成时间格式错误 gameType={}, value={}", gameType, value);
+            return 0;
+        }
+    }
+
+    /** 获取当前库指定收益桶和场景分区的记录数。 */
+    public long getCardLibSize(int sectionKey, String partitionKey) {
+        String libName = getCurrentLibNameFromRedis();
+        if (libName == null || libName.isEmpty()) {
+            return 0;
+        }
+        Long size = redisTemplate.opsForSet().size(buildKey(libName, sectionKey, partitionKey));
+        return size == null ? 0 : size;
     }
 
     /**

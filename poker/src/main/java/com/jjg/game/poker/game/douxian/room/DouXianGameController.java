@@ -26,6 +26,7 @@ import com.jjg.game.poker.game.douxian.data.DouXianDataHelper;
 import com.jjg.game.poker.game.douxian.data.DouXianKafkaLogBuilder;
 import com.jjg.game.poker.game.douxian.data.DouXianZoneCards;
 import com.jjg.game.poker.game.douxian.autohandler.DouXianRobotHandler;
+import com.jjg.game.poker.game.douxian.cardlib.DouXianCardLibManager;
 import com.jjg.game.poker.game.douxian.gamephase.DouXianDealPhase;
 import com.jjg.game.poker.game.douxian.gamephase.DouXianSettlementPhase;
 import com.jjg.game.poker.game.douxian.gamephase.DouXianTierAdvancePhase;
@@ -481,6 +482,14 @@ public class DouXianGameController extends BasePokerGameController<DouXianGameDa
         completeMatching();
         genPlayerSeatInfoList(gameDataVo.getSeatInfo(), gameDataVo.getPlayerSeatInfoList());
         DouXianDataHelper.shuffleNewDeck(gameDataVo);
+        try {
+            DouXianCardLibManager cardLibManager = CommonUtil.getContext().getBean(DouXianCardLibManager.class);
+            cardLibManager.tryApplyInitialDeal(this);
+        } catch (Exception e) {
+            // 结果库不可用时保留刚刚生成的随机牌堆，不能影响牌局正常开始。
+            log.error("斗仙牌应用首轮32张结果库失败，使用随机发牌 roomCfgId:{}",
+                    gameDataVo.getRoomCfg().getId(), e);
+        }
         gameDataVo.beginKafkaGameTracking(System.currentTimeMillis());
         // 开局前携带金币快照，DESIGN.md 6.2 "小额玩家保护"判定依据之一
         for (Long playerId : gameDataVo.getActivePlayerIds()) {
@@ -844,6 +853,7 @@ public class DouXianGameController extends BasePokerGameController<DouXianGameDa
                 gameDataVo.getRound() >= DouXianConstant.Common.TOTAL_ROUND
                         ? "NORMAL" : "ONLY_ONE_ACTIVE_PLAYER");
         roundLog.gameData().put("grandSettlement", grandSettlement);
+        updateCardLibWinStreak();
         notifySettledPlayers();
         flushKafkaRoundLog();
         goBackWaitReadyPhase();
@@ -891,6 +901,30 @@ public class DouXianGameController extends BasePokerGameController<DouXianGameDa
                     players, getGameTransactionItemId(), playerWins);
         } catch (Exception e) {
             log.error("斗仙牌赢钱任务批量推进异常 playerWins:{}", playerWins, e);
+        }
+    }
+
+    /** 按本回合真人玩家的实际净输赢更新斗仙牌水池。 */
+    public void updateCardLibPool(Map<Long, Long> roundChanges) {
+        if (roundChanges == null || roundChanges.isEmpty()) {
+            return;
+        }
+        try {
+            DouXianCardLibManager cardLibManager = CommonUtil.getContext().getBean(DouXianCardLibManager.class);
+            cardLibManager.updatePoolBalance(gameDataVo, roundChanges);
+        } catch (Exception e) {
+            log.error("斗仙牌水池更新失败 roomCfgId:{} round:{} changes:{}",
+                    gameDataVo.getRoomCfg().getId(), gameDataVo.getRound(), roundChanges, e);
+        }
+    }
+
+    /** 大结算时按整局真人净输赢更新跨房间连续胜负次数。 */
+    private void updateCardLibWinStreak() {
+        try {
+            DouXianCardLibManager cardLibManager = CommonUtil.getContext().getBean(DouXianCardLibManager.class);
+            cardLibManager.updatePlayerWinStreak(gameDataVo);
+        } catch (Exception e) {
+            log.error("斗仙牌连续胜负更新失败 roomCfgId:{}", gameDataVo.getRoomCfg().getId(), e);
         }
     }
 

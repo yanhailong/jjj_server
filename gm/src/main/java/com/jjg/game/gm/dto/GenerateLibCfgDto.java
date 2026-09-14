@@ -6,6 +6,7 @@ package com.jjg.game.gm.dto;
  */
 public record GenerateLibCfgDto(
         int gameType,
-        int count
+        int count,
+        int rolloutCount
 ) {
 }

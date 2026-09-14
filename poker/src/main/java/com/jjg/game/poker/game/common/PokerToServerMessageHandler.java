@@ -2,6 +2,7 @@ package com.jjg.game.poker.game.common;
 
 import com.alibaba.fastjson.JSON;
 import com.jjg.game.activity.grandroulette.controller.GrandRouletteController;
+import com.jjg.game.common.constant.CoreConst;
 import com.jjg.game.common.constant.MessageConst;
 import com.jjg.game.common.protostuff.Command;
 import com.jjg.game.common.protostuff.MessageType;
@@ -10,6 +11,7 @@ import com.jjg.game.core.handler.CoreToServerMessageHandler;
 import com.jjg.game.core.pb.gm.NotifyGenerateToSouthLib;
 import com.jjg.game.core.pb.gm.ReqRefreshGameStatus;
 import com.jjg.game.core.pb.gm.ReqRefreshGlobalConfig;
+import com.jjg.game.poker.game.douxian.cardlib.DouXianCardLibManager;
 import com.jjg.game.poker.game.tosouth.cardlib.ToSouthCardLibManager;
 import com.jjg.game.room.manager.AbstractRoomManager;
 import org.slf4j.Logger;
@@ -31,6 +33,8 @@ public class PokerToServerMessageHandler extends CoreToServerMessageHandler {
     @Autowired
     private ToSouthCardLibManager toSouthCardLibManager;
     @Autowired
+    private DouXianCardLibManager douXianCardLibManager;
+    @Autowired
     private AbstractRoomManager roomManager;
     @Autowired
     private GrandRouletteController grandRouletteController;
@@ -50,7 +54,21 @@ public class PokerToServerMessageHandler extends CoreToServerMessageHandler {
 
     @Command(MessageConst.ToServer.NOTICE_GENERATE_TO_SOUTH_LIB)
     public void generateToSouthLib(NotifyGenerateToSouthLib req) {
-        log.info("收到生成南方前进牌库请求 count={}", req.count);
+        int gameType = req.gameType == 0 ? CoreConst.GameType.TO_SOUTH : req.gameType;
+        if (gameType == CoreConst.GameType.DOU_XIAN) {
+            int rolloutCount = req.rolloutCount <= 0 ? 8 : Math.min(req.rolloutCount, 64);
+            boolean accepted = douXianCardLibManager.startGeneration(req.count, rolloutCount);
+            log.info("收到生成斗仙牌牌库请求 count={}, rolloutCount={}, accepted={}",
+                    req.count, rolloutCount, accepted);
+            return;
+        }
+        if (gameType != CoreConst.GameType.TO_SOUTH
+                && gameType != CoreConst.GameType.TO_SOUTH_BLOOD
+                && gameType != CoreConst.GameType.TO_SOUTH_FREE) {
+            log.warn("收到不支持的Poker牌库生成请求 gameType={}, count={}", gameType, req.count);
+            return;
+        }
+        log.info("收到生成南方前进牌库请求 gameType={}, count={}", gameType, req.count);
         // 异步执行，避免阻塞消息处理线程
         CompletableFuture.runAsync(() -> {
             try {

@@ -230,13 +230,13 @@ public abstract class AbstractCardLibManager<T extends CardLibEntry, D extends A
      *
      * @param count 模拟局数
      */
-    public void generateCardLib(int count) {
+    public boolean generateCardLib(int count) {
         D dao = getCardLibDao();
 
         // 1. 加锁
         if (!dao.addGenerateLock()) {
             log.warn("牌库正在生成中 gameType={}", getGameType());
-            return;
+            return false;
         }
 
         try {
@@ -245,14 +245,14 @@ public abstract class AbstractCardLibManager<T extends CardLibEntry, D extends A
 
             // 2. 生成前准备（子类加载配置，失败则中止）
             if (!prepareGeneration()) {
-                return;
+                return false;
             }
 
             // 3. 获取分区 key 列表
             List<Integer> sortedSectionKeys = getSortedSectionKeys();
             if (sortedSectionKeys.isEmpty()) {
                 log.error("缺少 PoolResultsCfg 配置或 typeProp 为空, gameType={}", getGameType());
-                return;
+                return false;
             }
 
             // 4. 获取新库名
@@ -303,9 +303,11 @@ public abstract class AbstractCardLibManager<T extends CardLibEntry, D extends A
             long elapsed = System.currentTimeMillis() - startTime;
             log.info("牌库生成完成 gameType={}, 成功={}局, 失败={}局, 总条目={}条, 分区数={}, 耗时={}ms",
                     getGameType(), successCount, failCount, totalCount, sortedSectionKeys.size(), elapsed);
+            return true;
 
         } catch (Exception e) {
             log.error("生成牌库异常 gameType={}", getGameType(), e);
+            return false;
         } finally {
             // 10. 解锁
             dao.removeGenerateLock();

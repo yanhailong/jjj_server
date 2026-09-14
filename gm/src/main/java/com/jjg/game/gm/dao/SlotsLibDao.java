@@ -35,6 +35,7 @@ import org.springframework.stereotype.Repository;
 
 import java.io.File;
 import java.nio.ByteBuffer;
+import java.nio.charset.StandardCharsets;
 import java.time.LocalDateTime;
 import java.time.format.DateTimeFormatter;
 import java.util.*;
@@ -45,6 +46,8 @@ import java.util.*;
  */
 @Repository
 public class SlotsLibDao extends AbstractResultLibDao<SlotsResultLib> {
+
+    private static final String POKER_GENERATE_LOCK_PATTERN = "PokerResultLibGenLock:*";
 
     @Autowired
     private AliyunOSSManager aliyunOSSManager;
@@ -109,30 +112,34 @@ public class SlotsLibDao extends AbstractResultLibDao<SlotsResultLib> {
     public Set<Integer> scanAllGenerateLocks() {
         Set<Integer> lockedGameTypes = new HashSet<>();
 
+        scanGenerateLocks(generateLock + ":*", lockedGameTypes);
+        scanGenerateLocks(POKER_GENERATE_LOCK_PATTERN, lockedGameTypes);
+        return lockedGameTypes;
+    }
+
+    private void scanGenerateLocks(String pattern, Set<Integer> lockedGameTypes) {
         // 使用scan命令避免阻塞
         ScanOptions options = ScanOptions.scanOptions()
-                .match(generateLock + ":*")
+                .match(pattern)
                 .count(100) // 每次扫描100个
                 .build();
 
-        Cursor<byte[]> cursor = redisTemplate.getConnectionFactory()
+        try (Cursor<byte[]> cursor = redisTemplate.getConnectionFactory()
                 .getConnection()
-                .scan(options);
-
-        while (cursor.hasNext()) {
-            String key = new String(cursor.next());
-            String[] parts = key.split(":");
-            if (parts.length >= 2) {
-                try {
-                    int gameType = Integer.parseInt(parts[1]);
-                    lockedGameTypes.add(gameType);
-                } catch (NumberFormatException e) {
-                    log.warn("解析gameType失败，键名: {}", key);
+                .scan(options)) {
+            while (cursor.hasNext()) {
+                String key = new String(cursor.next(), StandardCharsets.UTF_8);
+                String[] parts = key.split(":");
+                if (parts.length >= 2) {
+                    try {
+                        int gameType = Integer.parseInt(parts[1]);
+                        lockedGameTypes.add(gameType);
+                    } catch (NumberFormatException e) {
+                        log.warn("解析gameType失败，键名: {}", key);
+                    }
                 }
             }
         }
-
-        return lockedGameTypes;
     }
 
     /**

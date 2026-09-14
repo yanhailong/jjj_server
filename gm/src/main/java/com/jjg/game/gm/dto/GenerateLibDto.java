@@ -9,6 +9,7 @@ import java.util.List;
 public record GenerateLibDto(
         int gameType,
         int count,
+        int rolloutCount,
         String nodeName,
         List<GenerateLibCfgDto> list
 ) {

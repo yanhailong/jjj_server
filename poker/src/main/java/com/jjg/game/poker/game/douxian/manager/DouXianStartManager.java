@@ -5,6 +5,7 @@ import com.jjg.game.core.data.CommonResult;
 import com.jjg.game.core.data.PlayerController;
 import com.jjg.game.core.listener.GmListener;
 import com.jjg.game.poker.game.douxian.room.DouXianGameController;
+import com.jjg.game.poker.game.douxian.cardlib.DouXianCardLibManager;
 import com.jjg.game.room.controller.AbstractGameController;
 import com.jjg.game.room.data.room.GameDataVo;
 import com.jjg.game.room.listener.IRoomStartListener;
@@ -31,14 +32,19 @@ public class DouXianStartManager implements IRoomStartListener, GmListener {
     @Autowired
     private RoomManager roomManager;
 
+    @Autowired
+    private DouXianCardLibManager cardLibManager;
+
     @Override
     public void start() {
         log.info("正在启动斗仙牌游戏...");
+        cardLibManager.initPool();
     }
 
     @Override
     public void shutdown() {
         log.info("正在关闭斗仙牌游戏...");
+        cardLibManager.shutdownGenerationExecutor();
     }
 
     @Override
@@ -51,8 +57,76 @@ public class DouXianStartManager implements IRoomStartListener, GmListener {
             case "card" -> handleCard(playerController, gmOrders);
             case "round" -> handleRound(playerController, gmOrders);
             case "special" -> handleSpecial(playerController, gmOrders);
+            case "generatedouxianlib" -> handleGenerateCardLib(gmOrders);
+            case "douxianlibstatus" -> handleCardLibStatus();
+            case "adddouxianstreak" -> handleAddDouXianStreak(playerController, gmOrders);
             default -> new CommonResult<>(Code.NOT_FOUND);
         };
+    }
+
+    /** 调试连续胜负。格式：addDouXianStreak -5。 */
+    private CommonResult<String> handleAddDouXianStreak(PlayerController playerController, String[] gmOrders) {
+        CommonResult<String> res = new CommonResult<>(Code.SUCCESS);
+        if (gmOrders.length != 2) {
+            res.code = Code.FAIL;
+            res.data = "格式错误，请使用：addDouXianStreak -5";
+            return res;
+        }
+        int delta;
+        try {
+            delta = Integer.parseInt(gmOrders[1]);
+        } catch (NumberFormatException e) {
+            res.code = Code.FAIL;
+            res.data = "连续胜负增量必须是整数";
+            return res;
+        }
+        long playerId = playerController.playerId();
+        int oldStreak = cardLibManager.getPlayerWinStreak(playerId);
+        int newStreak = oldStreak + delta;
+        cardLibManager.setPlayerWinStreak(playerId, newStreak);
+        res.data = "斗仙牌连续胜负已修改：" + oldStreak + " -> " + newStreak;
+        return res;
+    }
+
+    /** 异步生成结果库。格式：generateDouXianLib 100000 8。 */
+    private CommonResult<String> handleGenerateCardLib(String[] gmOrders) {
+        CommonResult<String> res = new CommonResult<>(Code.SUCCESS);
+        if (gmOrders.length < 2 || gmOrders.length > 3) {
+            res.code = Code.FAIL;
+            res.data = "格式错误，请使用：generateDouXianLib 100000 8（条数、每条后续随机模拟次数）";
+            return res;
+        }
+        int count;
+        int rolloutCount = 8;
+        try {
+            count = Integer.parseInt(gmOrders[1]);
+            if (gmOrders.length == 3) {
+                rolloutCount = Integer.parseInt(gmOrders[2]);
+            }
+        } catch (NumberFormatException e) {
+            res.code = Code.FAIL;
+            res.data = "条数和模拟次数必须是整数";
+            return res;
+        }
+        if (count < 1 || count > 1_000_000 || rolloutCount < 1 || rolloutCount > 64) {
+            res.code = Code.FAIL;
+            res.data = "条数范围1~1000000，模拟次数范围1~64";
+            return res;
+        }
+        if (!cardLibManager.startGeneration(count, rolloutCount)) {
+            res.code = Code.FAIL;
+            res.data = "斗仙牌结果库正在生成中，使用 douXianLibStatus 查询进度";
+            return res;
+        }
+        res.data = "已开始生成斗仙牌结果库：初始牌组=" + count + "，每组随机后续模拟=" + rolloutCount;
+        return res;
+    }
+
+    /** 查询生成进度、配置有效性和各真人人数分区容量。 */
+    private CommonResult<String> handleCardLibStatus() {
+        CommonResult<String> res = new CommonResult<>(Code.SUCCESS);
+        res.data = cardLibManager.getGenerationStatus();
+        return res;
     }
 
     /**
