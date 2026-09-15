@@ -27,14 +27,14 @@ public class OperationBuildingData {
     public int currentCapacity;
     @ProtoDesc("当前等级容纳上限")
     public int capacity;
-    @ProtoDesc("金币产出/小时（为兼容旧协议保留字段名）")
-    public long goldOutputPerMinute;
-    @ProtoDesc("经验产出/小时（为兼容旧协议保留字段名）")
-    public long expOutputPerMinute;
-    @ProtoDesc("体力产出/小时（为兼容旧协议保留字段名）")
-    public long powerOutputPerMinute;
-    @ProtoDesc("服务能力")
-    public long serviceCapacity;
+    @ProtoDesc("金币产出/小时")
+    public long goldOutputPerHour;
+    @ProtoDesc("经验产出/小时")
+    public long expOutputPerHour;
+    @ProtoDesc("体力产出/小时")
+    public long powerOutputPerHour;
+    @ProtoDesc("接待区累计交互次数，非接待区为0")
+    public int interactionCount;
     @ProtoDesc("曝光度")
     public long exposure;
     @ProtoDesc("知名度")

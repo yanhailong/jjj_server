@@ -14,6 +14,7 @@ import com.jjg.game.sampledata.bean.GlobalConfigCfg;
 import com.jjg.game.sampledata.bean.VisitorQuestCfg;
 import com.jjg.game.sim.constant.BuildingOutputType;
 import com.jjg.game.sim.constant.BuildingType;
+import com.jjg.game.sim.constant.ServerBuildingType;
 import com.jjg.game.sim.constant.SimConstant;
 import com.jjg.game.sim.data.BuildingData;
 import com.jjg.game.sim.data.GuestData;
@@ -176,6 +177,8 @@ public class SimOperationDashboardService implements IRedDotService, SimPlayerTi
     private List<OperationBuildingData> buildBuildingData(SimPlayerContext ctx, SimCasinoData casino,
                                                           OperationDashboardOverview overview, long now) {
         Map<Integer, Integer> expectedLevels = expectedBuildingLevels(casino);
+        int receptionBuildingId = configCache.getCasinoManageBuildId(
+                casino.getCasinoId(), ServerBuildingType.WELCOME);
         List<OperationBuildingData> result = new ArrayList<>();
         if (casino.getBuildingData() == null || casino.getBuildingData().isEmpty()) {
             return result;
@@ -215,14 +218,16 @@ public class SimOperationDashboardService implements IRedDotService, SimPlayerTi
 
             Map<BuildingOutputType, Long> values = buildingService.computeDashboardBuildingValues(ctx, building);
             // 配置及建筑结算返回的是每分钟产出；数据看板前端统一按“/h”展示。
-            data.goldOutputPerMinute = values.getOrDefault(BuildingOutputType.GOLD, 0L) * 60;
-            data.expOutputPerMinute = values.getOrDefault(BuildingOutputType.CASINO_LEVEL_EXP, 0L) * 60;
-            data.powerOutputPerMinute = values.getOrDefault(BuildingOutputType.POWER, 0L) * 60;
-            data.serviceCapacity = values.getOrDefault(BuildingOutputType.SERVICE, 0L);
+            data.goldOutputPerHour = values.getOrDefault(BuildingOutputType.GOLD, 0L) * 60;
+            data.expOutputPerHour = values.getOrDefault(BuildingOutputType.CASINO_LEVEL_EXP, 0L) * 60;
+            data.powerOutputPerHour = values.getOrDefault(BuildingOutputType.POWER, 0L) * 60;
+            boolean receptionBuilding = building.getId() == receptionBuildingId;
+            //接待区返回与建筑详情一致的累计交互次数。
+            data.interactionCount = receptionBuilding ? building.getReceptCount() : 0;
             data.exposure = values.getOrDefault(BuildingOutputType.EXPOSURE, 0L);
             data.awareness = values.getOrDefault(BuildingOutputType.AWARENESS, 0L);
 
-            if (data.serviceCapacity > 0) {
+            if (receptionBuilding) {
                 data.satisfactionRate = overview.satisfactionRate;
             }
             if (data.exposure > 0) {
@@ -231,7 +236,7 @@ public class SimOperationDashboardService implements IRedDotService, SimPlayerTi
             if (data.awareness > 0) {
                 data.premiumVisitorRates = overview.premiumVisitorRates;
             }
-            if (data.serviceCapacity > 0) {
+            if (receptionBuilding) {
                 data.incomeTooLow = overview.receptionIncomeTooLow;
                 data.warningLanguageId = data.incomeTooLow
                         ? SimConstant.Dashboard.LANG_LABEL_RECEPTION_LOW : 0;
