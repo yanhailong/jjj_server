@@ -45,6 +45,8 @@ public class VisitorQuestCfg extends BaseCfgBean {
   protected List<Integer> TargetArea;
   /** 知名度要求值 */
   protected int awareness;
+  /** 游客描述多语言 */
+  protected int language;
   /** 类型 */
   protected int type;
 
@@ -111,6 +113,11 @@ public class VisitorQuestCfg extends BaseCfgBean {
   /** 返回知名度要求值 */
   public int getAwareness() {
     return awareness;
+  }
+
+  /** 返回游客描述多语言 */
+  public int getLanguage() {
+    return language;
   }
 
   /** 返回类型 */

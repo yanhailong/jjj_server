@@ -255,6 +255,7 @@ public class GameDataManager {
     containerMap.put(VisitorGenWatchVideoCfg.class, new VisitorGenWatchVideoCfgContainer());
     containerMap.put(VisitorLevelCfg.class, new VisitorLevelCfgContainer());
     containerMap.put(VisitorPoolCfg.class, new VisitorPoolCfgContainer());
+    containerMap.put(VisitorQualityAcquisitionCfg.class, new VisitorQualityAcquisitionCfgContainer());
     containerMap.put(VisitorQuestCfg.class, new VisitorQuestCfgContainer());
     containerMap.put(VisitorStarCfg.class, new VisitorStarCfgContainer());
     containerMap.put(VisitorTargetListCfg.class, new VisitorTargetListCfgContainer());
@@ -2304,6 +2305,18 @@ public class GameDataManager {
 
   public static List<VisitorPoolCfg> getVisitorPoolCfgList() {
     return getInstance().getCfgContainer(VisitorPoolCfg.class).getCfgBeanList();
+  }
+
+  public static VisitorQualityAcquisitionCfg getVisitorQualityAcquisitionCfg(int key) {
+    return getInstance().getCfgContainer(VisitorQualityAcquisitionCfg.class).getCfgBeanMap().get(key);
+  }
+
+  public static Map<Integer, VisitorQualityAcquisitionCfg> getVisitorQualityAcquisitionCfgMap() {
+    return getInstance().getCfgContainer(VisitorQualityAcquisitionCfg.class).getCfgBeanMap();
+  }
+
+  public static List<VisitorQualityAcquisitionCfg> getVisitorQualityAcquisitionCfgList() {
+    return getInstance().getCfgContainer(VisitorQualityAcquisitionCfg.class).getCfgBeanList();
   }
 
   public static VisitorQuestCfg getVisitorQuestCfg(int key) {

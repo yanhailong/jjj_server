@@ -90,8 +90,8 @@ public class SpecialGuestOrderService implements OrderGenerate {
     private VisitorGenPaidCfg getCashCfg(String productId) {
         try {
             VisitorGenPaidCfg cfg = GameDataManager.getVisitorGenPaidCfg(Integer.parseInt(productId));
-            if (cfg == null || cfg.getCostType() != COST_CASH || cfg.getPriceValue1() == null
-                    || cfg.getPriceValue1().signum() <= 0 || cfg.getVisitorID() <= 0 || cfg.getVisitorCount() <= 0) {
+            if (cfg == null || cfg.getCostType() != COST_CASH || cfg.getPriceValue1() <= 0
+                    || cfg.getVisitorID() <= 0 || cfg.getVisitorCount() <= 0) {
                 return null;
             }
             return cfg;

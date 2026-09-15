@@ -1597,7 +1597,7 @@ public class SimGuestService implements SimPlayerTickListener, ItemListener, Sim
      * 使用 PriceValue1 作为钻石价格；只有扣款和邀请生成均成功后才增加全局每日购买次数。
      */
     private void buySpecialGuestWithDiamond(SimPlayerContext ctx, VisitorGenPaidCfg cfg, ResBuySpecialGuest res) {
-        long price = cfg.getPriceValue1().longValueExact();
+        long price = cfg.getPriceValue1();
         CommonResult<ItemOperationResult> removeResult = playerPackService.removeItem(
                 ctx.getPlayer(), ItemUtils.getDiamondItemId(), price, AddType.SIM_SPECIAL_GUEST_BUY);
         if (!removeResult.success()) {
@@ -1637,19 +1637,20 @@ public class SimGuestService implements SimPlayerTickListener, ItemListener, Sim
             res.code = Code.PARAM_ERROR;
             return;
         }
+        BigDecimal price = GameDataManager.getShopRechargeListCfg(cfg.getPriceValue1()).getPrice();
         SimCasinoData casino = ctx.getCurrentCasino();
         Order order = orderService.generateOrder(ctx.getPlayer(), payType, String.valueOf(cfg.getId()),
-                cfg.getPriceValue1(), RechargeType.BUY_GUEST,
+                price, RechargeType.BUY_GUEST,
                 casino.getCasinoId() + ":" + casino.getSpecialGuestOfferVersion());
         if (order == null) {
             log.error("现金购买特殊游客创建订单失败 playerId={},cfgId={},payType={},price={}",
-                    ctx.playerId(), cfg.getId(), payType, cfg.getPriceValue1());
+                    ctx.playerId(), cfg.getId(), payType, price);
             res.code = Code.FAIL;
             return;
         }
         res.orderId = payType == PayType.IOS ? order.getUuid() : order.getId();
         log.info("现金购买特殊游客创建订单成功 playerId={},cfgId={},payType={},price={},orderId={}",
-                ctx.playerId(), cfg.getId(), payType, cfg.getPriceValue1(), res.orderId);
+                ctx.playerId(), cfg.getId(), payType, price, res.orderId);
 
         //如果有测试充值url直接调用
         try {
@@ -2030,7 +2031,7 @@ public class SimGuestService implements SimPlayerTickListener, ItemListener, Sim
         VisitorTargetListCfg paidPoolCfg = getSpecialGuestPoolCfg(casino, SimConstant.SpecialGuest.POOL_PAID);
         for (int cfgId : casino.getSpecialGuestPaidCfgIds()) {
             VisitorGenPaidCfg cfg = GameDataManager.getVisitorGenPaidCfg(cfgId);
-            if (cfg != null) {
+            if (validPaidSpecialGuestCfg(cfg)) {
                 result.add(toSpecialGuestInfo(ctx, cfg, paidPoolCfg));
             }
         }
@@ -2064,9 +2065,9 @@ public class SimGuestService implements SimPlayerTickListener, ItemListener, Sim
         info.dailyBuyCount = specialGuestDailyCountService.getPaidCount(ctx.playerId(), cfg.getId());
         info.dailyLimitCount = cfg.getDailyLimitCount();
         info.purchaseCount = ctx.getCurrentCasino().getSpecialGuestPurchaseCounts().getOrDefault(cfg.getId(), 0);
-        if (cfg.getPriceValue1() != null) {
-            info.price = cfg.getPriceValue1().toPlainString();
-        }
+        info.price = cfg.getCostType() == SimConstant.SpecialGuest.COST_CASH
+                ? GameDataManager.getShopRechargeListCfg(cfg.getPriceValue1()).getPrice().toPlainString()
+                : String.valueOf(cfg.getPriceValue1());
         info.output = getSpecialGuestOutput(ctx, info.itemId);
         info.visitorGiftPackCount = poolCfg.getVisitorGiftPackCount();
 
@@ -2116,8 +2117,14 @@ public class SimGuestService implements SimPlayerTickListener, ItemListener, Sim
     }
 
     private boolean validPaidSpecialGuestCfg(VisitorGenPaidCfg cfg) {
-        return cfg != null && cfg.getVisitorID() > 0 && cfg.getVisitorCount() > 0
-                && cfg.getPriceValue1() != null && cfg.getPriceValue1().signum() > 0;
+        if (cfg == null || cfg.getVisitorID() <= 0 || cfg.getVisitorCount() <= 0 || cfg.getPriceValue1() <= 0) {
+            return false;
+        }
+        if (cfg.getCostType() == SimConstant.SpecialGuest.COST_CASH) {
+            ShopRechargeListCfg shopCfg = GameDataManager.getShopRechargeListCfg(cfg.getPriceValue1());
+            return shopCfg != null && shopCfg.getPrice() != null && shopCfg.getPrice().signum() > 0;
+        }
+        return cfg.getCostType() == SimConstant.SpecialGuest.COST_DIAMOND;
     }
 
     /**

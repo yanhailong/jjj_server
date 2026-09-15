@@ -31,6 +31,8 @@ public class EmployeeProfileCfg extends BaseCfgBean {
   protected int SequenceID;
   /** 技能 */
   protected List<Integer> SkillIdList;
+  /** 雇员描述多语言 */
+  protected int language;
 
   /** 返回道具ID_碎片ID_碎片数量 */
   public List<Integer> getDuplicatetoShard() {
@@ -60,6 +62,11 @@ public class EmployeeProfileCfg extends BaseCfgBean {
   /** 返回技能 */
   public List<Integer> getSkillIdList() {
     return SkillIdList;
+  }
+
+  /** 返回雇员描述多语言 */
+  public int getLanguage() {
+    return language;
   }
 
   @Override

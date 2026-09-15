@@ -7,17 +7,17 @@ import javax.annotation.processing.Generated;
 /**
  * 配置bean
  *
- * @excelName VisitorGenPaid.xlsx
- * @sheetName VisitorGenPaid
+ * @excelName VisitorQualityAcquisition.xlsx
+ * @sheetName VisitorQualityAcquisition
  * @author Auto.Generator
  */
 @Generated("com.eouna.configtool.generator.template.java.JavaTemplateGenerator")
-public class VisitorGenPaidCfg extends BaseCfgBean {
+public class VisitorQualityAcquisitionCfg extends BaseCfgBean {
 
   /** 配置表名 */
-  public static final String EXCEL_NAME = "VisitorGenPaid.xlsx";
+  public static final String EXCEL_NAME = "VisitorQualityAcquisition.xlsx";
   /** 配置表工作薄名 */
-  public static final String SHEET_NAME = "VisitorGenPaid";
+  public static final String SHEET_NAME = "VisitorQualityAcquisition";
 
   /** 价格类型 */
   protected int CostType;
@@ -25,10 +25,10 @@ public class VisitorGenPaidCfg extends BaseCfgBean {
   protected int DailyLimitCount;
   /** 价格数量1 */
   protected int PriceValue1;
-  /** 单个游客数量 */
-  protected int VisitorCount;
-  /** 游客道具ID */
-  protected int VisitorID;
+  /** 单次购买出现数量 */
+  protected int QuantityPerPurchase;
+  /** 游客道具ID与权重 */
+  protected List<List<Integer>> VisitorWeight;
   /** 客户端资源 */
   protected String icon;
 
@@ -47,14 +47,14 @@ public class VisitorGenPaidCfg extends BaseCfgBean {
     return PriceValue1;
   }
 
-  /** 返回单个游客数量 */
-  public int getVisitorCount() {
-    return VisitorCount;
+  /** 返回单次购买出现数量 */
+  public int getQuantityPerPurchase() {
+    return QuantityPerPurchase;
   }
 
-  /** 返回游客道具ID */
-  public int getVisitorID() {
-    return VisitorID;
+  /** 返回游客道具ID与权重 */
+  public List<List<Integer>> getVisitorWeight() {
+    return VisitorWeight;
   }
 
   /** 返回客户端资源 */
