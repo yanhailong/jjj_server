@@ -22,10 +22,6 @@ public class ResSpecialGuestList extends AbstractResponse {
     public long nextRefreshTime;
     @ProtoDesc("广告游客下次定时刷新时间，毫秒时间戳，0表示不按时段刷新")
     public long adNextRefreshTime;
-    @ProtoDesc("本次刷新已购买次数")
-    public int purchaseCount;
-    @ProtoDesc("本次刷新购买次数上限，0表示不限")
-    public int maxPurchasePerRefresh;
     @ProtoDesc("每个时间段手动刷新的次数上限")
     public int maxManualRefreshPerPeriod;
 

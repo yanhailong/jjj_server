@@ -621,7 +621,7 @@ public class SimMessageHandler implements GmListener {
     @Command(SimConstant.MsgBean.REQ_BUY_SPECIAL_GUEST)
     public void reqBuySpecialGuest(PlayerController playerController, ReqBuySpecialGuest req) {
         execute(playerController, ctx -> {
-            guestService.buySpecialGuest(ctx, req.id, req.costType, req.payType);
+            guestService.buySpecialGuest(ctx, req.poolId, req.id, req.costType, req.payType);
         }, ReqBuySpecialGuest.class);
     }
 
@@ -1159,11 +1159,12 @@ public class SimMessageHandler implements GmListener {
                 reqRefreshSpecialGuestList(playerController, new ReqRefreshSpecialGuestList());
                 res.data = "已请求刷新特殊游客列表";
             } else if ("buySpecialGuest".equalsIgnoreCase(gmOrders[0])) {
-                // buySpecialGuest <生成配置ID> [支付方式]；支付方式仅现金类型使用。
+                // buySpecialGuest <生成配置ID> <费用类型> <支付方式> <卡池配置ID>
                 ReqBuySpecialGuest req = new ReqBuySpecialGuest();
                 req.id = Integer.parseInt(gmOrders[1]);
                 req.costType = Integer.parseInt(gmOrders[2]);
                 req.payType = gmOrders.length > 3 ? Integer.parseInt(gmOrders[3]) : 0;
+                req.poolId = Integer.parseInt(gmOrders[4]);
                 reqBuySpecialGuest(playerController, req);
                 res.data = "已请求购买特殊游客";
             } else if ("ownedSpecialGuestList".equalsIgnoreCase(gmOrders[0])) {

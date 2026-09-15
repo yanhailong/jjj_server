@@ -15,4 +15,6 @@ public class ReqBuySpecialGuest extends AbstractMessage {
     public int costType;
     @ProtoDesc("支付方式 1.google 2.ios，仅现金购买时使用")
     public int payType;
+    @ProtoDesc("当前展示商品所属的VisitorTargetList配置id")
+    public int poolId;
 }

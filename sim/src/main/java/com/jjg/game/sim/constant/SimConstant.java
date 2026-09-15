@@ -293,8 +293,13 @@ public interface SimConstant {
     }
 
     interface SpecialGuest {
+        //广告卡池
         int POOL_AD = 1;
+        //付费卡池
         int POOL_PAID = 2;
+        //品质卡池
+        int POOL_QUALITY = 3;
+
         int COST_AD = 0;
         int COST_DIAMOND = 1;
         int COST_CASH = 2;
@@ -486,6 +491,11 @@ public interface SimConstant {
         int ONLINE_REWARD_DIAMOND_LIMIT = 306;
         int ONLINE_REWARD_DIAMOND_HOURS = 307;
         int ONLINE_REWARD_DIAMOND_COST = 308;
+        //特殊游客: 每日刷新时点、手动刷新费用、时段刷新上限、单个商品每轮购买上限
+        int SPECIAL_GUEST_DAILY_REFRESH_TIME = 310;
+        int SPECIAL_GUEST_REFRESH_COST = 311;
+        int SPECIAL_GUEST_MAX_MANUAL_REFRESH_PER_PERIOD = 312;
+        int SPECIAL_GUEST_MAX_PURCHASE_PER_REFRESH = 313;
     }
 
     /**

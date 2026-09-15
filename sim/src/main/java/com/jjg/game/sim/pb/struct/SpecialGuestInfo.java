@@ -11,7 +11,7 @@ import java.util.List;
 public class SpecialGuestInfo {
     @ProtoDesc("游客生成配置id")
     public int id;
-    @ProtoDesc("游客道具id")
+    @ProtoDesc("游客道具id；品质商品为VisitorQualityAcquisition配置id")
     public int itemId;
     @ProtoDesc("单个游客数量")
     public int count;
@@ -31,6 +31,10 @@ public class SpecialGuestInfo {
     public List<ItemInfo> output;
     @ProtoDesc("礼包出现游客的种类个数")
     public int visitorGiftPackCount;
-    @ProtoDesc("本次刷新已购买次数")
+    @ProtoDesc("该商品本次刷新已购买次数")
     public int purchaseCount;
+    @ProtoDesc("商品所属的VisitorTargetList配置id")
+    public int poolId;
+    @ProtoDesc("该商品每轮购买次数上限，0表示不限")
+    public int maxPurchasePerRefresh;
 }

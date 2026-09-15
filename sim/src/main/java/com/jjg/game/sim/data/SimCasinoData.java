@@ -44,8 +44,10 @@ public class SimCasinoData extends AbstractData {
     private int specialGuestRefreshCount;
     //当前付费特殊游客配置ID
     private List<Integer> specialGuestPaidCfgIds;
-    //本次刷新各付费游客的购买次数 (生成配置ID -> 次数)
-    private Map<Integer, Integer> specialGuestPurchaseCounts;
+    //本轮命中的品质卡池及展示商品 (VisitorTargetList ID -> 品质商品ID列表)
+    private Map<Integer, List<Integer>> specialGuestQualityCfgIds;
+    //本次刷新各商品的购买次数 (卡池配置ID:生成配置ID -> 次数)
+    private Map<String, Integer> specialGuestPurchaseCounts;
     //付费展示轮次，每次定时或手动刷新递增，用于区分异步到账订单所属列表
     private long specialGuestOfferVersion;
     //当前场景持有的特殊游客数量 (游客道具ID -> 数量)
@@ -284,7 +286,7 @@ public class SimCasinoData extends AbstractData {
         this.specialGuestNextRefreshTime = specialGuestNextRefreshTime;
     }
 
-    public Map<Integer, Integer> getSpecialGuestPurchaseCounts() {
+    public Map<String, Integer> getSpecialGuestPurchaseCounts() {
         if (specialGuestPurchaseCounts == null) {
             specialGuestPurchaseCounts = new HashMap<>();
         }
@@ -313,6 +315,14 @@ public class SimCasinoData extends AbstractData {
 
     public void setSpecialGuestPaidCfgIds(List<Integer> specialGuestPaidCfgIds) {
         this.specialGuestPaidCfgIds = specialGuestPaidCfgIds;
+    }
+
+    public Map<Integer, List<Integer>> getSpecialGuestQualityCfgIds() {
+        return specialGuestQualityCfgIds == null ? Collections.emptyMap() : specialGuestQualityCfgIds;
+    }
+
+    public void setSpecialGuestQualityCfgIds(Map<Integer, List<Integer>> specialGuestQualityCfgIds) {
+        this.specialGuestQualityCfgIds = specialGuestQualityCfgIds;
     }
 
     public Map<Integer, Long> getSpecialGuestItemCounts() {

@@ -4,6 +4,7 @@ import com.jjg.game.common.utils.CommonUtil;
 import com.jjg.game.core.pb.KVInfo;
 import com.jjg.game.sampledata.GameDataManager;
 import com.jjg.game.sampledata.bean.*;
+import com.jjg.game.sim.constant.BuildingType;
 import com.jjg.game.sim.constant.ServerBuildingType;
 import com.jjg.game.sim.constant.SimConstant;
 import com.jjg.game.sim.data.*;
@@ -72,7 +73,7 @@ public final class SimPbConverter {
         //交互次数
         info.interactCount = buildingData.getReceptCount();
         int operateBuildId = simConfigCacheService.getCasinoManageBuildId(ctx.getCurrentCasino().getCasinoId(), ServerBuildingType.OPERATIONS);
-        if (operateBuildId > 0) {
+        if (operateBuildId == info.id) {
             //交互次数
             if (buildingData.getId() == operateBuildId) {
                 CasinoStatsSheetCfg casinoCfg = simConfigCacheService.getCasinoStatsSheetCfg(
@@ -83,7 +84,7 @@ public final class SimPbConverter {
             }
         } else {
             int marketBuildId = simConfigCacheService.getCasinoManageBuildId(ctx.getCurrentCasino().getCasinoId(), ServerBuildingType.MARKETING);
-            if (marketBuildId > 0) {
+            if (marketBuildId == info.id) {
                 GlobalConfigCfg globalConfigCfg = GameDataManager.getGlobalConfigCfg(SimConstant.Global.GUEST_AWARENESS_MAX);
                 List<KVInfo> tmpList = new ArrayList<>();
                 int sum = 0;
@@ -97,7 +98,6 @@ public final class SimPbConverter {
                 }
 
                 if (sum > 0) {
-                    System.out.println(sum);
                     info.guestQualityList = new ArrayList<>();
                     for (KVInfo kv : tmpList) {
                         KVInfo kvInfo = new KVInfo();
@@ -112,6 +112,15 @@ public final class SimPbConverter {
         info.bonusInfos = new ArrayList<>();
         CommonUtil.getContext().getBean(SimBuildingService.class)
                 .computeDashboardBuildingValues(ctx, buildingData, info.bonusInfos);
+
+        BuildingAreaTableCfg buildingAreaTableCfg = GameDataManager.getBuildingAreaTableCfg(buildingData.getId());
+        if (buildingAreaTableCfg.getType() == BuildingType.GAME.code() || buildingAreaTableCfg.getType() == BuildingType.REST.code()) {
+            for (BonusInfo bonusInfo : info.bonusInfos) {
+                for (KVInfo bonus : bonusInfo.bonus) {
+                    bonus.value = Math.toIntExact((long) bonus.value * 60);
+                }
+            }
+        }
         return info;
     }
 

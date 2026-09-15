@@ -28,7 +28,7 @@ public class VisitorQualityAcquisitionCfg extends BaseCfgBean {
   /** 单次购买出现数量 */
   protected int QuantityPerPurchase;
   /** 游客道具ID与权重 */
-  protected List<List<Integer>> VisitorWeight;
+  protected Map<Integer,Long> VisitorWeight;
   /** 客户端资源 */
   protected String icon;
 
@@ -53,7 +53,7 @@ public class VisitorQualityAcquisitionCfg extends BaseCfgBean {
   }
 
   /** 返回游客道具ID与权重 */
-  public List<List<Integer>> getVisitorWeight() {
+  public Map<Integer,Long> getVisitorWeight() {
     return VisitorWeight;
   }
 

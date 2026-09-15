@@ -61,7 +61,12 @@ public class SimConfigCacheService implements ConfigExcelChangeListener {
     //VisitorQuest配置 itemId -> cfg
     private Map<Integer, VisitorQuestCfg> visitorQuestItemCfgMap;
     //特殊游客卡池 regionID -> poolType -> cfg
-    private volatile Map<Integer, Map<Integer, VisitorTargetListCfg>> visitorTargetListCfgMap = Map.of();
+    private volatile Map<Integer, Map<Integer, List<VisitorTargetListCfg>>> visitorTargetListCfgMap = Map.of();
+    //品质商品 cfgId -> 游客道具权重，加载后只读，购买时复用
+    private volatile Map<Integer, WeightRandom<Integer>> visitorQualityRandomMap = Map.of();
+    //特殊游客全局刷新配置，加载时解析，业务请求只读
+    private volatile List<Integer> specialGuestDailyRefreshHours = List.of();
+    private volatile List<Item> specialGuestRefreshCosts = List.of();
     //VisitorQuest配置 quality -> cfg
     private Map<Integer, List<VisitorQuestCfg>> visitorQuestCfgMap;
     //VisitorLevel配置 guestId -> level -> cfg
@@ -174,6 +179,7 @@ public class SimConfigCacheService implements ConfigExcelChangeListener {
 
         loadVisitorQuestConfig();
         loadVisitorTargetListConfig();
+        loadVisitorQualityAcquisitionConfig();
         loadVisitorLevelConfig();
         loadVisitorStarConfig();
         loadVisitorPoolConfig();
@@ -242,19 +248,53 @@ public class SimConfigCacheService implements ConfigExcelChangeListener {
     }
 
     /**
-     * 加载特殊游客卡池索引并校验定时刷新时点。
+     * 加载特殊游客卡池索引并校验品质卡池。
      */
     private void loadVisitorTargetListConfig() {
-        Map<Integer, Map<Integer, VisitorTargetListCfg>> configs = new HashMap<>();
+        Map<Integer, Map<Integer, List<VisitorTargetListCfg>>> configs = new HashMap<>();
         for (VisitorTargetListCfg cfg : GameDataManager.getVisitorTargetListCfgList()) {
-            if (cfg.getIsRefreshByTimePeriod() && (cfg.getDailyRefreshTime() == null
-                    || cfg.getDailyRefreshTime().isEmpty()
-                    || cfg.getDailyRefreshTime().stream().anyMatch(hour -> hour == null || hour < 0 || hour > 23))) {
-                throw new IllegalArgumentException("特殊游客刷新时点必须为0至23点，cfgId=" + cfg.getId());
+            if (!cfg.getIsEnabled()) {
+                continue;
             }
-            configs.computeIfAbsent(cfg.getRegionID(), key -> new HashMap<>()).put(cfg.getPoolType(), cfg);
+            if (cfg.getPoolType() == SimConstant.SpecialGuest.POOL_QUALITY) {
+                if (cfg.getRate() < 0 || cfg.getRate() > 100) {
+                    throw new IllegalArgumentException("品质游客卡池概率必须为0至100，cfgId=" + cfg.getId());
+                }
+                if (cfg.getVisitorWeight() != null) {
+                    int totalWeight = 0;
+                    for (List<Integer> entry : cfg.getVisitorWeight()) {
+                        if (entry == null || entry.size() != 2 || entry.getFirst() <= 0 || entry.get(1) < 0) {
+                            throw new IllegalArgumentException("品质游客卡池必须配置商品ID和非负权重，cfgId=" + cfg.getId());
+                        }
+                        totalWeight = Math.addExact(totalWeight, entry.get(1));
+                    }
+                }
+            }
+
+            Map<Integer, List<VisitorTargetListCfg>> tmpMap = configs.computeIfAbsent(cfg.getRegionID(), key -> new HashMap<>());
+            tmpMap.computeIfAbsent(cfg.getPoolType(), n -> new ArrayList<>()).add(cfg);
         }
         visitorTargetListCfgMap = configs;
+    }
+
+    private void loadVisitorQualityAcquisitionConfig() {
+        Map<Integer, WeightRandom<Integer>> randoms = new HashMap<>();
+        for (VisitorQualityAcquisitionCfg cfg : GameDataManager.getVisitorQualityAcquisitionCfgList()) {
+            WeightRandom<Integer> random = WeightRandom.create();
+            boolean hasVisitor = false;
+            if (cfg.getVisitorWeight() != null) {
+                for (Map.Entry<Integer, Long> entry : cfg.getVisitorWeight().entrySet()) {
+                    if (entry.getValue() > 0) {
+                        random.add(entry.getKey(), entry.getValue());
+                        hasVisitor = true;
+                    }
+                }
+            }
+            if (hasVisitor) {
+                randoms.put(cfg.getId(), random);
+            }
+        }
+        visitorQualityRandomMap = randoms;
     }
 
     /**
@@ -484,6 +524,7 @@ public class SimConfigCacheService implements ConfigExcelChangeListener {
      * 加载全局配置
      */
     private void loadGlobalConfig() {
+        loadSpecialGuestGlobalConfig();
         loadOnlineRewardDiamondCosts();
         //广告收益倍数配置
         GlobalConfigCfg adCfg = GameDataManager.getGlobalConfigCfg(SimConstant.Common.GLOBAL_AD_MULTIPLIER_ID);
@@ -579,6 +620,43 @@ public class SimConfigCacheService implements ConfigExcelChangeListener {
             }
             this.genGuestGuideSet = tmpGenGuestGuideSet;
         }
+    }
+
+    private void loadSpecialGuestGlobalConfig() {
+        String hoursValue = GameDataManager.getGlobalConfigCfg(SimConstant.Global.SPECIAL_GUEST_DAILY_REFRESH_TIME).getValue();
+        List<Integer> hours = new ArrayList<>();
+        for (String value : hoursValue.split("_", -1)) {
+            int hour = Integer.parseInt(value.trim());
+            if (hour < 0 || hour > 23) {
+                throw new IllegalArgumentException("特殊游客刷新时点必须为0至23点，globalId=310");
+            }
+            hours.add(hour);
+        }
+
+        String costsValue = GameDataManager.getGlobalConfigCfg(SimConstant.Global.SPECIAL_GUEST_REFRESH_COST).getValue();
+        List<Item> costs = new ArrayList<>();
+        for (String value : costsValue.split("\\|", -1)) {
+            String[] parts = value.split("_", -1);
+            if (parts.length != 2) {
+                throw new IllegalArgumentException("特殊游客刷新费用必须为道具ID_数量，globalId=311");
+            }
+            int itemId = Integer.parseInt(parts[0].trim());
+            long count = Long.parseLong(parts[1].trim());
+            if (itemId <= 0 || count < 0) {
+                throw new IllegalArgumentException("特殊游客刷新费用必须为有效道具ID和非负数量，globalId=311");
+            }
+            costs.add(new Item(itemId, count));
+        }
+        specialGuestDailyRefreshHours = List.copyOf(hours);
+        specialGuestRefreshCosts = List.copyOf(costs);
+    }
+
+    public List<Integer> getSpecialGuestDailyRefreshHours() {
+        return specialGuestDailyRefreshHours;
+    }
+
+    public List<Item> getSpecialGuestRefreshCosts() {
+        return specialGuestRefreshCosts;
     }
 
     public void loadOnlineRewardDiamondCosts() {
@@ -758,6 +836,7 @@ public class SimConfigCacheService implements ConfigExcelChangeListener {
 
         addInitSampleFileObserveWithCallBack(VisitorQuestCfg.EXCEL_NAME, this::loadVisitorQuestConfig);
         addInitSampleFileObserveWithCallBack(VisitorTargetListCfg.EXCEL_NAME, this::loadVisitorTargetListConfig);
+        addInitSampleFileObserveWithCallBack(VisitorQualityAcquisitionCfg.EXCEL_NAME, this::loadVisitorQualityAcquisitionConfig);
         addInitSampleFileObserveWithCallBack(VisitorLevelCfg.EXCEL_NAME, this::loadVisitorLevelConfig);
         addInitSampleFileObserveWithCallBack(VisitorStarCfg.EXCEL_NAME, this::loadVisitorStarConfig);
         addInitSampleFileObserveWithCallBack(VisitorPoolCfg.EXCEL_NAME, this::loadVisitorPoolConfig);
@@ -788,6 +867,11 @@ public class SimConfigCacheService implements ConfigExcelChangeListener {
         addInitSampleFileObserveWithCallBack(DropItemCfg.EXCEL_NAME, this::loadDropItemConfig);
     }
 
+    @Override
+    public void changeSampleCallbackCollector() {
+        addChangeSampleFileObserveWithCallBack(GlobalConfigCfg.EXCEL_NAME, this::loadSpecialGuestGlobalConfig);
+    }
+
     // ---------------------------------------------------------------------
     // getters
     // ---------------------------------------------------------------------
@@ -796,9 +880,13 @@ public class SimConfigCacheService implements ConfigExcelChangeListener {
         return visitorLevelCfgMap;
     }
 
-    public VisitorTargetListCfg getVisitorTargetListCfg(int casinoId, int poolType) {
-        Map<Integer, VisitorTargetListCfg> configs = visitorTargetListCfgMap.get(casinoId);
+    public List<VisitorTargetListCfg> getVisitorTargetListCfg(int casinoId, int poolType) {
+        Map<Integer, List<VisitorTargetListCfg>> configs = visitorTargetListCfgMap.get(casinoId);
         return configs == null ? null : configs.get(poolType);
+    }
+
+    public WeightRandom<Integer> getVisitorQualityRandom(int cfgId) {
+        return visitorQualityRandomMap.get(cfgId);
     }
 
     public Map<Integer, Map<Integer, VisitorStarCfg>> getVisitorStarCfgMap() {

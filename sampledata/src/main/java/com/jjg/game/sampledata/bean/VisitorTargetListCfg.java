@@ -19,8 +19,6 @@ public class VisitorTargetListCfg extends BaseCfgBean {
   /** 配置表工作薄名 */
   public static final String SHEET_NAME = "VisitorTargetList";
 
-  /** 每日的刷新时间点 */
-  protected List<Integer> DailyRefreshTime;
   /** 单日观看次数上限 */
   protected int DailyViewLimit;
   /** 界面显示的个数 */
@@ -31,27 +29,16 @@ public class VisitorTargetListCfg extends BaseCfgBean {
   protected boolean IsRefreshByTimePeriod;
   /** 是否可以手动刷新 */
   protected boolean ManualRefresh;
-  /** 每个时间段手动刷新的次数上限 */
-  protected int MaxManualRefreshPerPeriod;
-  /** 每次刷新出现的游客购买次数上限 */
-  protected int MaxPurchasePerRefresh;
   /** 卡池类型 */
   protected int PoolType;
   /** 礼包出现的概率(百分比） */
   protected int Rate;
-  /** 手动刷新的费用 */
-  protected List<List<Integer>> RefreshCost;
   /** 场景ID */
   protected int RegionID;
   /** 出现的游客_权重 */
   protected List<List<Integer>> VisitorWeight;
   /** 礼包出现游客的种类个数 */
   protected int visitorGiftPackCount;
-
-  /** 返回每日的刷新时间点 */
-  public List<Integer> getDailyRefreshTime() {
-    return DailyRefreshTime;
-  }
 
   /** 返回单日观看次数上限 */
   public int getDailyViewLimit() {
@@ -78,16 +65,6 @@ public class VisitorTargetListCfg extends BaseCfgBean {
     return ManualRefresh;
   }
 
-  /** 返回每个时间段手动刷新的次数上限 */
-  public int getMaxManualRefreshPerPeriod() {
-    return MaxManualRefreshPerPeriod;
-  }
-
-  /** 返回每次刷新出现的游客购买次数上限 */
-  public int getMaxPurchasePerRefresh() {
-    return MaxPurchasePerRefresh;
-  }
-
   /** 返回卡池类型 */
   public int getPoolType() {
     return PoolType;
@@ -96,11 +73,6 @@ public class VisitorTargetListCfg extends BaseCfgBean {
   /** 返回礼包出现的概率(百分比） */
   public int getRate() {
     return Rate;
-  }
-
-  /** 返回手动刷新的费用 */
-  public List<List<Integer>> getRefreshCost() {
-    return RefreshCost;
   }
 
   /** 返回场景ID */
