@@ -27,11 +27,11 @@ public class OperationBuildingData {
     public int currentCapacity;
     @ProtoDesc("当前等级容纳上限")
     public int capacity;
-    @ProtoDesc("金币产出/分钟")
+    @ProtoDesc("金币产出/小时（为兼容旧协议保留字段名）")
     public long goldOutputPerMinute;
-    @ProtoDesc("经验产出/分钟")
+    @ProtoDesc("经验产出/小时（为兼容旧协议保留字段名）")
     public long expOutputPerMinute;
-    @ProtoDesc("体力产出/分钟")
+    @ProtoDesc("体力产出/小时（为兼容旧协议保留字段名）")
     public long powerOutputPerMinute;
     @ProtoDesc("服务能力")
     public long serviceCapacity;

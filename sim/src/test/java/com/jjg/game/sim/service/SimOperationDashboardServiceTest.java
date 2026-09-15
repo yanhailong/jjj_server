@@ -5,6 +5,7 @@ import com.jjg.game.core.service.PlayerPackService;
 import com.jjg.game.sampledata.GameDataManager;
 import com.jjg.game.sampledata.bean.BuildingAreaTableCfg;
 import com.jjg.game.sampledata.bean.BuildingUpgradeTableCfg;
+import com.jjg.game.sim.constant.BuildingOutputType;
 import com.jjg.game.sim.constant.BuildingType;
 import com.jjg.game.sim.data.BuildingData;
 import com.jjg.game.sim.data.SimBaseData;
@@ -12,6 +13,8 @@ import com.jjg.game.sim.data.SimCasinoData;
 import com.jjg.game.sim.data.SimPlayerContext;
 import com.jjg.game.sim.pb.res.ResOperationCapacity;
 import com.jjg.game.sim.pb.res.ResOperationDashboard;
+import com.jjg.game.sim.pb.struct.OperationBuildingData;
+import com.jjg.game.sim.pb.struct.OperationDashboardOverview;
 import com.jjg.game.sim.pb.struct.OperationResearchBuilding;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.params.ParameterizedTest;
@@ -34,6 +37,49 @@ import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
 class SimOperationDashboardServiceTest {
+
+    /** 单栋建筑的产出必须与看板总览、建筑详情保持同一小时口径。 */
+    @Test
+    void shouldConvertBuildingOutputFromMinuteToHour() {
+        SimOperationDashboardService service = new SimOperationDashboardService();
+        SimBuildingService buildingService = mock(SimBuildingService.class);
+        SimConfigCacheService configCache = mock(SimConfigCacheService.class);
+        ReflectionTestUtils.setField(service, "buildingService", buildingService);
+        ReflectionTestUtils.setField(service, "configCache", configCache);
+
+        SimPlayerContext ctx = mock(SimPlayerContext.class);
+        SimCasinoData casino = mock(SimCasinoData.class);
+        BuildingData building = mock(BuildingData.class);
+        BuildingAreaTableCfg areaCfg = mock(BuildingAreaTableCfg.class);
+        BuildingUpgradeTableCfg levelCfg = mock(BuildingUpgradeTableCfg.class);
+        when(ctx.getCurrentCasino()).thenReturn(casino);
+        when(casino.getCasinoId()).thenReturn(1);
+        when(casino.getBuildingData()).thenReturn(Map.of(1101, building));
+        when(casino.findBuilding(1101)).thenReturn(building);
+        when(building.getId()).thenReturn(1101);
+        when(building.getLevel()).thenReturn(5);
+        when(areaCfg.getId()).thenReturn(1101);
+        when(areaCfg.getRegionID()).thenReturn(1);
+        when(areaCfg.getType()).thenReturn(BuildingType.GAME.getCode());
+        when(configCache.getBuildingUpgradeCfg(1101, 5)).thenReturn(levelCfg);
+        when(buildingService.computeDashboardBuildingValues(ctx, building)).thenReturn(Map.of(
+                BuildingOutputType.GOLD, 300L,
+                BuildingOutputType.CASINO_LEVEL_EXP, 20L,
+                BuildingOutputType.POWER, 2L));
+
+        List<OperationBuildingData> buildings;
+        try (MockedStatic<GameDataManager> configs = mockStatic(GameDataManager.class)) {
+            configs.when(GameDataManager::getBuildingAreaTableCfgList).thenReturn(List.of(areaCfg));
+            configs.when(() -> GameDataManager.getBuildingAreaTableCfg(1101)).thenReturn(areaCfg);
+            buildings = ReflectionTestUtils.invokeMethod(service, "buildBuildingData",
+                    ctx, casino, new OperationDashboardOverview(), System.currentTimeMillis());
+        }
+
+        assertEquals(1, buildings.size());
+        assertEquals(18_000L, buildings.get(0).goldOutputPerMinute);
+        assertEquals(1_200L, buildings.get(0).expOutputPerMinute);
+        assertEquals(120L, buildings.get(0).powerOutputPerMinute);
+    }
 
     /** 满意度标准改为所有已解锁建筑当前等级 InteractCount 之和除以100。 */
     @Test

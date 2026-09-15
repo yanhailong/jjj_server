@@ -214,9 +214,10 @@ public class SimOperationDashboardService implements IRedDotService, SimPlayerTi
             }
 
             Map<BuildingOutputType, Long> values = buildingService.computeDashboardBuildingValues(ctx, building);
-            data.goldOutputPerMinute = values.getOrDefault(BuildingOutputType.GOLD, 0L);
-            data.expOutputPerMinute = values.getOrDefault(BuildingOutputType.CASINO_LEVEL_EXP, 0L);
-            data.powerOutputPerMinute = values.getOrDefault(BuildingOutputType.POWER, 0L);
+            // 配置及建筑结算返回的是每分钟产出；数据看板前端统一按“/h”展示。
+            data.goldOutputPerMinute = values.getOrDefault(BuildingOutputType.GOLD, 0L) * 60;
+            data.expOutputPerMinute = values.getOrDefault(BuildingOutputType.CASINO_LEVEL_EXP, 0L) * 60;
+            data.powerOutputPerMinute = values.getOrDefault(BuildingOutputType.POWER, 0L) * 60;
             data.serviceCapacity = values.getOrDefault(BuildingOutputType.SERVICE, 0L);
             data.exposure = values.getOrDefault(BuildingOutputType.EXPOSURE, 0L);
             data.awareness = values.getOrDefault(BuildingOutputType.AWARENESS, 0L);
