@@ -1,5 +1,6 @@
 package com.jjg.game.sim.service;
 
+import com.jjg.game.common.pb.RankRewardInfo;
 import com.jjg.game.core.constant.AddType;
 import com.jjg.game.core.constant.Code;
 import com.jjg.game.core.data.Item;
@@ -13,6 +14,7 @@ import com.jjg.game.sampledata.GameDataManager;
 import com.jjg.game.sampledata.bean.PopularityRankingCfg;
 import com.jjg.game.sim.dao.SimCasinoDao;
 import com.jjg.game.sim.pb.res.ResVisitRank;
+import com.jjg.game.sim.pb.res.ResVisitRankRewards;
 import com.jjg.game.sim.pb.struct.VisitRankInfo;
 import org.redisson.api.RBucket;
 import org.redisson.api.RLock;
@@ -27,6 +29,7 @@ import java.time.ZoneId;
 import java.time.format.DateTimeFormatter;
 import java.util.ArrayList;
 import java.util.Collections;
+import java.util.Comparator;
 import java.util.List;
 import java.util.Map;
 
@@ -69,6 +72,20 @@ public class SimVisitRankService {
             return 0;
         }
         return rankService.addPoints(rankKey(LocalDate.now()), playerId, points);
+    }
+
+    public ResVisitRankRewards rankRewards() {
+        ResVisitRankRewards response = new ResVisitRankRewards(Code.SUCCESS);
+        response.rewards = GameDataManager.getPopularityRankingCfgList().stream()
+                .filter(cfg -> cfg.getRanking() != null && !cfg.getRanking().isEmpty())
+                .map(cfg -> {
+                    RankRewardInfo info = new RankRewardInfo();
+                    info.startRank = cfg.getRanking().get(0);
+                    info.endRank = cfg.getRanking().size() > 1 ? cfg.getRanking().get(1) : info.startRank;
+                    info.rewards = cfg.getGetItem() == null ? List.of() : ItemUtils.buildItemInfo(cfg.getGetItem());
+                    return info;
+                }).sorted(Comparator.comparingInt(info -> info.startRank)).toList();
+        return response;
     }
 
     public ResVisitRank buildRank(long playerId) {

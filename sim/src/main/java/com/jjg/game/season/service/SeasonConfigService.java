@@ -94,6 +94,11 @@ public class SeasonConfigService {
                 .sorted(Comparator.comparingInt(SeasonTierCfg::getId)).toList();
     }
 
+    public List<SeasonRankingCfg> rankingRewards(SeasonPhase phase) {
+        int type = rankingType(phase);
+        return rankingConfigs().stream().filter(cfg -> cfg.getType() == type).toList();
+    }
+
     public SeasonRankingCfg rankingReward(SeasonPhase phase, int rank) {
         int type = rankingType(phase);
         return rankingConfigs().stream()

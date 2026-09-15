@@ -1,0 +1,12 @@
+package com.jjg.game.ploy.games.mining.message;
+
+import com.jjg.game.common.constant.MessageConst;
+import com.jjg.game.common.pb.AbstractMessage;
+import com.jjg.game.common.proto.ProtoDesc;
+import com.jjg.game.common.proto.ProtobufMessage;
+import com.jjg.game.ploy.games.mining.MiningConstant;
+
+@ProtobufMessage(messageType = MessageConst.MessageTypeDef.MINIGAME, cmd = MiningConstant.REQ_RANK_REWARDS)
+@ProtoDesc("请求当前挖矿赛季排行榜奖励列表")
+public class ReqMiningRankRewards extends AbstractMessage {
+}

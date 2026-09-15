@@ -287,6 +287,9 @@ public interface SimConstant {
         int RES_SIM_ONLINE_REWARD = BASE_MSG_PREFIX | 0x8F;
         int REQ_SIM_CLAIM_ONLINE_REWARD = BASE_MSG_PREFIX | 0x90;
         int RES_SIM_CLAIM_ONLINE_REWARD = BASE_MSG_PREFIX | 0x91;
+
+        int REQ_VISIT_RANK_REWARDS = BASE_MSG_PREFIX | 0x92;
+        int RES_VISIT_RANK_REWARDS = BASE_MSG_PREFIX | 0x93;
     }
 
     interface SpecialGuest {

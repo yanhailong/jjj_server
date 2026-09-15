@@ -107,6 +107,11 @@ public class SeasonMessageHandler implements GmListener {
         execute(playerController, ctx -> ctx.send(seasonService.history(ctx)));
     }
 
+    @Command(SeasonConstant.MsgBean.REQ_SEASON_RANK_REWARDS)
+    public void reqSeasonRankRewards(PlayerController playerController, ReqSeasonRankRewards req) {
+        execute(playerController, ctx -> ctx.send(seasonService.rankRewards(ctx)));
+    }
+
     @Command(SeasonConstant.MsgBean.REQ_SEASON_RANK)
     public void reqSeasonRank(PlayerController playerController, ReqSeasonRank req) {
         execute(playerController, ctx -> ctx.send(seasonService.rank(ctx, req.limit)));

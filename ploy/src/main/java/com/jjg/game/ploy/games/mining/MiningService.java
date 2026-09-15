@@ -2,6 +2,7 @@ package com.jjg.game.ploy.games.mining;
 
 import com.alibaba.fastjson.JSON;
 import com.jjg.game.common.pb.ItemInfo;
+import com.jjg.game.common.pb.RankRewardInfo;
 import com.jjg.game.common.utils.TimeHelper;
 import com.jjg.game.core.base.condition.numeric.*;
 import com.jjg.game.core.constant.AddType;
@@ -176,6 +177,21 @@ public class MiningService implements OrderGenerate, StandalonePloyGame {
             log.error("挖矿请求异常 playerId={}", player.getId(), e);
         }
         return response;
+    }
+
+    public ResMiningRankRewards rankRewards(Player player) {
+        try { return inSeason(player, season -> {
+            ResMiningRankRewards response = new ResMiningRankRewards(Code.SUCCESS);
+            response.rewards = season.rewards.stream().map(reward -> {
+                RankRewardInfo info = new RankRewardInfo();
+                info.startRank = reward.from;
+                info.endRank = reward.to;
+                info.rewards = ItemUtils.buildItemInfo(reward.items);
+                return info;
+            }).sorted(Comparator.comparingInt(info -> info.startRank)).toList();
+            return response;
+        }); } catch (MiningException e) { return new ResMiningRankRewards(e.code); }
+        catch (Exception e) { log.error("挖矿排行奖励查询失败 playerId={}", player.getId(), e); return new ResMiningRankRewards(Code.EXCEPTION); }
     }
 
     public ResMiningRank rank(Player player) {

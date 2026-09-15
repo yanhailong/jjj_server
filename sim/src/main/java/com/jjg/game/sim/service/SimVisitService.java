@@ -34,6 +34,7 @@ import com.jjg.game.sim.pb.res.ResVisitAction;
 import com.jjg.game.sim.pb.res.ResVisitCasino;
 import com.jjg.game.sim.pb.res.ResVisitComments;
 import com.jjg.game.sim.pb.res.ResVisitRank;
+import com.jjg.game.sim.pb.res.ResVisitRankRewards;
 import com.jjg.game.sim.pb.res.ResVisitRecords;
 import com.jjg.game.sim.pb.res.ResVisitSummary;
 import com.jjg.game.sim.pb.res.ResVisitTrial;
@@ -375,6 +376,10 @@ public class SimVisitService implements IRedDotService {
 
     public ResVisitRank rank(long playerId) {
         return rankService.buildRank(playerId);
+    }
+
+    public ResVisitRankRewards rankRewards() {
+        return rankService.rankRewards();
     }
 
     /**

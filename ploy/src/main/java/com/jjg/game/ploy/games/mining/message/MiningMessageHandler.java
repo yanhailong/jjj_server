@@ -28,6 +28,11 @@ public class MiningMessageHandler {
         playerController.send(miningService.action(playerController.getPlayer(), msg));
     }
 
+    @Command(MiningConstant.REQ_RANK_REWARDS)
+    public void miningRankRewards(PlayerController playerController, ReqMiningRankRewards msg) {
+        playerController.send(miningService.rankRewards(playerController.getPlayer()));
+    }
+
     @Command(MiningConstant.REQ_RANK)
     public void miningRank(PlayerController playerController, ReqMiningRank msg) {
         playerController.send(miningService.rank(playerController.getPlayer()));

@@ -1,5 +1,6 @@
 package com.jjg.game.season.service;
 
+import com.jjg.game.common.pb.RankRewardInfo;
 import com.jjg.game.core.base.condition.numeric.ActionConditionEvent;
 import com.jjg.game.core.base.condition.numeric.GameConditionEvent;
 import com.jjg.game.core.constant.Code;
@@ -32,6 +33,7 @@ import java.time.ZoneId;
 import java.time.format.DateTimeFormatter;
 import java.time.format.DateTimeParseException;
 import java.util.ArrayList;
+import java.util.Comparator;
 import java.util.List;
 import java.util.Map;
 import java.util.function.Function;
@@ -417,6 +419,21 @@ public class SeasonService implements SimPlayerTickListener {
         lifecycleService.ensureCurrent(ctx, System.currentTimeMillis());
         ResSeasonMatchHistory response = new ResSeasonMatchHistory(Code.SUCCESS);
         response.records = ctx.getSeasonPlayerData().getMatchHistory().stream().map(this::recordInfo).toList();
+        return response;
+    }
+
+    public ResSeasonRankRewards rankRewards(SimPlayerContext ctx) {
+        SeasonSnapshot snapshot = lifecycleService.ensureCurrent(ctx, System.currentTimeMillis());
+        ResSeasonRankRewards response = new ResSeasonRankRewards(Code.SUCCESS);
+        response.rewards = configService.rankingRewards(snapshot.phase()).stream()
+                .filter(cfg -> cfg.getRanking() != null && !cfg.getRanking().isEmpty())
+                .map(cfg -> {
+                    RankRewardInfo info = new RankRewardInfo();
+                    info.startRank = cfg.getRanking().get(0);
+                    info.endRank = cfg.getRanking().size() > 1 ? cfg.getRanking().get(1) : info.startRank;
+                    info.rewards = cfg.getGetItem() == null ? List.of() : ItemUtils.buildItemInfo(cfg.getGetItem());
+                    return info;
+                }).sorted(Comparator.comparingInt(info -> info.startRank)).toList();
         return response;
     }
 

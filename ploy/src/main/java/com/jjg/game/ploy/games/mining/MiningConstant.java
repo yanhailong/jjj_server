@@ -20,6 +20,8 @@ public interface MiningConstant {
     int RES_ACHIEVEMENTS = BASE | 0x10A;
     int REQ_DAILY_TASKS = BASE | 0x10B;
     int RES_DAILY_TASKS = BASE | 0x10C;
+    int REQ_RANK_REWARDS = BASE | 0x10D;
+    int RES_RANK_REWARDS = BASE | 0x10E;
     int DIG = 1, EXCHANGE = 2, BUNDLE = 3, ACHIEVEMENT = 4, DAILY_TASK = 5;
     int BUNDLE_FREE = 1, BUNDLE_AD = 2, BUNDLE_PAID = 3;
     /** global.xlsx：每隔多少分钟恢复1个镐。 */

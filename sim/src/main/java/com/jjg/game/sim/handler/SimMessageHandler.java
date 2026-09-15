@@ -955,6 +955,11 @@ public class SimMessageHandler implements GmListener {
                 ResVisitSummary::new);
     }
 
+    @Command(SimConstant.MsgBean.REQ_VISIT_RANK_REWARDS)
+    public void reqVisitRankRewards(PlayerController playerController, ReqVisitRankRewards req) {
+        sendVisit(playerController, visitService::rankRewards, ResVisitRankRewards::new);
+    }
+
     @Command(SimConstant.MsgBean.REQ_VISIT_RANK)
     public void reqVisitRank(PlayerController playerController, ReqVisitRank req) {
         sendVisit(playerController, () -> visitService.rank(playerController.playerId()),
