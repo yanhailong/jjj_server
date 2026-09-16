@@ -114,12 +114,21 @@ public final class SimPbConverter {
                 .computeDashboardBuildingValues(ctx, buildingData, info.bonusInfos);
 
         BuildingAreaTableCfg buildingAreaTableCfg = GameDataManager.getBuildingAreaTableCfg(buildingData.getId());
+
+
+        info.upgradeOutput = currentLevelCfg.getUpgradeOutput();
+        info.upgradeExp = currentLevelCfg.getUpgradeExp();
+        info.buileTypeValue = buildingAreaTableCfg.getTypeValue();
+
         if (buildingAreaTableCfg.getType() == BuildingType.GAME.code() || buildingAreaTableCfg.getType() == BuildingType.REST.code()) {
             for (BonusInfo bonusInfo : info.bonusInfos) {
                 for (KVInfo bonus : bonusInfo.bonus) {
                     bonus.value = Math.toIntExact((long) bonus.value * 60);
                 }
             }
+
+            info.upgradeOutput = currentLevelCfg.getUpgradeOutput() * 60;
+            info.upgradeExp = currentLevelCfg.getUpgradeExp() * 60;
         }
         return info;
     }

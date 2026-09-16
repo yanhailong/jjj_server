@@ -155,7 +155,7 @@ public class SimOperationDashboardService implements IRedDotService, SimPlayerTi
 
         CasinoStatsSheetCfg casinoCfg = configCache.getCasinoStatsSheetCfg(
                 casino.getCasinoId(), casino.getCasinoLevel());
-        overview.customerAcquisitionPerMinute = customerAcquisitionPerMinute(casinoCfg, casino, now) * 60;
+        overview.customerAcquisitionPerMinute = customerAcquisitionPerMinute(casinoCfg, casino, now);
         overview.operationRate = operationRate(exposure, casinoCfg);
         overview.totalProsperity = buildingService.computeProsperity(casino);
         overview.standardInteractionCount = buildingService.computeStandardInteractionCount(casino);
@@ -384,7 +384,7 @@ public class SimOperationDashboardService implements IRedDotService, SimPlayerTi
         if (intervalMs <= 0) {
             return 0;
         }
-        return 60_000L * cfg.getVisitorSpawnCount() / intervalMs;
+        return 3_600_000L * cfg.getVisitorSpawnCount() / intervalMs;
     }
 
     private int operationRate(long exposure, CasinoStatsSheetCfg cfg) {

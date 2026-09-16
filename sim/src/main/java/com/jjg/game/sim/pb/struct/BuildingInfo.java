@@ -33,4 +33,10 @@ public class BuildingInfo {
     public List<KVInfo> guestQualityList;
     @ProtoDesc("建筑加成")
     public List<BonusInfo> bonusInfos;
+    @ProtoDesc("建筑基础属性  对应 BuildingUpgradeTable.xlsx 的upgradeOutput")
+    public long upgradeOutput;
+    @ProtoDesc("建筑基础属性  对应 BuildingUpgradeTable.xlsx 的upgradeExp")
+    public long upgradeExp;
+    @ProtoDesc("建筑属性分类  对应 BuildingAreaTable.xlsx 的typeValue")
+    public List<Integer> buileTypeValue;
 }
