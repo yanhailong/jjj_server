@@ -133,7 +133,7 @@ public class SimGuestService implements SimPlayerTickListener, ItemListener, Sim
             return;
         }
         //计算实际生成间隔(ms)
-        long intervalMs = computeVisitIntervalMs(casinoCfg, casino, now);
+        long intervalMs = computeVisitIntervalMs(casinoCfg, casino, now, false);
         if (casino.getLastGenerateTime() != 0 && now - casino.getLastGenerateTime() < intervalMs) {
             return;
         }
@@ -600,29 +600,31 @@ public class SimGuestService implements SimPlayerTickListener, ItemListener, Sim
      * 计算实际来访间隔 (ms)
      * 当场景满员 (10 分钟内生成人数 >= 场景容纳上限) 时降低刷新频率:
      * 实际间隔 = 基础间隔 * 当前总人数 / 上限
+     *
+     * @param show 表示是否为展示数据，如果为展示数据，就不用考虑限制
      */
-    public long computeVisitIntervalMs(CasinoStatsSheetCfg casinoCfg, SimCasinoData casino, long now) {
+    public long computeVisitIntervalMs(CasinoStatsSheetCfg casinoCfg, SimCasinoData casino, long now, boolean show) {
         long base = (long) casinoCfg.getBaseVisitInterval() * 1000L;
         int recent = casino.countGenerateInWindow(now, SimConstant.Common.CAPACITY_WINDOW_MS);
 
         //获取当前运营部的属性
         int operateBuildId = configCache.getCasinoManageBuildId(casino.getCasinoId(), ServerBuildingType.OPERATIONS);
         if (operateBuildId < 1) {
-            return recent < casino.getCacheGuestSize() ? base : base * recent / casino.getCacheGuestSize();
+            return computeVisitIntervalMsResult(casino, recent, base, show);
         }
         BuildingData building = casino.findBuilding(operateBuildId);
         if (building == null) {
-            return recent < casino.getCacheGuestSize() ? base : base * recent / casino.getCacheGuestSize();
+            return computeVisitIntervalMsResult(casino, recent, base, show);
         }
         BuildingUpgradeTableCfg buildingUpgradeCfg = configCache.getBuildingUpgradeCfg(operateBuildId, building.getLevel());
         if (buildingUpgradeCfg == null) {
-            return recent < casino.getCacheGuestSize() ? base : base * recent / casino.getCacheGuestSize();
+            return computeVisitIntervalMsResult(casino, recent, base, show);
         }
 
         //获取基础繁荣度
         CasinoStatsSheetCfg casinoStatsSheetCfg = configCache.getCasinoStatsSheetCfg(casino.getCasinoId(), casino.getCasinoLevel());
         if (casinoStatsSheetCfg == null) {
-            return recent < casino.getCacheGuestSize() ? base : base * recent / casino.getCacheGuestSize();
+            return computeVisitIntervalMsResult(casino, recent, base, show);
         }
 
         double tmpExposureTimes = Math.round(
@@ -633,8 +635,11 @@ public class SimGuestService implements SimPlayerTickListener, ItemListener, Sim
         double param3 = param2 * (casinoStatsSheetCfg.getMaxMultiplier() - 1);
 
         long actual = (int) (base * (1 + param3));
+        return computeVisitIntervalMsResult(casino, recent, actual, show);
+    }
 
-        if (recent < casino.getCacheGuestSize()) {
+    private long computeVisitIntervalMsResult(SimCasinoData casino, int recent, long actual, boolean show) {
+        if (show || recent < casino.getCacheGuestSize()) {
             return actual;
         }
         return actual * recent / casino.getCacheGuestSize();

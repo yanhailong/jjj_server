@@ -647,11 +647,11 @@ public class SimBuildingService implements SimPlayerTickListener, SimTaskStateRe
                     int diamondCostPerMinute = GameDataManager.getGlobalConfigCfg(SimConstant.Global.ID_DIAMOND_CLEAR_CD_COST).getIntValue();
                     reduceMs /= diamondCostPerMinute;
                 }
-                boolean remove = playerPackService.removeItem(ctx.getPlayer(), costItemId, costCount, AddType.SIM_BUILDING_UPGRADE).success();
-                if (!remove) {
-                    res.code = Code.NOT_ENOUGH;
+                CommonResult<ItemOperationResult> removeResult = playerPackService.removeItem(ctx.getPlayer(), costItemId, costCount, AddType.SIM_BUILDING_UPGRADE);
+                if (!removeResult.success()) {
+                    res.code = removeResult.code;
                     ctx.send(res);
-                    log.warn("道具清除建筑升级 CD失败，道具不足 playerId={},buildingId={},costItemId={},costCount={}", ctx.playerId(), buildingId, costItemId, costCount);
+                    log.warn("道具清除建筑升级 CD失败，扣除道具失败 playerId={},buildingId={},costItemId={},costCount={},code={}", ctx.playerId(), buildingId, costItemId, costCount, removeResult.code);
                     return;
                 }
                 //costCount 表示实际消耗数量：加速卡每张清 1 分钟，钻石按全局配置换算时长

@@ -380,7 +380,7 @@ public class SimOperationDashboardService implements IRedDotService, SimPlayerTi
     }
 
     public long customerAcquisitionPerMinute(CasinoStatsSheetCfg cfg, SimCasinoData casino, long now) {
-        long intervalMs = guestService.computeVisitIntervalMs(cfg, casino, now);
+        long intervalMs = guestService.computeVisitIntervalMs(cfg, casino, now, true);
         if (intervalMs <= 0) {
             return 0;
         }
