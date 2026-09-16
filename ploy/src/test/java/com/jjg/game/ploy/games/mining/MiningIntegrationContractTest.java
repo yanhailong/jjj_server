@@ -6,7 +6,7 @@ import com.jjg.game.common.pb.ItemInfo;
 import com.jjg.game.core.constant.Code;
 import com.jjg.game.ploy.games.mining.message.*;
 import org.junit.jupiter.api.Test;
-import org.springframework.beans.BeanUtils;
+import org.junit.jupiter.api.BeforeAll;
 
 import java.util.List;
 import java.util.Map;
@@ -14,23 +14,15 @@ import java.util.Map;
 import static org.junit.jupiter.api.Assertions.*;
 
 class MiningIntegrationContractTest {
-    @Test void jsonHotReloadUsesRealBeanPropertiesAndRetainsDefaults() {
-        MiningConfig live = new MiningConfig();
-        MiningConfig parsed = JSON.parseObject("{\"enabled\":false,\"dailyTasks\":[{\"id\":1,\"kind\":1,\"target\":50,\"nameLanguageId\":400800061,\"descLanguageId\":400800062,\"rewards\":{\"1024034\":5}}]}", MiningConfig.class);
-        BeanUtils.copyProperties(parsed, live);
-        assertFalse(live.enabled);
-        assertEquals(5L, live.dailyTasks.getFirst().rewards.get(1024034));
-        assertEquals(400800061, live.dailyTasks.getFirst().nameLanguageId);
-        assertEquals(400800062, live.dailyTasks.getFirst().descLanguageId);
-        assertNotNull(JSON.parseObject("{\"usedAdTickets\":[\"legacy-ticket\"]}", MiningState.class));
-    }
+    @BeforeAll static void setup() throws Exception { MiningFixtures.install(); }
 
-    @Test void bundledMiningConfigContainsDailyTasksForDeploymentFallback() {
-        MiningConfig bundled = new MiningConfig();
-        bundled.loadBundledDefaults();
-        assertEquals(3, bundled.dailyTasks.size());
-        assertTrue(bundled.dailyTasks.stream().allMatch(task -> task.id > 0 && task.target > 0
-                && task.rewards != null && !task.rewards.isEmpty()));
+    @Test void miningUsesPracticeDefaultsWithoutExternalJson() {
+        MiningConfig config = new MiningConfig();
+        assertTrue(config.enabled);
+        assertTrue(config.permanentLimits.isEmpty());
+        assertTrue(config.dailyTasks.isEmpty());
+        assertEquals("practice", config.currentSeason(System.currentTimeMillis()).id);
+        assertNotNull(JSON.parseObject("{\"usedAdTickets\":[\"legacy-ticket\"]}", MiningState.class));
     }
 
     @Test void requestsAndFullStateRoundTripThroughProductionSerializer() {
@@ -85,15 +77,16 @@ class MiningIntegrationContractTest {
         assertEquals(400800057, achievementsCopy.achievements.getFirst().descLanguageId);
     }
 
-    @Test void seasonIntervalsAreExclusiveAndRankingRewardRangesHaveBoundaries() {
+    @Test void seasonIntervalsAreExclusiveAndRankingRewardsComeFromExcel() {
         MiningConfig cfg = new MiningConfig(); MiningConfig.Season first = new MiningConfig.Season(); first.id = "s1";
         first.startTime = 100; first.endTime = 200;
         MiningConfig.Season second = new MiningConfig.Season(); second.id = "s2"; second.startTime = 200; second.endTime = 300;
         cfg.seasons = List.of(first, second);
         assertNull(cfg.currentSeason(99)); assertEquals("s1", cfg.currentSeason(100).id); assertEquals("s2", cfg.currentSeason(200).id);
         assertNull(cfg.currentSeason(300));
-        MiningConfig.RankReward reward = new MiningConfig.RankReward(); reward.from = 1; reward.to = 300; reward.items = Map.of(1024034, 5L);
-        second.rewards = List.of(reward);
-        assertEquals(reward.items, MiningRankService.reward(second, 300)); assertTrue(MiningRankService.reward(second, 301).isEmpty());
+        Map<Integer, Long> firstReward = MiningRankService.reward(System.currentTimeMillis(), 1);
+        assertEquals(4_000_000L, firstReward.get(1990000));
+        assertEquals(50L, firstReward.get(1024013));
+        assertTrue(MiningRankService.reward(System.currentTimeMillis(), 101).isEmpty());
     }
 }

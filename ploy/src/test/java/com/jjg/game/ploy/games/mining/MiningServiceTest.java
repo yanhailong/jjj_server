@@ -105,21 +105,20 @@ class MiningServiceTest {
         assertEquals(Code.SUCCESS, achievements.code); assertFalse(achievements.achievements.isEmpty());
         assertTrue(achievements.achievements.stream().allMatch(info -> info.nameLanguageId > 0 && info.descLanguageId > 0));
 
-        MiningConfig.DailyTask task = new MiningConfig.DailyTask(); task.id = 1; task.kind = 1;
-        task.nameLanguageId = 400800061; task.descLanguageId = 400800062;
-        task.target = 1; task.rewards = Map.of(1024034, 1L); config.dailyTasks = List.of(task);
+        ResMiningRankRewards rankRewards = service.rankRewards(player);
+        assertEquals(Code.SUCCESS, rankRewards.code); assertEquals(17, rankRewards.rewards.size());
+        assertEquals(1, rankRewards.rewards.getFirst().startRank);
+        assertEquals(4_000_000L, rankRewards.rewards.getFirst().rewards.stream()
+                .filter(item -> item.itemId == 1990000).findFirst().orElseThrow().count);
+
         ResMiningDailyTasks dailyTasks = service.dailyTasks(player);
-        assertEquals(Code.SUCCESS, dailyTasks.code); assertEquals(1, dailyTasks.dailyTasks.size());
-        assertEquals(task.nameLanguageId, dailyTasks.dailyTasks.getFirst().nameLanguageId);
-        assertEquals(task.descLanguageId, dailyTasks.dailyTasks.getFirst().descLanguageId);
+        assertEquals(Code.SUCCESS, dailyTasks.code); assertTrue(dailyTasks.dailyTasks.isEmpty());
     }
 
-    @Test void bundledDailyTasksAreReturnedWhenExternalConfigIsMissing() {
-        config.loadBundledDefaults();
+    @Test void dailyTaskCompatibilityResponseIsEmpty() {
         ResMiningDailyTasks response = service.dailyTasks(player);
         assertEquals(Code.SUCCESS, response.code);
-        assertEquals(Set.of(1, 2, 3), response.dailyTasks.stream()
-                .map(task -> task.id).collect(java.util.stream.Collectors.toSet()));
+        assertTrue(response.dailyTasks.isEmpty());
     }
 
     @Test void initialInfoStartsPickRecoveryForBalanceOf189() {
@@ -623,19 +622,6 @@ class MiningServiceTest {
         assertEquals(Code.REPEAT_OP, service.action(player, request(MiningConstant.ACHIEVEMENT, 1)).code);
         assertEquals(balance, wallet.get(1024034));
         assertEquals(100, MiningService.achievementInfo(state(), GameDataManager.getMiningAchievementCfg(1)).progress);
-    }
-
-    @Test void dailyTaskClaimUsesTodaysProgressAndCannotBeRepeated() {
-        MiningConfig.DailyTask task = new MiningConfig.DailyTask(); task.id = 1; task.kind = 1;
-        task.target = 50; task.rewards = Map.of(1024034, 5L); config.dailyTasks = List.of(task);
-        assertEquals("TASK_NOT_COMPLETE", service.action(player, request(MiningConstant.DAILY_TASK, 1)).reason);
-        MiningState state = state(); state.daily.grids = 50; saved = JSON.toJSONString(state);
-        assertEquals(Code.SUCCESS, service.action(player, request(MiningConstant.DAILY_TASK, 1)).code);
-        assertEquals(105, wallet.get(1024034));
-        assertEquals(Code.REPEAT_OP, service.action(player, request(MiningConstant.DAILY_TASK, 1)).code);
-        state = state(); state.day = 20000101; saved = JSON.toJSONString(state); service.info(player);
-        assertEquals("TASK_NOT_COMPLETE", service.action(player, request(MiningConstant.DAILY_TASK, 1)).reason);
-        assertEquals(105, wallet.get(1024034));
     }
 
     private ReqGenerateOrder legacyQuote() {

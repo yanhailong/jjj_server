@@ -91,10 +91,11 @@ public class MiningRankService {
     public ResMiningRank rank(Player player, MiningConfig.Season season) {
         ResMiningRank res = new ResMiningRank(Code.SUCCESS);
         res.seasonId = season.id;
+        long rewardTime = rewardTime(season, System.currentTimeMillis());
         List<Entry> entries = mongo.find(ranked(season.id).limit(300), Entry.class);
         res.ranks = new ArrayList<>();
         int position = 0;
-        for (Entry entry : entries) res.ranks.add(info(entry, ++position, season));
+        for (Entry entry : entries) res.ranks.add(info(entry, ++position, rewardTime));
         Entry self = mongo.findById(season.id + ":" + player.getId(), Entry.class);
         if (self == null || self.depth <= 0) {
             res.self = new MiningRankInfo(); res.self.playerId = player.getId(); res.self.rank = 0;
@@ -106,7 +107,7 @@ public class MiningRankService {
                     new Criteria().andOperator(Criteria.where("depth").is(self.depth), Criteria.where("reachedAt").is(self.reachedAt),
                             Criteria.where("playerId").lt(self.playerId)));
             long count = mongo.count(Query.query(new Criteria().andOperator(Criteria.where("seasonId").is(season.id), ahead)), Entry.class);
-            res.self = info(self, Math.toIntExact(count + 1), season);
+            res.self = info(self, Math.toIntExact(count + 1), rewardTime);
         }
         return res;
     }
@@ -116,16 +117,20 @@ public class MiningRankService {
                 .with(Sort.by(Sort.Order.desc("depth"), Sort.Order.asc("reachedAt"), Sort.Order.asc("playerId")));
     }
 
-    private MiningRankInfo info(Entry entry, int rank, MiningConfig.Season season) {
+    private MiningRankInfo info(Entry entry, int rank, long rewardTime) {
         MiningRankInfo info = new MiningRankInfo();
         info.rank = rank; info.playerId = entry.playerId; info.nickName = entry.nickName;
         info.headImgId = entry.headImgId; info.headFrameId = entry.headFrameId; info.depth = entry.depth;
-        info.rewards = ItemUtils.buildItemInfo(reward(season, rank));
+        info.rewards = ItemUtils.buildItemInfo(reward(rewardTime, rank));
         return info;
     }
 
-    static Map<Integer, Long> reward(MiningConfig.Season season, int rank) {
-        return season.rewards.stream().filter(r -> rank >= r.from && rank <= r.to).findFirst().map(r -> r.items).orElse(Map.of());
+    static Map<Integer, Long> reward(long rewardTime, int rank) {
+        return MiningRankingCatalog.reward(rewardTime, rank);
+    }
+
+    private static long rewardTime(MiningConfig.Season season, long now) {
+        return season.endTime > 0 && season.endTime <= now ? season.endTime - 1 : now;
     }
 
     @Scheduled(fixedDelay = 60000)
@@ -153,7 +158,7 @@ public class MiningRankService {
                     settled = new Settlement(); settled.id = season.id;
                     int rank = 0;
                     for (Entry entry : mongo.find(ranked(season.id).limit(300), Entry.class)) {
-                        Map<Integer, Long> reward = reward(season, ++rank);
+                        Map<Integer, Long> reward = reward(rewardTime(season, now), ++rank);
                         if (reward.isEmpty()) continue;
                         Award award = new Award(); award.playerId = entry.playerId; award.rank = rank; award.items = new HashMap<>(reward);
                         settled.awards.add(award);

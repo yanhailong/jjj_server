@@ -194,6 +194,7 @@ public class GameDataManager {
     containerMap.put(MiningCellTypeCfg.class, new MiningCellTypeCfgContainer());
     containerMap.put(MiningExchangeShopCfg.class, new MiningExchangeShopCfgContainer());
     containerMap.put(MiningMapGenerationCfg.class, new MiningMapGenerationCfgContainer());
+    containerMap.put(MiningRankingCfg.class, new MiningRankingCfgContainer());
     containerMap.put(MiningToolsCfg.class, new MiningToolsCfgContainer());
     containerMap.put(OfficialAwardsCfg.class, new OfficialAwardsCfgContainer());
     containerMap.put(PassDetailsCfg.class, new PassDetailsCfgContainer());
@@ -1573,6 +1574,18 @@ public class GameDataManager {
 
   public static List<MiningMapGenerationCfg> getMiningMapGenerationCfgList() {
     return getInstance().getCfgContainer(MiningMapGenerationCfg.class).getCfgBeanList();
+  }
+
+  public static MiningRankingCfg getMiningRankingCfg(int key) {
+    return getInstance().getCfgContainer(MiningRankingCfg.class).getCfgBeanMap().get(key);
+  }
+
+  public static Map<Integer, MiningRankingCfg> getMiningRankingCfgMap() {
+    return getInstance().getCfgContainer(MiningRankingCfg.class).getCfgBeanMap();
+  }
+
+  public static List<MiningRankingCfg> getMiningRankingCfgList() {
+    return getInstance().getCfgContainer(MiningRankingCfg.class).getCfgBeanList();
   }
 
   public static MiningToolsCfg getMiningToolsCfg(int key) {
