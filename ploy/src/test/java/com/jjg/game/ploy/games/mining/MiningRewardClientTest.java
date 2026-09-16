@@ -6,6 +6,7 @@ import com.jjg.game.core.constant.*;
 import com.jjg.game.core.data.*;
 import com.jjg.game.core.rpc.MiningRewardBridge;
 import org.junit.jupiter.api.*;
+import org.springframework.context.annotation.AnnotationConfigApplicationContext;
 import org.springframework.data.redis.core.*;
 import org.springframework.test.util.ReflectionTestUtils;
 
@@ -29,6 +30,18 @@ class MiningRewardClientTest {
         ReflectionTestUtils.setField(client, "bridge", bridge);
     }
     @AfterEach void clear() { GameRpcContext.getContext().clearRpcBuilderData(); }
+    @Test void startsWithBothRedisTemplatesAndUsesProjectTemplate() {
+        RedisTemplate projectRedis = mock(RedisTemplate.class);
+        StringRedisTemplate stringRedis = mock(StringRedisTemplate.class);
+        try (AnnotationConfigApplicationContext context = new AnnotationConfigApplicationContext()) {
+            context.getBeanFactory().registerSingleton("redisTemplate", projectRedis);
+            context.getBeanFactory().registerSingleton("stringRedisTemplate", stringRedis);
+            context.getBeanFactory().registerSingleton("clusterSystem", cluster);
+            context.register(MiningRewardClient.class);
+            context.refresh();
+            assertSame(projectRedis, ReflectionTestUtils.getField(context.getBean(MiningRewardClient.class), "redis"));
+        }
+    }
     @Test void missingOwnerDoesNotDispatch() {
         assertEquals(Code.NOT_FOUND, client.grant(10L, Map.of(1025506, 1L), AddType.MINING_EXCHANGE, "id").code);
         verifyNoInteractions(bridge);

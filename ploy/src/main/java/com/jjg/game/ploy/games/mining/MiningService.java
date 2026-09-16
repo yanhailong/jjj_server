@@ -182,11 +182,11 @@ public class MiningService implements OrderGenerate, StandalonePloyGame {
     public ResMiningRankRewards rankRewards(Player player) {
         try { return inSeason(player, season -> {
             ResMiningRankRewards response = new ResMiningRankRewards(Code.SUCCESS);
-            response.rewards = season.rewards.stream().map(reward -> {
+            response.rewards = MiningRankingCatalog.rewards(System.currentTimeMillis()).stream().map(reward -> {
                 RankRewardInfo info = new RankRewardInfo();
-                info.startRank = reward.from;
-                info.endRank = reward.to;
-                info.rewards = ItemUtils.buildItemInfo(reward.items);
+                info.startRank = reward.from();
+                info.endRank = reward.to();
+                info.rewards = ItemUtils.buildItemInfo(reward.items());
                 return info;
             }).sorted(Comparator.comparingInt(info -> info.startRank)).toList();
             return response;

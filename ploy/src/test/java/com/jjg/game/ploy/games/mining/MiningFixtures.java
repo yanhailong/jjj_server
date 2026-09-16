@@ -16,6 +16,7 @@ final class MiningFixtures {
         containers.put(MiningToolsCfg.class, new MiningToolsCfgContainer());
         containers.put(MiningMapGenerationCfg.class, new MiningMapGenerationCfgContainer());
         containers.put(MiningAchievementCfg.class, new MiningAchievementCfgContainer());
+        containers.put(MiningRankingCfg.class, new MiningRankingCfgContainer());
         containers.put(MiningBundleShopCfg.class, new MiningBundleShopCfgContainer());
         containers.put(MiningExchangeShopCfg.class, new MiningExchangeShopCfgContainer());
         containers.put(ItemCfg.class, new ItemCfgContainer());

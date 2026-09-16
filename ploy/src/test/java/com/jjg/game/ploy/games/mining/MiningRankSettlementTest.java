@@ -6,6 +6,7 @@ import com.jjg.game.core.data.PlayerPack;
 import com.jjg.game.core.service.MailService;
 import com.jjg.game.core.service.PlayerPackService;
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.BeforeAll;
 import org.redisson.api.RLock;
 import org.redisson.api.RReadWriteLock;
 import org.redisson.api.RedissonClient;
@@ -21,6 +22,8 @@ import static org.mockito.ArgumentMatchers.*;
 import static org.mockito.Mockito.*;
 
 class MiningRankSettlementTest {
+    @BeforeAll static void setup() throws Exception { MiningFixtures.install(); }
+
     @Test void rankResponseIncludesStoredFrameAndCurrentSelfFrame() {
         MongoTemplate mongo = mock(MongoTemplate.class);
         MiningRankService.Entry entry = new MiningRankService.Entry();
@@ -28,7 +31,7 @@ class MiningRankSettlementTest {
         when(mongo.find(any(Query.class), eq(MiningRankService.Entry.class))).thenReturn(List.of(entry));
 
         Player player = new Player(); player.setId(22); player.setHeadFrameId(2003);
-        MiningConfig.Season season = new MiningConfig.Season(); season.id = "s1"; season.rewards = List.of();
+        MiningConfig.Season season = new MiningConfig.Season(); season.id = "s1";
         MiningRankService service = new MiningRankService(mongo, mock(RedissonClient.class),
                 mock(PlayerPackService.class), mock(MailService.class), new MiningConfig());
 
@@ -44,8 +47,7 @@ class MiningRankSettlementTest {
         when(redis.getReadWriteLock(anyString())).thenReturn(rw); when(rw.writeLock()).thenReturn(lock); when(lock.tryLock()).thenReturn(true);
         MiningConfig cfg = new MiningConfig(); MiningConfig.Season season = new MiningConfig.Season();
         season.id = "ended"; season.startTime = 1; season.endTime = 2;
-        MiningConfig.RankReward reward = new MiningConfig.RankReward(); reward.from = 1; reward.to = 300; reward.items = Map.of(1024034, 5L);
-        season.rewards = List.of(reward); cfg.seasons = List.of(season);
+        cfg.seasons = List.of(season);
         MiningRankService.Entry entry = new MiningRankService.Entry(); entry.playerId = 11; entry.seasonId = season.id; entry.depth = 10;
         when(mongo.stream(any(Query.class), eq(MiningRankService.Entry.class))).thenAnswer(i -> Stream.of(entry));
         when(mongo.find(any(Query.class), eq(MiningRankService.Entry.class))).thenReturn(List.of(entry));
@@ -60,12 +62,12 @@ class MiningRankSettlementTest {
         MiningRankService service = new MiningRankService(mongo, redis, packs, mail, cfg);
         service.settleEndedSeasons();
         MiningRankService.Settlement pending = JSON.parseObject(stored.get(), MiningRankService.Settlement.class);
-        assertEquals(0, pending.completedAt); assertEquals(5L, pending.awards.getFirst().items.get(1024034));
-        reward.items = Map.of(1024034, 999L); // 已冻结的赛季不因热改配置改变奖励。
+        assertEquals(0, pending.completedAt); assertEquals(4_000_000L, pending.awards.getFirst().items.get(1990000));
         service.settleEndedSeasons(); service.settleEndedSeasons();
         assertTrue(JSON.parseObject(stored.get(), MiningRankService.Settlement.class).completedAt > 0);
         verify(mail, times(2)).addMailIfAbsent(eq(11L), anyString(), anyString(),
-                argThat(items -> items.getFirst().getItemCount() == 5), any(), eq("mining:rank:ended:11"));
+                argThat(items -> items.stream().anyMatch(item -> item.getId() == 1990000
+                        && item.getItemCount() == 4_000_000L)), any(), eq("mining:rank:ended:11"));
         verify(mongo, times(1)).stream(any(Query.class), eq(MiningRankService.Entry.class));
     }
 }
