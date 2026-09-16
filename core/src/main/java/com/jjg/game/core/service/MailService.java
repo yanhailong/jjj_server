@@ -2,6 +2,7 @@ package com.jjg.game.core.service;
 
 import cn.hutool.core.collection.CollectionUtil;
 import cn.hutool.core.util.IdUtil;
+import com.jjg.game.common.curator.NodeType;
 import com.jjg.game.common.protostuff.PFSession;
 import com.jjg.game.common.utils.TimeHelper;
 import com.jjg.game.core.base.player.IPlayerLoginSuccess;
@@ -618,6 +619,12 @@ public class MailService implements IRedDotService, IPlayerLoginSuccess, IPlayer
     @Override
     public RedDotDetails.RedDotModule getModule() {
         return RedDotDetails.RedDotModule.MAIL;
+    }
+
+    /** 后台邮件由GM节点投递，入口在普通大厅和模拟经营大厅展示，三类节点都需参与红点链路。 */
+    @Override
+    public Set<NodeType> getSupportedNodeTypes() {
+        return Set.of(NodeType.GM, NodeType.HALL, NodeType.GAME);
     }
 
     /**
