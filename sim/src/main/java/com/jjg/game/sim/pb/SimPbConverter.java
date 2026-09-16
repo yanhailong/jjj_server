@@ -116,8 +116,11 @@ public final class SimPbConverter {
         BuildingAreaTableCfg buildingAreaTableCfg = GameDataManager.getBuildingAreaTableCfg(buildingData.getId());
 
 
-        info.upgradeOutput = currentLevelCfg.getUpgradeOutput();
-        info.upgradeExp = currentLevelCfg.getUpgradeExp();
+        if(currentLevelCfg != null) {
+            info.upgradeOutput = currentLevelCfg.getUpgradeOutput();
+            info.upgradeExp = currentLevelCfg.getUpgradeExp();
+        }
+
         info.buileTypeValue = buildingAreaTableCfg.getTypeValue();
 
         if (buildingAreaTableCfg.getType() == BuildingType.GAME.code() || buildingAreaTableCfg.getType() == BuildingType.REST.code()) {
@@ -127,8 +130,10 @@ public final class SimPbConverter {
                 }
             }
 
-            info.upgradeOutput = currentLevelCfg.getUpgradeOutput() * 60;
-            info.upgradeExp = currentLevelCfg.getUpgradeExp() * 60;
+            if(currentLevelCfg != null) {
+                info.upgradeOutput = currentLevelCfg.getUpgradeOutput() * 60;
+                info.upgradeExp = currentLevelCfg.getUpgradeExp() * 60;
+            }
         }
         return info;
     }
