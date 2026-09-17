@@ -14,6 +14,8 @@ import com.jjg.game.sim.data.SimPlayerContext;
 import com.jjg.game.sim.data.SimSkillsData;
 import com.jjg.game.sim.listener.SimPlayerTickListener;
 import com.jjg.game.sim.manager.SimPlayerContextRegistry;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.context.annotation.Lazy;
 import org.springframework.stereotype.Service;
@@ -22,6 +24,7 @@ import java.util.*;
 /** 建筑升级按建筑计数；所有全局/专属技能升级合并贡献1；extra提供按钮明细。 */
 @Service
 public class SimBuildingRedDotService implements IRedDotService, SimPlayerTickListener, ItemAddListener, ItemConsumeListener {
+    private static final Logger log = LoggerFactory.getLogger(SimBuildingRedDotService.class);
     @Autowired private SimPlayerContextRegistry contexts;
     @Lazy @Autowired private SimBuildingService buildings;
     @Lazy @Autowired private SimSkillService skills;
@@ -76,6 +79,10 @@ public class SimBuildingRedDotService implements IRedDotService, SimPlayerTickLi
                 "casinoId", ctx.getCurrentCasino().getCasinoId())));
         String snapshot = JSON.toJSONString(dot);
         boolean changed = !snapshot.equals(ctx.getBuildingRedDotSnapshot());
+        if (changed) {
+            log.info("建筑升级红点刷新 playerId={},casinoId={},count={},buildingIds={},skillIds={}",
+                    ctx.playerId(), ctx.getCurrentCasino().getCasinoId(), count, buildingIds, skillIds);
+        }
         ctx.setBuildingRedDotDirty(false);
         ctx.setBuildingRedDotInput(input);
         ctx.setBuildingRedDotCheckTime(now);
