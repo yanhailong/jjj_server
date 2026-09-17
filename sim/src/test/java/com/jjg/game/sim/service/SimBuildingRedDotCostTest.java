@@ -29,6 +29,14 @@ import static org.mockito.Mockito.when;
 
 class SimBuildingRedDotCostTest {
     @Test
+    void upgradeEntryDoesNotAddSkillReminderToBuildingCount() {
+        assertEquals(1, SimBuildingRedDotService.upgradeEntryCount(1, 1));
+        assertEquals(2, SimBuildingRedDotService.upgradeEntryCount(2, 1));
+        assertEquals(1, SimBuildingRedDotService.upgradeEntryCount(0, 1));
+        assertEquals(0, SimBuildingRedDotService.upgradeEntryCount(0, 0));
+    }
+
+    @Test
     void diamondShortageDoesNotCountAsAffordableUpgrade() {
         int diamondId = 1990001;
         Player player = mock(Player.class);

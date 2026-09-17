@@ -21,7 +21,7 @@ import org.springframework.context.annotation.Lazy;
 import org.springframework.stereotype.Service;
 import java.util.*;
 
-/** 建筑升级按建筑计数；所有全局/专属技能升级合并贡献1；extra提供按钮明细。 */
+/** 建筑升级按建筑计数；没有可升建筑时，可升级技能保留一个入口提示；extra提供按钮明细。 */
 @Service
 public class SimBuildingRedDotService implements IRedDotService, SimPlayerTickListener, ItemAddListener, ItemConsumeListener {
     private static final Logger log = LoggerFactory.getLogger(SimBuildingRedDotService.class);
@@ -72,7 +72,7 @@ public class SimBuildingRedDotService implements IRedDotService, SimPlayerTickLi
             else skillIds.computeIfAbsent(offer.buildingId(), key -> new TreeSet<>()).add(offer.propId());
         }
         int skillCount = skillIds.isEmpty() ? 0 : 1;
-        int count = buildingIds.size() + skillCount;
+        int count = upgradeEntryCount(buildingIds.size(), skillCount);
         RedDotDetails dot = manager.buildRedDotDetails(getModule(), 1, count, RedDotDetails.RedDotType.COUNT);
         dot.setExtra(JSON.toJSONString(Map.of("ids", ids, "buildingIds", buildingIds, "skillIds", skillIds,
                 "buildingCount", buildingIds.size(), "skillCount", skillCount,
@@ -88,6 +88,10 @@ public class SimBuildingRedDotService implements IRedDotService, SimPlayerTickLi
         ctx.setBuildingRedDotCheckTime(now);
         ctx.setBuildingRedDotSnapshot(snapshot);
         return force || changed ? List.of(dot) : List.of();
+    }
+
+    static int upgradeEntryCount(int buildingCount, int skillCount) {
+        return buildingCount > 0 ? buildingCount : skillCount;
     }
 
     @Override public void onTick(SimPlayerContext ctx, long now) {
