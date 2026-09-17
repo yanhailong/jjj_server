@@ -44,18 +44,15 @@ public class SimBuildingRedDotService implements IRedDotService, SimPlayerTickLi
 
     private List<RedDotDetails> calculate(SimPlayerContext ctx, boolean force) {
         List<Offer> offers = new ArrayList<>();
+        SimSkillsData globalSkills = ctx.getSkillData(0);
         ctx.getCurrentCasino().getBuildingData().keySet().stream().sorted().forEach(id -> {
             Map<Integer, Long> cost = buildings.redDotUpgradeCost(ctx, id);
             if (cost != null) offers.add(new Offer(id, 0, cost));
             BuildingAreaTableCfg cfg = GameDataManager.getBuildingAreaTableCfg(id);
-            // unlockGameId=0 的建筑没有技能入口，不能把全局技能算到这些建筑上。
-            SimSkillsData data = !hasSkillEntry(cfg)
-                    ? null : ctx.getSkillData(cfg.getUnlockGameId());
-            if (data != null && data.getSkillsMap() != null) {
-                data.getSkillsMap().keySet().stream().sorted().forEach(propId -> {
-                    Map<Integer, Long> skillCost = skills.redDotUpgradeCost(ctx, data.getGameType(), propId);
-                    if (skillCost != null) offers.add(new Offer(id, propId, skillCost));
-                });
+            if (hasSkillEntry(cfg)) {
+                // 技能页同时展示当前游戏技能和全局技能；只映射到真正有技能入口的建筑。
+                addSkillOffers(offers, ctx, id, ctx.getSkillData(cfg.getUnlockGameId()));
+                addSkillOffers(offers, ctx, id, globalSkills);
             }
         });
         // 内存条件未变化且没有道具事件，不重复读背包；60秒兜底后台改数据。
@@ -98,6 +95,14 @@ public class SimBuildingRedDotService implements IRedDotService, SimPlayerTickLi
 
     static boolean hasSkillEntry(BuildingAreaTableCfg cfg) {
         return cfg != null && cfg.getUnlockGameId() > 0;
+    }
+
+    private void addSkillOffers(List<Offer> offers, SimPlayerContext ctx, int buildingId, SimSkillsData data) {
+        if (data == null || data.getSkillsMap() == null) return;
+        data.getSkillsMap().keySet().stream().sorted().forEach(propId -> {
+            Map<Integer, Long> cost = skills.redDotUpgradeCost(ctx, data.getGameType(), propId);
+            if (cost != null) offers.add(new Offer(buildingId, propId, cost));
+        });
     }
 
     @Override public void onTick(SimPlayerContext ctx, long now) {
