@@ -44,16 +44,15 @@ public class SimBuildingRedDotService implements IRedDotService, SimPlayerTickLi
 
     private List<RedDotDetails> calculate(SimPlayerContext ctx, boolean force) {
         List<Offer> offers = new ArrayList<>();
+        SimSkillsData globalSkills = ctx.getSkillData(0);
         ctx.getCurrentCasino().getBuildingData().keySet().stream().sorted().forEach(id -> {
             Map<Integer, Long> cost = buildings.redDotUpgradeCost(ctx, id);
             if (cost != null) offers.add(new Offer(id, 0, cost));
             BuildingAreaTableCfg cfg = GameDataManager.getBuildingAreaTableCfg(id);
-            SimSkillsData data = cfg == null ? null : ctx.getSkillData(cfg.getUnlockGameId());
-            if (data != null && data.getSkillsMap() != null) {
-                data.getSkillsMap().keySet().stream().sorted().forEach(propId -> {
-                    Map<Integer, Long> skillCost = skills.redDotUpgradeCost(ctx, data.getGameType(), propId);
-                    if (skillCost != null) offers.add(new Offer(id, propId, skillCost));
-                });
+            if (hasSkillEntry(cfg)) {
+                // 技能页同时展示当前游戏技能和全局技能；只映射到真正有技能入口的建筑。
+                addSkillOffers(offers, ctx, id, ctx.getSkillData(cfg.getUnlockGameId()));
+                addSkillOffers(offers, ctx, id, globalSkills);
             }
         });
         // 内存条件未变化且没有道具事件，不重复读背包；60秒兜底后台改数据。
@@ -94,6 +93,18 @@ public class SimBuildingRedDotService implements IRedDotService, SimPlayerTickLi
         return buildingCount > 0 ? buildingCount : skillCount;
     }
 
+    static boolean hasSkillEntry(BuildingAreaTableCfg cfg) {
+        return cfg != null && cfg.getUnlockGameId() > 0;
+    }
+
+    private void addSkillOffers(List<Offer> offers, SimPlayerContext ctx, int buildingId, SimSkillsData data) {
+        if (data == null || data.getSkillsMap() == null) return;
+        data.getSkillsMap().keySet().stream().sorted().forEach(propId -> {
+            Map<Integer, Long> cost = skills.redDotUpgradeCost(ctx, data.getGameType(), propId);
+            if (cost != null) offers.add(new Offer(buildingId, propId, cost));
+        });
+    }
+
     @Override public void onTick(SimPlayerContext ctx, long now) {
         if (ctx.getPlayer() == null || ctx.getCurrentCasino() == null || ctx.getCurrentCasino().getBuildingData() == null) return;
         try { manager.updateRedDot(calculate(ctx, false), ctx.playerId()); }
@@ -103,6 +114,11 @@ public class SimBuildingRedDotService implements IRedDotService, SimPlayerTickLi
     public void invalidate(long id) {
         SimPlayerContext ctx = contexts.getContext(id);
         if (ctx != null) ctx.setBuildingRedDotDirty(true);
+    }
+    public void refresh(SimPlayerContext ctx) {
+        if (ctx.getPlayer() == null || ctx.getCurrentCasino() == null
+                || ctx.getCurrentCasino().getBuildingData() == null) return;
+        manager.updateRedDot(calculate(ctx, true), ctx.playerId());
     }
     @Override public void onItemsAdded(long id, Map<Integer, Long> items, AddType type) { invalidate(id); }
     @Override public void onItemsConsumed(long id, Map<Integer, Long> items, AddType type) { invalidate(id); }
