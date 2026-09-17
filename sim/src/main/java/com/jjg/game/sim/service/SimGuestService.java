@@ -1024,7 +1024,7 @@ public class SimGuestService implements SimPlayerTickListener, ItemListener, Sim
             CommonResult<ItemOperationResult> commonResult = playerPackService.removeItem(ctx.getPlayer(), visitorQuestCfg.getDuplicatetoShard().get(1), cfg.getAscend(), AddType.SIM_GUEST_STAR_UP);
             if (!commonResult.success()) {
                 log.warn("升星游客失败,扣除道具失败 playerId={},guestId={},itemId={},count={},cfgId={},code={}", ctx.playerId(), guestId, visitorQuestCfg.getDuplicatetoShard().get(1), cfg.getAscend(), cfg.getId(), commonResult.code);
-                res.code = Code.NOT_FOUND;
+                res.code = commonResult.code;
                 ctx.send(res);
                 return;
             }

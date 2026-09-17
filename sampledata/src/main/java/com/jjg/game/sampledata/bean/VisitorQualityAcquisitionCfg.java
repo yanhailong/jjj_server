@@ -33,6 +33,8 @@ public class VisitorQualityAcquisitionCfg extends BaseCfgBean {
   protected Map<Integer,Long> VisitorWeight;
   /** 客户端资源 */
   protected String icon;
+  /** 显示名称 */
+  protected int language;
 
   /** 返回价格类型 */
   public int getCostType() {
@@ -67,6 +69,11 @@ public class VisitorQualityAcquisitionCfg extends BaseCfgBean {
   /** 返回客户端资源 */
   public String getIcon() {
     return icon;
+  }
+
+  /** 返回显示名称 */
+  public int getLanguage() {
+    return language;
   }
 
   @Override

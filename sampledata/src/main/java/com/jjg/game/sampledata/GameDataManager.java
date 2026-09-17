@@ -120,6 +120,7 @@ public class GameDataManager {
   public Map<Class<? extends BaseCfgBean>, BaseCfgContainer<?>> initAllContainer() {
     Map<Class<? extends BaseCfgBean>, BaseCfgContainer<?>> containerMap = new ConcurrentHashMap<>(8);
     // region===============cfg加载模板开始===================
+    containerMap.put(ActivePassCfg.class, new ActivePassCfgContainer());
     containerMap.put(ActivityConfigCfg.class, new ActivityConfigCfgContainer());
     containerMap.put(AirstrikeRobotCfg.class, new AirstrikeRobotCfgContainer());
     containerMap.put(AlbumCfg.class, new AlbumCfgContainer());
@@ -199,6 +200,7 @@ public class GameDataManager {
     containerMap.put(OfficialAwardsCfg.class, new OfficialAwardsCfgContainer());
     containerMap.put(PassDetailsCfg.class, new PassDetailsCfgContainer());
     containerMap.put(PassListCfg.class, new PassListCfgContainer());
+    containerMap.put(PassRewardCfg.class, new PassRewardCfgContainer());
     containerMap.put(PiggyBankCfg.class, new PiggyBankCfgContainer());
     containerMap.put(PlayerLevelConfigCfg.class, new PlayerLevelConfigCfgContainer());
     containerMap.put(PlayerLevelPackCfg.class, new PlayerLevelPackCfgContainer());
@@ -687,6 +689,18 @@ public class GameDataManager {
   }
 
   // region===============cfg获取方法模板开始===================
+
+  public static ActivePassCfg getActivePassCfg(int key) {
+    return getInstance().getCfgContainer(ActivePassCfg.class).getCfgBeanMap().get(key);
+  }
+
+  public static Map<Integer, ActivePassCfg> getActivePassCfgMap() {
+    return getInstance().getCfgContainer(ActivePassCfg.class).getCfgBeanMap();
+  }
+
+  public static List<ActivePassCfg> getActivePassCfgList() {
+    return getInstance().getCfgContainer(ActivePassCfg.class).getCfgBeanList();
+  }
 
   public static ActivityConfigCfg getActivityConfigCfg(int key) {
     return getInstance().getCfgContainer(ActivityConfigCfg.class).getCfgBeanMap().get(key);
@@ -1634,6 +1648,18 @@ public class GameDataManager {
 
   public static List<PassListCfg> getPassListCfgList() {
     return getInstance().getCfgContainer(PassListCfg.class).getCfgBeanList();
+  }
+
+  public static PassRewardCfg getPassRewardCfg(int key) {
+    return getInstance().getCfgContainer(PassRewardCfg.class).getCfgBeanMap().get(key);
+  }
+
+  public static Map<Integer, PassRewardCfg> getPassRewardCfgMap() {
+    return getInstance().getCfgContainer(PassRewardCfg.class).getCfgBeanMap();
+  }
+
+  public static List<PassRewardCfg> getPassRewardCfgList() {
+    return getInstance().getCfgContainer(PassRewardCfg.class).getCfgBeanList();
   }
 
   public static PiggyBankCfg getPiggyBankCfg(int key) {

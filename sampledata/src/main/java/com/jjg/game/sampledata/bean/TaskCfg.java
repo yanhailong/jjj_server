@@ -25,6 +25,10 @@ public class TaskCfg extends BaseCfgBean {
   protected boolean AllowAbandon;
   /** 勋章ID */
   protected int BadgeID;
+  /** 开启条件上限 */
+  protected int CasinoLevelMax;
+  /** 开启条件下限 */
+  protected int CasinoLevelMin;
   /** 持续时间（分） */
   protected int Duration;
   /** 解锁功能ID */
@@ -71,6 +75,16 @@ public class TaskCfg extends BaseCfgBean {
   /** 返回勋章ID */
   public int getBadgeID() {
     return BadgeID;
+  }
+
+  /** 返回开启条件上限 */
+  public int getCasinoLevelMax() {
+    return CasinoLevelMax;
+  }
+
+  /** 返回开启条件下限 */
+  public int getCasinoLevelMin() {
+    return CasinoLevelMin;
   }
 
   /** 返回持续时间（分） */

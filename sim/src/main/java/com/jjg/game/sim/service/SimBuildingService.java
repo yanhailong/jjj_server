@@ -669,7 +669,7 @@ public class SimBuildingService implements SimPlayerTickListener, SimTaskStateRe
             BuildingAreaTableCfg buildingAreaTableCfg = GameDataManager.getBuildingAreaTableCfg(buildingId);
             BuildingUpgradeTableCfg buildingUpgradeCfg = configCache.getBuildingUpgradeCfg(data.getId(), data.getLevel());
             res.buildingInfo = SimPbConverter.toBuildingInfo(ctx, configCache, data, buildingUpgradeCfg, buildingAreaTableCfg.getUnlockGameId(), now);
-            log.info("清除建筑升级CD playerId={},buildingId={},watchAd={},costCount={},level={},cdEndTime={}", ctx.playerId(), buildingId, watchAd, costCount, data.getLevel(), data.getCdEndTime());
+            log.info("清除建筑升级CD playerId={},buildingId={},watchAd={},costItemId={},costCount={},level={},cdEndTime={}", ctx.playerId(), buildingId, watchAd, costItemId, costCount, data.getLevel(), data.getCdEndTime());
         } catch (Exception e) {
             log.error("", e);
             res.code = Code.EXCEPTION;
@@ -1328,8 +1328,8 @@ public class SimBuildingService implements SimPlayerTickListener, SimTaskStateRe
         if (!data.isUpgradeReady(now)) {
             return Code.PARAM_ERROR;
         }
-        int afterLevel = data.getLevel() + 1;
-        data.setLevel(afterLevel);
+        int beforeLevel = data.getLevel();
+        data.setLevel(data.getLevel() + 1);
         updateCacheGuestSize(casino);
         data.setCdEndTime(0);
         data.setAdClearCount(0);
@@ -1337,15 +1337,15 @@ public class SimBuildingService implements SimPlayerTickListener, SimTaskStateRe
         simCasinoService.addCasinoExp(ctx, 0);
         allianceEventService.onBuildingUpgrade(ctx.playerId(), data.getId(), data.getLevel());
 
-        BuildingUpgradeTableCfg cfg = configCache.getBuildingUpgradeCfg(data.getId(), afterLevel);
+        BuildingUpgradeTableCfg cfg = configCache.getBuildingUpgradeCfg(data.getId(), beforeLevel);
         if (cfg != null && cfg.getUpgradeReward() != null && !cfg.getUpgradeReward().isEmpty()) {
             CommonResult<ItemOperationResult> result = playerPackService.addItems(ctx.playerId(), cfg.getUpgradeReward(), AddType.SIM_BUILDING_UPGRADE);
             if (!result.success()) {
-                log.warn("建筑升级后添加道具失败 playerId={},buildingId={},afterLevel={}", ctx.playerId(), data.getId(), afterLevel);
+                log.warn("建筑升级后添加道具失败 playerId={},buildingId={},beforeLevel={}", ctx.playerId(), data.getId(), beforeLevel);
             }
         }
         unlockBetSkills(ctx, data, GameDataManager.getBuildingAreaTableCfg(data.getId()));
-        log.info("完成建筑升级 playerId={},buildingId={},newLevel={}", casino.getPlayerId(), data.getId(), data.getLevel());
+        log.info("完成建筑升级 playerId={},buildingId={},newLevel={},rewards={}", casino.getPlayerId(), data.getId(), data.getLevel(), cfg == null ? null : cfg.getUpgradeReward());
         return Code.SUCCESS;
     }
 
