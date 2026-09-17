@@ -25,7 +25,17 @@ public record GameConditionEvent(
         int freeGameTriggers,
         Set<Integer> specialModes,
         List<Integer> icons,
-        Map<Integer, Long> itemGains) implements GameWinEvent {
+        Map<Integer, Long> itemGains,
+        boolean seasonEntry) implements GameWinEvent {
+
+    /** 未携带赛季入口事实的事件不参与仅限赛季入口的条件。 */
+    public GameConditionEvent(int gameId, int gameType, int roomType, int betItemId, int winItemId,
+                              long bet, long win, long multiple, boolean energyConsumed, boolean normalSpin,
+                              int awardType, Map<Integer, Long> jackpotCounts, int freeGameTriggers,
+                              Set<Integer> specialModes, List<Integer> icons, Map<Integer, Long> itemGains) {
+        this(gameId, gameType, roomType, betItemId, winItemId, bet, win, multiple, energyConsumed,
+                normalSpin, awardType, jackpotCounts, freeGameTriggers, specialModes, icons, itemGains, false);
+    }
 
     public GameConditionEvent {
         specialModes = specialModes == null ? Set.of() : Set.copyOf(specialModes);

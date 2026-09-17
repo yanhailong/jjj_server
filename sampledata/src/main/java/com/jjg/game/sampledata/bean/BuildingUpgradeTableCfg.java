@@ -45,7 +45,7 @@ public class BuildingUpgradeTableCfg extends BaseCfgBean {
   protected int UpgradeCD;
   /** 升级消耗道具 */
   protected Map<Integer,Long> UpgradeCost;
-  /** 建筑基础属性 */
+  /** 每分钟经验产出 */
   protected long UpgradeExp;
   /** 建筑基础属性 */
   protected long UpgradeOutput;
@@ -123,7 +123,7 @@ public class BuildingUpgradeTableCfg extends BaseCfgBean {
     return UpgradeCost;
   }
 
-  /** 返回建筑基础属性 */
+  /** 返回每分钟经验产出 */
   public long getUpgradeExp() {
     return UpgradeExp;
   }
