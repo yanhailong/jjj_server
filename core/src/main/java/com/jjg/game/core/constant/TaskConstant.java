@@ -37,6 +37,10 @@ public interface TaskConstant {
          * 赛季试炼任务 (season 新手赛季关卡, 不由 core 管理)
          */
         int SEASON_TRIAL = 6;
+        /** 活跃通行证每日任务，由 activepass 管理。 */
+        int ACTIVE_PASS_DAILY = 8;
+        /** 活跃通行证周期任务，由 activepass 管理。 */
+        int ACTIVE_PASS_PERIOD = 9;
     }
 
     /**

@@ -321,6 +321,10 @@ public class SimCasinoData extends AbstractData {
         return specialGuestQualityCfgIds == null ? Collections.emptyMap() : specialGuestQualityCfgIds;
     }
 
+    public boolean needsSpecialGuestQualityInitialization() {
+        return specialGuestQualityCfgIds == null || specialGuestQualityCfgIds.isEmpty();
+    }
+
     public void setSpecialGuestQualityCfgIds(Map<Integer, List<Integer>> specialGuestQualityCfgIds) {
         this.specialGuestQualityCfgIds = specialGuestQualityCfgIds;
     }

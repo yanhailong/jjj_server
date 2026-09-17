@@ -290,6 +290,14 @@ public interface SimConstant {
 
         int REQ_VISIT_RANK_REWARDS = BASE_MSG_PREFIX | 0x92;
         int RES_VISIT_RANK_REWARDS = BASE_MSG_PREFIX | 0x93;
+
+        // 活跃通行证
+        int REQ_ACTIVE_PASS_INFO = BASE_MSG_PREFIX | 0x94;
+        int REQ_ACTIVE_PASS_TASK_CLAIM = BASE_MSG_PREFIX | 0x95;
+        int REQ_ACTIVE_PASS_REWARD_CLAIM = BASE_MSG_PREFIX | 0x96;
+        int REQ_ACTIVE_PASS_BUY_POINTS = BASE_MSG_PREFIX | 0x97;
+        int RES_ACTIVE_PASS = BASE_MSG_PREFIX | 0x98;
+        int NOTIFY_ACTIVE_PASS_UPDATE = BASE_MSG_PREFIX | 0x99;
     }
 
     interface SpecialGuest {
