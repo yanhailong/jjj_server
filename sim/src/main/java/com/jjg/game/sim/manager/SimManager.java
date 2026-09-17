@@ -761,7 +761,8 @@ public class SimManager {
             //须在掉落结算后构造: 本次到账的道具要计入 itemGains, 12202 等按道具计数的条件才能推进
             GameConditionEvent conditionEvent = SimConditionEventFactory.fromSpin(
                     gameType, winTimes, actualSpinCostPower, statInfo,
-                    result.data == null ? null : result.data.getItemsMap(), actualSpinCostPower > 0);
+                    result.data == null ? null : result.data.getItemsMap(), actualSpinCostPower > 0,
+                    enterType == EnterGameType.SEASON.getValue());
             if (!result.success()) {
 //                log.warn("slots 联动失败, onSpin执行失败 playerId={},gameType={},winTimes={},code={}", playerId, gameType, winTimes, result.code);
                 //试玩失败意味着 permit 已失效(重复投递等), 本次上报不可信, 不推进任何进度

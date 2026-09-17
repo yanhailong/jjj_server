@@ -306,7 +306,8 @@ final class DefaultConditionRules {
                 (s, e) -> e.matchesGame(s.parameter(0)) && e.bet() >= s.parameter(1),
                 (s, e) -> Math.max(0, e.win())));
         rules.add(game(12610, 3, 3, 2, ProgressMode.ADD,
-                (s, e) -> e.matchesGame(s.parameter(0)) && e.bet() >= s.parameter(1), (s, e) -> 1));
+                (s, e) -> e.seasonEntry() && e.matchesGame(s.parameter(0))
+                        && e.bet() >= s.parameter(1), (s, e) -> 1));
     }
 
     private static void addMiningRules(List<ConditionRule<?>> rules) {

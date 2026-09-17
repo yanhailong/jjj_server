@@ -32,7 +32,7 @@ public final class SimConditionEventFactory {
     public static GameConditionEvent fromSpin(int gameType, int winTimes, int costPower,
                                               SpinStatInfo statInfo) {
         return fromSpin(gameType, winTimes, costPower, statInfo, resolveGoldItemId(), null,
-                costPower > 0 || (statInfo != null && statInfo.getBet() > 0));
+                costPower > 0 || (statInfo != null && statInfo.getBet() > 0), false);
     }
 
     /**
@@ -42,26 +42,28 @@ public final class SimConditionEventFactory {
     public static GameConditionEvent fromSpin(int gameType, int winTimes, int costPower,
                                               SpinStatInfo statInfo, Map<Integer, Long> itemGains) {
         return fromSpin(gameType, winTimes, costPower, statInfo, resolveGoldItemId(), itemGains,
-                costPower > 0 || (statInfo != null && statInfo.getBet() > 0));
+                costPower > 0 || (statInfo != null && statInfo.getBet() > 0), false);
     }
 
-    /** 构造已明确是否真实消耗经营体力的旋转事件。 */
+    /** 构造已明确入口及是否真实消耗经营体力的旋转事件。 */
     public static GameConditionEvent fromSpin(int gameType, int winTimes, int costPower,
                                               SpinStatInfo statInfo, Map<Integer, Long> itemGains,
-                                              boolean energyConsumed) {
-        return fromSpin(gameType, winTimes, costPower, statInfo, resolveGoldItemId(), itemGains, energyConsumed);
+                                              boolean energyConsumed, boolean seasonEntry) {
+        return fromSpin(gameType, winTimes, costPower, statInfo, resolveGoldItemId(), itemGains,
+                energyConsumed, seasonEntry);
     }
 
     /** 测试/无货币条件调用可显式传 0，避免依赖尚未初始化的 Item 配置。 */
     public static GameConditionEvent fromSpin(int gameType, int winTimes, int costPower,
                                               SpinStatInfo statInfo, int goldItemId) {
         return fromSpin(gameType, winTimes, costPower, statInfo, goldItemId, null,
-                costPower > 0 || (statInfo != null && statInfo.getBet() > 0));
+                costPower > 0 || (statInfo != null && statInfo.getBet() > 0), false);
     }
 
     private static GameConditionEvent fromSpin(int gameType, int winTimes, int costPower,
                                                SpinStatInfo statInfo, int goldItemId,
-                                               Map<Integer, Long> itemGains, boolean energyConsumed) {
+                                               Map<Integer, Long> itemGains, boolean energyConsumed,
+                                               boolean seasonEntry) {
         long bet = statInfo == null ? costPower : statInfo.getBet();
         long win = statInfo == null ? 0 : statInfo.getWin();
         int transactionItemId = statInfo != null && statInfo.getTransactionItemId() > 0
@@ -74,7 +76,7 @@ public final class SimConditionEventFactory {
                 statInfo == null || statInfo.getSpecialModes() == null
                         ? Set.of() : Set.copyOf(statInfo.getSpecialModes()),
                 statInfo == null ? List.of() : statInfo.getIcons(),
-                mergeGains(transactionItemId, win, itemGains));
+                mergeGains(transactionItemId, win, itemGains), seasonEntry);
     }
 
     /**
