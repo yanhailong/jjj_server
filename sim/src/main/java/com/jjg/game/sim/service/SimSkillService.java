@@ -23,6 +23,7 @@ import com.jjg.game.sim.pb.SimPbConverter;
 import com.jjg.game.sim.pb.res.ResSimGetSkills;
 import com.jjg.game.sim.pb.res.ResSimUpgradeSkill;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.context.annotation.Lazy;
 import org.springframework.stereotype.Service;
 
 import java.util.*;
@@ -44,6 +45,8 @@ public class SimSkillService extends AbstractSkillService {
     private AllianceEventService allianceEventService;
     @Autowired
     private PlayerPackService playerPackService;
+    @Lazy @Autowired
+    private SimBuildingRedDotService buildingRedDotService;
 
     //每个技能的最大等级
     private Map<Integer, Integer> maxLevelMap = new HashMap<>();
@@ -53,7 +56,9 @@ public class SimSkillService extends AbstractSkillService {
         SimSkillsData data = ctx.getSkillData(gameType);
         SkillDetailData detail = data == null ? null : data.findSkilLevelByPropId(propId);
         PropCfg prop = GameDataManager.getPropCfg(propId);
-        if (detail == null || prop == null || skillGameType(prop) != gameType) return null;
+        // SortOrder=-1 的技能不会出现在客户端技能列表，不能点亮入口红点。
+        if (detail == null || prop == null || prop.getSortOrder() == -1
+                || skillGameType(prop) != gameType) return null;
         ResearchSkillsCfg next = getResearchSkillsCfg(gameType, propId, detail.getLevel() + 1);
         if (next == null) return null;
         if (gameType != GLOBAL_GAME_TYPE) {
@@ -312,6 +317,13 @@ public class SimSkillService extends AbstractSkillService {
             res.code = Code.EXCEPTION;
         }
         ctx.send(res);
+        if (res.code == Code.SUCCESS) {
+            try {
+                buildingRedDotService.refresh(ctx);
+            } catch (Exception e) {
+                log.error("技能升级后刷新建筑红点失败 playerId={},skillPropId={}", ctx.playerId(), skillPropId, e);
+            }
+        }
     }
 
     private boolean canUseResearchPoint(int gameType, int itemId) {
