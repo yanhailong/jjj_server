@@ -389,6 +389,16 @@ public class HallRPCController extends CoreRPCController implements GmToHallBrid
         return new CommonResult<>(accepted ? Code.SUCCESS : Code.PARAM_ERROR, accepted);
     }
 
+    @Override
+    public CommonResult<Boolean> onMiningExchange(long playerId, int itemId, long count) {
+        if (playerId <= 0 || itemId <= 0 || count <= 0) {
+            return new CommonResult<>(Code.PARAM_ERROR, false);
+        }
+        enqueueSimTaskEvent(playerId, new ActionConditionEvent(ActionConditionEvent.Type.ITEM_EXCHANGE,
+                itemId, 0, 0, count, 0, false), "mining exchange task progress");
+        return new CommonResult<>(Code.SUCCESS, true);
+    }
+
     private void enqueueSimTaskEvent(long playerId, ConditionEvent event, String handlerParam) {
         PlayerExecutorGroupDisruptor.getDefaultExecutor().publishWithFallback(
                 playerId, 0, new BaseHandler<String>() {

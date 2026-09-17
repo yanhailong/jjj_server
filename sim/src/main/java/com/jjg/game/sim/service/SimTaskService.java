@@ -70,7 +70,8 @@ public class SimTaskService implements IRedDotService {
             TaskConstant.ConditionType.PLAYER_BET_ALL,
             12201, 12202, 12203, 12204, 12205, 12206,
             12209, 12210, 12211, 12213, 12215, 12217, 12218,
-            12220, 12221, 12222, 12223, 12224, 12225, 12226, 12227, 12228);
+            12220, 12221, 12222, 12223, 12224, 12225, 12226, 12227, 12228,
+            12230, 12231, 12232, 12233, 12234, 12305, 12704);
 
     @Autowired
     private SimTaskConfigService taskConfig;

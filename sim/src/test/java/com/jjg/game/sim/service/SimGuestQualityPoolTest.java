@@ -7,9 +7,11 @@ import com.jjg.game.core.constant.AddType;
 import com.jjg.game.core.constant.Code;
 import com.jjg.game.core.dao.CountDao;
 import com.jjg.game.core.data.CommonResult;
+import com.jjg.game.core.data.Item;
 import com.jjg.game.core.data.Order;
 import com.jjg.game.core.data.PayType;
 import com.jjg.game.core.data.Player;
+import com.jjg.game.core.manager.RedDotManager;
 import com.jjg.game.core.service.OrderService;
 import com.jjg.game.core.service.PlayerPackService;
 import com.jjg.game.core.service.SpecialGuestDailyCountService;
@@ -21,6 +23,7 @@ import com.jjg.game.sim.data.*;
 import com.jjg.game.sim.manager.SimPlayerContextRegistry;
 import com.jjg.game.sim.pb.res.ResBuySpecialGuest;
 import com.jjg.game.sim.pb.res.ResGenPurchasedGuest;
+import com.jjg.game.sim.pb.res.ResSpecialGuestList;
 import com.jjg.game.sim.pb.struct.SpecialGuestInfo;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
@@ -88,6 +91,33 @@ class SimGuestQualityPoolTest {
     @AfterEach
     void close() {
         data.close();
+    }
+
+    @Test
+    void manualRefreshIncludesAllCurrentQualityPoolsWithoutPaidPoolOrManualSwitch() {
+        when(cache.getVisitorTargetListCfg(1, POOL_PAID)).thenReturn(null);
+        casino.setSpecialGuestPaidCfgIds(null);
+        base.setSpecialGuestAdRefreshDay(20260917);
+        base.setSpecialGuestAdCfgIds(List.of(999));
+        VisitorTargetListCfg second = pool(31, POOL_QUALITY, 100);
+        when(cache.getVisitorTargetListCfg(1, POOL_QUALITY)).thenReturn(List.of(qualityPool, second));
+        when(cache.getSpecialGuestRefreshCosts()).thenReturn(List.of(new Item(1980000, 0)));
+        ReflectionTestUtils.setField(service, "redDotManager", mock(RedDotManager.class));
+        casino.getSpecialGuestPurchaseCounts().put("30:101", 1);
+
+        service.refreshSpecialGuests(ctx);
+
+        ArgumentCaptor<ResSpecialGuestList> response = ArgumentCaptor.forClass(ResSpecialGuestList.class);
+        verify(ctx).send(response.capture());
+        assertEquals(Code.SUCCESS, response.getValue().code);
+        assertEquals(Map.of(30, List.of(101), 31, List.of(101)), casino.getSpecialGuestQualityCfgIds());
+        assertEquals(List.of(999), base.getSpecialGuestAdCfgIds());
+        assertEquals(1, casino.getSpecialGuestRefreshCount());
+        assertEquals(5, casino.getSpecialGuestOfferVersion());
+        assertTrue(casino.getSpecialGuestPurchaseCounts().isEmpty());
+        assertNotNull(response.getValue().nextRefreshCost);
+        assertEquals(true, ReflectionTestUtils.invokeMethod(service, "hasFreeSpecialGuestRefresh", casino, System.currentTimeMillis()));
+        verifyNoInteractions(pack);
     }
 
     @Test

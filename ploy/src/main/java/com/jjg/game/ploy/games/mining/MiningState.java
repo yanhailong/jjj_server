@@ -56,6 +56,7 @@ public class MiningState {
         public long ads;
         public Map<Integer, Long> tools = new HashMap<>();
         public Map<Integer, Long> resources = new HashMap<>();
+        /** 消耗的兑换物 ID -> 兑换次数（不是消耗量或产出数量）。 */
         public Map<Integer, Long> exchangedItems = new HashMap<>();
     }
 

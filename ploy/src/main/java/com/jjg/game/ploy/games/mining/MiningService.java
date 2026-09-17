@@ -45,6 +45,8 @@ public class MiningService implements OrderGenerate, StandalonePloyGame {
     private final MiningRankService ranks;
     @org.springframework.beans.factory.annotation.Autowired
     private MiningRewardClient rewardClient;
+    @org.springframework.beans.factory.annotation.Autowired
+    private MiningConditionClient conditionClient;
 
     public MiningService(MiningConfig config, PlayerPackService packs, AccountDao accounts, RedissonClient redis,
                          MiningRankService ranks) {
@@ -114,9 +116,9 @@ public class MiningService implements OrderGenerate, StandalonePloyGame {
                             if (costs.isEmpty() || rewards.isEmpty()) throw new MiningException(Code.SAMPLE_ERROR, "INVALID_SHOP_CONFIG");
                             purchase(state, good.getId(), request.count);
                             state.total.exchanges += request.count; state.daily.exchanges += request.count;
-                            for (Map.Entry<Integer, Long> reward : rewards.entrySet()) {
-                                state.total.exchangedItems.merge(reward.getKey(), reward.getValue(), Math::addExact);
-                                state.daily.exchangedItems.merge(reward.getKey(), reward.getValue(), Math::addExact);
+                            for (int itemId : costs.keySet()) {
+                                state.total.exchangedItems.merge(itemId, (long) request.count, Math::addExact);
+                                state.daily.exchangedItems.merge(itemId, (long) request.count, Math::addExact);
                             }
                             source = AddType.MINING_EXCHANGE;
                         }
@@ -159,6 +161,9 @@ public class MiningService implements OrderGenerate, StandalonePloyGame {
                         snapshot = deliverSpecial(player, snapshot, costs, rewards, request.id, source);
                         state = snapshot.state;
                     } else snapshot = commit(player, snapshot.json, state, costs, rewards, source);
+                    if (request.action == MiningConstant.EXCHANGE) {
+                        conditionClient.onExchange(player.getId(), costs.keySet().iterator().next(), request.count);
+                    }
                     MiningEngine.merge(responseRewards, rewards);
                     response.rewards = ItemUtils.buildItemInfo(responseRewards);
                     log.info("mining_action playerId={} action={} id={} depth={} version={} rewards={}",
@@ -656,7 +661,7 @@ public class MiningService implements OrderGenerate, StandalonePloyGame {
             case 12701 -> { type = ActionConditionEvent.Type.GRID_MINED; value = stats.grids; }
             case 12702 -> { type = ActionConditionEvent.Type.DEPTH_REACHED; value = stats.depth; }
             case 12703 -> { type = ActionConditionEvent.Type.ITEM_USE; value = related == 0 ? stats.tools.values().stream().mapToLong(Long::longValue).sum() : stats.tools.getOrDefault(related, 0L); }
-            case 12704 -> { type = ActionConditionEvent.Type.ITEM_EXCHANGE; value = related == 0 ? stats.exchanges : stats.exchangedItems.getOrDefault(related, 0L); }
+            case 12704 -> { type = ActionConditionEvent.Type.ITEM_EXCHANGE; value = spec.intParameter(0) == 0 ? stats.exchanges : stats.exchangedItems.getOrDefault(spec.intParameter(0), 0L); }
             default -> throw new MiningException(Code.SAMPLE_ERROR, "UNSUPPORTED_ACHIEVEMENT");
         }
         int subject = spec.intParameter(0);
@@ -672,7 +677,7 @@ public class MiningService implements OrderGenerate, StandalonePloyGame {
     private static ConditionSpec normalizeAchievementCondition(ConditionSpec spec) {
         int expected = switch (spec.id()) {
             case 12701, 12702 -> 2;
-            case 12703, 12704 -> 3;
+            case 12703 -> 3;
             default -> 0;
         };
         if (expected == 0 || spec.parameters().size() != expected - 1) return spec;

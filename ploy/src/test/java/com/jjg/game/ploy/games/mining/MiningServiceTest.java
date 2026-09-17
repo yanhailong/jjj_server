@@ -29,6 +29,7 @@ class MiningServiceTest {
     private AccountDao accounts;
     private MiningRankService ranks;
     private MiningRewardClient rewardClient;
+    private MiningConditionClient conditionClient;
     private MiningConfig config;
     private final Player player = new Player();
     private String saved;
@@ -64,6 +65,8 @@ class MiningServiceTest {
         service = new MiningService(config, packs, accounts, redis, ranks);
         rewardClient = mock(MiningRewardClient.class);
         org.springframework.test.util.ReflectionTestUtils.setField(service, "rewardClient", rewardClient);
+        conditionClient = mock(MiningConditionClient.class);
+        org.springframework.test.util.ReflectionTestUtils.setField(service, "conditionClient", conditionClient);
         ResMiningState initial = service.info(player);
         var recoveryCfg = GameDataManager.getGlobalConfigCfg(MiningConstant.PICK_RECOVERY_INTERVAL_GLOBAL_ID);
         assertEquals(Code.SUCCESS, initial.code, initial.reason + ", recoveryCfg=" + recoveryCfg.getValue());
@@ -478,9 +481,13 @@ class MiningServiceTest {
         assertEquals(Code.SUCCESS, service.action(player, req).code);
         assertEquals(940, wallet.get(1024037)); assertEquals(3, wallet.get(1024008));
         assertEquals(3, state().total.exchanges);
+        assertEquals(Map.of(1024037, 3L), state().total.exchangedItems);
+        assertEquals(Map.of(1024037, 3L), state().daily.exchangedItems);
+        verify(conditionClient).onExchange(player.getId(), 1024037, 3);
         req = request(MiningConstant.EXCHANGE, 5004); req.count = 3;
         assertEquals(Code.DAILY_LIMIT, service.action(player, req).code);
         assertEquals(940, wallet.get(1024037));
+        verifyNoMoreInteractions(conditionClient);
     }
 
     @Test void roleExchangeUsesHallGrantInsteadOfPloyPackAndRejectsReplay() {
@@ -663,6 +670,7 @@ class MiningServiceTest {
         assertEquals("SPECIAL_REWARD_FAILED_REFUNDED", res.reason);
         assertEquals(1000, wallet.get(1024037)); assertEquals(0, state().total.exchanges);
         assertFalse(state().dailyPurchases.containsKey(5001)); assertNull(state().delivery);
+        verifyNoInteractions(conditionClient);
     }
 
     @Test void uncertainSpecialRewardBlocksRetriesUntilExplicitReconciliation() {

@@ -165,6 +165,17 @@ final class DefaultConditionRules {
                 (s, e) -> true, (s, e) -> positiveCount(e)));
         rules.add(action(12229, 1, 1, 0, ProgressMode.SET, ActionConditionEvent.Type.SCENE_TOTAL_LEVEL,
                 (s, e) -> true, (s, e) -> e.value()));
+        rules.add(game(12230, 3, 3, 2, ProgressMode.ADD,
+                (s, e) -> e.matchesGame(s.parameter(0)) && e.awardType() > 0
+                        && optional(s.parameter(1), e.awardType()), (s, e) -> 1));
+        rules.add(action(12231, 1, 1, 0, ProgressMode.ADD, ActionConditionEvent.Type.CARD_POOL_DRAW,
+                (s, e) -> true, (s, e) -> positiveCount(e)));
+        rules.add(action(12232, 2, 2, 1, ProgressMode.ADD, ActionConditionEvent.Type.SEASON_GEM_CRAFT,
+                (s, e) -> e.matchesSubject(s.parameter(0)), (s, e) -> positiveCount(e)));
+        rules.add(action(12233, 1, 1, 0, ProgressMode.ADD, ActionConditionEvent.Type.VISIT_GIFT,
+                (s, e) -> true, (s, e) -> positiveCount(e)));
+        rules.add(action(12234, 2, 2, 1, ProgressMode.ADD, ActionConditionEvent.Type.VISIT_SLOT_SPIN,
+                (s, e) -> e.matchesSubject(s.parameter(0)), (s, e) -> positiveCount(e)));
 
         //12251-12285 与上面的接取型条件判定口径一致，进度由玩家统计提供而非任务计数器。
         rules.add(game(12251, 3, 3, 2, ProgressMode.ADD,
@@ -258,8 +269,8 @@ final class DefaultConditionRules {
                 (s, e) -> e.matchesSubject(s.parameter(0)), (s, e) -> positiveCount(e)));
         rules.add(action(12304, 2, 2, 1, ProgressMode.ADD, ActionConditionEvent.Type.GAME_RESEARCH,
                 (s, e) -> e.matchesSubject(s.parameter(0)), (s, e) -> positiveCount(e)));
-        rules.add(action(12305, 1, 1, 0, ProgressMode.ADD, ActionConditionEvent.Type.ALLIANCE_DONATE,
-                (s, e) -> true, (s, e) -> positiveCount(e)));
+        rules.add(action(12305, 2, 2, 1, ProgressMode.ADD, ActionConditionEvent.Type.ALLIANCE_DONATE,
+                (s, e) -> e.value() >= s.parameter(0), (s, e) -> positiveCount(e)));
         rules.add(game(12306, 4, 4, 3, ProgressMode.ADD,
                 (s, e) -> e.matchesGame(s.parameter(0)) && e.bet() >= s.parameter(1)
                         && e.energyConsumed() && optional(s.parameter(2), e.winItemId()),
@@ -318,9 +329,8 @@ final class DefaultConditionRules {
         rules.add(action(12703, 3, 3, 2, ProgressMode.ADD, ActionConditionEvent.Type.ITEM_USE,
                 (s, e) -> e.matchesSubject(s.parameter(0)) && e.matchesRelated(s.parameter(1)),
                 (s, e) -> positiveCount(e)));
-        rules.add(action(12704, 3, 3, 2, ProgressMode.ADD, ActionConditionEvent.Type.ITEM_EXCHANGE,
-                (s, e) -> e.matchesSubject(s.parameter(0)) && e.matchesRelated(s.parameter(1)),
-                (s, e) -> positiveCount(e)));
+        rules.add(action(12704, 2, 2, 1, ProgressMode.ADD, ActionConditionEvent.Type.ITEM_EXCHANGE,
+                (s, e) -> e.matchesSubject(s.parameter(0)), (s, e) -> Math.max(0, e.count())));
     }
 
     private static ConditionRule<StateConditionEvent> state(int id, int parameterCount, int targetIndex,

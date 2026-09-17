@@ -266,6 +266,10 @@ public class SeasonService implements SimPlayerTickListener {
     public ResSeasonCraftGem craft(SimPlayerContext ctx, List<Integer> itemIds) {
         lifecycleService.ensureCurrent(ctx, System.currentTimeMillis());
         CommonResult<SeasonCraftResult> result = gemService.craft(ctx, itemIds);
+        if (result.success()) {
+            onTaskEvent(ctx, new ActionConditionEvent(ActionConditionEvent.Type.SEASON_GEM_CRAFT,
+                    result.data.getMaterialQuality(), 0, 0, 1, 0, false));
+        }
         ResSeasonCraftGem response = new ResSeasonCraftGem(result.code);
         if (result.data != null) {
             response.success = result.data.isSuccess();
@@ -287,6 +291,11 @@ public class SeasonService implements SimPlayerTickListener {
     public ResSeasonCraftBatchGem craftBatch(SimPlayerContext ctx, List<Integer> qualities) {
         lifecycleService.ensureCurrent(ctx, System.currentTimeMillis());
         CommonResult<SeasonBatchCraftResult> result = gemService.craftBatch(ctx, qualities);
+        if (result.success()) {
+            result.data.getCraftCountsByQuality().forEach((quality, count) ->
+                    onTaskEvent(ctx, new ActionConditionEvent(ActionConditionEvent.Type.SEASON_GEM_CRAFT,
+                            quality, 0, 0, count, 0, false)));
+        }
         ResSeasonCraftBatchGem response = new ResSeasonCraftBatchGem(result.code);
         if (result.data != null) {
             response.craftCount = result.data.getCraftCount();

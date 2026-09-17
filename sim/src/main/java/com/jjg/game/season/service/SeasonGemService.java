@@ -346,6 +346,7 @@ public class SeasonGemService implements SimPlayerTickListener {
         SeasonBatchCraftResult result = new SeasonBatchCraftResult();
         result.setCraftCount(batch.craftCount);
         result.setSuccessCount(batch.successCount);
+        result.setCraftCountsByQuality(batch.craftCountsByQuality);
         result.setConsumedItems(batch.consumedItems);
         result.setResultItems(batch.resultItems);
         result.setFailKeepItems(batch.failKeepItems);
@@ -391,6 +392,7 @@ public class SeasonGemService implements SimPlayerTickListener {
         SeasonGemCraftCfg craft = craftCtx.craft;
         boolean success = successRoll.test(craft.getMergeSuccessRate());
         SeasonCraftResult result = new SeasonCraftResult();
+        result.setMaterialQuality(craftCtx.quality);
         result.setSuccess(success);
         Map<Integer, Long> consumed = new HashMap<>(craftCtx.input);
         Map<Integer, Long> rewards = new HashMap<>();
@@ -623,6 +625,7 @@ public class SeasonGemService implements SimPlayerTickListener {
         int craftCount;
         int successCount;
         long totalCost;
+        final Map<Integer, Long> craftCountsByQuality = new LinkedHashMap<>();
         final Map<Integer, Long> requiredItems = new LinkedHashMap<>();
         final Map<Integer, Long> consumedItems = new LinkedHashMap<>();
         final Map<Integer, Long> resultItems = new LinkedHashMap<>();
@@ -630,6 +633,7 @@ public class SeasonGemService implements SimPlayerTickListener {
 
         void add(CraftOutcome outcome, int coinCost) {
             craftCount++;
+            craftCountsByQuality.merge(outcome.result.getMaterialQuality(), 1L, Long::sum);
             if (outcome.result.isSuccess()) {
                 successCount++;
             }

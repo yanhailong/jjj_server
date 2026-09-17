@@ -77,6 +77,9 @@ public interface ToSimBridge extends IGameRpc {
     /** 斗仙牌完成一次大结算后，批量推进真人玩家当前已接取的对应任务。 */
     CommonResult<Boolean> onDouXianSettled(List<Long> playerIds);
 
+    /** 挖矿兑换成功：按本次消耗的兑换物 ID 和兑换次数推进已接取任务。 */
+    CommonResult<Boolean> onMiningExchange(long playerId, int itemId, long count);
+
     /** 批量上报斗仙牌单回合中实际净赢为正的真人玩家。 */
     CommonResult<Boolean> onDouXianWins(int transactionItemId, Map<Long, Long> playerWins);
 

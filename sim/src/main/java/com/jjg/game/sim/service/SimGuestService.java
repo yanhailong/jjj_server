@@ -1408,12 +1408,20 @@ public class SimGuestService implements SimPlayerTickListener, ItemListener, Sim
                 return;
             }
 
-            VisitorTargetListCfg paidPoolCfg = getFirstSpecialGuestPoolCfg(casino, SimConstant.SpecialGuest.POOL_PAID);
             int refreshCount = casino.getSpecialGuestRefreshCount();
-            if (!canManualRefreshSpecialGuests(paidPoolCfg, refreshCount)) {
-                log.warn("刷新特殊游客被拒绝 playerId={},manualRefresh={},refreshCount={},maxManualRefreshPerPeriod={}",
-                        ctx.playerId(), paidPoolCfg != null && paidPoolCfg.getManualRefresh(), refreshCount, GameDataManager.getGlobalConfigCfg(SimConstant.Global.SPECIAL_GUEST_MAX_MANUAL_REFRESH_PER_PERIOD).getIntValue());
+            if (!canManualRefreshSpecialGuests(refreshCount)) {
+                log.warn("刷新特殊游客被拒绝 playerId={},refreshCount={},maxManualRefreshPerPeriod={}",
+                        ctx.playerId(), refreshCount, GameDataManager.getGlobalConfigCfg(SimConstant.Global.SPECIAL_GUEST_MAX_MANUAL_REFRESH_PER_PERIOD).getIntValue());
                 res.code = Code.REFRESH_MAX;
+                ctx.send(res);
+                return;
+            }
+
+            List<VisitorTargetListCfg> refreshCfgs = getSpecialGuestRefreshCfgs(casino);
+
+            if (refreshCfgs.isEmpty()) {
+                log.warn("特殊游客刷新没有找到可以刷新的卡池 playerId={},refreshCount={}", ctx.playerId(), refreshCount);
+                res.code = Code.NOT_FOUND;
                 ctx.send(res);
                 return;
             }
@@ -1425,6 +1433,7 @@ public class SimGuestService implements SimPlayerTickListener, ItemListener, Sim
                 ctx.send(res);
                 return;
             }
+
             if (cost.count > 0) {
                 CommonResult<ItemOperationResult> removeResult = playerPackService.removeItem(
                         ctx.getPlayer(), cost.itemId, cost.count, AddType.SIM_SPECIAL_GUEST_REFRESH);
@@ -1437,8 +1446,16 @@ public class SimGuestService implements SimPlayerTickListener, ItemListener, Sim
                 }
             }
 
-            List<Integer> oldCfgIds = new ArrayList<>(casino.getSpecialGuestPaidCfgIds());
-            refreshPaidSpecialGuestOffers(casino, paidPoolCfg, new HashSet<>(casino.getSpecialGuestPaidCfgIds()));
+            List<Integer> oldCfgIds = casino.getSpecialGuestPaidCfgIds() == null
+                    ? Collections.emptyList() : new ArrayList<>(casino.getSpecialGuestPaidCfgIds());
+            for (VisitorTargetListCfg cfg : refreshCfgs) {
+                if (cfg.getPoolType() == SimConstant.SpecialGuest.POOL_PAID) {
+                    casino.setSpecialGuestPaidCfgIds(selectPaidSpecialGuestCfgIds(cfg, new HashSet<>(oldCfgIds)));
+                }
+            }
+            refreshQualitySpecialGuestOffers(casino, refreshCfgs);
+            casino.getSpecialGuestPurchaseCounts().clear();
+            casino.setSpecialGuestOfferVersion(casino.getSpecialGuestOfferVersion() + 1);
             casino.setSpecialGuestRefreshCount(refreshCount + 1);
             updateSpecialGuestRedDot(ctx.playerId(), SimConstant.SpecialGuest.RED_DOT_FREE_REFRESH);
             fillSpecialGuestListResponse(ctx, res);
@@ -1459,7 +1476,7 @@ public class SimGuestService implements SimPlayerTickListener, ItemListener, Sim
      * 现金类型创建订单并在到账后发放到下单场景。</p>
      */
     public void buySpecialGuest(SimPlayerContext ctx, int poolId, int cfgId, int costType, int payTypeValue) {
-        log.warn("请求购买游客 cfgId={},costype={},paytype={}", cfgId, costType, payTypeValue);
+        log.warn("请求购买游客 poolId={}，cfgId={},costype={},paytype={}", poolId, cfgId, costType, payTypeValue);
 
         ResBuySpecialGuest res = new ResBuySpecialGuest(Code.SUCCESS);
         try {
@@ -1473,9 +1490,7 @@ public class SimGuestService implements SimPlayerTickListener, ItemListener, Sim
             }
 
             VisitorTargetListCfg poolCfg = GameDataManager.getVisitorTargetListCfg(poolId);
-            if (poolCfg == null || !poolCfg.getIsEnabled() || poolCfg.getRegionID() != casino.getCasinoId()
-                    || (poolCfg.getPoolType() != SimConstant.SpecialGuest.POOL_QUALITY
-                    && poolCfg != getFirstSpecialGuestPoolCfg(casino, poolCfg.getPoolType()))) {
+            if (poolCfg == null || !poolCfg.getIsEnabled() || poolCfg.getRegionID() != casino.getCasinoId()) {
                 res.code = Code.PARAM_ERROR;
                 ctx.send(res);
                 return;
@@ -1965,10 +1980,17 @@ public class SimGuestService implements SimPlayerTickListener, ItemListener, Sim
     }
 
     private void refreshQualitySpecialGuestOffers(SimCasinoData casino) {
-        Map<Integer, List<Integer>> qualityOffers = new LinkedHashMap<>();
         List<VisitorTargetListCfg> qualityPools = getSpecialGuestPoolCfg(casino, SimConstant.SpecialGuest.POOL_QUALITY);
+        refreshQualitySpecialGuestOffers(casino, qualityPools);
+    }
+
+    private void refreshQualitySpecialGuestOffers(SimCasinoData casino, List<VisitorTargetListCfg> qualityPools) {
+        Map<Integer, List<Integer>> qualityOffers = new LinkedHashMap<>();
         if (qualityPools != null) {
             for (VisitorTargetListCfg qualityPool : qualityPools) {
+                if (qualityPool.getPoolType() != SimConstant.SpecialGuest.POOL_QUALITY) {
+                    continue;
+                }
                 if (RandomUtils.randomInt(100) >= qualityPool.getRate()) {
                     continue;
                 }
@@ -2024,9 +2046,9 @@ public class SimGuestService implements SimPlayerTickListener, ItemListener, Sim
         return next;
     }
 
-    private boolean canManualRefreshSpecialGuests(VisitorTargetListCfg cfg, int refreshCount) {
+    private boolean canManualRefreshSpecialGuests(int refreshCount) {
         int maxRefreshCount = GameDataManager.getGlobalConfigCfg(SimConstant.Global.SPECIAL_GUEST_MAX_MANUAL_REFRESH_PER_PERIOD).getIntValue();
-        return cfg != null && cfg.getManualRefresh() && (maxRefreshCount <= 0 || refreshCount < maxRefreshCount);
+        return maxRefreshCount <= 0 || refreshCount < maxRefreshCount;
     }
 
     private boolean isSpecialGuestPurchaseLimitReached(int purchaseCount) {
@@ -2309,11 +2331,23 @@ public class SimGuestService implements SimPlayerTickListener, ItemListener, Sim
     }
 
     private ItemInfo nextSpecialGuestRefreshCost(SimCasinoData casino) {
-        VisitorTargetListCfg paidPoolCfg = getFirstSpecialGuestPoolCfg(casino, SimConstant.SpecialGuest.POOL_PAID);
-        if (paidPoolCfg == null || !paidPoolCfg.getManualRefresh()) {
+        if (getSpecialGuestRefreshCfgs(casino).isEmpty()) {
             return null;
         }
         return getSpecialGuestRefreshCost(casino.getSpecialGuestRefreshCount());
+    }
+
+    private List<VisitorTargetListCfg> getSpecialGuestRefreshCfgs(SimCasinoData casino) {
+        List<VisitorTargetListCfg> refreshCfgs = new ArrayList<>();
+        VisitorTargetListCfg paidPoolCfg = getFirstSpecialGuestPoolCfg(casino, SimConstant.SpecialGuest.POOL_PAID);
+        if (paidPoolCfg != null) {
+            refreshCfgs.add(paidPoolCfg);
+        }
+        List<VisitorTargetListCfg> qualityPools = getSpecialGuestPoolCfg(casino, SimConstant.SpecialGuest.POOL_QUALITY);
+        if (qualityPools != null) {
+            refreshCfgs.addAll(qualityPools);
+        }
+        return refreshCfgs;
     }
 
     /**
@@ -2432,10 +2466,12 @@ public class SimGuestService implements SimPlayerTickListener, ItemListener, Sim
     }
 
     private boolean hasFreeSpecialGuestRefresh(SimCasinoData casino, long now) {
-        VisitorTargetListCfg poolCfg = getFirstSpecialGuestPoolCfg(casino, SimConstant.SpecialGuest.POOL_PAID);
+        if (getSpecialGuestRefreshCfgs(casino).isEmpty()) {
+            return false;
+        }
         int refreshCount = casino != null && !isSpecialGuestRefreshDue(casino.getSpecialGuestNextRefreshTime(), now)
                 ? casino.getSpecialGuestRefreshCount() : 0;
-        if (!canManualRefreshSpecialGuests(poolCfg, refreshCount)) {
+        if (!canManualRefreshSpecialGuests(refreshCount)) {
             return false;
         }
         ItemInfo cost = getSpecialGuestRefreshCost(refreshCount);
