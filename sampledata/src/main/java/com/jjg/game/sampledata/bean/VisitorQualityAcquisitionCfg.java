@@ -27,6 +27,8 @@ public class VisitorQualityAcquisitionCfg extends BaseCfgBean {
   protected int PriceValue1;
   /** 单次购买出现数量 */
   protected int QuantityPerPurchase;
+  /** 奖励显示 */
+  protected Map<Integer,Long> RewardDisplay;
   /** 游客道具ID与权重 */
   protected Map<Integer,Long> VisitorWeight;
   /** 客户端资源 */
@@ -50,6 +52,11 @@ public class VisitorQualityAcquisitionCfg extends BaseCfgBean {
   /** 返回单次购买出现数量 */
   public int getQuantityPerPurchase() {
     return QuantityPerPurchase;
+  }
+
+  /** 返回奖励显示 */
+  public Map<Integer,Long> getRewardDisplay() {
+    return RewardDisplay;
   }
 
   /** 返回游客道具ID与权重 */
