@@ -14,14 +14,17 @@ import com.jjg.game.sim.data.SimPlayerContext;
 import com.jjg.game.sim.data.SimSkillsData;
 import com.jjg.game.sim.listener.SimPlayerTickListener;
 import com.jjg.game.sim.manager.SimPlayerContextRegistry;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.context.annotation.Lazy;
 import org.springframework.stereotype.Service;
 import java.util.*;
 
-/** 建筑升级按建筑计数；所有全局/专属技能升级合并贡献1；extra提供按钮明细。 */
+/** 建筑升级按建筑计数；没有可升建筑时，可升级技能保留一个入口提示；extra提供按钮明细。 */
 @Service
 public class SimBuildingRedDotService implements IRedDotService, SimPlayerTickListener, ItemAddListener, ItemConsumeListener {
+    private static final Logger log = LoggerFactory.getLogger(SimBuildingRedDotService.class);
     @Autowired private SimPlayerContextRegistry contexts;
     @Lazy @Autowired private SimBuildingService buildings;
     @Lazy @Autowired private SimSkillService skills;
@@ -69,18 +72,26 @@ public class SimBuildingRedDotService implements IRedDotService, SimPlayerTickLi
             else skillIds.computeIfAbsent(offer.buildingId(), key -> new TreeSet<>()).add(offer.propId());
         }
         int skillCount = skillIds.isEmpty() ? 0 : 1;
-        int count = buildingIds.size() + skillCount;
+        int count = upgradeEntryCount(buildingIds.size(), skillCount);
         RedDotDetails dot = manager.buildRedDotDetails(getModule(), 1, count, RedDotDetails.RedDotType.COUNT);
         dot.setExtra(JSON.toJSONString(Map.of("ids", ids, "buildingIds", buildingIds, "skillIds", skillIds,
                 "buildingCount", buildingIds.size(), "skillCount", skillCount,
                 "casinoId", ctx.getCurrentCasino().getCasinoId())));
         String snapshot = JSON.toJSONString(dot);
         boolean changed = !snapshot.equals(ctx.getBuildingRedDotSnapshot());
+        if (changed) {
+            log.info("建筑升级红点刷新 playerId={},casinoId={},count={},buildingIds={},skillIds={}",
+                    ctx.playerId(), ctx.getCurrentCasino().getCasinoId(), count, buildingIds, skillIds);
+        }
         ctx.setBuildingRedDotDirty(false);
         ctx.setBuildingRedDotInput(input);
         ctx.setBuildingRedDotCheckTime(now);
         ctx.setBuildingRedDotSnapshot(snapshot);
         return force || changed ? List.of(dot) : List.of();
+    }
+
+    static int upgradeEntryCount(int buildingCount, int skillCount) {
+        return buildingCount > 0 ? buildingCount : skillCount;
     }
 
     @Override public void onTick(SimPlayerContext ctx, long now) {

@@ -406,7 +406,9 @@ public class SimBuildingService implements SimPlayerTickListener, SimTaskStateRe
     public Map<Integer, Long> redDotUpgradeCost(SimPlayerContext ctx, int buildingId) {
         SimCasinoData casino = ctx.getCurrentCasino();
         BuildingData data = casino == null ? null : casino.findBuilding(buildingId);
-        if (data == null || data.isUpgrading(System.currentTimeMillis())) return null;
+        // 与客户端可升级列表一致：建筑等级不能达到玩家等级，未完成结算的升级 CD 也不能再计入。
+        if (data == null || ctx.getPlayer() == null || data.getLevel() >= ctx.getPlayer().getLevel()
+                || data.getCdEndTime() > 0) return null;
         BuildingUpgradeTableCfg cfg = configCache.getBuildingUpgradeCfg(buildingId, data.getLevel());
         if (cfg == null || ctx.getSimBaseData() == null
                 || cfg.getUpgradeCost() == null || cfg.getUpgradeCost().isEmpty()
