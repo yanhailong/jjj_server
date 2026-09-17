@@ -504,6 +504,9 @@ public interface SimConstant {
         int SPECIAL_GUEST_REFRESH_COST = 311;
         int SPECIAL_GUEST_MAX_MANUAL_REFRESH_PER_PERIOD = 312;
         int SPECIAL_GUEST_MAX_PURCHASE_PER_REFRESH = 313;
+
+        int PURCHASE_LIMIT = 350;
+        int PURCHASE_PRICE = 351;
     }
 
     /**
@@ -579,5 +582,11 @@ public interface SimConstant {
     interface PoolList {
         int TYPE_GUEST = 1;
         int TYPE_EMPLOYEE = 2;
+    }
+
+    interface ActivePass{
+        int FREE = 1;
+        int BASIC = 2;
+        int PREMIUM = 4;
     }
 }

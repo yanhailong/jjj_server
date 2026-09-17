@@ -148,9 +148,9 @@ public class SimManager {
     @Autowired
     private SeasonPlayerDao seasonPlayerDao;
     @Autowired
-    private com.jjg.game.activepass.service.ActivePassService activePassService;
+    private ActivePassService activePassService;
     @Autowired
-    private com.jjg.game.activepass.dao.ActivePassDao activePassDao;
+    private ActivePassDao activePassDao;
     @Autowired
     private SeasonLifecycleService seasonLifecycleService;
     @Autowired

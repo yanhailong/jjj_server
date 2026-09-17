@@ -1,11 +1,11 @@
 package com.jjg.game.hall.handler;
 
-import com.jjg.game.activepass.bridge.ActivePassBridge;
-import com.jjg.game.activepass.data.ActivePassPurchase;
-import com.jjg.game.activepass.pb.ResActivePass;
-import com.jjg.game.activepass.service.ActivePassOrderService;
-import com.jjg.game.activepass.service.ActivePassService;
+import com.jjg.game.sim.data.ActivePassPurchase;
+import com.jjg.game.sim.pb.res.ResActivePass;
+import com.jjg.game.sim.service.ActivePassOrderService;
+import com.jjg.game.sim.service.ActivePassService;
 import com.jjg.game.common.rpc.RpcCallSetting;
+import com.jjg.game.sim.bridge.ToSimBridge;
 import com.jjg.game.sim.manager.SimManager;
 import com.jjg.game.sim.data.SimPlayerContext;
 import com.jjg.game.sim.service.SimNodeService;
@@ -14,7 +14,7 @@ import org.springframework.stereotype.Component;
 
 /** 跨节点接口只在玩家所属大厅的串行玩家线程执行。 */
 @Component
-public class ActivePassRPCController implements ActivePassBridge {
+public class ActivePassRPCController implements ToSimBridge.ActivePassBridge {
     private final SimManager sim;
     private final ActivePassService service;
     private final ActivePassOrderService orders;

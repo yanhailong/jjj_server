@@ -1,9 +1,7 @@
 package com.jjg.game.sim.handler;
 
-import com.jjg.game.activepass.bridge.ActivePassBridge;
-import com.jjg.game.activepass.pb.*;
-import com.jjg.game.activepass.service.ActivePassRouter;
-import com.jjg.game.activepass.service.ActivePassService;
+import com.jjg.game.sim.service.ActivePassRouter;
+import com.jjg.game.sim.service.ActivePassService;
 import com.jjg.game.common.cluster.ClusterClient;
 import com.jjg.game.common.concurrent.BaseHandler;
 import com.jjg.game.common.concurrent.PlayerExecutorGroupDisruptor;
@@ -133,7 +131,7 @@ public class SimMessageHandler implements GmListener {
     }
 
     private void executeActivePass(PlayerController pc, int cmd, Function<SimPlayerContext, ResActivePass> local,
-                                   Function<ActivePassBridge, ResActivePass> remote) {
+                                   Function<ToSimBridge.ActivePassBridge, ResActivePass> remote) {
         ResActivePass response;
         try {
             response = activePassRouter.execute(pc.playerId(), pc.ipAddress(),

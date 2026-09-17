@@ -1,6 +1,5 @@
-package com.jjg.game.activepass.service;
+package com.jjg.game.sim.service;
 
-import com.jjg.game.activepass.ActivePassConstant;
 import com.jjg.game.common.utils.TimeHelper;
 import com.jjg.game.core.base.condition.numeric.ConditionRuleRegistry;
 import com.jjg.game.core.base.condition.numeric.ConditionSpec;
@@ -8,6 +7,7 @@ import com.jjg.game.core.base.condition.numeric.PreparedCondition;
 import com.jjg.game.core.constant.TaskConstant;
 import com.jjg.game.sampledata.GameDataManager;
 import com.jjg.game.sampledata.bean.*;
+import com.jjg.game.sim.constant.SimConstant;
 import org.springframework.stereotype.Service;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -39,8 +39,8 @@ public class ActivePassConfigService {
     }
 
     public PurchasePrice purchasePrice() {
-        GlobalConfigCfg limit = GameDataManager.getGlobalConfigCfg(ActivePassConstant.PURCHASE_LIMIT);
-        GlobalConfigCfg price = GameDataManager.getGlobalConfigCfg(ActivePassConstant.PURCHASE_PRICE);
+        GlobalConfigCfg limit = GameDataManager.getGlobalConfigCfg(SimConstant.Global.PURCHASE_LIMIT);
+        GlobalConfigCfg price = GameDataManager.getGlobalConfigCfg(SimConstant.Global.PURCHASE_PRICE);
         if (limit == null || limit.getIntValue() <= 0 || price == null || price.getValue() == null) {
             return null;
         }

@@ -1,4 +1,4 @@
-package com.jjg.game.activepass.pb;
+package com.jjg.game.sim.pb.struct;
 
 import com.jjg.game.common.proto.ProtoDesc;
 import com.jjg.game.common.proto.ProtobufMessage;

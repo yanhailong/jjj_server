@@ -1,11 +1,10 @@
-package com.jjg.game.activepass.service;
+package com.jjg.game.sim.service;
 
-import com.jjg.game.activepass.bridge.ActivePassBridge;
 import com.jjg.game.common.rpc.ClusterRpcReference;
 import com.jjg.game.common.rpc.GameRpcContext;
 import com.jjg.game.common.rpc.RpcReqParameterBuilder;
+import com.jjg.game.sim.bridge.ToSimBridge;
 import com.jjg.game.sim.manager.SimPlayerContextRegistry;
-import com.jjg.game.sim.service.SimNodeService;
 import org.springframework.stereotype.Component;
 import java.util.function.Function;
 import java.util.function.Supplier;
@@ -16,13 +15,13 @@ public class ActivePassRouter {
     private final SimPlayerContextRegistry contexts;
     private final SimNodeService nodes;
     @ClusterRpcReference
-    private ActivePassBridge bridge;
+    private ToSimBridge.ActivePassBridge bridge;
 
     public ActivePassRouter(SimPlayerContextRegistry contexts, SimNodeService nodes) {
         this.contexts = contexts;
         this.nodes = nodes;
     }
-    public <T> T execute(long playerId, String ip, Supplier<T> local, Function<ActivePassBridge, T> remote) {
+    public <T> T execute(long playerId, String ip, Supplier<T> local, Function<ToSimBridge.ActivePassBridge, T> remote) {
         if (contexts.getContext(playerId) != null) { return local.get(); }
         var client = nodes.getSimClusterClient(playerId, ip);
         if (client == null) { throw new IllegalStateException("玩家SIM节点不可用: " + playerId); }

@@ -1,4 +1,4 @@
-package com.jjg.game.activepass.data;
+package com.jjg.game.sim.data;
 
 import java.math.BigDecimal;
 

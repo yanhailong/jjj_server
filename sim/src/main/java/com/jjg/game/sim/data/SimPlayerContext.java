@@ -38,10 +38,10 @@ public class SimPlayerContext {
     private SimCoopTaskData simCoopTaskData;
     //赛季玩法玩家聚合数据
     private SeasonPlayerData seasonPlayerData;
-    private com.jjg.game.activepass.data.ActivePassData activePassData;
+    private ActivePassData activePassData;
 
-    public com.jjg.game.activepass.data.ActivePassData getActivePassData() { return activePassData; }
-    public void setActivePassData(com.jjg.game.activepass.data.ActivePassData data) { activePassData = data; }
+    public ActivePassData getActivePassData() { return activePassData; }
+    public void setActivePassData(ActivePassData data) { activePassData = data; }
     //成就徽章固定值加成缓存 (BuildingOutputType -> 固定值; 登录/成就完成后刷新; 内存态不落库)
     private Map<BuildingOutputType, Integer> medalBuffMap = new EnumMap<>(BuildingOutputType.class);
 

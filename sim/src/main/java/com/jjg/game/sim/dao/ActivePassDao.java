@@ -1,6 +1,6 @@
-package com.jjg.game.activepass.dao;
+package com.jjg.game.sim.dao;
 
-import com.jjg.game.activepass.data.ActivePassData;
+import com.jjg.game.sim.data.ActivePassData;
 import com.jjg.game.core.dao.MongoBaseDao;
 import org.springframework.data.domain.Sort;
 import org.springframework.data.mongodb.core.MongoTemplate;

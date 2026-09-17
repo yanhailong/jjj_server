@@ -1,4 +1,4 @@
-package com.jjg.game.activepass.pb;
+package com.jjg.game.sim.pb.req;
 
 import com.jjg.game.sim.constant.SimConstant;
 import com.jjg.game.common.constant.MessageConst;

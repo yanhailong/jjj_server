@@ -1,6 +1,5 @@
-package com.jjg.game.activepass.data;
+package com.jjg.game.sim.data;
 
-import com.jjg.game.sim.data.AbstractData;
 import org.springframework.data.annotation.Id;
 import org.springframework.data.mongodb.core.mapping.Document;
 

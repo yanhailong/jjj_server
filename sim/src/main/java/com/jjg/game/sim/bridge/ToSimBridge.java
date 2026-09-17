@@ -1,5 +1,7 @@
 package com.jjg.game.sim.bridge;
 
+import com.jjg.game.sim.data.ActivePassPurchase;
+import com.jjg.game.sim.pb.res.ResActivePass;
 import com.jjg.game.common.rpc.IGameRpc;
 import com.jjg.game.core.constant.AddType;
 import com.jjg.game.core.data.CommonResult;
@@ -213,4 +215,13 @@ public interface ToSimBridge extends IGameRpc {
      * @param helperIds 协助者 (不含发起者)
      */
     CommonResult<Boolean> onCoopRoomSettle(long ownerId, int taskId, long roomId, boolean success, List<Long> helperIds);
+
+    interface ActivePassBridge extends IGameRpc {
+        ResActivePass activePassInfo(long playerId);
+        ResActivePass claimActivePassTask(long playerId, int passId, int taskId, int day);
+        ResActivePass claimActivePassRewards(long playerId, int passId, int rewardId, int track);
+        ResActivePass buyActivePassPoints(long playerId, int passId, int count, int expectedPurchasedPoints);
+        ActivePassPurchase prepareActivePassOrder(long playerId, int passId, int track);
+        boolean receiveActivePassOrder(long playerId, String orderId);
+    }
 }

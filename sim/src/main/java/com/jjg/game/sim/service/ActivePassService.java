@@ -1,9 +1,8 @@
-package com.jjg.game.activepass.service;
+package com.jjg.game.sim.service;
 
-import com.jjg.game.activepass.dao.ActivePassDao;
-import com.jjg.game.activepass.data.ActivePassData;
-import com.jjg.game.activepass.data.ActivePassTask;
-import com.jjg.game.activepass.pb.*;
+import com.jjg.game.sim.dao.ActivePassDao;
+import com.jjg.game.sim.data.ActivePassData;
+import com.jjg.game.sim.data.ActivePassTask;
 import com.jjg.game.common.utils.TimeHelper;
 import com.jjg.game.core.base.condition.numeric.*;
 import com.jjg.game.core.constant.AddType;
@@ -18,15 +17,18 @@ import com.jjg.game.sampledata.bean.PassRewardCfg;
 import com.jjg.game.sim.data.SimPlayerContext;
 import com.jjg.game.sim.listener.SimConditionEventListener;
 import com.jjg.game.sim.listener.SimPlayerTickListener;
-import com.jjg.game.sim.service.SimAutoSaveService;
-import com.jjg.game.sim.service.SimPlayerStatService;
+import com.jjg.game.sim.pb.res.NotifyActivePassUpdate;
+import com.jjg.game.sim.pb.res.ResActivePass;
+import com.jjg.game.sim.pb.struct.ActivePassInfo;
+import com.jjg.game.sim.pb.struct.ActivePassRewardInfo;
+import com.jjg.game.sim.pb.struct.ActivePassTaskInfo;
 import com.jjg.game.social.service.SocialSender;
 import org.springframework.stereotype.Service;
 
 import java.util.*;
 import java.util.concurrent.ThreadLocalRandom;
 
-import static com.jjg.game.activepass.ActivePassConstant.*;
+import static com.jjg.game.sim.constant.SimConstant.ActivePass.*;
 import static com.jjg.game.sim.constant.SimConstant.MsgBean.*;
 
 /** 活跃通行证聚合，所有写操作由所属SIM节点的玩家线程串行执行。 */

@@ -1,4 +1,4 @@
-package com.jjg.game.activepass.data;
+package com.jjg.game.sim.data;
 
 /** 当期任务进度；不同日期/期数不复用计数器。 */
 public class ActivePassTask {

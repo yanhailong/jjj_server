@@ -1,6 +1,6 @@
-package com.jjg.game.activepass.service;
+package com.jjg.game.sim.service;
 
-import com.jjg.game.activepass.data.ActivePassPurchase;
+import com.jjg.game.sim.data.ActivePassPurchase;
 import com.jjg.game.core.constant.Code;
 import com.jjg.game.core.data.*;
 import com.jjg.game.core.listener.OrderGenerate;
@@ -14,7 +14,7 @@ import org.springframework.stereotype.Service;
 
 import java.math.BigDecimal;
 
-import static com.jjg.game.activepass.ActivePassConstant.*;
+import static com.jjg.game.sim.constant.SimConstant.ActivePass.*;
 
 /** 复用通用预下单与充值回调；预下单productId为ActivePass.id_轨道(2初级/4高级)。 */
 @Service
