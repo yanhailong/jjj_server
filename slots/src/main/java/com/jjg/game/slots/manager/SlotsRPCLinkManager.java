@@ -4,6 +4,8 @@ import com.alibaba.fastjson.JSON;
 import com.jjg.game.common.cluster.ClusterClient;
 import com.jjg.game.common.cluster.ClusterSystem;
 import com.jjg.game.common.constant.CoreConst;
+import com.jjg.game.common.protostuff.PFMessage;
+import com.jjg.game.common.protostuff.ProtostuffUtil;
 import com.jjg.game.common.rpc.ClusterRpcReference;
 import com.jjg.game.common.rpc.GameRpcContext;
 import com.jjg.game.common.rpc.RpcReqParameterBuilder;
@@ -15,12 +17,14 @@ import com.jjg.game.core.service.PlayerStatService;
 import com.jjg.game.core.utils.ItemUtils;
 import com.jjg.game.season.data.SeasonFreeSpinResult;
 import com.jjg.game.season.pb.res.ResSeasonMatch;
+import com.jjg.game.sim.constant.SimConstant;
 import com.jjg.game.sim.bridge.ToSimBridge;
 import com.jjg.game.sim.data.EnterGameType;
 import com.jjg.game.sim.data.SlotsEntrySessionData;
 import com.jjg.game.sim.data.SlotsSpinResult;
 import com.jjg.game.sim.data.SpinStatInfo;
 import com.jjg.game.sim.data.VisitTrialSpinPermit;
+import com.jjg.game.sim.pb.res.NotifyGuideTrigger;
 import com.jjg.game.sim.pb.res.NotifySimTaskUpdate;
 import com.jjg.game.sim.service.SimNodeService;
 import com.jjg.game.slots.data.SlotsPlayerGameData;
@@ -454,6 +458,21 @@ public class SlotsRPCLinkManager {
             NotifySimTaskUpdate taskNotify = new NotifySimTaskUpdate(Code.SUCCESS);
             taskNotify.tasks = result.data.getTaskUpdates();
             playerController.send(taskNotify);
+        }
+        if (result.data != null && result.data.getGuideGroupIds() != null
+                && !result.data.getGuideGroupIds().isEmpty()) {
+            if (playerController.getSession() != null
+                    && playerController.getSession().getReference() == playerController) {
+                NotifyGuideTrigger guideNotify = new NotifyGuideTrigger(Code.SUCCESS);
+                guideNotify.guideGroupIds = result.data.getGuideGroupIds();
+                playerController.send(new PFMessage(SimConstant.MsgBean.NOTIFY_GUIDE_TRIGGER,
+                        ProtostuffUtil.serialize(guideNotify)));
+                log.info("SLOT任务完成后发送新手引导通知 playerId={},groups={}",
+                        playerId, guideNotify.guideGroupIds);
+            } else {
+                log.info("SLOT任务完成后玩家已离开，待重新进入场景恢复引导 playerId={},groups={}",
+                        playerId, result.data.getGuideGroupIds());
+            }
         }
         if (!result.success() || result.data == null) {
             log.warn("sim道具掉落失败 playerId={},gameType={},winTimes={},code={}",

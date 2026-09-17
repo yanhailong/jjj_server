@@ -807,6 +807,16 @@ public class SimManager {
                     result.data.mergeItems(gemGains);
                 }
             }
+            // 旋转期间完成的任务可能使 PathName=2 的引导进入待触发状态。
+            // 玩家此时已经在 SLOT 场景，无需等待下一次 enterGame；由持有当前会话的 SLOT 节点下发通知。
+            List<Integer> slotGuideGroups = guideService.triggerDeferredForPath(
+                    ctx, SimConstant.GuidePath.SLOTS, false);
+            if (!slotGuideGroups.isEmpty()) {
+                if (result.data == null) {
+                    result.data = new SlotsSpinResult();
+                }
+                result.data.setGuideGroupIds(slotGuideGroups);
+            }
             ctx.recordSpinResult(spinId, result);
             return result;
         } catch (Exception e) {

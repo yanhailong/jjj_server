@@ -18,6 +18,8 @@ public class SlotsSpinResult {
     private int remainingTrials;
     //本次跨节点旋转产生的 sim 主线/成就任务变化，由 slots 节点通知客户端
     private List<Task> taskUpdates;
+    //本次旋转完成任务后，在 SLOT 场景新触发的引导组，由 slots 节点通知客户端
+    private List<Integer> guideGroupIds;
 
     public Map<Integer, Long> getItemsMap() {
         return itemsMap;
@@ -70,5 +72,13 @@ public class SlotsSpinResult {
 
     public void setTaskUpdates(List<Task> taskUpdates) {
         this.taskUpdates = taskUpdates;
+    }
+
+    public List<Integer> getGuideGroupIds() {
+        return guideGroupIds;
+    }
+
+    public void setGuideGroupIds(List<Integer> guideGroupIds) {
+        this.guideGroupIds = guideGroupIds;
     }
 }
