@@ -402,21 +402,36 @@ public class SimBuildingService implements SimPlayerTickListener, SimTaskStateRe
         return currentCfg != null && checkBuildingUpgrade(ctx, data, currentCfg).getFirst() == BuildingUpgradeCheck.CAN_UPGRADE && playerPackService.checkHasItems(ctx.getPlayer(), currentCfg.getUpgradeCost());
     }
 
-    /**
-     * 红点用的只读条件：包含升级前的进度条投入，与升级接口保持同一校验顺序。
-     */
+    /** 红点只统计当前资源足以完成整次升级的建筑，不把仅能投入一步进度的建筑算作可升级。 */
     public Map<Integer, Long> redDotUpgradeCost(SimPlayerContext ctx, int buildingId) {
         SimCasinoData casino = ctx.getCurrentCasino();
         BuildingData data = casino == null ? null : casino.findBuilding(buildingId);
         if (data == null || data.isUpgrading(System.currentTimeMillis())) return null;
         BuildingUpgradeTableCfg cfg = configCache.getBuildingUpgradeCfg(buildingId, data.getLevel());
-        if (cfg == null) return null;
-        BuildingUpgradeCheck check = checkBuildingUpgrade(ctx, data, cfg).getFirst();
-        if (check == BuildingUpgradeCheck.ADD_PROGRESS) {
-            List<Integer> cost = cfg.getCostPerLevel().get(data.getProgress());
-            return cost != null && cost.size() >= 2 && cost.get(1) >= 0 ? Map.of(cost.get(0), cost.get(1).longValue()) : null;
+        if (cfg == null || ctx.getSimBaseData() == null
+                || cfg.getUpgradeCost() == null || cfg.getUpgradeCost().isEmpty()
+                || cfg.getNeedLevel() > ctx.getSimBaseData().getAllLevel()
+                || configCache.getBuildingUpgradeCfg(buildingId, data.getLevel() + 1) == null) return null;
+        BuildingAreaTableCfg area = GameDataManager.getBuildingAreaTableCfg(buildingId);
+        if (area != null && area.getUnlockGameId() > 0) {
+            SimSkillsData skillData = ctx.getSkillData(area.getUnlockGameId());
+            if (skillData == null || skillData.allLevel() < cfg.getSkillLevel()) return null;
         }
-        return check == BuildingUpgradeCheck.CAN_UPGRADE ? cfg.getUpgradeCost() : null;
+        BuildingUpgradeCheck check = checkBuildingUpgrade(ctx, data, cfg).getFirst();
+        if (check != BuildingUpgradeCheck.ADD_PROGRESS && check != BuildingUpgradeCheck.CAN_UPGRADE) return null;
+        Map<Integer, Long> totalCost = new HashMap<>(cfg.getUpgradeCost());
+        if (check == BuildingUpgradeCheck.ADD_PROGRESS) {
+            List<List<Integer>> progressCosts = cfg.getCostPerLevel();
+            for (int i = data.getProgress(); i < progressCosts.size(); i++) {
+                List<Integer> cost = progressCosts.get(i);
+                if (cost == null || cost.size() < 2 || cost.get(0) == null || cost.get(0) <= 0
+                        || cost.get(1) == null || cost.get(1) < 0) return null;
+                if (cost.get(1) > 0) {
+                    totalCost.merge(cost.get(0), cost.get(1).longValue(), Long::sum);
+                }
+            }
+        }
+        return totalCost;
     }
 
     public void onUpgradeBuilding(SimPlayerContext ctx, int buildingId) {
