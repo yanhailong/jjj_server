@@ -20,7 +20,7 @@ public class PassRewardCfg extends BaseCfgBean {
   public static final String SHEET_NAME = "PassReward";
 
   /** 需要的活跃积分 */
-  protected List<Integer> ActivePoints;
+  protected int ActivePoints;
   /** 初级付费奖励 */
   protected Map<Integer,Long> BasicPaidRewards;
   /** 免费奖励 */
@@ -33,7 +33,7 @@ public class PassRewardCfg extends BaseCfgBean {
   protected int level;
 
   /** 返回需要的活跃积分 */
-  public List<Integer> getActivePoints() {
+  public int getActivePoints() {
     return ActivePoints;
   }
 

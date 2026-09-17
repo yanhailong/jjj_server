@@ -1941,11 +1941,30 @@ public class SimGuestService implements SimPlayerTickListener, ItemListener, Sim
             }
         }
 
+        VisitorTargetListCfg qualityPoolCfg = getFirstSpecialGuestPoolCfg(casino, SimConstant.SpecialGuest.POOL_QUALITY);
+        if (qualityPoolCfg != null && (casino.needsSpecialGuestQualityInitialization()
+                || paidPoolCfg == null && isSpecialGuestRefreshDue(casino.getSpecialGuestNextRefreshTime(), now))) {
+            refreshQualitySpecialGuestOffers(casino);
+            if (paidPoolCfg == null) {
+                casino.getSpecialGuestPurchaseCounts().clear();
+                casino.setSpecialGuestOfferVersion(casino.getSpecialGuestOfferVersion() + 1);
+                casino.setSpecialGuestRefreshCount(0);
+                casino.setSpecialGuestNextRefreshTime(nextSpecialGuestRefreshTime(qualityPoolCfg, now));
+            }
+        }
+
         return true;
     }
 
     private void refreshPaidSpecialGuestOffers(SimCasinoData casino, VisitorTargetListCfg cfg, Set<Integer> excludedIds) {
         List<Integer> paidCfgIds = selectPaidSpecialGuestCfgIds(cfg, excludedIds);
+        refreshQualitySpecialGuestOffers(casino);
+        casino.setSpecialGuestPaidCfgIds(paidCfgIds);
+        casino.getSpecialGuestPurchaseCounts().clear();
+        casino.setSpecialGuestOfferVersion(casino.getSpecialGuestOfferVersion() + 1);
+    }
+
+    private void refreshQualitySpecialGuestOffers(SimCasinoData casino) {
         Map<Integer, List<Integer>> qualityOffers = new LinkedHashMap<>();
         List<VisitorTargetListCfg> qualityPools = getSpecialGuestPoolCfg(casino, SimConstant.SpecialGuest.POOL_QUALITY);
         if (qualityPools != null) {
@@ -1959,10 +1978,7 @@ public class SimGuestService implements SimPlayerTickListener, ItemListener, Sim
                 }
             }
         }
-        casino.setSpecialGuestPaidCfgIds(paidCfgIds);
         casino.setSpecialGuestQualityCfgIds(qualityOffers);
-        casino.getSpecialGuestPurchaseCounts().clear();
-        casino.setSpecialGuestOfferVersion(casino.getSpecialGuestOfferVersion() + 1);
     }
 
     private List<Integer> selectQualitySpecialGuestCfgIds(VisitorTargetListCfg poolCfg) {
@@ -2328,6 +2344,7 @@ public class SimGuestService implements SimPlayerTickListener, ItemListener, Sim
         int today = specialGuestDay(now);
         if (baseData.getSpecialGuestAdRefreshDay() != today
                 || baseData.getSpecialGuestAdCfgIds() == null || casino.getSpecialGuestPaidCfgIds() == null
+                || casino.needsSpecialGuestQualityInitialization()
                 || isSpecialGuestRefreshDue(baseData.getSpecialGuestAdNextRefreshTime(), now)
                 || isSpecialGuestRefreshDue(casino.getSpecialGuestNextRefreshTime(), now)) {
             if (ensureSpecialGuestOffers(ctx, now)) {

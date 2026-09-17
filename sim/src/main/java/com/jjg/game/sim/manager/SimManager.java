@@ -148,6 +148,10 @@ public class SimManager {
     @Autowired
     private SeasonPlayerDao seasonPlayerDao;
     @Autowired
+    private com.jjg.game.activepass.service.ActivePassService activePassService;
+    @Autowired
+    private com.jjg.game.activepass.dao.ActivePassDao activePassDao;
+    @Autowired
     private SeasonLifecycleService seasonLifecycleService;
     @Autowired
     private SeasonService seasonService;
@@ -554,6 +558,7 @@ public class SimManager {
         }
         ctx.setSeasonPlayerData(seasonData);
         seasonLifecycleService.ensureCurrent(ctx, System.currentTimeMillis());
+        activePassService.initData(ctx);
         //赛季数据须先就绪，随后任务登录补报产生的事实事件才能同步推进通行证
         simTaskService.initTaskData(ctx);
         //徽章档位由已完成成就任务决定，必须在任务数据就绪后刷新
@@ -627,6 +632,9 @@ public class SimManager {
                 }
                 if (ctx.getSeasonPlayerData() != null) {
                     seasonPlayerDao.save(ctx.getSeasonPlayerData());
+                }
+                if (ctx.getActivePassData() != null) {
+                    activePassDao.save(ctx.getActivePassData());
                 }
                 //落库完成后再删路由; 玩家可能在复活等待超时后已重建 ctx, 此时路由必须保留
                 if (simPlayerContextRegistry.getContext(playerId) == null) {

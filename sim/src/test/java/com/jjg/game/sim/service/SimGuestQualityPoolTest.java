@@ -91,6 +91,69 @@ class SimGuestQualityPoolTest {
     }
 
     @Test
+    void missingQualityOffersInitializeEvenWhenPaidOffersAlreadyExist() {
+        casino.setSpecialGuestQualityCfgIds(null);
+        casino.setSpecialGuestNextRefreshTime(Long.MAX_VALUE);
+        casino.getSpecialGuestPurchaseCounts().put("20:201", 2);
+
+        assertEquals(true, ReflectionTestUtils.invokeMethod(service, "ensureSpecialGuestOffers", ctx, 1L));
+
+        assertEquals(Map.of(30, List.of(101)), casino.getSpecialGuestQualityCfgIds());
+        List<SpecialGuestInfo> list = ReflectionTestUtils.invokeMethod(service, "buildSpecialGuestList", ctx, base);
+        assertTrue(list.stream().anyMatch(info -> info.poolId == 30 && info.id == 101));
+        assertEquals(4, casino.getSpecialGuestOfferVersion());
+        assertEquals(Long.MAX_VALUE, casino.getSpecialGuestNextRefreshTime());
+        assertEquals(2, casino.getSpecialGuestPurchaseCounts().get("20:201"));
+    }
+
+    @Test
+    void initializedEmptyQualityOffersDoNotRerollBeforeRefreshTime() {
+        casino.setSpecialGuestQualityCfgIds(null);
+        when(qualityPool.getRate()).thenReturn(0);
+        assertEquals(true, ReflectionTestUtils.invokeMethod(service, "ensureSpecialGuestOffers", ctx, 1L));
+        assertTrue(casino.getSpecialGuestQualityCfgIds().isEmpty());
+        assertFalse(casino.needsSpecialGuestQualityInitialization());
+
+        when(qualityPool.getRate()).thenReturn(100);
+        assertEquals(true, ReflectionTestUtils.invokeMethod(service, "ensureSpecialGuestOffers", ctx, 2L));
+
+        assertTrue(casino.getSpecialGuestQualityCfgIds().isEmpty());
+        assertEquals(4, casino.getSpecialGuestOfferVersion());
+    }
+
+    @Test
+    void qualityOffersInitializeAndRefreshWithoutPaidPool() {
+        when(cache.getVisitorTargetListCfg(1, POOL_PAID)).thenReturn(null);
+        casino.setSpecialGuestPaidCfgIds(null);
+        casino.setSpecialGuestQualityCfgIds(null);
+        when(qualityPool.getIsRefreshByTimePeriod()).thenReturn(true);
+        when(cache.getSpecialGuestDailyRefreshHours()).thenReturn(List.of(0, 12));
+        long now = LocalDateTime.of(2026, 9, 15, 12, 0).atZone(ZoneId.systemDefault()).toInstant().toEpochMilli();
+
+        assertEquals(true, ReflectionTestUtils.invokeMethod(service, "ensureSpecialGuestOffers", ctx, now));
+        assertEquals(Map.of(30, List.of(101)), casino.getSpecialGuestQualityCfgIds());
+        assertNull(casino.getSpecialGuestPaidCfgIds());
+        long next = now + 12 * 60 * 60 * 1000L;
+        assertEquals(next, casino.getSpecialGuestNextRefreshTime());
+        assertEquals(5, casino.getSpecialGuestOfferVersion());
+
+        casino.getSpecialGuestPurchaseCounts().put("30:101", 1);
+        when(qualityPool.getRate()).thenReturn(0);
+        assertEquals(true, ReflectionTestUtils.invokeMethod(service, "ensureSpecialGuestOffers", ctx, next));
+        assertTrue(casino.getSpecialGuestQualityCfgIds().isEmpty());
+        assertTrue(casino.getSpecialGuestPurchaseCounts().isEmpty());
+        assertEquals(6, casino.getSpecialGuestOfferVersion());
+    }
+
+    @Test
+    void missingPaidOffersInitializeWhenQualityOffersAlreadyExist() {
+        casino.setSpecialGuestPaidCfgIds(null);
+        assertEquals(true, ReflectionTestUtils.invokeMethod(service, "ensureSpecialGuestOffers", ctx, 1L));
+        assertNotNull(casino.getSpecialGuestPaidCfgIds());
+        assertEquals(5, casino.getSpecialGuestOfferVersion());
+    }
+
+    @Test
     void rateZeroAndHundredAreExactAndFailedPoolDoesNotLeaveStaleOffers() {
         when(qualityPool.getRate()).thenReturn(0);
         refresh();

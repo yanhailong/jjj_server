@@ -1,5 +1,9 @@
 package com.jjg.game.sim.handler;
 
+import com.jjg.game.activepass.bridge.ActivePassBridge;
+import com.jjg.game.activepass.pb.*;
+import com.jjg.game.activepass.service.ActivePassRouter;
+import com.jjg.game.activepass.service.ActivePassService;
 import com.jjg.game.common.cluster.ClusterClient;
 import com.jjg.game.common.concurrent.BaseHandler;
 import com.jjg.game.common.concurrent.PlayerExecutorGroupDisruptor;
@@ -97,9 +101,51 @@ public class SimMessageHandler implements GmListener {
     private SimNodeService simNodeService;
     @Autowired
     private RedDotManager redDotManager;
+    @Autowired
+    private ActivePassRouter activePassRouter;
+    @Autowired
+    private ActivePassService activePassService;
     @ClusterRpcReference
     private ToSimBridge toSimBridge;
 
+    @Command(SimConstant.MsgBean.REQ_ACTIVE_PASS_INFO)
+    public void reqActivePassInfo(PlayerController pc, ReqActivePassInfo req) {
+        executeActivePass(pc, SimConstant.MsgBean.REQ_ACTIVE_PASS_INFO, activePassService::info, rpc -> rpc.activePassInfo(pc.playerId()));
+    }
+
+    @Command(SimConstant.MsgBean.REQ_ACTIVE_PASS_TASK_CLAIM)
+    public void reqActivePassTaskClaim(PlayerController pc, ReqActivePassTaskClaim req) {
+        executeActivePass(pc, SimConstant.MsgBean.REQ_ACTIVE_PASS_TASK_CLAIM, ctx -> activePassService.claimTask(ctx, req.passId, req.taskId, req.day),
+                rpc -> rpc.claimActivePassTask(pc.playerId(), req.passId, req.taskId, req.day));
+    }
+
+    @Command(SimConstant.MsgBean.REQ_ACTIVE_PASS_REWARD_CLAIM)
+    public void reqActivePassRewardClaim(PlayerController pc, ReqActivePassRewardClaim req) {
+        executeActivePass(pc, SimConstant.MsgBean.REQ_ACTIVE_PASS_REWARD_CLAIM, ctx -> activePassService.claimRewards(ctx, req.passId, req.rewardId, req.track),
+                rpc -> rpc.claimActivePassRewards(pc.playerId(), req.passId, req.rewardId, req.track));
+    }
+
+    @Command(SimConstant.MsgBean.REQ_ACTIVE_PASS_BUY_POINTS)
+    public void reqActivePassBuyPoints(PlayerController pc, ReqActivePassBuyPoints req) {
+        executeActivePass(pc, SimConstant.MsgBean.REQ_ACTIVE_PASS_BUY_POINTS,
+                ctx -> activePassService.buyPoints(ctx, req.passId, req.count, req.expectedPurchasedPoints),
+                rpc -> rpc.buyActivePassPoints(pc.playerId(), req.passId, req.count, req.expectedPurchasedPoints));
+    }
+
+    private void executeActivePass(PlayerController pc, int cmd, Function<SimPlayerContext, ResActivePass> local,
+                                   Function<ActivePassBridge, ResActivePass> remote) {
+        ResActivePass response;
+        try {
+            response = activePassRouter.execute(pc.playerId(), pc.ipAddress(),
+                    () -> local.apply(simPlayerContextRegistry.getContext(pc.playerId())), remote);
+            if (response == null) { response = new ResActivePass(Code.EXCEPTION); }
+        } catch (Exception e) {
+            log.error("活跃通行证请求失败 playerId={},cmd={}", pc.playerId(), cmd, e);
+            response = new ResActivePass(Code.EXCEPTION);
+        }
+        response.requestCmd = cmd;
+        pc.send(response);
+    }
 
     /**
      * 进入游戏
