@@ -17,7 +17,6 @@ import com.jjg.game.sim.constant.BuildingType;
 import com.jjg.game.sim.constant.ServerBuildingType;
 import com.jjg.game.sim.constant.SimConstant;
 import com.jjg.game.sim.data.BuildingData;
-import com.jjg.game.sim.data.GuestData;
 import com.jjg.game.sim.data.SimCasinoData;
 import com.jjg.game.sim.data.SimPlayerContext;
 import com.jjg.game.sim.listener.SimPlayerTickListener;
@@ -70,7 +69,7 @@ public class SimOperationDashboardService implements IRedDotService, SimPlayerTi
     private static final int RESEARCH_CURRENT = 2;
     private static final int RESEARCH_FUTURE = 3;
 
-    //策划要求只展示蓝、紫、橙三档高级游客，对应 VisitorQuest.Quality 3/4/5。
+    //策划要求只展示蓝(精英)、紫(卓越)、橙(VIP)三档高级游客，对应 VisitorQuest.Quality 3/4/5。
     private static final List<Integer> PREMIUM_QUALITIES = List.of(3, 4, 5);
 
     @Autowired
@@ -563,35 +562,57 @@ public class SimOperationDashboardService implements IRedDotService, SimPlayerTi
     }
 
     private List<OperationVisitorQualityRate> premiumVisitorRates(SimCasinoData casino) {
-        Map<Integer, Long> weights = new HashMap<>();
-        long totalWeight = 0;
-        if (casino.getGuestMap() != null) {
-            for (GuestData guest : casino.getGuestMap().values()) {
-                VisitorQuestCfg cfg = guest == null ? null : GameDataManager.getVisitorQuestCfg(guest.getId());
-                if (cfg == null) {
-                    continue;
-                }
-                long weight = guestService.effectiveRefreshWeight(casino, cfg);
-                if (weight <= 0) {
-                    continue;
-                }
-                weights.merge(cfg.getQuality(), weight, Long::sum);
-                totalWeight += weight;
-            }
+        Map<Integer, OperationVisitorQualityRate> allRates = new HashMap<>();
+        for (OperationVisitorQualityRate rate : marketingVisitorQualityRates(casino)) {
+            allRates.put(rate.quality, rate);
         }
-
         List<OperationVisitorQualityRate> result = new ArrayList<>(PREMIUM_QUALITIES.size());
         for (Integer quality : PREMIUM_QUALITIES) {
-            long weight = weights.getOrDefault(quality, 0L);
-            OperationVisitorQualityRate data = new OperationVisitorQualityRate();
-            data.quality = quality;
-            data.weight = weight;
-            data.rate = totalWeight <= 0 ? 0
-                    : (int) Math.min(SimConstant.Common.DASHBOARD_RATE_BASE,
-                    weight * SimConstant.Common.DASHBOARD_RATE_BASE / totalWeight);
-            result.add(data);
+            OperationVisitorQualityRate rate = allRates.get(quality);
+            if (rate == null) {
+                rate = new OperationVisitorQualityRate();
+                rate.quality = quality;
+            }
+            result.add(rate);
         }
         return result;
+    }
+
+    /**
+     * 营销部建筑详情和数据看板共用同一套游客接待等级概率。
+     * 沿用建筑详情口径：每档取一条 VisitorQuest 配置，知名度修正后按总权重计算整百分比。
+     */
+    public List<OperationVisitorQualityRate> marketingVisitorQualityRates(SimCasinoData casino) {
+        GlobalConfigCfg globalCfg = GameDataManager.getGlobalConfigCfg(SimConstant.Global.GUEST_AWARENESS_MAX);
+        Map<Integer, List<VisitorQuestCfg>> qualityCfgs = configCache.getVisitorQuestCfgMap();
+        if (casino == null || globalCfg == null || globalCfg.getIntValue() <= 0
+                || qualityCfgs == null || qualityCfgs.isEmpty()) {
+            return Collections.emptyList();
+        }
+
+        List<OperationVisitorQualityRate> rates = new ArrayList<>(qualityCfgs.size());
+        long totalWeight = 0;
+        for (Map.Entry<Integer, List<VisitorQuestCfg>> entry : qualityCfgs.entrySet()) {
+            if (entry.getValue() == null || entry.getValue().isEmpty()) {
+                continue;
+            }
+            VisitorQuestCfg cfg = entry.getValue().getFirst();
+            OperationVisitorQualityRate rate = new OperationVisitorQualityRate();
+            rate.quality = entry.getKey();
+            rate.weight = (int) ((double) casino.getAwareness() / globalCfg.getIntValue()
+                    * cfg.getAwareness() + cfg.getBaseWeight());
+            totalWeight += rate.weight;
+            rates.add(rate);
+        }
+        if (totalWeight <= 0) {
+            return Collections.emptyList();
+        }
+        for (OperationVisitorQualityRate rate : rates) {
+            // 建筑详情只展示整数百分比；PB 使用万分比，所以再乘100。
+            rate.rate = (int) ((double) rate.weight / totalWeight * 100) * 100;
+        }
+        rates.sort(Comparator.comparingInt(rate -> rate.quality));
+        return rates;
     }
 
     private Map<Integer, Integer> expectedBuildingLevels(SimCasinoData casino) {

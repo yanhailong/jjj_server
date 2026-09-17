@@ -6,7 +6,6 @@ import com.jjg.game.sampledata.GameDataManager;
 import com.jjg.game.sampledata.bean.*;
 import com.jjg.game.sim.constant.BuildingType;
 import com.jjg.game.sim.constant.ServerBuildingType;
-import com.jjg.game.sim.constant.SimConstant;
 import com.jjg.game.sim.data.*;
 import com.jjg.game.sim.pb.struct.*;
 import com.jjg.game.sim.service.SimBuildingService;
@@ -85,24 +84,15 @@ public final class SimPbConverter {
         } else {
             int marketBuildId = simConfigCacheService.getCasinoManageBuildId(ctx.getCurrentCasino().getCasinoId(), ServerBuildingType.MARKETING);
             if (marketBuildId == info.id) {
-                GlobalConfigCfg globalConfigCfg = GameDataManager.getGlobalConfigCfg(SimConstant.Global.GUEST_AWARENESS_MAX);
-                List<KVInfo> tmpList = new ArrayList<>();
-                int sum = 0;
-                for (Map.Entry<Integer, List<VisitorQuestCfg>> en : simConfigCacheService.getVisitorQuestCfgMap().entrySet()) {
-                    KVInfo kvInfo = new KVInfo();
-                    kvInfo.key = en.getKey();
-                    VisitorQuestCfg visitorQuestCfg = en.getValue().stream().findFirst().get();
-                    kvInfo.value = (int) ((double) ctx.getCurrentCasino().getAwareness() / globalConfigCfg.getIntValue() * visitorQuestCfg.getAwareness() + visitorQuestCfg.getBaseWeight());
-                    sum += kvInfo.value;
-                    tmpList.add(kvInfo);
-                }
-
-                if (sum > 0) {
+                List<OperationVisitorQualityRate> qualityRates = CommonUtil.getContext()
+                        .getBean(SimOperationDashboardService.class)
+                        .marketingVisitorQualityRates(ctx.getCurrentCasino());
+                if (!qualityRates.isEmpty()) {
                     info.guestQualityList = new ArrayList<>();
-                    for (KVInfo kv : tmpList) {
+                    for (OperationVisitorQualityRate rate : qualityRates) {
                         KVInfo kvInfo = new KVInfo();
-                        kvInfo.key = kv.key;
-                        kvInfo.value = (int) ((double) kv.value / sum * 100);
+                        kvInfo.key = rate.quality;
+                        kvInfo.value = rate.rate / 100;
                         info.guestQualityList.add(kvInfo);
                     }
                 }
