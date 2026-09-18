@@ -493,6 +493,41 @@ public class SimGuestService implements SimPlayerTickListener, ItemListener, Sim
         return notify.guests.size() + cacheSize;
     }
 
+    /**
+     * 批量生成 count 个用于展示的普通假游客，不发奖励、不加经验、不写入任何接待或生成记录，也不推送消息。
+     * 无可选游客或可用目的地时跳过，返回实际生成的列表，展示奖励放入 fakeRewards。
+     */
+    public List<GuestInfo> batchGenerateFakeGuests(SimPlayerContext ctx, int count) {
+        if (count <= 0) {
+            return null;
+        }
+        List<GuestInfo> guests = new ArrayList<>();
+        SimCasinoData casino = ctx.getCurrentCasino();
+        WeightRandom<GuestData> random = weightRandomGuest(casino);
+        int prosperity = buildingService.computeProsperity(casino);
+        for (int i = 0; i < count; i++) {
+            GuestData guest = random.next();
+            if (guest == null) {
+                break;
+            }
+            VisitorQuestCfg visitorQuestCfg = GameDataManager.getVisitorQuestCfg(guest.getId());
+            if (visitorQuestCfg == null) {
+                continue;
+            }
+            VisitorStarCfg starCfg = rewardService.getStarCfg(guest.getId(), guest.getStar());
+            int rewardedCount = computeInteractionCount(ctx, visitorQuestCfg.getServiceCapacity(), prosperity, starCfg);
+            List<DestinationInfo> destinations = planDestinations(guest, visitorQuestCfg, casino, rewardedCount, false);
+            if (destinations.isEmpty()) {
+                continue;
+            }
+            for (DestinationInfo destination : destinations) {
+                destination.fakeRewards = true;
+            }
+            guests.add(SimPbConverter.toGuestInfo(guest, destinations, visitorQuestCfg));
+        }
+        return guests;
+    }
+
     private GuestInfo generateOneGuest(SimPlayerContext ctx, WeightRandom<GuestData> guestDataWeightRandom, CasinoStatsSheetCfg casinoCfg, long now, GuestData specifyGuest) {
         return generateOneGuest(ctx, guestDataWeightRandom, casinoCfg, now, specifyGuest, true);
     }
@@ -751,6 +786,10 @@ public class SimGuestService implements SimPlayerTickListener, ItemListener, Sim
      * - 有奖励交互点结算奖励到 dest.rewards (是否添加到玩家身上由调用方决定)
      */
     private List<DestinationInfo> planDestinations(GuestData guest, VisitorQuestCfg cfg, SimCasinoData casino, int rewardedCount) {
+        return planDestinations(guest, cfg, casino, rewardedCount, true);
+    }
+
+    private List<DestinationInfo> planDestinations(GuestData guest, VisitorQuestCfg cfg, SimCasinoData casino, int rewardedCount, boolean recordReception) {
         if (rewardedCount < 1) {
             return Collections.emptyList();
         }
@@ -764,7 +803,7 @@ public class SimGuestService implements SimPlayerTickListener, ItemListener, Sim
                 if (en.getValue() == null || en.getValue() <= 0 || RandomUtils.randomInt(100) >= en.getValue()) {
                     continue;
                 }
-                DestinationInfo dest = pickBuildingDevice(en.getKey(), casino);
+                DestinationInfo dest = pickBuildingDevice(en.getKey(), casino, recordReception);
                 if (dest != null) {
                     //前台不产生奖励
 //                    rewardService.grantReward(guest, dest);
@@ -797,7 +836,7 @@ public class SimGuestService implements SimPlayerTickListener, ItemListener, Sim
                 if (buildingId == null) {
                     continue;
                 }
-                DestinationInfo dest = pickBuildingDevice(buildingId, casino);
+                DestinationInfo dest = pickBuildingDevice(buildingId, casino, recordReception);
                 if (dest != null) {
                     rewardService.grantReward(guest, dest);
                     dest.index = id;
@@ -816,7 +855,7 @@ public class SimGuestService implements SimPlayerTickListener, ItemListener, Sim
             while (added < rewardedCount && safety-- > 0) {
                 int buildingId = targetArea.get(cursor % targetArea.size());
                 cursor++;
-                DestinationInfo dest = pickBuildingDevice(buildingId, casino);
+                DestinationInfo dest = pickBuildingDevice(buildingId, casino, recordReception);
                 if (dest != null) {
                     rewardService.grantReward(guest, dest);
                     dest.index = id;
@@ -832,7 +871,7 @@ public class SimGuestService implements SimPlayerTickListener, ItemListener, Sim
     /**
      * 在指定建筑随机挑一个交互设备 (建筑必须已解锁)
      */
-    private DestinationInfo pickBuildingDevice(int buildingId, SimCasinoData casino) {
+    private DestinationInfo pickBuildingDevice(int buildingId, SimCasinoData casino, boolean recordReception) {
         BuildingData building = casino.findBuilding(buildingId);
         if (building == null) {
             return null;
@@ -850,7 +889,9 @@ public class SimGuestService implements SimPlayerTickListener, ItemListener, Sim
             return null;
         }
 
-        building.incrementReceptCount();
+        if (recordReception) {
+            building.incrementReceptCount();
+        }
 
         BuildingAreaTableCfg cfg = GameDataManager.getBuildingAreaTableCfg(buildingId);
 

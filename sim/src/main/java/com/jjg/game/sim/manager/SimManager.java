@@ -8,6 +8,8 @@ import com.jjg.game.common.cluster.ClusterSystem;
 import com.jjg.game.common.concurrent.BaseHandler;
 import com.jjg.game.common.concurrent.PlayerExecutorGroupDisruptor;
 import com.jjg.game.common.utils.WheelTimerUtil;
+import com.jjg.game.core.base.condition.numeric.ActionConditionEvent;
+import com.jjg.game.core.base.condition.numeric.GameConditionEvent;
 import com.jjg.game.core.constant.Code;
 import com.jjg.game.core.data.CommonResult;
 import com.jjg.game.core.data.ExitType;
@@ -20,6 +22,13 @@ import com.jjg.game.core.service.PlayerStatService;
 import com.jjg.game.sampledata.GameDataManager;
 import com.jjg.game.sampledata.bean.ItemCfg;
 import com.jjg.game.sampledata.bean.VisitorQuestCfg;
+import com.jjg.game.season.dao.SeasonPlayerDao;
+import com.jjg.game.season.data.SeasonFreeSpinResult;
+import com.jjg.game.season.data.SeasonPlayerData;
+import com.jjg.game.season.service.SeasonEconomyService;
+import com.jjg.game.season.service.SeasonFreeGameService;
+import com.jjg.game.season.service.SeasonLifecycleService;
+import com.jjg.game.season.service.SeasonService;
 import com.jjg.game.sim.constant.SimConstant;
 import com.jjg.game.sim.dao.*;
 import com.jjg.game.sim.data.*;
@@ -28,17 +37,8 @@ import com.jjg.game.sim.pb.SimPbConverter;
 import com.jjg.game.sim.pb.res.ResFinishGuide;
 import com.jjg.game.sim.pb.res.ResSimEnterGame;
 import com.jjg.game.sim.pb.res.ResSimPlayerInfo;
-import com.jjg.game.season.dao.SeasonPlayerDao;
-import com.jjg.game.season.data.SeasonFreeSpinResult;
-import com.jjg.game.season.data.SeasonPlayerData;
-import com.jjg.game.season.service.SeasonEconomyService;
-import com.jjg.game.season.service.SeasonFreeGameService;
-import com.jjg.game.season.service.SeasonLifecycleService;
-import com.jjg.game.season.service.SeasonService;
 import com.jjg.game.sim.pb.struct.GuestInfo;
 import com.jjg.game.sim.service.*;
-import com.jjg.game.core.base.condition.numeric.GameConditionEvent;
-import com.jjg.game.core.base.condition.numeric.ActionConditionEvent;
 import io.netty.util.Timeout;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -282,24 +282,35 @@ public class SimManager {
             }
 
             //检查是否有缓存的游客列表
+            int cacheGuestSize = 0;
             if (ctx.getCurrentCasino().cacheGuestInfoListSize() > 0) {
                 if (res.purchasedGuests == null) {
                     res.purchasedGuests = new ArrayList<>();
                 }
-
                 Iterator<GuestInfo> it = ctx.getCurrentCasino().getCacheGuestInfoList().iterator();
                 while (it.hasNext()) {
                     GuestInfo guestInfo = it.next();
                     simGuestService.handCacheGuest(ctx, guestInfo);
                     res.purchasedGuests.add(guestInfo);
                     it.remove();
+                    cacheGuestSize++;
                 }
+            }
 
+            //需要生成的假人数量
+            int fakeGuestSize = ctx.getCurrentCasino().getCacheGuestSize() - cacheGuestSize;
+            List<GuestInfo> fakeGuestInfos = simGuestService.batchGenerateFakeGuests(ctx, fakeGuestSize);
+            if (fakeGuestInfos != null && !fakeGuestInfos.isEmpty()) {
+                if (res.purchasedGuests == null) {
+                    res.purchasedGuests = fakeGuestInfos;
+                } else {
+                    res.purchasedGuests.addAll(fakeGuestInfos);
+                }
             }
 
             //离线收益已在登录时结算, 这里仅从快照构建下发
             res.offlineReward = buildingService.buildOfflineRewardPb(ctx.getPendingOffline());
-            log.info("玩家进入游戏 playerId={},res={}", playerController.playerId(), JSONObject.toJSONString(res));
+            log.info("玩家进入游戏 playerId={}", playerController.playerId());
             playerController.send(res);
             return;
         } catch (Exception e) {

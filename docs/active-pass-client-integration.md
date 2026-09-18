@@ -260,17 +260,3 @@ max(0, min(
 | 预下单成功、支付取消、支付延迟到账 | 仅按服务端权益解锁；不以下单成功代替支付到账 |
 | 跨期支付与期末未领奖 | 新期不被旧订单解锁，符合条件的旧期奖励走现有邮件 |
 | 入口隐藏的游戏 | 图标遵循 global352；任务仍可计数，接口不受显示配置限制 |
-
-以上是客户端待执行的验收项，不代表已经完成客户端或真实支付联调。
-
-## 11. 契约来源与交接文件
-
-以下路径相对服务端仓库根目录，用于开发人员或 Codex 定位实现。客户端仓库无这些源码时，交接本文、同版本生成协议和配置即可；不要求复制服务端业务实现。
-
-- 消息号：`sim/src/main/java/com/jjg/game/sim/constant/SimConstant.java` 的 MsgBean。
-- 消息结构：`sim/src/main/java/com/jjg/game/activepass/pb/`。
-- 请求入口：`sim/src/main/java/com/jjg/game/sim/handler/SimMessageHandler.java`。
-- 行为与错误码：`sim/src/main/java/com/jjg/game/activepass/service/ActivePassService.java`、`core/src/main/java/com/jjg/game/core/constant/Code.java`。
-- 通行证订单：`sim/src/main/java/com/jjg/game/activepass/service/ActivePassOrderService.java`。
-- 通用支付协议：`core/src/main/java/com/jjg/game/core/pb/ReqGenerateOrder.java`、`ResGenerateOrder.java`。
-- 简版接口索引：[active-pass-protocol.md](active-pass-protocol.md)。
